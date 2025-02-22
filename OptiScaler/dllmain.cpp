@@ -2292,38 +2292,52 @@ static void CheckQuirks() {
 
 bool isNvidia()
 {
+    LOG_INFO("isNvidia, entry");
+
     auto nvapiModule = GetModuleHandleW(L"nvapi64.dll");
+    LOG_INFO("isNvidia, module handle");
 
     bool loadedHere = false;
     if (!nvapiModule) {
         nvapiModule = LoadLibraryExW(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
         loadedHere = true;
     }
+    LOG_INFO("isNvidia, if nvapi module");
 
     // No nvapi, should not be nvidia
     if (!nvapiModule)
         return false;
+    LOG_INFO("isNvidia, nvidia found?");
 
     NvAPI_Status result = NVAPI_NVIDIA_DEVICE_NOT_FOUND;
 
     if (auto o_NvAPI_QueryInterface = (PFN_NvApi_QueryInterface)GetProcAddress(nvapiModule, "nvapi_QueryInterface"))
     {
+        LOG_INFO("isNvidia, if query entry");
         auto init = static_cast<decltype(&NvAPI_Initialize)>(o_NvAPI_QueryInterface(GET_ID(NvAPI_Initialize)));
         result = init();
+        LOG_INFO("isNvidia, cast 1");
 
         if (result == NVAPI_OK)
         {
+            LOG_INFO("isNvidia, if OK entry");
             if (auto unload = static_cast<decltype(&NvAPI_Unload)>(o_NvAPI_QueryInterface(GET_ID(NvAPI_Unload))))
+                LOG_INFO("isNvidia, if cast entry");
                 unload();
+                LOG_INFO("isNvidia, unload");
 
             // Check for fakenvapi in system32, assume it's not nvidia if found
             if (o_NvAPI_QueryInterface(GET_ID(Fake_InformFGState)) != nullptr)
+                LOG_INFO("isNvidia, if fake entry");
                 return false;
         }
     }
 
+    LOG_INFO("isNvidia, we made it here");
     if (loadedHere)
+        LOG_INFO("isNvidia, if loaded entry");
         FreeLibrary(nvapiModule);
+        LOG_INFO("isNvidia, free library");
 
     return result != NVAPI_NVIDIA_DEVICE_NOT_FOUND;
 }
