@@ -2321,23 +2321,26 @@ bool isNvidia()
         if (result == NVAPI_OK)
         {
             LOG_INFO("isNvidia, if OK entry");
-            if (auto unload = static_cast<decltype(&NvAPI_Unload)>(o_NvAPI_QueryInterface(GET_ID(NvAPI_Unload))))
+            if (auto unload = static_cast<decltype(&NvAPI_Unload)>(o_NvAPI_QueryInterface(GET_ID(NvAPI_Unload)))) {
                 LOG_INFO("isNvidia, if cast entry");
                 unload();
                 LOG_INFO("isNvidia, unload");
+            }
 
             // Check for fakenvapi in system32, assume it's not nvidia if found
-            if (o_NvAPI_QueryInterface(GET_ID(Fake_InformFGState)) != nullptr)
+            if (o_NvAPI_QueryInterface(GET_ID(Fake_InformFGState)) != nullptr) {
                 LOG_INFO("isNvidia, if fake entry");
                 return false;
+            }
         }
     }
 
     LOG_INFO("isNvidia, we made it here");
-    if (loadedHere)
+    if (loadedHere) {
         LOG_INFO("isNvidia, if loaded entry");
         FreeLibrary(nvapiModule);
         LOG_INFO("isNvidia, free library");
+    }
 
     return result != NVAPI_NVIDIA_DEVICE_NOT_FOUND;
 }
