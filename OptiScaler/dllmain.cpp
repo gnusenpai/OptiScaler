@@ -2315,8 +2315,9 @@ bool isNvidia()
     {
         LOG_INFO("isNvidia, if query entry");
         auto init = static_cast<decltype(&NvAPI_Initialize)>(o_NvAPI_QueryInterface(GET_ID(NvAPI_Initialize)));
-        result = init();
         LOG_INFO("isNvidia, cast 1");
+        result = init();
+        LOG_INFO("isNvidia, init");
 
         if (result == NVAPI_OK)
         {
