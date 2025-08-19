@@ -66,7 +66,7 @@ void IFGFeature_Dx12::FlipResource(Dx12Resource* resource)
     flipOutput = _resourceCopy[fIndex][type];
 
     if (!CreateBufferResource(_device, resource->resource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, &flipOutput, true,
-                              false))
+                              resource->type == FG_ResourceType::Depth))
     {
         LOG_ERROR("{}, CreateBufferResource for flip is failed!", magic_enum::enum_name(type));
         return;
@@ -74,7 +74,7 @@ void IFGFeature_Dx12::FlipResource(Dx12Resource* resource)
 
     _resourceCopy[fIndex][type] = flipOutput;
 
-    if (type != FG_ResourceType::Depth)
+    if (type == FG_ResourceType::Depth)
     {
         if (_depthFlip.get() == nullptr)
         {
