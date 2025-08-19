@@ -213,7 +213,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UIN
 
     HRESULT result;
 
-    if (!(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART) && RenderTrig != nullptr)
+    if ((Flags & DXGI_PRESENT_TEST) == 0 && RenderTrig != nullptr)
     {
         result = RenderTrig(m_pReal, SyncInterval, Flags, nullptr, Device, Handle, UWP);
 
@@ -480,7 +480,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UI
 
     HRESULT result;
 
-    if (!(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART) && RenderTrig != nullptr)
+    if ((Flags & DXGI_PRESENT_TEST) == 0 && RenderTrig != nullptr)
     {
         result = RenderTrig(m_pReal1, SyncInterval, Flags, pPresentParameters, Device, Handle, UWP);
 
