@@ -1524,6 +1524,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     float meterFactor = 0.0f;
     float mvScaleX = 0.0f;
     float mvScaleY = 0.0f;
+    float jitterX = 0.0f;
+    float jitterY = 0.0f;
 
     {
         float tempCameraNear = 0.0f;
@@ -1576,6 +1578,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
 
         InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_X, &mvScaleX);
         InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &mvScaleY);
+        InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_X, &jitterX);
+        InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_Y, &jitterY);
 
         if (fg != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
         {
@@ -1586,6 +1590,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             fg->SetCameraValues(cameraNear, cameraFar, cameraVFov, aspectRatio, meterFactor);
             fg->SetFrameTimeDelta(State::Instance().lastFrameTime);
             fg->SetMVScale(mvScaleX, mvScaleY);
+            fg->SetJitter(jitterX, jitterY);
             fg->SetReset(reset);
             fg->SetInterpolationRect(deviceContext->feature->DisplayWidth(), deviceContext->feature->DisplayHeight());
 
