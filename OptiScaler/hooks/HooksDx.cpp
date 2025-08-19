@@ -343,12 +343,14 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
 
 static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 {
+    LOG_DEBUG("SyncInterval: {}, Flags: {:X}", SyncInterval, Flags);
     return FGPresent(This, SyncInterval, Flags, nullptr);
 }
 
 static HRESULT hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
                             const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
+    LOG_DEBUG("SyncInterval: {}, Flags: {:X}", SyncInterval, Flags);
     return FGPresent(This, SyncInterval, Flags, pPresentParameters);
 }
 
