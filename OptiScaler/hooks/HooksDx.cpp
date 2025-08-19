@@ -56,6 +56,8 @@ typedef HRESULT (*PFN_CreateSwapChainForCoreWindow)(IDXGIFactory2*, IUnknown* pD
                                                     IDXGISwapChain1** ppSwapChain);
 
 typedef HRESULT (*PFN_Present)(void* This, UINT SyncInterval, UINT Flags);
+typedef HRESULT (*PFN_Present1)(void* This, UINT SyncInterval, UINT Flags,
+                                const DXGI_PRESENT_PARAMETERS* pPresentParameters);
 
 static DxgiProxy::PFN_CreateDxgiFactory o_CreateDXGIFactory = nullptr;
 static DxgiProxy::PFN_CreateDxgiFactory1 o_CreateDXGIFactory1 = nullptr;
@@ -71,6 +73,7 @@ static PFN_CreateSwapChainForHwnd oCreateSwapChainForHwnd = nullptr;
 static PFN_CreateSwapChainForCoreWindow oCreateSwapChainForCoreWindow = nullptr;
 
 static PFN_Present o_FGSCPresent = nullptr;
+static PFN_Present1 o_FGSCPresent1 = nullptr;
 
 static bool skipHighPerfCheck = false;
 
@@ -193,12 +196,17 @@ static bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnk
 
 #pragma region Callbacks for wrapped swapchain
 
-static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
+static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
     if (State::Instance().isShuttingDown)
-        return o_FGSCPresent(This, SyncInterval, Flags);
+    {
+        if (pPresentParameters == nullptr)
+            return o_FGSCPresent(This, SyncInterval, Flags);
+        else
+            return o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
+    }
 
-    auto willPresent = !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART);
+    auto willPresent = (Flags & DXGI_PRESENT_TEST) == 0;
 
     if (willPresent)
     {
@@ -273,7 +281,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         LOG_TRACE("Accuired FG->Mutex: {}", fg->Mutex.getOwner());
     }
 
-    if (willPresent && State::Instance().currentCommandQueue != nullptr && fg != nullptr && fg->IsActive())
+    if (willPresent && fg != nullptr && fg->IsActive())
     {
         fg->Present();
     }
@@ -313,7 +321,10 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     }
 
     HRESULT result;
-    result = o_FGSCPresent(This, SyncInterval, Flags);
+    if (pPresentParameters == nullptr)
+        result = o_FGSCPresent(This, SyncInterval, Flags);
+    else
+        result = o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
     LOG_DEBUG("Result: {:X}", result);
 
     Hudfix_Dx12::PresentEnd();
@@ -328,6 +339,17 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     }
 
     return result;
+}
+
+static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
+{
+    return FGPresent(This, SyncInterval, Flags, nullptr);
+}
+
+static HRESULT hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
+                            const DXGI_PRESENT_PARAMETERS* pPresentParameters)
+{
+    return FGPresent(This, SyncInterval, Flags, pPresentParameters);
 }
 
 static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags,
@@ -922,17 +944,24 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
                 void** pFactoryVTable = *reinterpret_cast<void***>(*ppSwapChain);
 
                 o_FGSCPresent = (PFN_Present) pFactoryVTable[8];
+                o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
 
                 if (o_FGSCPresent != nullptr)
                 {
                     LOG_INFO("Hooking FG SwapChain present");
 
-                    DetourTransactionBegin();
-                    DetourUpdateThread(GetCurrentThread());
+                    LONG result = 0;
 
-                    DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+                    result = DetourTransactionBegin();
 
-                    DetourTransactionCommit();
+                    result = DetourUpdateThread(GetCurrentThread());
+
+                    result = DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+
+                    if (o_FGSCPresent1 != nullptr)
+                        result = DetourAttach(&(PVOID&) o_FGSCPresent1, hkFGPresent1);
+
+                    result = DetourTransactionCommit();
                 }
             }
 
@@ -1185,7 +1214,7 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
     ID3D12CommandQueue* cq = nullptr;
     if ((State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG) &&
-        !_skipFGSwapChainCreation && FfxApiProxy::InitFfxDx12() && pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
+        !_skipFGSwapChainCreation && pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
     {
         cq->SetName(L"GameQueueHwnd");
         cq->Release();
@@ -1224,17 +1253,24 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
                 void** pFactoryVTable = *reinterpret_cast<void***>(*ppSwapChain);
 
                 o_FGSCPresent = (PFN_Present) pFactoryVTable[8];
+                o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
 
                 if (o_FGSCPresent != nullptr)
                 {
                     LOG_INFO("Hooking FG SwapChain present");
 
-                    DetourTransactionBegin();
-                    DetourUpdateThread(GetCurrentThread());
+                    LONG result = 0;
 
-                    DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+                    result = DetourTransactionBegin();
 
-                    DetourTransactionCommit();
+                    result = DetourUpdateThread(GetCurrentThread());
+
+                    result = DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+
+                    if (o_FGSCPresent1 != nullptr)
+                        result = DetourAttach(&(PVOID&) o_FGSCPresent1, hkFGPresent1);
+
+                    result = DetourTransactionCommit();
                 }
             }
 
