@@ -107,11 +107,7 @@ void IFGFeature::GetInterpolationRect(UINT& width, UINT& height)
     height = _interpolationHeight;
 }
 
-void IFGFeature::ResetCounters()
-{
-    _frameCount = 0;
-    _targetFrame = 0;
-}
+void IFGFeature::ResetCounters() { _targetFrame = _frameCount; }
 
 void IFGFeature::UpdateTarget()
 {
