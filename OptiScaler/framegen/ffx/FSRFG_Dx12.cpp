@@ -862,9 +862,9 @@ bool FSRFG_Dx12::Present()
 {
     if (State::Instance().FGHudlessCompare && IsActive() && !IsPaused())
     {
-        auto fIndex = GetIndex();
+        auto hudless = GetResource(FG_ResourceType::HudlessColor);
 
-        if (_frameResources[fIndex].contains(FG_ResourceType::HudlessColor))
+        if (hudless != nullptr && hudless->validity == FG_ResourceValidity::UntilPresent)
         {
             if (_hudlessCompare.get() == nullptr)
             {
@@ -873,9 +873,8 @@ bool FSRFG_Dx12::Present()
             else
             {
                 if (_hudlessCompare->IsInit())
-                    _hudlessCompare->Dispatch((IDXGISwapChain3*) _swapChain, _gameCommandQueue,
-                                              _frameResources[fIndex][FG_ResourceType::HudlessColor].GetResource(),
-                                              _frameResources[fIndex][FG_ResourceType::HudlessColor].state);
+                    _hudlessCompare->Dispatch((IDXGISwapChain3*) _swapChain, _gameCommandQueue, hudless->GetResource(),
+                                              hudless->state);
             }
         }
     }
