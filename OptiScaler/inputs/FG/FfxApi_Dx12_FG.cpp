@@ -231,6 +231,8 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
         return FFX_API_RETURN_ERROR_RUNTIME_ERROR;
     }
 
+    bool UIDisabled = !Config::Instance()->DrawUIOverFG.value_or_default();
+
     if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION)
     {
         auto cDesc = (ffxConfigureDescFrameGeneration*) desc;
@@ -246,7 +248,9 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
 
         LOG_DEBUG("FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION frameID: {} ", cDesc->frameID);
 
-        if (cDesc->frameGenerationEnabled && !fg->IsActive())
+        State::Instance().FSRFGInputActive = cDesc->frameGenerationEnabled;
+
+        if (cDesc->frameGenerationEnabled && !fg->IsActive() && Config::Instance()->FGEnabled.value_or_default())
         {
             fg->Activate();
             fg->ResetCounters();
@@ -290,7 +294,7 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                 auto crDesc = (ffxConfigureDescFrameGenerationSwapChainRegisterUiResourceDX12*) next;
                 LOG_DEBUG("UiResource found: {:X}", (size_t) crDesc->uiResource.resource);
 
-                if (fg->FrameGenerationContext() != nullptr && crDesc->uiResource.resource != nullptr)
+                if (!UIDisabled && fg->FrameGenerationContext() != nullptr && crDesc->uiResource.resource != nullptr)
                 {
                     auto validity = FG_ResourceValidity::UntilPresent;
                     if ((crDesc->flags & FFX_FRAMEGENERATION_UI_COMPOSITION_FLAG_ENABLE_INTERNAL_UI_DOUBLE_BUFFERING) >
@@ -410,7 +414,8 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                     auto crDesc = (ffxConfigureDescFrameGenerationSwapChainRegisterUiResourceDX12*) next;
                     LOG_DEBUG("UiResource found: {:X}", (size_t) crDesc->uiResource.resource);
 
-                    if (fg->FrameGenerationContext() != nullptr && crDesc->uiResource.resource != nullptr)
+                    if (!UIDisabled && fg->FrameGenerationContext() != nullptr &&
+                        crDesc->uiResource.resource != nullptr)
                     {
                         auto validity = FG_ResourceValidity::UntilPresent;
 
@@ -421,7 +426,7 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                                 "FFX_FRAMEGENERATION_UI_COMPOSITION_FLAG_ENABLE_INTERNAL_UI_DOUBLE_BUFFERING is set!");
 
                             // Not sure which cmdList to use
-                            // validity = FG_ResourceValidity::ValidButMakeCopy;
+                            validity = FG_ResourceValidity::ValidNow;
                         }
 
                         Dx12Resource ui {};
@@ -461,7 +466,7 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
         auto crDesc = (ffxConfigureDescFrameGenerationSwapChainRegisterUiResourceDX12*) desc;
         LOG_DEBUG("UiResource found: {:X}", (size_t) crDesc->uiResource.resource);
 
-        if (fg->FrameGenerationContext() != nullptr && crDesc->uiResource.resource != nullptr)
+        if (!UIDisabled && fg->FrameGenerationContext() != nullptr && crDesc->uiResource.resource != nullptr)
         {
             UINT width = 0;
             UINT height = 0;

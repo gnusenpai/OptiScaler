@@ -3286,6 +3286,49 @@ bool MenuCommon::RenderMenu()
                     }
                 }
 
+                // FSR-FG Inputs
+                if (State::Instance().api == DX12 && !State::Instance().isWorkingAsNvngx &&
+                    State::Instance().activeFgInput == FGInput::FSRFG)
+                {
+                    SeparatorWithHelpMarker("Frame Generation (FSR-FG Inputs)", "Select FSR-FG in-game");
+
+                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                    if (fgOutput != nullptr)
+                    {
+                        ImGui::Text("Current FSR-FG state:");
+                        ImGui::SameLine();
+                        if (State::Instance().FSRFGInputActive)
+                        {
+                            if (fgOutput->IsActive())
+                            {
+                                ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
+
+                                // TODO: doesn't check if the UI is available, and doesn't save to config
+                                if (bool drawUIOverFG = Config::Instance()->DrawUIOverFG.value_or_default();
+                                    ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
+                                    Config::Instance()->DrawUIOverFG = drawUIOverFG;
+
+                                ImGui::SameLine();
+
+                                if (bool uiPremultipliedAlpha =
+                                        Config::Instance()->UIPremultipliedAlpha.value_or_default();
+                                    ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
+                                    Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
+                            }
+                            else
+                            {
+                                ImGui::TextColored(ImVec4(1.0f, 0.647f, 0.0f, 1.f), "ACTIVATE FG");
+                            }
+                        }
+                        else
+                        {
+                            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "OFF");
+                            ImGui::Text("Please select FSR Frame Generation in the game options\n"
+                                        "You might need to select FSR first");
+                        }
+                    }
+                }
+
                 // Streamline FG Inputs
                 if (State::Instance().api == DX12 && !State::Instance().isWorkingAsNvngx &&
                     State::Instance().activeFgInput == FGInput::DLSSG)

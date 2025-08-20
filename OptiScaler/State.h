@@ -102,6 +102,7 @@ class State
     bool FGonlyUseCapturedResources = false;
 
     bool FSRFGFTPchanged = false;
+    bool FSRFGInputActive = false;
 
     ankerl::unordered_dense::map<void*, CapturedHudlessInfo> CapturedHudlesses;
     bool ClearCapturedHudlesses = false;
