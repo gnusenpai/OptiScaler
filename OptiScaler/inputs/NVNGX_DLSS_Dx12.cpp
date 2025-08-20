@@ -505,7 +505,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
 
     if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
     {
-        State::Instance().currentFG->StopAndDestroyContext(true, true);
+        State::Instance().currentFG->Shutdown();
         State::Instance().ClearCapturedHudlesses = true;
     }
 
@@ -935,7 +935,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_ReleaseFeature(NVSDK_NGX_Handle* 
     State::Instance().FGchanged = true;
     if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
     {
-        State::Instance().currentFG->StopAndDestroyContext(true, false);
+        State::Instance().currentFG->DestroyFGContext();
         State::Instance().ClearCapturedHudlesses = true;
         Hudfix_Dx12::ResetCounters();
     }
@@ -1281,7 +1281,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             if (State::Instance().currentFG != nullptr && State::Instance().currentFG->IsActive() &&
                 State::Instance().activeFgInput == FGInput::Upscaler)
             {
-                State::Instance().currentFG->StopAndDestroyContext(false, false);
+                State::Instance().currentFG->DestroyFGContext();
                 Hudfix_Dx12::ResetCounters();
                 State::Instance().FGchanged = true;
                 State::Instance().ClearCapturedHudlesses = true;
@@ -1646,8 +1646,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             }
             else
             {
-                setResource.width = deviceContext->feature->DisplayWidth();
-                setResource.height = deviceContext->feature->DisplayHeight();
+                setResource.width = deviceContext->feature->TargetWidth();
+                setResource.height = deviceContext->feature->TargetHeight();
             }
 
             fg->SetResource(&setResource);
@@ -1675,16 +1675,14 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
 
                     if (DepthScale->Dispatch(D3D12Device, InCmdList, paramDepth, DepthScale->Buffer()))
                     {
-                        DepthScale->SetBufferState(InCmdList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
                         Dx12Resource setResource {};
                         setResource.type = FG_ResourceType::Depth;
                         setResource.cmdList = commandList;
                         setResource.resource = DepthScale->Buffer();
                         setResource.width = deviceContext->feature->RenderWidth();
                         setResource.height = deviceContext->feature->RenderHeight();
-                        setResource.state = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-                        setResource.validity = FG_ResourceValidity::UntilPresent;
+                        setResource.state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                        setResource.validity = FG_ResourceValidity::JustTrackCmdlist;
 
                         fg->SetResource(&setResource);
 

@@ -33,8 +33,8 @@ typedef struct Dx12Resource
 class IFGFeature_Dx12 : public virtual IFGFeature
 {
   private:
-    ID3D12GraphicsCommandList* _copyCommandList {};
-    ID3D12CommandAllocator* _copyCommandAllocator {};
+    ID3D12GraphicsCommandList* _copyCommandList[BUFFER_COUNT] {};
+    ID3D12CommandAllocator* _copyCommandAllocator[BUFFER_COUNT] {};
 
     bool InitCopyCmdList();
     void DestroyCopyCmdList();
@@ -46,8 +46,9 @@ class IFGFeature_Dx12 : public virtual IFGFeature
 
     HWND _hwnd = NULL;
 
-    std::map<FG_ResourceType, Dx12Resource> _frameResources[BUFFER_COUNT] {};
-    std::map<FG_ResourceType, ID3D12Resource*> _resourceCopy[BUFFER_COUNT] {};
+    std::unordered_map<FG_ResourceType, Dx12Resource> _frameResources[BUFFER_COUNT] {};
+    std::unordered_map<FG_ResourceType, ID3D12Resource*> _resourceCopy[BUFFER_COUNT] {};
+    std::mutex _frMutex;
 
     std::unique_ptr<RF_Dx12> _mvFlip;
     std::unique_ptr<RF_Dx12> _depthFlip;
@@ -65,13 +66,16 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     void NewFrame() override final;
     void FlipResource(Dx12Resource* resource);
 
+  protected:
+    virtual void ReleaseObjects() = 0;
+    virtual void CreateObjects(ID3D12Device* InDevice) = 0;
+
   public:
     virtual bool CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, DXGI_SWAP_CHAIN_DESC* desc,
                                  IDXGISwapChain** swapChain) = 0;
     virtual bool CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, HWND hwnd,
                                   DXGI_SWAP_CHAIN_DESC1* desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
                                   IDXGISwapChain1** swapChain) = 0;
-    virtual bool ReleaseSwapchain(HWND hwnd) = 0;
 
     virtual void CreateContext(ID3D12Device* device, FG_Constants& fgConstants) = 0;
     virtual void EvaluateState(ID3D12Device* device, FG_Constants& fgConstants) = 0;
@@ -79,10 +83,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     virtual void* FrameGenerationContext() = 0;
     virtual void* SwapchainContext() = 0;
 
-    virtual void ReleaseObjects() = 0;
-    virtual void CreateObjects(ID3D12Device* InDevice) = 0;
-
-    Dx12Resource* GetResource(FG_ResourceType type);
+    Dx12Resource* GetResource(FG_ResourceType type, int index = -1);
     bool GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATES bufferState, ID3D12Resource* output);
 
     virtual void SetResource(Dx12Resource* inputResource) = 0;

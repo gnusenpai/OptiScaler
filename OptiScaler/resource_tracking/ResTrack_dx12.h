@@ -233,7 +233,7 @@ class ResTrack_Dx12
     inline static std::mutex _drawMutex;
 
     inline static std::mutex _resourceCommandListMutex;
-    inline static std::map<FG_ResourceType, ID3D12GraphicsCommandList*> _resourceCommandList[BUFFER_COUNT];
+    inline static std::unordered_map<FG_ResourceType, ID3D12GraphicsCommandList*> _resourceCommandList[BUFFER_COUNT];
 
     inline static ULONG64 _lastHudlessFrame = 0;
     inline static std::mutex _hudlessMutex;

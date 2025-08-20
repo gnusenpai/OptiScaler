@@ -112,8 +112,8 @@ static std::unique_ptr<HeapInfo> fgHeaps[1000];
 static UINT fgHeapIndex = 0;
 
 static std::vector<void*> _notFoundCmdLists;
-static std::map<FG_ResourceType, void*> _resCmdList;
-static std::map<FG_ResourceType, bool> _resCmdListFound;
+static std::unordered_map<FG_ResourceType, void*> _resCmdList;
+static std::unordered_map<FG_ResourceType, bool> _resCmdListFound;
 
 struct HeapCacheTLS
 {
@@ -729,7 +729,8 @@ void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumComm
             {
                 LOG_TRACK("ppCommandLists[{}]: {:X}", i, (size_t) ppCommandLists[i]);
 
-                for (std::map<FG_ResourceType, void*>::iterator it = _resCmdList.begin(); it != _resCmdList.end(); ++it)
+                for (std::unordered_map<FG_ResourceType, void*>::iterator it = _resCmdList.begin();
+                     it != _resCmdList.end(); ++it)
                 {
                     if (it->second == ppCommandLists[i])
                     {
@@ -1526,14 +1527,15 @@ void ResTrack_Dx12::hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12Graph
         }
 
         auto frameCmdList = _resourceCommandList[index];
-        for (std::map<FG_ResourceType, ID3D12GraphicsCommandList*>::iterator it = frameCmdList.begin();
-             it != _resourceCommandList[index].end(); ++it)
+        for (std::unordered_map<FG_ResourceType, ID3D12GraphicsCommandList*>::iterator it = frameCmdList.begin();
+             it != frameCmdList.end(); ++it)
         {
             if (it->second == pCommandList)
                 it->second = This;
         }
 
-        for (std::map<FG_ResourceType, void*>::iterator it = _resCmdList.begin(); it != _resCmdList.end(); ++it)
+        for (std::unordered_map<FG_ResourceType, void*>::iterator it = _resCmdList.begin(); it != _resCmdList.end();
+             ++it)
         {
             if (it->second == pCommandList)
                 it->second = This;
@@ -1562,7 +1564,8 @@ HRESULT ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
 
         std::vector<FG_ResourceType> found;
 
-        for (std::map<FG_ResourceType, ID3D12GraphicsCommandList*>::iterator it = _resourceCommandList[index].begin();
+        for (std::unordered_map<FG_ResourceType, ID3D12GraphicsCommandList*>::iterator it =
+                 _resourceCommandList[index].begin();
              it != _resourceCommandList[index].end(); ++it)
         {
             if (This == it->second)
@@ -1796,8 +1799,7 @@ void ResTrack_Dx12::HookToQueue(ID3D12Device* InDevice)
 
 void ResTrack_Dx12::HookDevice(ID3D12Device* device)
 {
-    if ((State::Instance().activeFgOutput != FGOutput::FSRFG && State::Instance().activeFgOutput != FGOutput::XeFG) ||
-        !Config::Instance()->OverlayMenu.value_or_default())
+    if (State::Instance().activeFgInput == FGInput::Nukems || !Config::Instance()->OverlayMenu.value_or_default())
         return;
 
     if (o_CreateDescriptorHeap != nullptr || device == nullptr)

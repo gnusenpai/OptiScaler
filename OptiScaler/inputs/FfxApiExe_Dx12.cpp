@@ -20,9 +20,9 @@ inline static PfnFfxConfigure _D3D12_Configure = nullptr;
 inline static PfnFfxQuery _D3D12_Query = nullptr;
 inline static PfnFfxDispatch _D3D12_Dispatch = nullptr;
 
-static std::map<ffxContext, ffxCreateContextDescUpscale> _initParams;
-static std::map<ffxContext, NVSDK_NGX_Parameter*> _nvParams;
-static std::map<ffxContext, NVSDK_NGX_Handle*> _contexts;
+static std::unordered_map<ffxContext, ffxCreateContextDescUpscale> _initParams;
+static std::unordered_map<ffxContext, NVSDK_NGX_Parameter*> _nvParams;
+static std::unordered_map<ffxContext, NVSDK_NGX_Handle*> _contexts;
 static ID3D12Device* _d3d12Device = nullptr;
 static bool _nvnxgInited = false;
 static float qualityRatios[] = { 1.0, 1.5, 1.7, 2.0, 3.0 };
@@ -282,7 +282,7 @@ static ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllo
     return FFX_API_RETURN_OK;
 }
 
-static ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, const ffxConfigureDescHeader* desc)
+static ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, ffxConfigureDescHeader* desc)
 {
     if (desc == nullptr)
         return FFX_API_RETURN_ERROR_PARAMETER;

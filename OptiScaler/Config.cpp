@@ -69,6 +69,8 @@ bool Config::Reload(std::filesystem::path iniPath)
                 }
                 else if (lstrcmpiA(FGInputString.value().c_str(), "dlssg") == 0)
                     FGInput.set_from_config(FGInput::DLSSG);
+                else if (lstrcmpiA(FGInputString.value().c_str(), "fsrfg") == 0)
+                    FGInput.set_from_config(FGInput::FSRFG);
             }
 
             if (auto FGOutputString = readString("FrameGen", "FGOutput");

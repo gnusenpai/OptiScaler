@@ -53,9 +53,13 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
         }
     }
 
-    bool ExecuteCommandList();
+    bool ExecuteCommandList(int index);
     bool Dispatch();
     void ConfigureFramePaceTuning();
+
+  protected:
+    void ReleaseObjects() override final;
+    void CreateObjects(ID3D12Device* InDevice) override final;
 
   public:
     // IFGFeature
@@ -72,12 +76,12 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
     bool ReleaseSwapchain(HWND hwnd) override final;
 
     void CreateContext(ID3D12Device* device, FG_Constants& fgConstants) override final;
-    void StopAndDestroyContext(bool destroy, bool shutDown) override final;
+    void Activate() override final;
+    void Deactivate() override final;
+    void DestroyFGContext() override final;
+    bool Shutdown() override final;
 
     void EvaluateState(ID3D12Device* device, FG_Constants& fgConstants) override final;
-
-    void ReleaseObjects() override final;
-    void CreateObjects(ID3D12Device* InDevice) override final;
 
     bool Present() override final;
 
@@ -86,7 +90,6 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
     void SetCommandQueue(FG_ResourceType type, ID3D12CommandQueue* queue) override final;
 
     ffxReturnCode_t DispatchCallback(ffxDispatchDescFrameGeneration* params);
-
     FSRFG_Dx12() : IFGFeature_Dx12(), IFGFeature()
     {
         //

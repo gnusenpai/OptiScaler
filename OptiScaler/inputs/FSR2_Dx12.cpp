@@ -109,9 +109,9 @@ static PFN_ffxFsr2GetRenderResolutionFromQualityMode o_ffxFsr2GetRenderResolutio
 static PFN_ffxGetResourceFromDX12Resource_Dx12 o_ffxGetResourceFromDX12Resource_Dx12 = nullptr;
 static PFN_ffxFsr2GetInterfaceDX12 o_ffxFsr2GetInterfaceDX12 = nullptr;
 
-static std::map<Fsr212::FfxFsr2Context*, Fsr212::FfxFsr2ContextDescription> _initParams;
-static std::map<Fsr212::FfxFsr2Context*, NVSDK_NGX_Parameter*> _nvParams;
-static std::map<Fsr212::FfxFsr2Context*, NVSDK_NGX_Handle*> _contexts;
+static std::unordered_map<Fsr212::FfxFsr2Context*, Fsr212::FfxFsr2ContextDescription> _initParams;
+static std::unordered_map<Fsr212::FfxFsr2Context*, NVSDK_NGX_Parameter*> _nvParams;
+static std::unordered_map<Fsr212::FfxFsr2Context*, NVSDK_NGX_Handle*> _contexts;
 static ID3D12Device* _d3d12Device = nullptr;
 static bool _nvnxgInited = false;
 static bool _skipCreate = false;

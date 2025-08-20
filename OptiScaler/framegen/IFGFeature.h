@@ -46,31 +46,34 @@ typedef enum FG_ResourceValidity : uint32_t
 class IFGFeature
 {
   protected:
-    float _jitterX = 0.0;
-    float _jitterY = 0.0;
-    float _mvScaleX = 0.0;
-    float _mvScaleY = 0.0;
-    float _cameraNear = 0.0;
-    float _cameraFar = 0.0;
-    float _cameraVFov = 0.0;
-    float _cameraAspectRatio = 0.0;
-    float _cameraPosition[3] {}; ///< The camera position in world space
-    float _cameraUp[3] {};       ///< The camera up normalized vector in world space.
-    float _cameraRight[3] {};    ///< The camera right normalized vector in world space.
-    float _cameraForward[3] {};  ///< The camera forward normalized vector in world space.
-    float _meterFactor = 0.0;
-    float _ftDelta = 0.0;
-    UINT _interpolationWidth = 0;
-    UINT _interpolationHeight = 0;
-    UINT _reset = 0;
+    float _jitterX[BUFFER_COUNT] = {};
+    float _jitterY[BUFFER_COUNT] = {};
+    float _mvScaleX[BUFFER_COUNT] = {};
+    float _mvScaleY[BUFFER_COUNT] = {};
+    float _cameraNear[BUFFER_COUNT] = {};
+    float _cameraFar[BUFFER_COUNT] = {};
+    float _cameraVFov[BUFFER_COUNT] = {};
+    float _cameraAspectRatio[BUFFER_COUNT] = {};
+    float _cameraPosition[BUFFER_COUNT][3] {}; ///< The camera position in world space
+    float _cameraUp[BUFFER_COUNT][3] {};       ///< The camera up normalized vector in world space.
+    float _cameraRight[BUFFER_COUNT][3] {};    ///< The camera right normalized vector in world space.
+    float _cameraForward[BUFFER_COUNT][3] {};  ///< The camera forward normalized vector in world space.
+    float _meterFactor[BUFFER_COUNT] = {};
+    float _ftDelta[BUFFER_COUNT] = {};
+    UINT _interpolationWidth[BUFFER_COUNT] = {};
+    UINT _interpolationHeight[BUFFER_COUNT] = {};
+    std::optional<UINT> _interpolationLeft[BUFFER_COUNT];
+    std::optional<UINT> _interpolationTop[BUFFER_COUNT];
+    UINT _reset[BUFFER_COUNT] = {};
 
     UINT64 _frameCount = 0;
     UINT64 _lastDispatchedFrame = 0;
+    UINT64 _willDispatchFrame = 0;
 
     bool _isActive = false;
     UINT64 _targetFrame = 0;
 
-    std::map<FG_ResourceType, bool> _resourceReady[BUFFER_COUNT] {};
+    std::unordered_map<FG_ResourceType, bool> _resourceReady[BUFFER_COUNT] {};
 
     bool _noHudless[BUFFER_COUNT] = { true, true, true, true };
     bool _noUi[BUFFER_COUNT] = { true, true, true, true };
@@ -80,6 +83,7 @@ class IFGFeature
     IID streamlineRiid {};
 
     bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnknown** ppRealObject);
+    int GetDispatchIndex();
     virtual void NewFrame() = 0;
 
   public:
@@ -89,20 +93,24 @@ class IFGFeature
     virtual const char* Name() = 0;
 
     virtual bool Present() = 0;
-    virtual void StopAndDestroyContext(bool destroy, bool shutDown) = 0;
+    virtual void Activate() = 0;
+    virtual void Deactivate() = 0;
+    virtual void DestroyFGContext() = 0;
+    virtual bool ReleaseSwapchain(HWND hwnd) = 0;
+    virtual bool Shutdown() = 0;
 
     int GetIndex();
     UINT64 StartNewFrame();
 
     virtual void SetResourceReady(FG_ResourceType type) = 0;
-    bool IsResourceReady(FG_ResourceType type);
+    bool IsResourceReady(FG_ResourceType type, int index = -1);
 
     bool IsUsingUI();
     bool IsUsingDistortionField();
     bool IsUsingHudless();
 
     void SetExecuted();
-    bool WaitingExecution();
+    bool WaitingExecution(int index = -1);
 
     bool IsActive();
     bool IsPaused();
@@ -115,7 +123,9 @@ class IFGFeature
     void SetFrameTimeDelta(float delta);
     void SetReset(UINT reset);
     void SetInterpolationRect(UINT width, UINT height);
-    void GetInterpolationRect(UINT& width, UINT& height);
+    void GetInterpolationRect(UINT& width, UINT& height, int index = -1);
+    void SetInterpolationPos(UINT left, UINT top);
+    void GetInterpolationPos(UINT& left, UINT& top, int index = -1);
 
     void ResetCounters();
     void UpdateTarget();

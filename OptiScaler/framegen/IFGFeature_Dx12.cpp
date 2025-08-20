@@ -18,29 +18,35 @@ bool IFGFeature_Dx12::GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATE
         return false;
     }
 
-    auto result = _copyCommandAllocator->Reset();
+    auto fIndex = GetIndex();
+
+    auto result = _copyCommandAllocator[fIndex]->Reset();
     if (result != S_OK)
         return false;
 
-    result = _copyCommandList->Reset(_copyCommandAllocator, nullptr);
+    result = _copyCommandList[fIndex]->Reset(_copyCommandAllocator[fIndex], nullptr);
     if (result != S_OK)
         return false;
 
-    _copyCommandList->CopyResource(output, resource->GetResource());
+    _copyCommandList[fIndex]->CopyResource(output, resource->GetResource());
 
-    _copyCommandList->Close();
-    ID3D12CommandList* commandList = _copyCommandList;
+    _copyCommandList[fIndex]->Close();
+    ID3D12CommandList* commandList = _copyCommandList[fIndex];
     _gameCommandQueue->ExecuteCommandLists(1, &commandList);
 
     return true;
 }
 
-Dx12Resource* IFGFeature_Dx12::GetResource(FG_ResourceType type)
+Dx12Resource* IFGFeature_Dx12::GetResource(FG_ResourceType type, int index)
 {
-    auto fIndex = GetIndex();
+    std::lock_guard<std::mutex> lock(_frMutex);
 
-    if (_frameResources[fIndex].contains(type))
-        return &_frameResources[fIndex][type];
+    if (index < 0)
+        index = GetIndex();
+
+    auto& currentIndex = _frameResources[index];
+    if (auto it = currentIndex.find(type); it != currentIndex.end())
+        return &it->second;
 
     return nullptr;
 }
@@ -48,6 +54,10 @@ Dx12Resource* IFGFeature_Dx12::GetResource(FG_ResourceType type)
 void IFGFeature_Dx12::NewFrame()
 {
     auto fIndex = GetIndex();
+
+    std::lock_guard<std::mutex> lock(_frMutex);
+
+    LOG_DEBUG("_frameCount: {}, fIndex: {}", _frameCount, fIndex);
 
     _frameResources[fIndex].clear();
 }
@@ -102,10 +112,9 @@ void IFGFeature_Dx12::FlipResource(Dx12Resource* resource)
 
         if (result)
         {
-            LOG_TRACE("Setting velocity from flip, index: {}", fIndex);
-            auto fResource = &_frameResources[fIndex][type];
-            fResource->copy = flipOutput;
-            fResource->state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            LOG_TRACE("Setting {} from flip, index: {}", magic_enum::enum_name(type), fIndex);
+            resource->copy = flipOutput;
+            resource->state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         }
     }
 }
@@ -182,33 +191,37 @@ bool IFGFeature_Dx12::InitCopyCmdList()
     ID3D12CommandAllocator* allocator = nullptr;
     ID3D12GraphicsCommandList* cmdList = nullptr;
 
-    auto result = _device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_copyCommandAllocator));
-    if (result != S_OK)
+    for (size_t i = 0; i < BUFFER_COUNT; i++)
     {
-        LOG_ERROR("_copyCommandAllocator: {:X}", (unsigned long) result);
-        return false;
-    }
+        auto result =
+            _device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_copyCommandAllocator[i]));
+        if (result != S_OK)
+        {
+            LOG_ERROR("_copyCommandAllocator: {:X}", (unsigned long) result);
+            return false;
+        }
 
-    _copyCommandAllocator->SetName(L"_copyCommandAllocator");
-    if (CheckForRealObject(__FUNCTION__, _copyCommandAllocator, (IUnknown**) &allocator))
-        _copyCommandAllocator = allocator;
+        _copyCommandAllocator[i]->SetName(L"_copyCommandAllocator");
+        if (CheckForRealObject(__FUNCTION__, _copyCommandAllocator[i], (IUnknown**) &allocator))
+            _copyCommandAllocator[i] = allocator;
 
-    result = _device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _copyCommandAllocator, NULL,
-                                        IID_PPV_ARGS(&_copyCommandList));
-    if (result != S_OK)
-    {
-        LOG_ERROR("_copyCommandAllocator: {:X}", (unsigned long) result);
-        return false;
-    }
-    _copyCommandList->SetName(L"_copyCommandList");
-    if (CheckForRealObject(__FUNCTION__, _copyCommandList, (IUnknown**) &cmdList))
-        _copyCommandList = cmdList;
+        result = _device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _copyCommandAllocator[i], NULL,
+                                            IID_PPV_ARGS(&_copyCommandList[i]));
+        if (result != S_OK)
+        {
+            LOG_ERROR("_copyCommandAllocator: {:X}", (unsigned long) result);
+            return false;
+        }
+        _copyCommandList[i]->SetName(L"_copyCommandList");
+        if (CheckForRealObject(__FUNCTION__, _copyCommandList[i], (IUnknown**) &cmdList))
+            _copyCommandList[i] = cmdList;
 
-    result = _copyCommandList->Close();
-    if (result != S_OK)
-    {
-        LOG_ERROR("_copyCommandList->Close: {:X}", (unsigned long) result);
-        return false;
+        result = _copyCommandList[i]->Close();
+        if (result != S_OK)
+        {
+            LOG_ERROR("_copyCommandList->Close: {:X}", (unsigned long) result);
+            return false;
+        }
     }
 
     return true;
@@ -216,16 +229,19 @@ bool IFGFeature_Dx12::InitCopyCmdList()
 
 void IFGFeature_Dx12::DestroyCopyCmdList()
 {
-    if (_copyCommandAllocator != nullptr)
+    for (size_t i = 0; i < BUFFER_COUNT; i++)
     {
-        _copyCommandAllocator->Release();
-        _copyCommandAllocator = nullptr;
-    }
+        if (_copyCommandAllocator[i] != nullptr)
+        {
+            _copyCommandAllocator[i]->Release();
+            _copyCommandAllocator[i] = nullptr;
+        }
 
-    if (_copyCommandList != nullptr)
-    {
-        _copyCommandList->Release();
-        _copyCommandList = nullptr;
+        if (_copyCommandList[i] != nullptr)
+        {
+            _copyCommandList[i]->Release();
+            _copyCommandList[i] = nullptr;
+        }
     }
 }
 

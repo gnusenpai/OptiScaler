@@ -101,25 +101,6 @@ feature_version XeFG_Dx12::Version()
     return { 0, 0, 0 };
 }
 
-void XeFG_Dx12::StopAndDestroyContext(bool destroy, bool shutDown)
-{
-    LOG_DEBUG("");
-
-    if (_isActive)
-    {
-        auto result = XeFGProxy::SetEnabled()(_swapChainContext, false);
-        _isActive = false;
-        if (!(shutDown || State::Instance().isShuttingDown))
-            LOG_INFO("SetEnabled: false, result: {} ({})", magic_enum::enum_name(result), (UINT) result);
-    }
-
-    if (_fgContext != nullptr)
-        _fgContext = nullptr;
-
-    if (shutDown || State::Instance().isShuttingDown)
-        ReleaseObjects();
-}
-
 bool XeFG_Dx12::DestroySwapchainContext()
 {
     LOG_DEBUG("");
@@ -148,7 +129,7 @@ xefg_swapchain_d3d12_resource_data_t XeFG_Dx12::GetResourceData(FG_ResourceType 
     if (!_frameResources[fIndex].contains(type))
         return resourceParam;
 
-    auto fResource = &_frameResources[fIndex][type];
+    auto fResource = &_frameResources[fIndex].at(type);
 
     resourceParam.validity = (fResource->validity == FG_ResourceValidity::ValidNow)
                                  ? XEFG_SWAPCHAIN_RV_ONLY_NOW
@@ -358,52 +339,93 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     return true;
 }
 
-bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
+void XeFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
 {
-    if (hwnd != _hwnd || _hwnd == NULL)
-        return false;
-
     LOG_DEBUG("");
 
-    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
-    {
-        LOG_TRACE("Waiting Mutex 1, current: {}", Mutex.getOwner());
-        Mutex.lock(1);
-        LOG_TRACE("Accuired Mutex: {}", Mutex.getOwner());
-    }
+    _device = device;
 
+    if (_fgContext == nullptr && _swapChainContext != nullptr)
+    {
+        _fgContext = _swapChainContext;
+        CreateObjects(device);
+    }
+}
+
+void XeFG_Dx12::Activate()
+{
+    LOG_DEBUG("");
+
+    if (_swapChainContext != nullptr && _fgContext != nullptr && !_isActive)
+    {
+        auto result = XeFGProxy::SetEnabled()(_swapChainContext, true);
+
+        if (result == XEFG_SWAPCHAIN_RESULT_SUCCESS)
+            _isActive = true;
+
+        LOG_INFO("SetEnabled: true, result: {} ({})", magic_enum::enum_name(result), (UINT) result);
+    }
+}
+
+void XeFG_Dx12::Deactivate()
+{
+    LOG_DEBUG("");
+
+    if (_isActive)
+    {
+        auto result = XeFGProxy::SetEnabled()(_swapChainContext, false);
+
+        if (result == XEFG_SWAPCHAIN_RESULT_SUCCESS)
+            _isActive = false;
+
+        LOG_INFO("SetEnabled: false, result: {} ({})", magic_enum::enum_name(result), (UINT) result);
+    }
+}
+
+void XeFG_Dx12::DestroyFGContext()
+{
+    Deactivate();
+
+    if (_fgContext != nullptr)
+        _fgContext = nullptr;
+
+    if (State::Instance().isShuttingDown)
+        ReleaseObjects();
+}
+
+bool XeFG_Dx12::Shutdown()
+{
     MenuOverlayDx::CleanupRenderTarget(true, NULL);
 
     if (_fgContext != nullptr)
-        StopAndDestroyContext(true, true);
+        DestroyFGContext();
 
     if (_swapChainContext != nullptr)
         DestroySwapchainContext();
 
-    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
-    {
-        LOG_TRACE("Releasing Mutex: {}", Mutex.getOwner());
-        Mutex.unlockThis(1);
-    }
+    ReleaseObjects();
 
     return true;
-}
-
-void XeFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
-{
-    if (_fgContext == nullptr && _swapChainContext != nullptr)
-    {
-        _fgContext = _swapChainContext;
-    }
 }
 
 bool XeFG_Dx12::Dispatch()
 {
     LOG_DEBUG();
 
-    _lastDispatchedFrame = _frameCount;
+    auto fIndex = GetDispatchIndex();
+    if (fIndex < 0)
+        return false;
 
-    auto fIndex = GetIndex();
+    LOG_DEBUG("_frameCount: {}, _willDispatchFrame: {}, fIndex: {}", _frameCount, _willDispatchFrame, fIndex);
+
+    if (!_resourceReady[fIndex].contains(FG_ResourceType::Depth) ||
+        !_resourceReady[fIndex].at(FG_ResourceType::Depth) ||
+        !_resourceReady[fIndex].contains(FG_ResourceType::Velocity) ||
+        !_resourceReady[fIndex].at(FG_ResourceType::Velocity))
+    {
+        LOG_WARN("Depth or Velocity is not ready, skipping");
+        return false;
+    }
 
     XeFGProxy::EnableDebugFeature()(_swapChainContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_TAG_INTERPOLATED_FRAMES,
                                     Config::Instance()->FGXeFGDebugView.value_or_default(), nullptr);
@@ -414,12 +436,12 @@ bool XeFG_Dx12::Dispatch()
 
     xefg_swapchain_frame_constant_data_t constData = {};
 
-    if (_cameraPosition[0] != 0.0f || _cameraPosition[1] != 0.0f || _cameraPosition[2] != 0.0f)
+    if (_cameraPosition[fIndex][0] != 0.0f || _cameraPosition[fIndex][1] != 0.0f || _cameraPosition[fIndex][2] != 0.0f)
     {
-        XMVECTOR right = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraRight));
-        XMVECTOR up = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraUp));
-        XMVECTOR forward = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraForward));
-        XMVECTOR pos = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraPosition));
+        XMVECTOR right = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraRight[fIndex]));
+        XMVECTOR up = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraUp[fIndex]));
+        XMVECTOR forward = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraForward[fIndex]));
+        XMVECTOR pos = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(_cameraPosition[fIndex]));
 
         float x = -XMVectorGetX(XMVector3Dot(pos, right));
         float y = -XMVectorGetX(XMVector3Dot(pos, up));
@@ -434,18 +456,19 @@ bool XeFG_Dx12::Dispatch()
     }
 
     if (Config::Instance()->FGXeFGDepthInverted.value_or_default())
-        std::swap(_cameraNear, _cameraFar);
+        std::swap(_cameraNear[fIndex], _cameraFar[fIndex]);
 
-    if (_infiniteDepth && _cameraFar > _cameraNear)
-        _cameraFar = INFINITE;
-    else if (_infiniteDepth && _cameraNear > _cameraFar)
-        _cameraNear = INFINITE;
+    if (_infiniteDepth && _cameraFar[fIndex] > _cameraNear[fIndex])
+        _cameraFar[fIndex] = INFINITE;
+    else if (_infiniteDepth && _cameraNear[fIndex] > _cameraFar[fIndex])
+        _cameraNear[fIndex] = INFINITE;
 
     // Cyberpunk seems to be sending LH so do the same
     // it also sends some extra data in usually empty spots but no idea what that is
-    if (_cameraNear > 0.f && _cameraFar > 0.f)
+    if (_cameraNear[fIndex] > 0.f && _cameraFar[fIndex] > 0.f)
     {
-        auto projectionMatrix = XMMatrixPerspectiveFovLH(_cameraVFov, _cameraAspectRatio, _cameraNear, _cameraFar);
+        auto projectionMatrix = XMMatrixPerspectiveFovLH(_cameraVFov[fIndex], _cameraAspectRatio[fIndex],
+                                                         _cameraNear[fIndex], _cameraFar[fIndex]);
         memcpy(constData.projectionMatrix, projectionMatrix.r, sizeof(projectionMatrix));
     }
     else
@@ -453,23 +476,23 @@ bool XeFG_Dx12::Dispatch()
         LOG_WARN("Can't calculate projectionMatrix");
     }
 
-    constData.jitterOffsetX = _jitterX;
-    constData.jitterOffsetY = _jitterY;
-    constData.motionVectorScaleX = _mvScaleX;
-    constData.motionVectorScaleY = _mvScaleY;
-    constData.resetHistory = _reset;
-    constData.frameRenderTime = _ftDelta;
+    constData.jitterOffsetX = _jitterX[fIndex];
+    constData.jitterOffsetY = _jitterY[fIndex];
+    constData.motionVectorScaleX = _mvScaleX[fIndex];
+    constData.motionVectorScaleY = _mvScaleY[fIndex];
+    constData.resetHistory = _reset[fIndex];
+    constData.frameRenderTime = _ftDelta[fIndex];
 
-    LOG_DEBUG("Reset: {}, FTDelta: {}", _reset, _ftDelta);
+    LOG_DEBUG("Reset: {}, FTDelta: {}", _reset[fIndex], _ftDelta[fIndex]);
 
-    auto result = XeFGProxy::TagFrameConstants()(_swapChainContext, _frameCount, &constData);
+    auto result = XeFGProxy::TagFrameConstants()(_swapChainContext, _willDispatchFrame, &constData);
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
     {
         LOG_ERROR("TagFrameConstants error: {} ({})", magic_enum::enum_name(result), (UINT) result);
         return false;
     }
 
-    result = XeFGProxy::SetPresentId()(_swapChainContext, _frameCount);
+    result = XeFGProxy::SetPresentId()(_swapChainContext, _willDispatchFrame);
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
     {
         LOG_ERROR("SetPresentId error: {} ({})", magic_enum::enum_name(result), (UINT) result);
@@ -486,15 +509,15 @@ bool XeFG_Dx12::Dispatch()
         if (State::Instance().currentSwapchain->GetDesc(&scDesc1) == S_OK)
         {
             LOG_DEBUG("SwapChain Res: {}x{}, Interpolation Res: {}x{}", scDesc1.BufferDesc.Width,
-                      scDesc1.BufferDesc.Height, _interpolationWidth, _interpolationHeight);
+                      scDesc1.BufferDesc.Height, _interpolationWidth[fIndex], _interpolationHeight[fIndex]);
 
-            auto calculatedLeft = ((int) scDesc1.BufferDesc.Width - (int) _interpolationWidth) / 2;
+            auto calculatedLeft = ((int) scDesc1.BufferDesc.Width - (int) _interpolationWidth[fIndex]) / 2;
             if (calculatedLeft > 0)
-                left = Config::Instance()->FGRectLeft.value_or(calculatedLeft);
+                left = Config::Instance()->FGRectLeft.value_or(_interpolationLeft[fIndex].value_or(calculatedLeft));
 
-            auto calculatedTop = ((int) scDesc1.BufferDesc.Height - (int) _interpolationHeight) / 2;
+            auto calculatedTop = ((int) scDesc1.BufferDesc.Height - (int) _interpolationHeight[fIndex]) / 2;
             if (calculatedTop > 0)
-                top = Config::Instance()->FGRectTop.value_or(calculatedTop);
+                top = Config::Instance()->FGRectTop.value_or(_interpolationTop[fIndex].value_or(calculatedTop));
         }
         else
         {
@@ -506,10 +529,11 @@ bool XeFG_Dx12::Dispatch()
         backbuffer.type = XEFG_SWAPCHAIN_RES_BACKBUFFER;
         backbuffer.validity = XEFG_SWAPCHAIN_RV_UNTIL_NEXT_PRESENT;
         backbuffer.resourceBase = { left, top };
-        backbuffer.resourceSize = { _interpolationWidth, _interpolationHeight };
+        backbuffer.resourceSize = { _interpolationWidth[fIndex], _interpolationHeight[fIndex] };
 
-        auto result =
-            XeFGProxy::D3D12TagFrameResource()(_swapChainContext, (ID3D12CommandList*) 1, _frameCount, &backbuffer);
+        auto result = XeFGProxy::D3D12TagFrameResource()(_swapChainContext, (ID3D12CommandList*) 1, _willDispatchFrame,
+                                                         &backbuffer);
+
         if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
         {
             LOG_ERROR("D3D12TagFrameResource Backbuffer error: {} ({})", magic_enum::enum_name(result), (UINT) result);
@@ -529,21 +553,53 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 {
     LOG_FUNC();
 
-    if (!Config::Instance()->OverlayMenu.value_or_default())
+    // If needed hooks are missing or XeFG proxy is not inited or FG swapchain is not created
+    if (!Config::Instance()->OverlayMenu.value_or_default() || !XeFGProxy::InitXeFG() ||
+        State::Instance().currentFGSwapchain == nullptr)
         return;
+
+    if (State::Instance().isShuttingDown)
+    {
+        DestroyFGContext();
+        return;
+    }
 
     _infiniteDepth = static_cast<bool>(fgConstants.flags & FG_Flags::InfiniteDepth);
 
-    if (!State::Instance().FGchanged && Config::Instance()->FGEnabled.value_or_default() && !IsPaused() &&
-        XeFGProxy::InitXeFG() && _fgContext == nullptr && HooksDx::CurrentSwapchainFormat() != DXGI_FORMAT_UNKNOWN)
+    // If FG Enabled from menu
+    if (Config::Instance()->FGEnabled.value_or_default())
     {
-        CreateObjects(device);
-        CreateContext(device, fgConstants);
-        UpdateTarget();
+        // If FG context is nullptr
+        if (_fgContext == nullptr)
+        {
+            // Create it again
+            CreateObjects(device);
+            CreateContext(device, fgConstants);
+
+            // Pause for 10 frames
+            if (State::Instance().activeFgInput == FGInput::Upscaler)
+                UpdateTarget();
+        }
+        // If there is a change deactivate it
+        else if (State::Instance().FGchanged)
+        {
+            Deactivate();
+
+            // Pause for 10 frames
+            if (State::Instance().activeFgInput == FGInput::Upscaler)
+                UpdateTarget();
+
+            // Destroy if Swapchain has a change destroy FG Context too
+            if (State::Instance().SCchanged)
+                DestroyFGContext();
+        }
+
+        if (State::Instance().activeFgInput == FGInput::Upscaler && _fgContext != nullptr && !IsPaused() && !IsActive())
+            Activate();
     }
-    else if ((!Config::Instance()->FGEnabled.value_or_default() || State::Instance().FGchanged) && IsActive())
+    else
     {
-        StopAndDestroyContext(State::Instance().SCchanged, false);
+        Deactivate();
 
         if (State::Instance().activeFgInput == FGInput::Upscaler)
         {
@@ -554,27 +610,22 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 
     if (State::Instance().FGchanged)
     {
-        LOG_DEBUG("(FG) Frame generation paused");
-        UpdateTarget();
+        LOG_DEBUG("FGchanged");
+
+        State::Instance().FGchanged = false;
 
         if (State::Instance().activeFgInput == FGInput::Upscaler)
             Hudfix_Dx12::ResetCounters();
 
+        // Pause for 10 frames
+        UpdateTarget();
+
         // Release FG mutex
         if (Mutex.getOwner() == 2)
             Mutex.unlockThis(2);
-
-        State::Instance().FGchanged = false;
     }
 
     State::Instance().SCchanged = false;
-
-    if (_fgContext != nullptr && !IsPaused() && !_isActive)
-    {
-        auto result = XeFGProxy::SetEnabled()(_swapChainContext, true);
-        _isActive = true;
-        LOG_INFO("SetEnabled: true, result: {} ({})", magic_enum::enum_name(result), (UINT) result);
-    }
 }
 
 void XeFG_Dx12::ReleaseObjects()
@@ -587,10 +638,12 @@ void XeFG_Dx12::CreateObjects(ID3D12Device* InDevice) { _device = InDevice; }
 
 bool XeFG_Dx12::Present()
 {
-    if (State::Instance().FGHudlessCompare && IsActive() && !IsPaused())
+    if (!IsActive() || IsPaused())
+        return false;
+
+    if (State::Instance().FGHudlessCompare)
     {
         auto hudless = GetResource(FG_ResourceType::HudlessColor);
-
         if (hudless != nullptr && hudless->validity == FG_ResourceValidity::UntilPresent)
         {
             if (_hudlessCompare.get() == nullptr)
@@ -600,8 +653,10 @@ bool XeFG_Dx12::Present()
             else
             {
                 if (_hudlessCompare->IsInit())
+                {
                     _hudlessCompare->Dispatch((IDXGISwapChain3*) _swapChain, _gameCommandQueue, hudless->GetResource(),
                                               hudless->state);
+                }
             }
         }
     }
@@ -615,6 +670,7 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
         return;
 
     auto& type = inputResource->type;
+    std::lock_guard<std::mutex> lock(_frMutex);
 
     if (inputResource->cmdList == nullptr && inputResource->validity == FG_ResourceValidity::ValidNow)
     {
@@ -629,7 +685,6 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     }
 
     auto fIndex = GetIndex();
-    _frameResources[fIndex][type] = {};
     auto fResource = &_frameResources[fIndex][type];
     fResource->type = type;
     fResource->state = inputResource->state;
@@ -711,3 +766,36 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
 void XeFG_Dx12::SetResourceReady(FG_ResourceType type) { _resourceReady[GetIndex()][type] = true; }
 
 void XeFG_Dx12::SetCommandQueue(FG_ResourceType type, ID3D12CommandQueue* queue) { _gameCommandQueue = queue; }
+
+bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
+{
+    if (hwnd != _hwnd || _hwnd == NULL)
+        return false;
+
+    LOG_DEBUG("");
+
+    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
+    {
+        LOG_TRACE("Waiting Mutex 1, current: {}", Mutex.getOwner());
+        Mutex.lock(1);
+        LOG_TRACE("Accuired Mutex: {}", Mutex.getOwner());
+    }
+
+    MenuOverlayDx::CleanupRenderTarget(true, NULL);
+
+    if (_fgContext != nullptr)
+        DestroyFGContext();
+
+    if (_swapChainContext != nullptr)
+        DestroySwapchainContext();
+
+    ReleaseObjects();
+
+    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
+    {
+        LOG_TRACE("Releasing Mutex: {}", Mutex.getOwner());
+        Mutex.unlockThis(1);
+    }
+
+    return true;
+}

@@ -292,6 +292,7 @@ bool FSR2FeatureVk::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* I
                         (wchar_t*) L"FSR2_Transparency", FFX_RESOURCE_STATE_COMPUTE_READ);
                 }
 
+
                 if (Config::Instance()->DlssReactiveMaskBias.value_or_default() > 0.0f)
                 {
                     params.reactive = ffxGetTextureResourceVK(

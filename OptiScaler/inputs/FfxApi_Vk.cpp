@@ -13,9 +13,9 @@
 #include <nvsdk_ngx_vk.h>
 #include <nvsdk_ngx_helpers_vk.h>
 
-static std::map<ffxContext, ffxCreateContextDescUpscale> _initParams;
-static std::map<ffxContext, NVSDK_NGX_Parameter*> _nvParams;
-static std::map<ffxContext, NVSDK_NGX_Handle*> _contexts;
+static std::unordered_map<ffxContext, ffxCreateContextDescUpscale> _initParams;
+static std::unordered_map<ffxContext, NVSDK_NGX_Parameter*> _nvParams;
+static std::unordered_map<ffxContext, NVSDK_NGX_Handle*> _contexts;
 static VkDevice _vkDevice = nullptr;
 static VkPhysicalDevice _vkPhysicalDevice = nullptr;
 static PFN_vkGetDeviceProcAddr _vkDeviceProcAddress = nullptr;

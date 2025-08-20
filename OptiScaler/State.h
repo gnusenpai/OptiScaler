@@ -203,6 +203,9 @@ class State
 
     IFGFeature_Dx12* currentFG = nullptr;
     IDXGISwapChain* currentSwapchain = nullptr;
+    IDXGISwapChain* currentWrappedSwapchain = nullptr;
+    IDXGISwapChain* currentRealSwapchain = nullptr;
+    IDXGISwapChain* currentFGSwapchain = nullptr;
     ID3D12Device* currentD3D12Device = nullptr;
     ID3D11Device* currentD3D11Device = nullptr;
     ID3D12CommandQueue* currentCommandQueue = nullptr;
@@ -210,7 +213,7 @@ class State
 
     std::vector<ID3D12Device*> d3d12Devices;
     std::vector<ID3D11Device*> d3d11Devices;
-    std::map<UINT64, std::string> adapterDescs;
+    std::unordered_map<UINT64, std::string> adapterDescs;
 
     bool mhInited = false;
 

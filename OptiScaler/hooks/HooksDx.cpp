@@ -515,7 +515,6 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
 
         // Unmap the buffer
         HooksDx::readbackBuffer->Unmap(0, nullptr);
-
         HooksDx::dx12UpscaleTrig = false;
     }
     else if (HooksDx::dx11UpscaleTrig[HooksDx::currentFrameIndex] && device != nullptr &&
@@ -754,6 +753,8 @@ static HRESULT hkCreateSwapChainForCoreWindow(IDXGIFactory2* pFactory, IUnknown*
         if (!CheckForRealObject(__FUNCTION__, *ppSwapChain, (IUnknown**) &realSC))
             realSC = *ppSwapChain;
 
+        State::Instance().currentRealSwapchain = realSC;
+
         IUnknown* readDevice = nullptr;
         if (!CheckForRealObject(__FUNCTION__, pDevice, (IUnknown**) &readDevice))
             readDevice = pDevice;
@@ -768,6 +769,8 @@ static HRESULT hkCreateSwapChainForCoreWindow(IDXGIFactory2* pFactory, IUnknown*
 
         if (!_skipFGSwapChainCreation)
             State::Instance().currentSwapchain = *ppSwapChain;
+
+        State::Instance().currentWrappedSwapchain = *ppSwapChain;
 
         LOG_DEBUG("Created new WrappedIDXGISwapChain4: {0:X}, pDevice: {1:X}", (UINT64) *ppSwapChain, (UINT64) pDevice);
 
@@ -957,6 +960,8 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
         if (scResult)
         {
+            State::Instance().currentFGSwapchain = *ppSwapChain;
+
             if (o_FGSCPresent == nullptr && *ppSwapChain != nullptr)
             {
                 void** pFactoryVTable = *reinterpret_cast<void***>(*ppSwapChain);
@@ -1037,7 +1042,7 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
                     sc3->Release();
             }
 
-            State::Instance().currentSwapchain = (*ppSwapChain);
+            State::Instance().currentSwapchain = *ppSwapChain;
 
             LOG_DEBUG("Created FG swapchain");
             return S_OK;
@@ -1065,6 +1070,8 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         if (!CheckForRealObject(__FUNCTION__, *ppSwapChain, (IUnknown**) &realSC))
             realSC = *ppSwapChain;
 
+        State::Instance().currentRealSwapchain = realSC;
+
         IUnknown* readDevice = nullptr;
         if (!CheckForRealObject(__FUNCTION__, pDevice, (IUnknown**) &readDevice))
             readDevice = pDevice;
@@ -1082,6 +1089,8 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
         if (!_skipFGSwapChainCreation)
             State::Instance().currentSwapchain = *ppSwapChain;
+
+        State::Instance().currentWrappedSwapchain = *ppSwapChain;
 
         LOG_DEBUG("Created new WrappedIDXGISwapChain4: {0:X}, pDevice: {1:X}", (UINT64) *ppSwapChain, (UINT64) pDevice);
 
@@ -1266,6 +1275,8 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
         if (scResult)
         {
+            State::Instance().currentFGSwapchain = *ppSwapChain;
+
             if (o_FGSCPresent == nullptr && *ppSwapChain != nullptr)
             {
                 void** pFactoryVTable = *reinterpret_cast<void***>(*ppSwapChain);
@@ -1373,6 +1384,8 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         if (!CheckForRealObject(__FUNCTION__, *ppSwapChain, (IUnknown**) &realSC))
             realSC = *ppSwapChain;
 
+        State::Instance().currentRealSwapchain = realSC;
+
         IUnknown* readDevice = nullptr;
         if (!CheckForRealObject(__FUNCTION__, pDevice, (IUnknown**) &readDevice))
             readDevice = pDevice;
@@ -1391,6 +1404,8 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
         if (!_skipFGSwapChainCreation)
             State::Instance().currentSwapchain = *ppSwapChain;
+
+        State::Instance().currentWrappedSwapchain = *ppSwapChain;
 
         if (Config::Instance()->ForceHDR.value_or_default())
         {
@@ -1745,8 +1760,7 @@ static void HookToDevice(ID3D12Device* InDevice)
         DetourTransactionCommit();
     }
 
-    if ((State::Instance().activeFgInput == FGInput::Upscaler || State::Instance().activeFgInput == FGInput::DLSSG) &&
-        Config::Instance()->OverlayMenu.value_or_default())
+    if (State::Instance().activeFgInput != FGInput::Nukems && Config::Instance()->OverlayMenu.value_or_default())
         ResTrack_Dx12::HookDevice(InDevice);
 }
 
@@ -1966,6 +1980,8 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
         if (!CheckForRealObject(__FUNCTION__, *ppSwapChain, (IUnknown**) &realSC))
             realSC = *ppSwapChain;
 
+        State::Instance().currentRealSwapchain = realSC;
+
         IUnknown* readDevice = nullptr;
         if (!CheckForRealObject(__FUNCTION__, *ppDevice, (IUnknown**) &readDevice))
             readDevice = *ppDevice;
@@ -1984,6 +2000,8 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
 
         if (!_skipFGSwapChainCreation)
             State::Instance().currentSwapchain = *ppSwapChain;
+
+        State::Instance().currentWrappedSwapchain = *ppSwapChain;
 
         LOG_DEBUG("Created new WrappedIDXGISwapChain4: {0:X}, pDevice: {1:X}", (UINT64) *ppSwapChain,
                   (UINT64) *ppDevice);

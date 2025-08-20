@@ -2692,7 +2692,7 @@ bool MenuCommon::RenderMenu()
                         if (ImGui::Checkbox("Active##2", &fgActive))
                         {
                             Config::Instance()->FGEnabled = fgActive;
-                            LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
+                            LOG_DEBUG("FGEnabled set FGEnabled: {}", fgActive);
 
                             if (Config::Instance()->FGEnabled.value_or_default())
                                 State::Instance().FGchanged = true;

@@ -1,17 +1,20 @@
 #include "FfxApi_Dx12.h"
-#include "Config.h"
+
 #include "Util.h"
+#include "Config.h"
 
 #include "resource.h"
-#include "proxies/FfxApi_Proxy.h"
 #include "NVNGX_Parameter.h"
+#include "proxies/FfxApi_Proxy.h"
+
+#include "FG/FfxApi_Dx12_FG.h"
 
 #include "ffx_upscale.h"
 #include "dx12/ffx_api_dx12.h"
 
-static std::map<ffxContext, ffxCreateContextDescUpscale> _initParams;
-static std::map<ffxContext, NVSDK_NGX_Parameter*> _nvParams;
-static std::map<ffxContext, NVSDK_NGX_Handle*> _contexts;
+static std::unordered_map<ffxContext, ffxCreateContextDescUpscale> _initParams;
+static std::unordered_map<ffxContext, NVSDK_NGX_Parameter*> _nvParams;
+static std::unordered_map<ffxContext, NVSDK_NGX_Handle*> _contexts;
 static ID3D12Device* _d3d12Device = nullptr;
 static bool _nvnxgInited = false;
 static float qualityRatios[] = { 1.0, 1.5, 1.7, 2.0, 3.0 };
@@ -123,6 +126,8 @@ static std::string FfxGetGetDescTypeName(UINT type)
 
     return std::format("??? ({:X})", type);
 }
+
+static bool IsFGType(ffxStructType_t type) { return type >= 0x00020001u && type <= 0x00030009u; }
 
 static bool CreateDLSSContext(ffxContext handle, const ffxDispatchDescUpscale* pExecParams)
 {
@@ -259,10 +264,20 @@ static std::optional<float> GetQualityOverrideRatioFfx(const uint32_t input)
 ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescHeader* desc,
                                       const ffxAllocationCallbacks* memCb)
 {
+    LOG_DEBUG("");
+
     if (desc == nullptr)
         return FFX_API_RETURN_ERROR_PARAMETER;
 
     LOG_DEBUG("type: {}", FfxGetGetDescTypeName(desc->type));
+
+    if (State::Instance().activeFgInput == FGInput::FSRFG && IsFGType(desc->type))
+    {
+        auto result = ffxCreateContext_Dx12FG(context, desc, memCb);
+
+        if (result != rcContinue)
+            return result;
+    }
 
     bool upscaleContext = false;
     ffxApiHeader* header = desc;
@@ -280,6 +295,7 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
             auto backendDesc = (ffxCreateBackendDX12Desc*) header;
             _d3d12Device = backendDesc->device;
         }
+        /*
         else if (State::Instance().activeFgOutput == FGOutput::FSRFG)
         {
             if (header->type == FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_WRAP_DX12)
@@ -346,6 +362,7 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
                 }
             }
         }
+        */
 
         header = header->pNext;
 
@@ -433,6 +450,8 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
 
 ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationCallbacks* memCb)
 {
+    LOG_DEBUG("");
+
     if (context == nullptr || *context == nullptr)
         return FFX_API_RETURN_OK;
 
@@ -454,24 +473,42 @@ ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationC
                   (size_t) State::Instance().currentFG->SwapchainContext(),
                   (size_t) State::Instance().currentFG->FrameGenerationContext());
 
-    if (!State::Instance().isShuttingDown &&
-        (!upscalerContext || Config::Instance()->EnableHotSwapping.value_or_default()) &&
-        (State::Instance().activeFgOutput != FGOutput::FSRFG || State::Instance().currentFG == nullptr ||
-         State::Instance().currentFG->SwapchainContext() != (*context)))
+    // Destroy real upscaler context
+    if (!State::Instance().isShuttingDown && upscalerContext &&
+        Config::Instance()->EnableHotSwapping.value_or_default())
     {
         auto cdResult = FfxApiProxy::D3D12_DestroyContext()(context, memCb);
         LOG_INFO("result: {:X}", (UINT) cdResult);
+        return FFX_API_RETURN_OK;
     }
 
-    return FFX_API_RETURN_OK;
+    if (State::Instance().activeFgInput == FGInput::FSRFG)
+    {
+        auto result = ffxDestroyContext_Dx12FG(context, memCb);
+
+        if (result != rcContinue)
+            return result;
+    }
+
+    auto cdResult = FfxApiProxy::D3D12_DestroyContext()(context, memCb);
+    LOG_INFO("result: {:X}", (UINT) cdResult);
+    return cdResult;
 }
 
-ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, const ffxConfigureDescHeader* desc)
+ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, ffxConfigureDescHeader* desc)
 {
     if (desc == nullptr)
         return FFX_API_RETURN_ERROR_PARAMETER;
 
     LOG_DEBUG("type: {}", FfxGetGetDescTypeName(desc->type));
+
+    if (State::Instance().activeFgInput == FGInput::FSRFG && IsFGType(desc->type))
+    {
+        auto result = ffxConfigure_Dx12FG(context, desc);
+
+        if (result != rcContinue)
+            return result;
+    }
 
     if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE &&
         !Config::Instance()->EnableHotSwapping.value_or_default())
@@ -482,10 +519,20 @@ ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, const ffxConfigureDescHea
 
 ffxReturnCode_t ffxQuery_Dx12(ffxContext* context, ffxQueryDescHeader* desc)
 {
+    LOG_DEBUG("");
+
     if (desc == nullptr)
         return FFX_API_RETURN_ERROR_PARAMETER;
 
     LOG_DEBUG("type: {}", FfxGetGetDescTypeName(desc->type));
+
+    if (State::Instance().activeFgInput == FGInput::FSRFG && IsFGType(desc->type))
+    {
+        auto result = ffxQuery_Dx12FG(context, desc);
+
+        if (result != rcContinue)
+            return result;
+    }
 
     if (desc->type == FFX_API_QUERY_DESC_TYPE_UPSCALE_GETRENDERRESOLUTIONFROMQUALITYMODE)
     {
@@ -545,6 +592,14 @@ ffxReturnCode_t ffxDispatch_Dx12(ffxContext* context, ffxDispatchDescHeader* des
         return FFX_API_RETURN_ERROR_PARAMETER;
 
     LOG_DEBUG("context: {:X}, type: {}", (size_t) *context, FfxGetGetDescTypeName(desc->type));
+
+    if (State::Instance().activeFgInput == FGInput::FSRFG && IsFGType(desc->type))
+    {
+        auto result = ffxDispatch_Dx12FG(context, desc);
+
+        if (result != rcContinue)
+            return result;
+    }
 
     if (context == nullptr || !_initParams.contains(*context))
     {
