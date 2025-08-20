@@ -179,13 +179,13 @@ bool IFGFeature_Dx12::CreateBufferResourceWithSize(ID3D12Device* device, ID3D12R
 
 bool IFGFeature_Dx12::InitCopyCmdList()
 {
-    if (_copyCommandList != nullptr && _copyCommandAllocator != nullptr)
+    if (_copyCommandList[0] != nullptr && _copyCommandAllocator[0] != nullptr)
         return true;
 
     if (_device == nullptr)
         return false;
 
-    if (_copyCommandList == nullptr || _copyCommandAllocator == nullptr)
+    if (_copyCommandList[0] == nullptr || _copyCommandAllocator[0] == nullptr)
         DestroyCopyCmdList();
 
     ID3D12CommandAllocator* allocator = nullptr;
