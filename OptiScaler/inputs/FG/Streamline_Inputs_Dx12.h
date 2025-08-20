@@ -2,7 +2,7 @@
 
 #include <pch.h>
 #include <sl.h>
-#include "IFGFeature_Dx12.h"
+#include <framegen/IFGFeature_Dx12.h>
 
 class Sl_Inputs_Dx12
 {

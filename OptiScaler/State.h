@@ -3,7 +3,7 @@
 
 #include "upscalers/IFeature.h"
 #include "framegen/IFGFeature_Dx12.h"
-#include "framegen/Streamline_Inputs_Dx12.h"
+#include <inputs/FG/Streamline_Inputs_Dx12.h>
 #include "misc/Quirks.h"
 
 #include <deque>
