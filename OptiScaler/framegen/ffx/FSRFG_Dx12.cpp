@@ -731,7 +731,8 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             CreateContext(device, fgConstants);
 
             // Pause for 10 frames
-            if (State::Instance().activeFgInput == FGInput::Upscaler)
+            if (State::Instance().activeFgInput == FGInput::Upscaler ||
+                State::Instance().activeFgInput == FGInput::DLSSG)
                 UpdateTarget();
         }
         // If there is a change deactivate it
@@ -740,7 +741,8 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             Deactivate();
 
             // Pause for 10 frames
-            if (State::Instance().activeFgInput == FGInput::Upscaler)
+            if (State::Instance().activeFgInput == FGInput::Upscaler ||
+                State::Instance().activeFgInput == FGInput::DLSSG)
                 UpdateTarget();
 
             // Destroy if Swapchain has a change destroy FG Context too
@@ -748,14 +750,16 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
                 DestroyFGContext();
         }
 
-        if (State::Instance().activeFgInput == FGInput::Upscaler && _fgContext != nullptr && !IsPaused() && !IsActive())
+        if ((State::Instance().activeFgInput == FGInput::Upscaler ||
+             State::Instance().activeFgInput == FGInput::DLSSG) &&
+            _fgContext != nullptr && !IsPaused() && !IsActive())
             Activate();
     }
     else if (IsActive())
     {
         Deactivate();
 
-        if (State::Instance().activeFgInput == FGInput::Upscaler)
+        if (State::Instance().activeFgInput == FGInput::Upscaler || State::Instance().activeFgInput == FGInput::DLSSG)
         {
             State::Instance().ClearCapturedHudlesses = true;
             Hudfix_Dx12::ResetCounters();
@@ -768,7 +772,7 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 
         State::Instance().FGchanged = false;
 
-        if (State::Instance().activeFgInput == FGInput::Upscaler)
+        if (State::Instance().activeFgInput == FGInput::Upscaler || State::Instance().activeFgInput == FGInput::DLSSG)
             Hudfix_Dx12::ResetCounters();
 
         // Pause for 10 frames

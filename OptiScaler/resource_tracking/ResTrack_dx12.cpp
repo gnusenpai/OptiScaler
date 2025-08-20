@@ -1814,7 +1814,7 @@ void ResTrack_Dx12::HookDevice(ID3D12Device* device)
     // Get the vtable pointer
     PVOID* pVTable = *(PVOID**) realDevice;
 
-    // hudless
+    // Hudfix
     o_CreateDescriptorHeap = (PFN_CreateDescriptorHeap) pVTable[14];
     o_CreateConstantBufferView = (PFN_CreateConstantBufferView) pVTable[17];
     o_CreateShaderResourceView = (PFN_CreateShaderResourceView) pVTable[18];
@@ -1826,6 +1826,7 @@ void ResTrack_Dx12::HookDevice(ID3D12Device* device)
     o_CopyDescriptorsSimple = (PFN_CopyDescriptorsSimple) pVTable[24];
 
     // Apply the detour
+    // Only needed for Hudfix
     if (o_CreateDescriptorHeap != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
     {
         DetourTransactionBegin();
@@ -1859,7 +1860,7 @@ void ResTrack_Dx12::HookDevice(ID3D12Device* device)
         HookCommandList(device);
     }
 
-    // Only needed for hudfix
+    // Only needed for Hudfix
     if (State::Instance().activeFgInput == FGInput::Upscaler)
         HookResource(device);
 }
