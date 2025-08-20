@@ -595,6 +595,12 @@ bool Config::Reload(std::filesystem::path iniPath)
             UseHDR10.set_from_config(readBool("HDR", "UseHDR10"));
         }
 
+        // V-Sync
+        {
+            ForceVsync.set_from_config(readBool("V-Sync", "ForceVsync"));
+            VsyncInterval.set_from_config(readBool("V-Sync", "SyncInterval"));
+        }
+
         if (fakenvapi::isUsingFakenvapi())
             return ReloadFakenvapi();
 
@@ -1015,12 +1021,6 @@ bool Config::SaveIni()
 
     // Dx11 with Dx12
     {
-        // ini.SetValue("Dx11withDx12", "TextureSyncMethod",
-        // GetIntValue(Instance()->TextureSyncMethod.value_for_config()).c_str()); ini.SetValue("Dx11withDx12",
-        // "CopyBackSyncMethod", GetIntValue(Instance()->CopyBackSyncMethod.value_for_config()).c_str());
-        // ini.SetValue("Dx11withDx12", "SyncAfterDx12",
-        // GetBoolValue(Instance()->SyncAfterDx12.value_for_config()).c_str()); ini.SetValue("Dx11withDx12",
-        // "UseDelayedInit", GetBoolValue(Instance()->Dx11DelayedInit.value_for_config()).c_str());
         ini.SetValue("Dx11withDx12", "DontUseNTShared",
                      GetBoolValue(Instance()->DontUseNTShared.value_for_config()).c_str());
     }
@@ -1112,6 +1112,18 @@ bool Config::SaveIni()
         ini.SetValue("Inputs", "EnableFsr3Inputs",
                      GetBoolValue(Instance()->EnableFsr3Inputs.value_for_config()).c_str());
         ini.SetValue("Inputs", "EnableFfxInputs", GetBoolValue(Instance()->EnableFfxInputs.value_for_config()).c_str());
+    }
+
+    // V-Sync
+    {
+        ini.SetValue("V-Sync", "ForceVsync", GetBoolValue(Instance()->ForceVsync.value_for_config()).c_str());
+        ini.SetValue("V-Sync", "SyncInterval", GetIntValue(Instance()->VsyncInterval.value_for_config()).c_str());
+
+        if (Instance()->VsyncInterval.has_value())
+        {
+            if (Instance()->VsyncInterval.value() < 0 || Instance()->VsyncInterval.value() > 3)
+                Instance()->VsyncInterval.reset();
+        }
     }
 
     auto pathWStr = absoluteFileName.wstring();

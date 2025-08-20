@@ -2660,56 +2660,6 @@ bool MenuCommon::RenderMenu()
                                    "UI elements and ONLY UI elements should have a pink tint!");
                 }
 
-                auto forceVsyncOn = State::Instance().forceVsync.has_value() && State::Instance().forceVsync.value();
-                auto forceVsyncOff = State::Instance().forceVsync.has_value() && !State::Instance().forceVsync.value();
-
-                if (ImGui::Checkbox("V-Sync On", &forceVsyncOn))
-                {
-                    if (forceVsyncOn)
-                        State::Instance().forceVsync = true;
-                    else
-                        State::Instance().forceVsync.reset();
-                }
-                ImGui::SameLine(0.0f, 16.0f);
-
-                if (ImGui::Checkbox("V-Sync Off", &forceVsyncOff))
-                {
-                    if (forceVsyncOff)
-                        State::Instance().forceVsync = false;
-                    else
-                        State::Instance().forceVsync.reset();
-                }
-                ImGui::SameLine(0.0f, 16.0f);
-
-                ImGui::BeginDisabled(!forceVsyncOn);
-
-                ImGui::PushItemWidth(50.0f * Config::Instance()->MenuScale.value_or_default());
-                if (ImGui::BeginCombo("Sync Int.", std::format("{}", State::Instance().vsyncInterval).c_str()))
-                {
-                    if (ImGui::Selectable("0", State::Instance().vsyncInterval == 0))
-                        State::Instance().vsyncInterval = 0;
-
-                    if (ImGui::Selectable("1", State::Instance().vsyncInterval == 1))
-                        State::Instance().vsyncInterval = 1;
-
-                    if (ImGui::Selectable("2", State::Instance().vsyncInterval == 2))
-                        State::Instance().vsyncInterval = 2;
-
-                    if (ImGui::Selectable("3", State::Instance().vsyncInterval == 3))
-                        State::Instance().vsyncInterval = 3;
-
-                    ImGui::EndCombo();
-                }
-                ImGui::PopItemWidth();
-
-                ImGui::EndDisabled();
-                ImGui::SameLine(0.0f, 16.0f);
-
-                if (ImGui::Button("Reset##10"))
-                    State::Instance().forceVsync.reset();
-
-                ShowHelpMarker("Force V-Sync On/Off & Sync Interval options");
-
                 // if (State::Instance().activeFgInput != Config::Instance()->FGInput.value_or_default())
                 //{
                 //     State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
@@ -4369,6 +4319,68 @@ bool MenuCommon::RenderMenu()
                 // DX11 & DX12 -----------------------------
                 if (State::Instance().api != Vulkan)
                 {
+                    // V-SYNC -----------------------------
+                    ImGui::Spacing();
+                    if (ImGui::CollapsingHeader("V-Sync Settings"))
+                    {
+                        ScopedIndent indent {};
+                        ImGui::Spacing();
+
+                        auto forceVsyncOn =
+                            Config::Instance()->ForceVsync.has_value() && Config::Instance()->ForceVsync.value();
+                        auto forceVsyncOff =
+                            Config::Instance()->ForceVsync.has_value() && !Config::Instance()->ForceVsync.value();
+
+                        if (ImGui::Checkbox("V-Sync On", &forceVsyncOn))
+                        {
+                            if (forceVsyncOn)
+                                Config::Instance()->ForceVsync = true;
+                            else
+                                Config::Instance()->ForceVsync.reset();
+                        }
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        if (ImGui::Checkbox("V-Sync Off", &forceVsyncOff))
+                        {
+                            if (forceVsyncOff)
+                                Config::Instance()->ForceVsync = false;
+                            else
+                                Config::Instance()->ForceVsync.reset();
+                        }
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        ImGui::BeginDisabled(!forceVsyncOn);
+
+                        ImGui::PushItemWidth(50.0f * Config::Instance()->MenuScale.value_or_default());
+                        if (ImGui::BeginCombo(
+                                "Sync Int.",
+                                std::format("{}", Config::Instance()->VsyncInterval.value_or_default()).c_str()))
+                        {
+                            if (ImGui::Selectable("0", Config::Instance()->VsyncInterval.value_or_default() == 0))
+                                Config::Instance()->VsyncInterval = 0;
+
+                            if (ImGui::Selectable("1", Config::Instance()->VsyncInterval.value_or_default() == 1))
+                                Config::Instance()->VsyncInterval = 1;
+
+                            if (ImGui::Selectable("2", Config::Instance()->VsyncInterval.value_or_default() == 2))
+                                Config::Instance()->VsyncInterval = 2;
+
+                            if (ImGui::Selectable("3", Config::Instance()->VsyncInterval.value_or_default() == 3))
+                                Config::Instance()->VsyncInterval = 3;
+
+                            ImGui::EndCombo();
+                        }
+                        ImGui::PopItemWidth();
+
+                        ImGui::EndDisabled();
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        if (ImGui::Button("Reset##10"))
+                            Config::Instance()->ForceVsync.reset();
+
+                        ShowHelpMarker("Force V-Sync On/Off & Sync Interval options");
+                    }
+
                     // MIPMAP BIAS & Anisotropy -----------------------------
                     ImGui::Spacing();
                     if (ImGui::CollapsingHeader("Mipmap Bias", (currentFeature == nullptr || currentFeature->IsFrozen())

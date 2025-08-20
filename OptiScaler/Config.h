@@ -436,6 +436,10 @@ class Config
     CustomOptional<bool> ForceHDR { false };
     CustomOptional<bool> UseHDR10 { false };
 
+    // V-Sync
+    CustomOptional<bool, NoDefault> ForceVsync;
+    CustomOptional<UINT> VsyncInterval { 0 };
+
     bool LoadFromPath(const wchar_t* InPath);
     bool SaveIni();
     bool SaveXeFG();

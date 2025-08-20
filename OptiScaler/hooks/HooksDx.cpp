@@ -305,9 +305,9 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             LOG_WARN("Couldn't copy hudless into the backbuffer");
     }
 
-    if (willPresent && State::Instance().forceVsync.has_value())
+    if (willPresent && Config::Instance()->ForceVsync.has_value())
     {
-        if (!State::Instance().forceVsync.value())
+        if (!Config::Instance()->ForceVsync.value())
         {
             SyncInterval = 0;
             Flags |= DXGI_PRESENT_ALLOW_TEARING;
@@ -315,7 +315,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         else
         {
             // Remove allow tearing
-            SyncInterval = State::Instance().vsyncInterval;
+            SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
             Flags &= 0xFDFF;
         }
     }
@@ -369,7 +369,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
 
     HRESULT presentResult;
 
-    auto willPresent = !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART);
+    auto willPresent = (Flags & DXGI_PRESENT_TEST) == 0;
 
     if (State::Instance().activeFgInput != FGInput::Upscaler && willPresent)
     {
@@ -554,6 +554,22 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
 
         HooksDx::dx11UpscaleTrig[HooksDx::currentFrameIndex] = false;
         HooksDx::currentFrameIndex = (HooksDx::currentFrameIndex + 1) % HooksDx::QUERY_BUFFER_COUNT;
+    }
+
+    // Fallback when FGPresent is not hooked for V-sync
+    if (willPresent && Config::Instance()->ForceVsync.has_value() && o_FGSCPresent == nullptr)
+    {
+        if (!Config::Instance()->ForceVsync.value())
+        {
+            SyncInterval = 0;
+            Flags |= DXGI_PRESENT_ALLOW_TEARING;
+        }
+        else
+        {
+            // Remove allow tearing
+            SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
+            Flags &= 0xFDFF;
+        }
     }
 
     // DXVK check, it's here because of upscaler time calculations
