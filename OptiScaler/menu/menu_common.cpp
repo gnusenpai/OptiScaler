@@ -2541,6 +2541,7 @@ bool MenuCommon::RenderMenu()
                     fgInputDesc[optiFgIndex] = "amd_fidelityfx_dx12.dll is missing";
                 }
 
+                // DLSSG inputs requirements
                 auto constexpr dlssgInputIndex = (uint32_t) FGInput::DLSSG;
                 if (State::Instance().streamlineVersion.major < 2)
                 {
@@ -2549,6 +2550,19 @@ bool MenuCommon::RenderMenu()
 
                     if (Config::Instance()->FGInput.value_or_default() == FGInput::DLSSG)
                         Config::Instance()->FGInput.reset();
+                }
+                else if (State::Instance().api != DX12)
+                {
+                    disabledMaskInput[dlssgInputIndex] = true;
+                    fgInputDesc[dlssgInputIndex] = "Unsupported API";
+                }
+
+                // FSRFG inputs requirements
+                auto constexpr fsrfgInputIndex = (uint32_t) FGInput::FSRFG;
+                if (State::Instance().api != DX12)
+                {
+                    disabledMaskInput[fsrfgInputIndex] = true;
+                    fgInputDesc[fsrfgInputIndex] = "Unsupported API";
                 }
 
                 constexpr auto fgInputOptionsCount = sizeof(fgInputOptions) / sizeof(char*);
@@ -2604,6 +2618,17 @@ bool MenuCommon::RenderMenu()
                     fgInputDesc[nukemsInputIndex] = "Missing the dlssg_to_fsr3_amd_is_better.dll file";
                     disabledMaskOutput[nukemsOutputIndex] = true;
                     fgOutputDesc[nukemsOutputIndex] = "Missing the dlssg_to_fsr3_amd_is_better.dll file";
+                }
+
+                // FSR FG / XeFG output requirements
+                auto constexpr fsrfgOutputIndex = (uint32_t) FGOutput::FSRFG;
+                auto constexpr xefgOutputIndex = (uint32_t) FGOutput::XeFG;
+                if (State::Instance().api != DX12)
+                {
+                    disabledMaskOutput[fsrfgOutputIndex] = true;
+                    fgOutputDesc[fsrfgOutputIndex] = "Unsupported API";
+                    disabledMaskOutput[xefgOutputIndex] = true;
+                    fgOutputDesc[xefgOutputIndex] = "Unsupported API";
                 }
 
                 constexpr auto fgOutputOptionsCount = std::size(fgOutputOptions);
