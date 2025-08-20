@@ -2501,15 +2501,15 @@ bool MenuCommon::RenderMenu()
                 std::vector<std::string> fgInputDesc = {
                     "",
                     "Limited to FSR 3 FG\n\nSupports hudless out of the box\n\nUses streamline swapchain for pacing", 
-                    "Support not implemented", 
+                    "Can be used with any FG Output\n\nSupports hudless out of the box\n\nCurrently only FSR3.1 FG is supported", 
                     "Can be used with any FG Output\n\nSupports hudless out of the box\n\nLimited to games that use Streamline v2", 
                     "Support not implemented", 
-                    "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, hudfix required",
+                    "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, Hudfix required",
                 };
                 std::vector<uint8_t> disabledMaskInput = { 
                     false, 
                     false, 
-                    true, 
+                    false, 
                     false, // TODO: Disable DLSSG inputs in games that can't support it
                     true, 
                     false 
