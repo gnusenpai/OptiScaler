@@ -471,6 +471,15 @@ class KernelHooks
             return module;
         }
 
+        if (CheckDllName(&lcaseLibName, &ffxDx12UpscalerNames))
+        {
+            auto module = KernelBaseProxy::LoadLibraryExA_()(lcaseLibName.c_str(), NULL, 0);
+
+            FSR4ModelSelection::Hook(module);
+
+            return module;
+        }
+
         if (CheckDllName(&lcaseLibName, &ffxVkNames))
         {
             auto module = LoadFfxapiVk(
@@ -881,6 +890,15 @@ class KernelHooks
 
             if (module != nullptr)
                 FfxApiProxy::InitFfxDx12(module);
+
+            return module;
+        }
+
+        if (CheckDllNameW(&lcaseLibName, &ffxDx12UpscalerNamesW))
+        {
+            auto module = KernelBaseProxy::LoadLibraryExW_()(lcaseLibName.c_str(), NULL, 0);
+
+            FSR4ModelSelection::Hook(module);
 
             return module;
         }
