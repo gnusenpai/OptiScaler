@@ -245,6 +245,17 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
 
     bool ffxLock = false;
 
+    if (Fullscreen && State::Instance().activeFgOutput == FGOutput::XeFG)
+    {
+        Fullscreen = false;
+        SetWindowLongPtr(Handle, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowLongPtr(Handle, GWL_EXSTYLE, WS_EX_APPWINDOW);
+        DXGI_SWAP_CHAIN_DESC desc {};
+        GetDesc(&desc);
+        SetWindowPos(Handle, HWND_TOP, 0, 0, desc.BufferDesc.Width, desc.BufferDesc.Height,
+                     SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+    }
+
     {
 #ifdef USE_LOCAL_MUTEX
         // dlssg calls this from present it seems

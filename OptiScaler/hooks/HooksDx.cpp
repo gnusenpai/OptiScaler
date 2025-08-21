@@ -884,6 +884,9 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
     pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
+    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+        pDesc->Windowed = true;
+
     // Crude implementation of EndlesslyFlowering's AutoHDR-ReShade
     // https://github.com/EndlesslyFlowering/AutoHDR-ReShade
     if (Config::Instance()->ForceHDR.value_or_default() && !_skipFGSwapChainCreation)
@@ -1220,6 +1223,9 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
     // For vsync override
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+        pFullscreenDesc->Windowed = true;
 
     // Disable FSR FG if amd dll is not found
     if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::InitFfxDx12())
