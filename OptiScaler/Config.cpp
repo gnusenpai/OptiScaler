@@ -695,6 +695,8 @@ bool Config::SaveIni()
                 FGInputString = "Nukems";
             else if (FGInputHeld.value() == FGInput::DLSSG)
                 FGInputString = "DLSSG";
+            else if (FGInputHeld.value() == FGInput::FSRFG)
+                FGInputString = "FSRFG";
         }
         ini.SetValue("FrameGen", "FGInput", FGInputString.c_str());
 
