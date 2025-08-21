@@ -1853,12 +1853,12 @@ void ResTrack_Dx12::HookDevice(ID3D12Device* device)
         DetourTransactionCommit();
     }
 
+    if (State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgInput == FGInput::Upscaler)
+        HookCommandList(device);
+
     // Only needed for FSR-FG Feature
     if (State::Instance().activeFgOutput == FGOutput::FSRFG)
-    {
         HookToQueue(device);
-        HookCommandList(device);
-    }
 
     // Only needed for Hudfix
     if (State::Instance().activeFgInput == FGInput::Upscaler)

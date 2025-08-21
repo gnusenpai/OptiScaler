@@ -970,7 +970,7 @@ bool FSRFG_Dx12::Present()
     if (State::Instance().FGHudlessCompare)
     {
         auto hudless = GetResource(FG_ResourceType::HudlessColor);
-        if (hudless != nullptr)
+        if (hudless != nullptr && hudless->validity == FG_ResourceValidity::UntilPresent)
         {
             if (_hudlessCompare.get() == nullptr)
             {
