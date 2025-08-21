@@ -48,7 +48,9 @@ bool Sl_Inputs_Dx12::setConstants(const sl::Constants& values, uint32_t frameId)
             data = values;
             return true;
         }
-        else if (data.value().structVersion == sl::kStructVersion2 && values.structVersion == sl::kStructVersion1)
+        else if ((data.value().structVersion == sl::kStructVersion2 && values.structVersion == sl::kStructVersion1) ||
+                 values.structVersion == 0)
+        // Spider-Man Remastered does this funny thing of sending an invalid struct version
         {
             auto* pNext = data.value().next;
             memcpy(&data, &values, sizeof(values) - sizeof(sl::Constants::minRelativeLinearDepthObjectSeparation));
