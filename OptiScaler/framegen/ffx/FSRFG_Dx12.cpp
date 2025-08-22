@@ -149,6 +149,7 @@ bool FSRFG_Dx12::Dispatch()
         if (_lastHudlessFormat != localLastHudlessFormat)
         {
             State::Instance().FGchanged = true;
+            State::Instance().SCchanged = true;
             LOG_DEBUG("HUDLESS format changed, triggering FG reinit");
         }
 
@@ -363,6 +364,7 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
                   params->presentColor.description.format);
 
         State::Instance().FGchanged = true;
+        State::Instance().SCchanged = true;
     }
 
     auto dispatchResult = FfxApiProxy::D3D12_Dispatch()(&_fgContext, &params->header);
@@ -713,15 +715,17 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
     {
         lastInfiniteDepth = currentInfiniteDepth;
         LOG_DEBUG("Infinite Depth changed: {}", currentInfiniteDepth);
+
         State::Instance().FGchanged = true;
+        State::Instance().SCchanged = true;
     }
 
     if (_maxRenderWidth != 0 && _maxRenderHeight != 0 && IsActive() && !IsPaused() &&
         (fgConstants.displayWidth > _maxRenderWidth || fgConstants.displayHeight > _maxRenderHeight))
 
     {
-        DestroyFGContext();
         State::Instance().FGchanged = true;
+        State::Instance().SCchanged = true;
     }
 
     // If FG Enabled from menu
