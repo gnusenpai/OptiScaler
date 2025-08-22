@@ -270,13 +270,8 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
                 return E_NOINTERFACE;
             }
 
-            const char* pattern = "83 F9 05 0F 87 ? ? ? ?";
             auto sdk2upscalingModule = KernelBaseProxy::GetModuleHandleA_()("amd_fidelityfx_upscaler_dx12.dll");
-
-            if (sdk2upscalingModule != nullptr)
-                o_getModelBlob = (PFN_getModelBlob) scanner::GetAddress(sdk2upscalingModule, pattern);
-            else
-                o_getModelBlob = (PFN_getModelBlob) scanner::GetAddress(fsr4Module, pattern);
+            constexpr bool unhookOld = false;
 
             if (sdk2upscalingModule != nullptr)
                 FSR4ModelSelection::Hook(sdk2upscalingModule, unhookOld);
