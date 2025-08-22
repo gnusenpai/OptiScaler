@@ -338,7 +338,7 @@ void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch, sl::Featur
                     }
 
                     // Don't change arch for DLSSD with turing and above
-                    if (feature == sl::kFeatureDLSS_RR)
+                    else if (feature == sl::kFeatureDLSS_RR)
                     {
                         if (adapter.architecture < NV_GPU_ARCHITECTURE_TU100)
                             adapter.architecture = arch;
@@ -346,7 +346,7 @@ void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch, sl::Featur
                     }
 
                     // Don't change arch for DLSSG with turing and above
-                    if (feature == sl::kFeatureDLSS_G)
+                    else if (feature == sl::kFeatureDLSS_G)
                     {
                         if (adapter.architecture < NV_GPU_ARCHITECTURE_AD100)
                             adapter.architecture = arch;
@@ -374,8 +374,34 @@ void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch, sl::Featur
 
         if (caps)
         {
-            caps->architecture[0] = arch;
-            caps->driverVersionMajor = 999;
+            if (!fakenvapi::isUsingFakenvapi())
+            {
+                // Don't change arch for DLSS with turing and above
+                if (feature == sl::kFeatureDLSS)
+                {
+                    if (caps->architecture[0] < NV_GPU_ARCHITECTURE_TU100)
+                        caps->architecture[0] = arch;
+                }
+
+                // Don't change arch for DLSSD with turing and above
+                else if (feature == sl::kFeatureDLSS_RR)
+                {
+                    if (caps->architecture[0] < NV_GPU_ARCHITECTURE_TU100)
+                        caps->architecture[0] = arch;
+                }
+
+                // Don't change arch for DLSSG with turing and above
+                else if (feature == sl::kFeatureDLSS_G)
+                {
+                    if (caps->architecture[0] < NV_GPU_ARCHITECTURE_AD100)
+                        caps->architecture[0] = arch;
+                }
+            }
+            else
+            {
+                caps->architecture[0] = arch;
+                caps->driverVersionMajor = 999;
+            }
 
             // This will write outside the struct if SystemCaps is smaller than expected
             // Witcher 3 (sl 1.5) uses this layout
