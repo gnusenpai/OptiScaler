@@ -11,6 +11,7 @@
 #include <magic_enum.hpp>
 #include <sl1_reflex.h>
 #include "include/sl.param/parameters.h"
+#include <nvapi/fakenvapi.h>
 
 sl::RenderAPI StreamlineHooks::renderApi = sl::RenderAPI::eCount;
 std::mutex StreamlineHooks::setConstantsMutex {};
@@ -313,32 +314,7 @@ struct SystemCapsSl15
     bool hwSchedulingEnabled {};
 };
 
-bool StreamlineHooks::hkdlss_slOnPluginLoad(void* params, const char* loaderJSON, const char** pluginJSON)
-{
-    LOG_FUNC();
-
-    // TODO: do it better than "static" and hoping for the best
-    static std::string config;
-
-    auto result = o_dlss_slOnPluginLoad(params, loaderJSON, pluginJSON);
-
-    if (Config::Instance()->VulkanExtensionSpoofing.value_or_default())
-    {
-        nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
-
-        configJson["external"]["vk"]["instance"]["extensions"].clear();
-        configJson["external"]["vk"]["device"]["extensions"].clear();
-        configJson["external"]["vk"]["device"]["1.2_features"].clear();
-
-        config = configJson.dump();
-
-        *pluginJSON = config.c_str();
-    }
-
-    return result;
-}
-
-void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch)
+void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch, sl::Feature feature)
 {
     if (State::Instance().streamlineVersion.major > 1)
     {
@@ -349,7 +325,35 @@ void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch)
         {
             for (auto& adapter : caps->adapters)
             {
-                if ((uint32_t) adapter.vendor != 0)
+                LOG_TRACE("vendor: {}, feature: {}, original arch: {:X}", (uint32_t) adapter.vendor, feature,
+                          adapter.architecture);
+                if (adapter.vendor == VendorId::Nvidia && !fakenvapi::isUsingFakenvapi())
+                {
+                    // Don't change arch for DLSS with turing and above
+                    if (feature == sl::kFeatureDLSS)
+                    {
+                        if (adapter.architecture < NV_GPU_ARCHITECTURE_TU100)
+                            adapter.architecture = arch;
+                        break;
+                    }
+
+                    // Don't change arch for DLSSD with turing and above
+                    if (feature == sl::kFeatureDLSS_RR)
+                    {
+                        if (adapter.architecture < NV_GPU_ARCHITECTURE_TU100)
+                            adapter.architecture = arch;
+                        break;
+                    }
+
+                    // Don't change arch for DLSSG with turing and above
+                    if (feature == sl::kFeatureDLSS_G)
+                    {
+                        if (adapter.architecture < NV_GPU_ARCHITECTURE_AD100)
+                            adapter.architecture = arch;
+                        break;
+                    }
+                }
+                else if ((uint32_t) adapter.vendor != 0)
                 {
                     adapter.vendor = VendorId::Nvidia;
                     adapter.architecture = arch;
@@ -381,6 +385,34 @@ void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch)
     }
 }
 
+bool StreamlineHooks::hkdlss_slOnPluginLoad(void* params, const char* loaderJSON, const char** pluginJSON)
+{
+    LOG_FUNC();
+
+    // TODO: do it better than "static" and hoping for the best
+    static std::string config;
+
+    if (Config::Instance()->StreamlineSpoofing.value_or_default())
+        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX, sl::kFeatureDLSS);
+
+    auto result = o_dlss_slOnPluginLoad(params, loaderJSON, pluginJSON);
+
+    if (Config::Instance()->VulkanExtensionSpoofing.value_or_default())
+    {
+        nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
+
+        configJson["external"]["vk"]["instance"]["extensions"].clear();
+        configJson["external"]["vk"]["device"]["extensions"].clear();
+        configJson["external"]["vk"]["device"]["1.2_features"].clear();
+
+        config = configJson.dump();
+
+        *pluginJSON = config.c_str();
+    }
+
+    return result;
+}
+
 bool StreamlineHooks::hkdlssg_slOnPluginLoad(void* params, const char* loaderJSON, const char** pluginJSON)
 {
     LOG_FUNC();
@@ -389,16 +421,16 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(void* params, const char* loaderJSO
     static std::string config;
 
     bool skipArchSpoof =
-        !(Config::Instance()->StreamlineSpoofing.value_or_default() &&
-          (Config::Instance()->FGInput == FGInput::Nukems || Config::Instance()->FGInput == FGInput::DLSSG));
+        Config::Instance()->StreamlineSpoofing.value_or_default() &&
+        !(Config::Instance()->FGInput == FGInput::Nukems || Config::Instance()->FGInput == FGInput::DLSSG);
 
     if (skipArchSpoof)
-        setSystemCapsArch((sl::param::IParameters*) params, 0);
+        setSystemCapsArch((sl::param::IParameters*) params, 0, sl::kFeatureDLSS_G);
 
     auto result = o_dlssg_slOnPluginLoad(params, loaderJSON, pluginJSON);
 
     if (skipArchSpoof)
-        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX);
+        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX, sl::kFeatureDLSS_G);
 
     nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
 
@@ -457,8 +489,9 @@ bool StreamlineHooks::hkcommon_slOnPluginLoad(void* params, const char* loaderJS
     //    *pluginJSON = config.c_str();
     //}
 
+    // For the common plugin, spoof only architectures older than Turing (or not-Nvidia)
     if (Config::Instance()->StreamlineSpoofing.value_or_default())
-        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX);
+        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX, sl::kFeatureDLSS);
 
     return result;
 }

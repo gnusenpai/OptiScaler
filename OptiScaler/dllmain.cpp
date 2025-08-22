@@ -1204,8 +1204,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
                 if (!Config::Instance()->DxgiSpoofing.has_value())
                     Config::Instance()->DxgiSpoofing.set_volatile_value(false);
 
-                if (!Config::Instance()->StreamlineSpoofing.has_value())
-                    Config::Instance()->StreamlineSpoofing.set_volatile_value(false);
+                // StreamlineSpoofing is more selective on Nvidia now
+                // if (!Config::Instance()->StreamlineSpoofing.has_value())
+                //    Config::Instance()->StreamlineSpoofing.set_volatile_value(false);
             }
             else
             {
