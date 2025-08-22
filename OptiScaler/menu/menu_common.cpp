@@ -2918,13 +2918,20 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::SeparatorText("Frame Generation (XeFG)");
 
-                        if (!State::Instance().currentFG->IsLowResMV())
+                        if (!State::Instance().currentFG->IsLowResMV() || State::Instance().SCExclusiveFullscreen)
                         {
                             Config::Instance()->FGEnabled.reset();
                             Config::Instance()->FGXeFGDebugView.reset();
                         }
 
-                        ImGui::BeginDisabled(!State::Instance().currentFG->IsLowResMV());
+                        if (!State::Instance().currentFG->IsLowResMV())
+                            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Requires disabling dilated motion vectors");
+
+                        if (State::Instance().SCExclusiveFullscreen)
+                            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Borderless display mode required");
+
+                        ImGui::BeginDisabled(!State::Instance().currentFG->IsLowResMV() ||
+                                             State::Instance().SCExclusiveFullscreen);
 
                         bool fgActive = Config::Instance()->FGEnabled.value_or_default();
                         if (ImGui::Checkbox("Active##3", &fgActive))
@@ -2936,10 +2943,7 @@ bool MenuCommon::RenderMenu()
                                 State::Instance().FGchanged = true;
                         }
 
-                        if (State::Instance().currentFG->IsLowResMV())
-                            ShowHelpMarker("Enable frame generation");
-                        else
-                            ShowHelpMarker("Can't enable frame generation\n\nDisplay Size MV is ACTIVE!");
+                        ShowHelpMarker("Enable frame generation");
 
                         bool fgDV = Config::Instance()->FGXeFGDebugView.value_or_default();
                         if (ImGui::Checkbox("Debug View##2", &fgDV))
@@ -2954,12 +2958,21 @@ bool MenuCommon::RenderMenu()
                         }
                         ShowHelpMarker("Enable XeFG frame generation debug view");
 
+                        ImGui::EndDisabled();
+
+                        ImGui::SameLine(0.0f, 16.0f);
+                        bool fgBorderless = Config::Instance()->FGXeFGForceBorderless.value_or_default();
+                        if (ImGui::Checkbox("Force Borderless", &fgBorderless))
+                            Config::Instance()->FGXeFGForceBorderless = fgBorderless;
+                        ShowHelpMarker("Forces borderless display mode\n\n"
+                                       "For best results set fullscreen resolution to\n"
+                                       "your display resolution\n"
+                                       "Might cause some INSTABILITY and GRAPHICAL ISSUES!");
+
                         // Disable this for now
                         // ImGui::SameLine(0.0f, 16.0f);
                         // ImGui::Checkbox("Only Generated##2", &State::Instance().FGonlyGenerated);
                         // ShowHelpMarker("Display only XeFG generated frames");
-
-                        ImGui::EndDisabled();
 
                         ImGui::Spacing();
                         if (ImGui::CollapsingHeader("Advanced XeFG Settings"))

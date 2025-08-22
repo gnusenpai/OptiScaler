@@ -399,6 +399,7 @@ class Config
     CustomOptional<bool> FGXeFGJitteredMV { false };
     CustomOptional<bool> FGXeFGHighResMV { false };
     CustomOptional<bool> FGXeFGDebugView { false };
+    CustomOptional<bool> FGXeFGForceBorderless { false };
 
     // DLSS Enabler
     std::optional<int> DE_FramerateLimit; // off - vsync - number

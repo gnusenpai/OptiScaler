@@ -215,46 +215,70 @@ static bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnk
 
 static HRESULT hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDXGIOutput* pTarget)
 {
-    if (Fullscreen)
+    bool modeChanged = false;
+    if (Config::Instance()->FGXeFGForceBorderless.value_or_default())
     {
-        Fullscreen = false;
-        _exclusiveFullscreen = true;
-        LOG_DEBUG("Prevented exclusive fullscreen");
-    }
-    else
-    {
-        _exclusiveFullscreen = false;
-    }
-
-    auto result = o_FGSCSetFullscreenState(This, Fullscreen, pTarget);
-
-    if (result == S_OK && _exclusiveFullscreen)
-    {
-        SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
-        SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
-
-        Util::MonitorInfo info;
-
-        if (pTarget != nullptr)
+        if (Fullscreen)
         {
-            info = Util::GetMonitorInfoForOutput(pTarget);
+            Fullscreen = false;
+
+            if (!_exclusiveFullscreen)
+            {
+                _exclusiveFullscreen = true;
+                modeChanged = true;
+            }
+
+            LOG_DEBUG("Prevented exclusive fullscreen");
         }
         else
         {
-            info = Util::GetMonitorInfoForWindow(_hwnd);
+            if (_exclusiveFullscreen)
+            {
+                modeChanged = true;
+                _exclusiveFullscreen = false;
+            }
         }
+    }
 
-        LOG_DEBUG("Overriding window size: {}x{}, and pos: {}x{} at monitor: {}", info.width, info.height, info.x,
-                  info.y, wstring_to_string(info.name));
+    State::Instance().SCExclusiveFullscreen = Fullscreen;
 
-        SetWindowPos(_hwnd, HWND_TOP, info.x, info.y, info.width, info.height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+    auto result = o_FGSCSetFullscreenState(This, Fullscreen, pTarget);
+    LOG_DEBUG("Result: {:X}", (UINT) result);
 
-        // Forcing screen size buffers does not help
-        //
+    if (result == S_OK && modeChanged)
+    {
+        LOG_DEBUG("Mode changed");
 
-        // DXGI_SWAP_CHAIN_DESC scDesc {};
-        // This->GetDesc(&scDesc);
-        // This->ResizeBuffers(scDesc.BufferCount, info.width, info.height, scDesc.BufferDesc.Format, 0);
+        DXGI_SWAP_CHAIN_DESC scDesc {};
+        This->GetDesc(&scDesc);
+
+        if (_exclusiveFullscreen)
+        {
+            SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+            SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+
+            Util::MonitorInfo info;
+
+            if (pTarget != nullptr)
+                info = Util::GetMonitorInfoForOutput(pTarget);
+            else
+                info = Util::GetMonitorInfoForWindow(_hwnd);
+
+            LOG_DEBUG("Overriding window size: {}x{}, and pos: {}x{} at monitor: {}", info.width, info.height, info.x,
+                      info.y, wstring_to_string(info.name));
+
+            SetWindowPos(_hwnd, HWND_TOP, info.x, info.y, info.width, info.height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+            // Forcing screen size buffers does not help
+            // This->ResizeBuffers(scDesc.BufferCount, info.width, info.height, scDesc.BufferDesc.Format, 0);
+        }
+        else
+        {
+            SetWindowLongPtr(_hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+            SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_OVERLAPPEDWINDOW);
+            SetWindowPos(_hwnd, nullptr, 0, 0, scDesc.BufferDesc.Width, scDesc.BufferDesc.Height,
+                         SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
+        }
     }
 
     return result;
@@ -264,7 +288,7 @@ static HRESULT hkGetFullscreenDesc(IDXGISwapChain* This, DXGI_SWAP_CHAIN_FULLSCR
 {
     auto result = o_FGSCGetFullscreenDesc(This, pDesc);
 
-    if (result == S_OK && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
         pDesc->Windowed = false;
 
     return result;
@@ -274,7 +298,7 @@ static HRESULT hkGetFullscreenState(IDXGISwapChain* This, BOOL* pFullscreen, IDX
 {
     auto result = o_FGSCGetFullscreenState(This, pFullscreen, ppTarget);
 
-    if (result == S_OK && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
         *pFullscreen = true;
 
     return result;
@@ -284,14 +308,13 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
                                UINT SwapChainFlags)
 {
     // Forcing screen size buffers does not help
-    //
     // if (_exclusiveFullscreen)
     //{
-    //     auto info = Util::GetMonitorInfoForWindow(_hwnd);
-    //     LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
-    //     Width = info.width;
-    //     Height = info.height;
-    // }
+    //    auto info = Util::GetMonitorInfoForWindow(_hwnd);
+    //    LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
+    //    Width = info.width;
+    //    Height = info.height;
+    //}
 
     DXGI_SWAP_CHAIN_DESC desc {};
     if (This->GetDesc(&desc) == S_OK)
@@ -308,7 +331,7 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
 
     // Resize window to cover the screen
-    if (result == S_OK && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
     {
         SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
         SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
@@ -327,22 +350,26 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
 
 static HRESULT hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTargetParameters)
 {
-    LOG_DEBUG("Skipping resize target.");
-    return S_OK;
+    if (Config::Instance()->FGXeFGForceBorderless.value_or_default())
+    {
+        LOG_DEBUG("Skipping resize target.");
+        return S_OK;
+    }
+
+    return o_FGSCResizeTarget(This, pNewTargetParameters);
 }
 
 static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
                                 UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
     // Forcing screen size buffers does not help
-    //
     // if (_exclusiveFullscreen)
     //{
-    //     auto info = Util::GetMonitorInfoForWindow(_hwnd);
-    //     LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
-    //     Width = info.width;
-    //     Height = info.height;
-    // }
+    //    auto info = Util::GetMonitorInfoForWindow(_hwnd);
+    //    LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
+    //    Width = info.width;
+    //    Height = info.height;
+    //}
 
     DXGI_SWAP_CHAIN_DESC desc {};
     if (This->GetDesc(&desc) == S_OK)
@@ -360,7 +387,7 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
                                        ppPresentQueue);
 
     // Resize window to cover the screen
-    if (result == S_OK && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
     {
         SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
         SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
@@ -1071,15 +1098,17 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         {
             _exclusiveFullscreen = true;
             pDesc->Windowed = true;
-            auto info = Util::GetMonitorInfoForWindow(pDesc->OutputWindow);
-            LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->BufferDesc.Width, pDesc->BufferDesc.Height,
-                      info.width, info.height);
-            pDesc->BufferDesc.Width = info.width;
-            pDesc->BufferDesc.Height = info.height;
+            // auto info = Util::GetMonitorInfoForWindow(pDesc->OutputWindow);
+            //  LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->BufferDesc.Width, pDesc->BufferDesc.Height,
+            //            info.width, info.height);
+            //  pDesc->BufferDesc.Width = info.width;
+            //  pDesc->BufferDesc.Height = info.height;
         }
 
         pDesc->BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
     }
+
+    State::Instance().SCExclusiveFullscreen = !pDesc->Windowed;
 
     // Crude implementation of EndlesslyFlowering's AutoHDR-ReShade
     // https://github.com/EndlesslyFlowering/AutoHDR-ReShade
@@ -1450,14 +1479,15 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         {
             _exclusiveFullscreen = true;
             pFullscreenDesc->Windowed = true;
-            auto info = Util::GetMonitorInfoForWindow(hWnd);
-            LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->Width, pDesc->Height, info.width, info.height);
-            pDesc->Width = info.width;
-            pDesc->Height = info.height;
+            // auto info = Util::GetMonitorInfoForWindow(hWnd);
+            // LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->Width, pDesc->Height, info.width,
+            // info.height); pDesc->Width = info.width; pDesc->Height = info.height;
         }
 
         pDesc->Scaling = DXGI_SCALING_STRETCH;
     }
+
+    State::Instance().SCExclusiveFullscreen = (pFullscreenDesc != nullptr) && (!pFullscreenDesc->Windowed);
 
     // Disable FSR FG if amd dll is not found
     if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::InitFfxDx12())

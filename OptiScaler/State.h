@@ -95,6 +95,7 @@ class State
     bool FGHudlessCompare = false;
     bool FGchanged = false;
     bool SCchanged = false;
+    bool SCExclusiveFullscreen = false;
     bool skipHeapCapture = false;
 
     bool FGcaptureResources = false;
