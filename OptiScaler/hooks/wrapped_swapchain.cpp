@@ -232,7 +232,6 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UIN
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetBuffer(UINT Buffer, REFIID riid, void** ppSurface)
 {
     auto result = m_pReal->GetBuffer(Buffer, riid, ppSurface);
-    // LOG_TRACE("Buffer: {}", Buffer);
     return result;
 }
 
@@ -244,17 +243,6 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
     HRESULT result = S_OK;
 
     bool ffxLock = false;
-
-    if (Fullscreen && State::Instance().activeFgOutput == FGOutput::XeFG)
-    {
-        Fullscreen = false;
-        SetWindowLongPtr(Handle, GWL_STYLE, WS_POPUP | WS_VISIBLE);
-        SetWindowLongPtr(Handle, GWL_EXSTYLE, WS_EX_APPWINDOW);
-        DXGI_SWAP_CHAIN_DESC desc {};
-        GetDesc(&desc);
-        SetWindowPos(Handle, HWND_TOP, 0, 0, desc.BufferDesc.Width, desc.BufferDesc.Height,
-                     SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-    }
 
     {
 #ifdef USE_LOCAL_MUTEX
@@ -334,8 +322,6 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
     {
         State::Instance().FGresetCapturedResources = true;
         State::Instance().FGonlyUseCapturedResources = false;
-
-        // if (State::Instance().currentFeature != nullptr)
         State::Instance().FGchanged = true;
     }
 
@@ -626,8 +612,6 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
     {
         State::Instance().FGresetCapturedResources = true;
         State::Instance().FGonlyUseCapturedResources = false;
-
-        // if (State::Instance().currentFeature != nullptr)
         State::Instance().FGchanged = true;
     }
 

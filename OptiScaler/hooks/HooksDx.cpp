@@ -58,6 +58,15 @@ typedef HRESULT (*PFN_CreateSwapChainForCoreWindow)(IDXGIFactory2*, IUnknown* pD
 typedef HRESULT (*PFN_Present)(void* This, UINT SyncInterval, UINT Flags);
 typedef HRESULT (*PFN_Present1)(void* This, UINT SyncInterval, UINT Flags,
                                 const DXGI_PRESENT_PARAMETERS* pPresentParameters);
+typedef HRESULT (*PFN_GetFullscreenDesc)(IDXGISwapChain* This, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pDesc);
+typedef HRESULT (*PFN_SetFullscreenState)(IDXGISwapChain* This, BOOL Fullscreen, IDXGIOutput* pTarget);
+typedef HRESULT (*PFN_GetFullscreenState)(IDXGISwapChain* This, BOOL* pFullscreen, IDXGIOutput** ppTarget);
+typedef HRESULT (*PFN_ResizeBuffers)(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height,
+                                     DXGI_FORMAT NewFormat, UINT SwapChainFlags);
+typedef HRESULT (*PFN_ResizeBuffers1)(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height,
+                                      DXGI_FORMAT Format, UINT SwapChainFlags, const UINT* pCreationNodeMask,
+                                      IUnknown* const* ppPresentQueue);
+typedef HRESULT (*PFN_ResizeTarget)(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTargetParameters);
 
 static DxgiProxy::PFN_CreateDxgiFactory o_CreateDXGIFactory = nullptr;
 static DxgiProxy::PFN_CreateDxgiFactory1 o_CreateDXGIFactory1 = nullptr;
@@ -72,8 +81,16 @@ static PFN_CreateSwapChain oCreateSwapChain = nullptr;
 static PFN_CreateSwapChainForHwnd oCreateSwapChainForHwnd = nullptr;
 static PFN_CreateSwapChainForCoreWindow oCreateSwapChainForCoreWindow = nullptr;
 
+static PFN_ResizeBuffers o_FGSCResizeBuffers = nullptr;
+static PFN_ResizeTarget o_FGSCResizeTarget = nullptr;
+static PFN_ResizeBuffers1 o_FGSCResizeBuffers1 = nullptr;
+static PFN_SetFullscreenState o_FGSCSetFullscreenState = nullptr;
+static PFN_GetFullscreenState o_FGSCGetFullscreenState = nullptr;
+static PFN_GetFullscreenDesc o_FGSCGetFullscreenDesc = nullptr;
 static PFN_Present o_FGSCPresent = nullptr;
 static PFN_Present1 o_FGSCPresent1 = nullptr;
+static bool _exclusiveFullscreen = false;
+static HWND _hwnd = nullptr;
 
 static bool skipHighPerfCheck = false;
 
@@ -195,6 +212,146 @@ static bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnk
 }
 
 #pragma region Callbacks for wrapped swapchain
+
+static HRESULT hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDXGIOutput* pTarget)
+{
+    if (Fullscreen)
+    {
+        Fullscreen = false;
+        _exclusiveFullscreen = true;
+        LOG_DEBUG("Prevented exclusive fullscreen");
+    }
+    else
+    {
+        _exclusiveFullscreen = false;
+    }
+
+    auto result = o_FGSCSetFullscreenState(This, Fullscreen, pTarget);
+
+    if (result == S_OK && _exclusiveFullscreen)
+    {
+        SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+
+        Util::MonitorInfo info;
+
+        if (pTarget != nullptr)
+        {
+            info = Util::GetMonitorInfoForOutput(pTarget);
+        }
+        else
+        {
+            info = Util::GetMonitorInfoForWindow(_hwnd);
+        }
+
+        LOG_DEBUG("Overriding window size: {}x{}, and pos: {}x{} at monitor: {}", info.width, info.height, info.x,
+                  info.y, wstring_to_string(info.name));
+
+        SetWindowPos(_hwnd, HWND_TOP, info.x, info.y, info.width, info.height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+        // Forcing screen size buffers does not help
+        //
+
+        // DXGI_SWAP_CHAIN_DESC scDesc {};
+        // This->GetDesc(&scDesc);
+        // This->ResizeBuffers(scDesc.BufferCount, info.width, info.height, scDesc.BufferDesc.Format, 0);
+    }
+
+    return result;
+}
+
+static HRESULT hkGetFullscreenDesc(IDXGISwapChain* This, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pDesc)
+{
+    auto result = o_FGSCGetFullscreenDesc(This, pDesc);
+
+    if (result == S_OK && _exclusiveFullscreen)
+        pDesc->Windowed = false;
+
+    return result;
+}
+
+static HRESULT hkGetFullscreenState(IDXGISwapChain* This, BOOL* pFullscreen, IDXGIOutput** ppTarget)
+{
+    auto result = o_FGSCGetFullscreenState(This, pFullscreen, ppTarget);
+
+    if (result == S_OK && _exclusiveFullscreen)
+        *pFullscreen = true;
+
+    return result;
+}
+
+static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat,
+                               UINT SwapChainFlags)
+{
+    // Forcing screen size buffers does not help
+    //
+    // if (_exclusiveFullscreen)
+    //{
+    //     auto info = Util::GetMonitorInfoForWindow(_hwnd);
+    //     LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
+    //     Width = info.width;
+    //     Height = info.height;
+    // }
+
+    auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+
+    // Resize window to cover the screen
+    if (result == S_OK && _exclusiveFullscreen)
+    {
+        SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+
+        Util::MonitorInfo info;
+        info = Util::GetMonitorInfoForWindow(_hwnd);
+
+        LOG_DEBUG("Overriding window size: {}x{}, and pos: {}x{} at monitor: {}", info.width, info.height, info.x,
+                  info.y, wstring_to_string(info.name));
+
+        SetWindowPos(_hwnd, HWND_TOP, info.x, info.y, info.width, info.height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+    }
+
+    return result;
+}
+
+static HRESULT hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTargetParameters)
+{
+    LOG_DEBUG("Skipping resize target.");
+    return S_OK;
+}
+
+static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
+                                UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
+{
+    // Forcing screen size buffers does not help
+    //
+    // if (_exclusiveFullscreen)
+    //{
+    //     auto info = Util::GetMonitorInfoForWindow(_hwnd);
+    //     LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
+    //     Width = info.width;
+    //     Height = info.height;
+    // }
+
+    auto result = o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
+                                       ppPresentQueue);
+
+    // Resize window to cover the screen
+    if (result == S_OK && _exclusiveFullscreen)
+    {
+        SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+
+        Util::MonitorInfo info;
+        info = Util::GetMonitorInfoForWindow(_hwnd);
+
+        LOG_DEBUG("Overriding window size: {}x{}, and pos: {}x{} at monitor: {}", info.width, info.height, info.x,
+                  info.y, wstring_to_string(info.name));
+
+        SetWindowPos(_hwnd, HWND_TOP, info.x, info.y, info.width, info.height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+    }
+
+    return result;
+}
 
 static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
@@ -885,7 +1042,20 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
-        pDesc->Windowed = true;
+    {
+        if (!pDesc->Windowed)
+        {
+            _exclusiveFullscreen = true;
+            pDesc->Windowed = true;
+            auto info = Util::GetMonitorInfoForWindow(pDesc->OutputWindow);
+            LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->BufferDesc.Width, pDesc->BufferDesc.Height,
+                      info.width, info.height);
+            pDesc->BufferDesc.Width = info.width;
+            pDesc->BufferDesc.Height = info.height;
+        }
+
+        pDesc->BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
+    }
 
     // Crude implementation of EndlesslyFlowering's AutoHDR-ReShade
     // https://github.com/EndlesslyFlowering/AutoHDR-ReShade
@@ -963,6 +1133,8 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
         if (scResult)
         {
+            _hwnd = pDesc->OutputWindow;
+
             State::Instance().currentFGSwapchain = *ppSwapChain;
 
             if (o_FGSCPresent == nullptr && *ppSwapChain != nullptr)
@@ -971,6 +1143,14 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
                 o_FGSCPresent = (PFN_Present) pFactoryVTable[8];
                 o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
+
+                // Borderless hooks
+                o_FGSCSetFullscreenState = (PFN_SetFullscreenState) pFactoryVTable[10];
+                o_FGSCGetFullscreenState = (PFN_GetFullscreenState) pFactoryVTable[11];
+                o_FGSCResizeBuffers = (PFN_ResizeBuffers) pFactoryVTable[13];
+                o_FGSCResizeTarget = (PFN_ResizeTarget) pFactoryVTable[14];
+                o_FGSCGetFullscreenDesc = (PFN_GetFullscreenDesc) pFactoryVTable[19];
+                o_FGSCResizeBuffers1 = (PFN_ResizeBuffers1) pFactoryVTable[39];
 
                 if (o_FGSCPresent != nullptr)
                 {
@@ -986,6 +1166,20 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
                     if (o_FGSCPresent1 != nullptr)
                         result = DetourAttach(&(PVOID&) o_FGSCPresent1, hkFGPresent1);
+
+                    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+                    {
+                        result = DetourAttach(&(PVOID&) o_FGSCSetFullscreenState, hkSetFullscreenState);
+                        result = DetourAttach(&(PVOID&) o_FGSCGetFullscreenState, hkGetFullscreenState);
+                        result = DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
+                        result = DetourAttach(&(PVOID&) o_FGSCResizeTarget, hkResizeTarget);
+
+                        if (o_FGSCResizeBuffers1 != nullptr)
+                            result = DetourAttach(&(PVOID&) o_FGSCResizeBuffers1, hkResizeBuffers1);
+
+                        if (o_FGSCGetFullscreenDesc != nullptr)
+                            result = DetourAttach(&(PVOID&) o_FGSCGetFullscreenDesc, hkGetFullscreenDesc);
+                    }
 
                     result = DetourTransactionCommit();
                 }
@@ -1068,6 +1262,8 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
     if (result == S_OK)
     {
+        _hwnd = pDesc->OutputWindow;
+
         // check for SL proxy
         IDXGISwapChain* realSC = nullptr;
         if (!CheckForRealObject(__FUNCTION__, *ppSwapChain, (IUnknown**) &realSC))
@@ -1224,8 +1420,20 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG)
-        pFullscreenDesc->Windowed = true;
+    if (pFullscreenDesc != nullptr && State::Instance().activeFgOutput == FGOutput::XeFG)
+    {
+        if (!pFullscreenDesc->Windowed)
+        {
+            _exclusiveFullscreen = true;
+            pFullscreenDesc->Windowed = true;
+            auto info = Util::GetMonitorInfoForWindow(hWnd);
+            LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->Width, pDesc->Height, info.width, info.height);
+            pDesc->Width = info.width;
+            pDesc->Height = info.height;
+        }
+
+        pDesc->Scaling = DXGI_SCALING_STRETCH;
+    }
 
     // Disable FSR FG if amd dll is not found
     if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::InitFfxDx12())
@@ -1249,7 +1457,7 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
     if ((State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG) &&
         !_skipFGSwapChainCreation && pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
     {
-        cq->SetName(L"GameQueueHwnd");
+        cq->SetName(L"GameQueue");
         cq->Release();
 
         // FG Init
@@ -1281,6 +1489,7 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
         if (scResult)
         {
+            _hwnd = hWnd;
             State::Instance().currentFGSwapchain = *ppSwapChain;
 
             if (o_FGSCPresent == nullptr && *ppSwapChain != nullptr)
@@ -1289,6 +1498,13 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
                 o_FGSCPresent = (PFN_Present) pFactoryVTable[8];
                 o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
+
+                // Borderless hooks
+                o_FGSCSetFullscreenState = (PFN_SetFullscreenState) pFactoryVTable[10];
+                o_FGSCGetFullscreenState = (PFN_GetFullscreenState) pFactoryVTable[11];
+                o_FGSCResizeBuffers = (PFN_ResizeBuffers) pFactoryVTable[13];
+                o_FGSCGetFullscreenDesc = (PFN_GetFullscreenDesc) pFactoryVTable[19];
+                o_FGSCResizeBuffers1 = (PFN_ResizeBuffers1) pFactoryVTable[39];
 
                 if (o_FGSCPresent != nullptr)
                 {
@@ -1304,6 +1520,19 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
                     if (o_FGSCPresent1 != nullptr)
                         result = DetourAttach(&(PVOID&) o_FGSCPresent1, hkFGPresent1);
+
+                    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+                    {
+                        result = DetourAttach(&(PVOID&) o_FGSCSetFullscreenState, hkSetFullscreenState);
+                        result = DetourAttach(&(PVOID&) o_FGSCGetFullscreenState, hkGetFullscreenState);
+                        result = DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
+
+                        if (o_FGSCResizeBuffers1 != nullptr)
+                            result = DetourAttach(&(PVOID&) o_FGSCResizeBuffers1, hkResizeBuffers1);
+
+                        if (o_FGSCGetFullscreenDesc != nullptr)
+                            result = DetourAttach(&(PVOID&) o_FGSCGetFullscreenDesc, hkGetFullscreenDesc);
+                    }
 
                     result = DetourTransactionCommit();
                 }
@@ -1385,6 +1614,8 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
     if (result == S_OK)
     {
+        _hwnd = hWnd;
+
         // check for SL proxy
         IDXGISwapChain1* realSC = nullptr;
         if (!CheckForRealObject(__FUNCTION__, *ppSwapChain, (IUnknown**) &realSC))

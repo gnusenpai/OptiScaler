@@ -400,3 +400,55 @@ std::optional<std::filesystem::path> Util::FindFilePath(const std::filesystem::p
     // Not found anywhere
     return std::nullopt;
 }
+
+Util::MonitorInfo Util::GetMonitorInfoForWindow(HWND hwnd)
+{
+    MonitorInfo out {};
+    out.handle = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+    MONITORINFOEXW mi {};
+    mi.cbSize = sizeof(mi);
+    if (GetMonitorInfoW(out.handle, &mi))
+    {
+        out.x = mi.rcMonitor.left;
+        out.y = mi.rcMonitor.top;
+        out.width = mi.rcMonitor.right - mi.rcMonitor.left;
+        out.height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+        out.monitorRect = mi.rcMonitor;
+        out.workRect = mi.rcWork;
+
+        wchar_t bufName[32];
+        std::wcsncpy(bufName, mi.szDevice, _countof(bufName) - 1);
+        bufName[_countof(bufName) - 1] = L'\0';
+        out.name = std::wstring(bufName);
+    }
+    return out;
+}
+
+Util::MonitorInfo Util::GetMonitorInfoForOutput(IDXGIOutput* pOutput)
+{
+    MonitorInfo out {};
+
+    DXGI_OUTPUT_DESC desc {};
+    pOutput->GetDesc(&desc);
+
+    out.handle = desc.Monitor;
+
+    MONITORINFOEXW mi {};
+    mi.cbSize = sizeof(mi);
+    if (GetMonitorInfoW(out.handle, &mi))
+    {
+        out.x = mi.rcMonitor.left;
+        out.y = mi.rcMonitor.top;
+        out.width = mi.rcMonitor.right - mi.rcMonitor.left;
+        out.height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+        out.monitorRect = mi.rcMonitor;
+        out.workRect = mi.rcWork;
+
+        wchar_t bufName[32];
+        std::wcsncpy(bufName, mi.szDevice, _countof(bufName) - 1);
+        bufName[_countof(bufName) - 1] = L'\0';
+        out.name = std::wstring(bufName);
+    }
+    return out;
+}
