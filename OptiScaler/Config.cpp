@@ -600,7 +600,7 @@ bool Config::Reload(std::filesystem::path iniPath)
         // V-Sync
         {
             ForceVsync.set_from_config(readBool("V-Sync", "ForceVsync"));
-            VsyncInterval.set_from_config(readBool("V-Sync", "SyncInterval"));
+            VsyncInterval.set_from_config(readInt("V-Sync", "SyncInterval"));
         }
 
         if (fakenvapi::isUsingFakenvapi())
