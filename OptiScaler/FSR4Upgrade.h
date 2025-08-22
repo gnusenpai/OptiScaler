@@ -10,13 +10,12 @@
 #include <Unknwn.h>
 #include <Windows.h>
 #include <scanner/scanner.h>
+#include "FSR4ModelSelection.h"
 
 typedef HRESULT(__cdecl* PFN_AmdExtD3DCreateInterface)(IUnknown* pOuter, REFIID riid, void** ppvObject);
-typedef uint64_t (*PFN_getModelBlob)(uint32_t preset, uint64_t unknown, uint64_t* source, uint64_t* size);
 
 static HMODULE moduleAmdxc64 = nullptr;
 static HMODULE fsr4Module = nullptr;
-static PFN_getModelBlob o_getModelBlob = nullptr;
 
 #pragma region GDI32
 
@@ -148,35 +147,6 @@ inline static std::vector<std::filesystem::path> GetDriverStore()
 
 #pragma endregion
 
-uint64_t hkgetModelBlob(uint32_t preset, uint64_t unknown, uint64_t* source, uint64_t* size)
-{
-    LOG_FUNC();
-
-    // Fixup for Quality preset sometimes using model 0, sometimes using model 1
-    if (State::Instance().currentFeature)
-    {
-        auto target = State::Instance().currentFeature->TargetWidth();
-        auto render = State::Instance().currentFeature->RenderWidth();
-
-        auto ratio = (float) target / (float) render;
-
-        // Include Ultra Quality in the fix as well
-        if (preset == 0 && ratio >= 1.29f)
-            preset = 1;
-    }
-
-    if (Config::Instance()->Fsr4Model.has_value())
-    {
-        preset = Config::Instance()->Fsr4Model.value();
-    }
-
-    State::Instance().currentFsr4Model = preset;
-
-    auto result = o_getModelBlob(preset, unknown, source, size);
-
-    return result;
-}
-
 // Internal interfaces needed for custom the IAmdExtFfxApi
 MIDL_INTERFACE("BA019D53-CCAB-4CBD-B56A-7230ED4330AD")
 IAmdExtFfxSecond : public IUnknown
@@ -300,29 +270,13 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
                 return E_NOINTERFACE;
             }
 
-            const char* pattern = "83 F9 05 0F 87 ? ? ? ?";
             auto sdk2upscalingModule = KernelBaseProxy::GetModuleHandleA_()("amd_fidelityfx_upscaler_dx12.dll");
+            constexpr bool unhookOld = false;
 
             if (sdk2upscalingModule != nullptr)
-                o_getModelBlob = (PFN_getModelBlob) scanner::GetAddress(sdk2upscalingModule, pattern);
+                FSR4ModelSelection::Hook(sdk2upscalingModule, unhookOld);
             else
-                o_getModelBlob = (PFN_getModelBlob) scanner::GetAddress(fsr4Module, pattern);
-
-            if (o_getModelBlob)
-            {
-                LOG_DEBUG("Hooking model selection");
-
-                DetourTransactionBegin();
-                DetourUpdateThread(GetCurrentThread());
-
-                DetourAttach(&(PVOID&) o_getModelBlob, hkgetModelBlob);
-
-                DetourTransactionCommit();
-            }
-            else
-            {
-                LOG_ERROR("Couldn't hook model selection");
-            }
+                FSR4ModelSelection::Hook(fsr4Module, unhookOld);
 
             o_UpdateFfxApiProvider =
                 (PFN_UpdateFfxApiProvider) KernelBaseProxy::GetProcAddress_()(fsr4Module, "UpdateFfxApiProvider");

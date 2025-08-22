@@ -210,6 +210,23 @@ class KernelHooks
             return reflexModule;
         }
 
+        // sl.pcl.dll
+        if (CheckDllName(&lcaseLibName, &slPclNames))
+        {
+            auto pclModule = KernelBaseProxy::LoadLibraryExA_()(lpLibFullPath, NULL, 0);
+
+            if (pclModule != nullptr)
+            {
+                StreamlineHooks::hookPcl(pclModule);
+            }
+            else
+            {
+                LOG_ERROR("Trying to load dll: {}", lcaseLibName);
+            }
+
+            return pclModule;
+        }
+
         // sl.common.dll
         if (CheckDllName(&lcaseLibName, &slCommonNames))
         {
@@ -471,6 +488,15 @@ class KernelHooks
             return module;
         }
 
+        if (CheckDllName(&lcaseLibName, &ffxDx12UpscalerNames))
+        {
+            auto module = KernelBaseProxy::LoadLibraryExA_()(lcaseLibName.c_str(), NULL, 0);
+
+            FSR4ModelSelection::Hook(module);
+
+            return module;
+        }
+
         if (CheckDllName(&lcaseLibName, &ffxVkNames))
         {
             auto module = LoadFfxapiVk(
@@ -672,6 +698,24 @@ class KernelHooks
             }
 
             return reflexModule;
+        }
+
+        // sl.pcl.dll
+        if (CheckDllNameW(&lcaseLibName, &slPclNamesW) ||
+            (lcaseLibName.contains(L"/versions/") && lcaseLibName.contains(L"/sl_pcl_")))
+        {
+            auto pclModule = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
+
+            if (pclModule != nullptr)
+            {
+                StreamlineHooks::hookPcl(pclModule);
+            }
+            else
+            {
+                LOG_ERROR("Trying to load dll as sl.pcl: {}", lcaseLibNameA);
+            }
+
+            return pclModule;
         }
 
         // sl.common.dll
@@ -881,6 +925,15 @@ class KernelHooks
 
             if (module != nullptr)
                 FfxApiProxy::InitFfxDx12(module);
+
+            return module;
+        }
+
+        if (CheckDllNameW(&lcaseLibName, &ffxDx12UpscalerNamesW))
+        {
+            auto module = KernelBaseProxy::LoadLibraryExW_()(lcaseLibName.c_str(), NULL, 0);
+
+            FSR4ModelSelection::Hook(module);
 
             return module;
         }

@@ -542,6 +542,9 @@
     <ClInclude Include="inputs\FG\FfxApi_Dx12_FG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FSR4ModelSelection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -843,6 +846,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="inputs\FG\FfxApi_Dx12_FG.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FSR4ModelSelection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

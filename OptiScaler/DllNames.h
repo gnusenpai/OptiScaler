@@ -147,6 +147,7 @@ DEFINE_NAME_VECTORS(slInterposer, "sl.interposer");
 DEFINE_NAME_VECTORS(slDlss, "sl.dlss");
 DEFINE_NAME_VECTORS(slDlssg, "sl.dlss_g");
 DEFINE_NAME_VECTORS(slReflex, "sl.reflex");
+DEFINE_NAME_VECTORS(slPcl, "sl.pcl");
 DEFINE_NAME_VECTORS(slCommon, "sl.common");
 
 DEFINE_NAME_VECTORS(xess, "libxess");
@@ -159,6 +160,7 @@ DEFINE_NAME_VECTORS(fsr3, "ffx_fsr3upscaler_x64");
 DEFINE_NAME_VECTORS(fsr3BE, "ffx_backend_dx12_x64");
 
 DEFINE_NAME_VECTORS(ffxDx12, "amd_fidelityfx_dx12", "amd_fidelityfx_loader_dx12");
+DEFINE_NAME_VECTORS(ffxDx12Upscaler, "amd_fidelityfx_upscaler_dx12");
 DEFINE_NAME_VECTORS(ffxVk, "amd_fidelityfx_vk");
 
 inline static bool CheckDllName(std::string* dllName, std::vector<std::string>* namesList)
