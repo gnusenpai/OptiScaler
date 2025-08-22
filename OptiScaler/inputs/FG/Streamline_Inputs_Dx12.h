@@ -22,6 +22,7 @@ class Sl_Inputs_Dx12
     bool distortionFieldRequired = false;
 
     bool dispatched = false;
+    std::mutex reportResourceMutex {};
 
     uint32_t lastConstantsFrameId = UINT32_MAX;
     uint32_t lastPresentFrameId = 0;

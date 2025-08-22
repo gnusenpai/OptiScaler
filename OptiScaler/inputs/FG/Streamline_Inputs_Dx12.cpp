@@ -148,6 +148,8 @@ bool Sl_Inputs_Dx12::evaluateState(ID3D12Device* device)
 
 bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCommandList* cmdBuffer, uint32_t frameId)
 {
+    std::scoped_lock lock(reportResourceMutex);
+
     if (!cmdBuffer)
         LOG_TRACE("cmdBuffer is null");
 
