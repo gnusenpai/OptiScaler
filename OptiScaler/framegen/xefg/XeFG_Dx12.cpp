@@ -483,8 +483,12 @@ bool XeFG_Dx12::Dispatch()
 
     // Cyberpunk seems to be sending LH so do the same
     // it also sends some extra data in usually empty spots but no idea what that is
-    if (_cameraNear[fIndex] > 0.f && _cameraFar[fIndex] > 0.f)
+    if (_cameraNear[fIndex] > 0.f && _cameraFar[fIndex] > 0.f && _cameraVFov[fIndex] > 0.00001f &&
+        _cameraAspectRatio[fIndex] > 0.00001f)
     {
+        if (XMScalarNearEqual(_cameraNear[fIndex], _cameraFar[fIndex], 0.00001f))
+            _cameraFar[fIndex]++;
+
         auto projectionMatrix = XMMatrixPerspectiveFovLH(_cameraVFov[fIndex], _cameraAspectRatio[fIndex],
                                                          _cameraNear[fIndex], _cameraFar[fIndex]);
         memcpy(constData.projectionMatrix, projectionMatrix.r, sizeof(projectionMatrix));
