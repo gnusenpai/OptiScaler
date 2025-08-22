@@ -163,6 +163,7 @@ class State
     bool isRunningOnLinux = false;
     bool isRunningOnDXVK = false;
     bool isRunningOnNvidia = false;
+    bool isPascalOrOlder = false;
     bool isDxgiMode = false;
     bool isD3D12Mode = false;
     bool isWorkingAsNvngx = false;

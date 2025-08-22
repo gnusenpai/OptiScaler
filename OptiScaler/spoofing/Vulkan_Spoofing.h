@@ -372,15 +372,20 @@ inline static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevic
         newExtensionList.push_back(extName);
     }
 
+    const bool isPascalOrOlder = State::Instance().isPascalOrOlder;
     if (State::Instance().isRunningOnNvidia)
     {
         LOG_INFO("Adding NVNGX Vulkan extensions");
-        newExtensionList.push_back(VK_NVX_BINARY_IMPORT_EXTENSION_NAME);
-        newExtensionList.push_back(VK_NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME);
         newExtensionList.push_back(VK_NVX_MULTIVIEW_PER_VIEW_ATTRIBUTES_EXTENSION_NAME);
         newExtensionList.push_back(VK_NV_LOW_LATENCY_EXTENSION_NAME);
         newExtensionList.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
         newExtensionList.push_back(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+
+        if (!isPascalOrOlder)
+        {
+            newExtensionList.push_back(VK_NVX_BINARY_IMPORT_EXTENSION_NAME);
+            newExtensionList.push_back(VK_NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME);
+        }
     }
 
     LOG_INFO("Adding FFX Vulkan extensions");
@@ -391,7 +396,9 @@ inline static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevic
         LOG_INFO("Adding XeSS Vulkan extensions");
         newExtensionList.push_back(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
         newExtensionList.push_back(VK_KHR_SHADER_INTEGER_DOT_PRODUCT_EXTENSION_NAME);
-        newExtensionList.push_back(VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME);
+
+        if (!isPascalOrOlder)
+            newExtensionList.push_back(VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME);
     }
 
     pCreateInfo->enabledExtensionCount = static_cast<uint32_t>(newExtensionList.size());
