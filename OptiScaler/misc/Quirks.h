@@ -32,6 +32,7 @@ enum class GameQuirk : uint64_t
     VulkanDLSSBarrierFixup,
     ForceUnrealEngine,
     NoFSRFGFirstSwapchain,
+    FixSlSimulationMarkers,
     // Don't forget to add the new entry to printQuirks
     _
 };
@@ -199,6 +200,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
     QUIRK_ENTRY("prey.exe", GameQuirk::DontUseNTShared, GameQuirk::DisableOptiXessPipelineCreation,
                 GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("roadcraft - retail.exe", GameQuirk::FixSlSimulationMarkers),
 
     // VULKAN
     // ------
@@ -275,6 +277,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Skipping upscaling for first 10 frames");
     if (quirks & GameQuirk::NoFSRFGFirstSwapchain)
         spdlog::info("Quirk: Skip turning the first swapchain created into an FSR swapchain");
+    if (quirks & GameQuirk::FixSlSimulationMarkers)
+        spdlog::info("Quirk: Correct simulation start marker's frame id");
 
     return;
 }

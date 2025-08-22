@@ -210,6 +210,23 @@ class KernelHooks
             return reflexModule;
         }
 
+        // sl.pcl.dll
+        if (CheckDllName(&lcaseLibName, &slPclNames))
+        {
+            auto pclModule = KernelBaseProxy::LoadLibraryExA_()(lpLibFullPath, NULL, 0);
+
+            if (pclModule != nullptr)
+            {
+                StreamlineHooks::hookPcl(pclModule);
+            }
+            else
+            {
+                LOG_ERROR("Trying to load dll: {}", lcaseLibName);
+            }
+
+            return pclModule;
+        }
+
         // sl.common.dll
         if (CheckDllName(&lcaseLibName, &slCommonNames))
         {
@@ -681,6 +698,24 @@ class KernelHooks
             }
 
             return reflexModule;
+        }
+
+        // sl.pcl.dll
+        if (CheckDllNameW(&lcaseLibName, &slPclNamesW) ||
+            (lcaseLibName.contains(L"/versions/") && lcaseLibName.contains(L"/sl_pcl_")))
+        {
+            auto pclModule = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
+
+            if (pclModule != nullptr)
+            {
+                StreamlineHooks::hookPcl(pclModule);
+            }
+            else
+            {
+                LOG_ERROR("Trying to load dll as sl.pcl: {}", lcaseLibNameA);
+            }
+
+            return pclModule;
         }
 
         // sl.common.dll

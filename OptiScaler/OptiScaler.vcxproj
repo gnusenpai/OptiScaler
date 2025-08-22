@@ -259,7 +259,7 @@ copy "$(SolutionDir)external\directx_agility_sdk\LICENSE.txt" $(SolutionDir)x64\
 copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -Command "$date = Get-Date -Format 'yyyyMMdd_HHmmss'; Set-Content -Path '$(ProjectDir)resource_build_date.h' -Value ('#define VER_BUILD_DATE ""' + $date + '"""')</Command>
+      <Command>powershell -Command "Start-Sleep -Seconds 2; $date = Get-Date -Format 'yyyyMMdd_HHmmss'; Set-Content -Path '$(ProjectDir)resource_build_date.h' -Value ('#define VER_BUILD_DATE ""' + $date + '"""')</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
@@ -289,7 +289,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
       <Command>powershell -Command "$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'; $fileName = '$(OutDir)OptiScaler_' + $timestamp + '.7z'; $backupFileName = '$(OutDir)OptiScaler_' + $timestamp + '_Backup.7z'; &amp; '7z.exe' a -t7z $fileName '$(TargetPath)'; &amp; '7z.exe' a -t7z $backupFileName '$(OutDir)$(TargetName).*'"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -Command "$date = Get-Date -Format 'yyyyMMdd_HHmmss'; Set-Content -Path '$(ProjectDir)resource_build_date.h' -Value ('#define VER_BUILD_DATE ""' + $date + '"""')</Command>
+      <Command>powershell -Command "Start-Sleep -Seconds 2; $date = Get-Date -Format 'yyyyMMdd_HHmmss'; Set-Content -Path '$(ProjectDir)resource_build_date.h' -Value ('#define VER_BUILD_DATE ""' + $date + '"""')</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

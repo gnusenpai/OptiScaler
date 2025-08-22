@@ -18,15 +18,14 @@ typedef BOOL (*PFN_VerQueryValueW)(LPCVOID pBlock, LPCWSTR lpSubBlock, LPVOID* l
 /// <returns>Caller module filename</returns>
 std::string Util::WhoIsTheCaller(void* returnAddress)
 {
-    HMODULE hModule = NULL;
+
     char callerPath[MAX_PATH] = { 0 };
 
     // Get the return address from the current function call.
     // void* returnAddress = _ReturnAddress();
 
     // Get the base address of the module containing the return address.
-    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           (LPCSTR) returnAddress, &hModule))
+    if (HMODULE hModule = GetCallerModule(returnAddress); hModule != nullptr)
     {
         // Get the full path of the calling module.
         GetModuleFileNameA(hModule, callerPath, sizeof(callerPath));
@@ -36,6 +35,16 @@ std::string Util::WhoIsTheCaller(void* returnAddress)
     }
 
     return "";
+}
+
+HMODULE Util::GetCallerModule(void* returnAddress)
+{
+    HMODULE hModule = NULL;
+
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       (LPCSTR) returnAddress, &hModule);
+
+    return hModule;
 }
 
 std::wstring Util::GetWindowTitle(HWND hwnd)

@@ -818,6 +818,14 @@ static void CheckWorkingMode()
                 StreamlineHooks::hookReflex(slReflex);
             }
 
+            HMODULE slPcl = nullptr;
+            slPcl = GetDllNameWModule(&slPclNamesW);
+            if (slPcl != nullptr)
+            {
+                LOG_DEBUG("sl.pcl.dll already in memory");
+                StreamlineHooks::hookPcl(slPcl);
+            }
+
             HMODULE slCommon = nullptr;
             slCommon = GetDllNameWModule(&slCommonNamesW);
             if (slCommon != nullptr)

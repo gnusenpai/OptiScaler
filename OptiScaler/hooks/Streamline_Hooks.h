@@ -33,6 +33,9 @@ class StreamlineHooks
     static void unhookReflex();
     static void hookReflex(HMODULE slReflex);
 
+    static void unhookPcl();
+    static void hookPcl(HMODULE slPcl);
+
     static void unhookCommon();
     static void hookCommon(HMODULE slCommon);
 
@@ -49,6 +52,7 @@ class StreamlineHooks
     static decltype(&slSetConstants) o_slSetConstants;
     static decltype(&slGetNativeInterface) o_slGetNativeInterface;
     static decltype(&slSetD3DDevice) o_slSetD3DDevice;
+    static decltype(&slGetNewFrameToken) o_slGetNewFrameToken;
 
     static decltype(&sl1::slInit) o_slInit_sl1;
 
@@ -86,6 +90,7 @@ class StreamlineHooks
     static PFN_slGetPluginFunction o_dlssg_slGetPluginFunction;
     static PFN_slOnPluginLoad o_dlssg_slOnPluginLoad;
     static decltype(&slDLSSGSetOptions) o_slDLSSGSetOptions;
+    static decltype(&slDLSSGGetState) o_slDLSSGGetState;
 
     static bool hkdlssg_slOnPluginLoad(void* params, const char* loaderJSON, const char** pluginJSON);
     static sl::Result hkslSetConstants(const sl::Constants& values, const sl::FrameToken& frame,
@@ -104,6 +109,13 @@ class StreamlineHooks
     static sl::Result hkslReflexSetOptions(const sl::ReflexOptions& options);
     static bool hkreflex_slSetConstants_sl1(const void* data, uint32_t frameIndex, uint32_t id);
     static void* hkreflex_slGetPluginFunction(const char* functionName);
+
+    // PCL
+    static PFN_slGetPluginFunction o_pcl_slGetPluginFunction;
+    static decltype(&slPCLSetMarker) o_slPCLSetMarker;
+
+    static void* hkpcl_slGetPluginFunction(const char* functionName);
+    static sl::Result hkslPCLSetMarker(sl::PCLMarker marker, const sl::FrameToken& frame);
 
     // Common
     static PFN_slGetPluginFunction o_common_slGetPluginFunction;
