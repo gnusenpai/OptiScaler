@@ -25,10 +25,11 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle h
         {
             State::Instance().isPascalOrOlder = true;
 
-            if (!Config::Instance()->StreamlineSpoofing.has_value())
+            // Check if values were volatile, override them if so
+            if (!Config::Instance()->StreamlineSpoofing.value_for_config().has_value())
                 Config::Instance()->StreamlineSpoofing.set_volatile_value(true);
 
-            if (!Config::Instance()->DisableFlipMetering.has_value())
+            if (!Config::Instance()->DisableFlipMetering.value_for_config().has_value())
                 Config::Instance()->DisableFlipMetering.set_volatile_value(true);
         }
 
