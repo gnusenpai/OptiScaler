@@ -293,6 +293,18 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
     //     Height = info.height;
     // }
 
+    DXGI_SWAP_CHAIN_DESC desc {};
+    if (This->GetDesc(&desc) == S_OK)
+    {
+        if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height &&
+            (desc.BufferCount == BufferCount || BufferCount == 0) &&
+            (desc.BufferDesc.Format == NewFormat || NewFormat == DXGI_FORMAT_UNKNOWN))
+        {
+            LOG_DEBUG("Skipping resize");
+            return S_OK;
+        }
+    }
+
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
 
     // Resize window to cover the screen
@@ -331,6 +343,18 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
     //     Width = info.width;
     //     Height = info.height;
     // }
+
+    DXGI_SWAP_CHAIN_DESC desc {};
+    if (This->GetDesc(&desc) == S_OK)
+    {
+        if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height &&
+            (desc.BufferCount == BufferCount || BufferCount == 0) &&
+            (desc.BufferDesc.Format == Format || Format == DXGI_FORMAT_UNKNOWN))
+        {
+            LOG_DEBUG("Skipping resize");
+            return S_OK;
+        }
+    }
 
     auto result = o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
                                        ppPresentQueue);
