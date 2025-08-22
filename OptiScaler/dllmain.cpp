@@ -999,6 +999,12 @@ static void CheckQuirks()
         Config::Instance()->RestoreComputeSignature.set_volatile_value(true);
     }
 
+    if (quirks & GameQuirk::RestoreComputeSigOnNvidia && State::Instance().isRunningOnNvidia &&
+        !Config::Instance()->RestoreComputeSignature.has_value())
+    {
+        Config::Instance()->RestoreComputeSignature.set_volatile_value(true);
+    }
+
     if (quirks & GameQuirk::DisableReactiveMasks)
         Config::Instance()->DisableReactiveMask.set_volatile_value(true);
 
