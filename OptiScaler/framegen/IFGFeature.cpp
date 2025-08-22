@@ -103,17 +103,17 @@ bool IFGFeature::IsPaused() { return _targetFrame != 0 && _targetFrame >= _frame
 
 bool IFGFeature::IsDispatched() { return _lastDispatchedFrame == _frameCount; }
 
-bool IFGFeature::IsLowResMV() { return _constants.flags && !(_constants.flags & FG_Flags::DisplayResolutionMVs); }
+bool IFGFeature::IsLowResMV() { return !_constants.flags[FG_Flags::DisplayResolutionMVs]; }
 
-bool IFGFeature::IsAsync() { return _constants.flags && (_constants.flags & FG_Flags::Async); }
+bool IFGFeature::IsAsync() { return _constants.flags[FG_Flags::Async]; }
 
-bool IFGFeature::IsHdr() { return _constants.flags && (_constants.flags & FG_Flags::Hdr); }
+bool IFGFeature::IsHdr() { return _constants.flags[FG_Flags::Hdr]; }
 
-bool IFGFeature::IsJitteredMVs() { return _constants.flags && (_constants.flags & FG_Flags::JitteredMVs); }
+bool IFGFeature::IsJitteredMVs() { return _constants.flags[FG_Flags::JitteredMVs]; }
 
-bool IFGFeature::IsInvertedDepth() { return _constants.flags && (_constants.flags & FG_Flags::InvertedDepth); }
+bool IFGFeature::IsInvertedDepth() { return _constants.flags[FG_Flags::InvertedDepth]; }
 
-bool IFGFeature::IsInfiniteDepth() { return _constants.flags && (_constants.flags & FG_Flags::InfiniteDepth); }
+bool IFGFeature::IsInfiniteDepth() { return _constants.flags[FG_Flags::InfiniteDepth]; }
 
 void IFGFeature::SetJitter(float x, float y)
 {
