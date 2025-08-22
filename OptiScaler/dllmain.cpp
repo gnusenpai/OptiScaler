@@ -5,7 +5,7 @@
 #include "Logger.h"
 #include "resource.h"
 #include "DllNames.h"
-#include "FSR4Upgrade.h"
+#include "fsr4/FSR4Upgrade.h"
 
 #include "proxies/Dxgi_Proxy.h"
 #include <proxies/XeSS_Proxy.h>

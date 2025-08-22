@@ -306,7 +306,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="framegen\ffx\FSRFG_Dx12.h" />
     <ClInclude Include="framegen\IFGFeature.h" />
     <ClInclude Include="framegen\IFGFeature_Dx12.h" />
-    <ClInclude Include="FSR4ModelSelection.h" />
+    <ClInclude Include="fsr4\FSR4ModelSelection.h" />
     <ClInclude Include="inputs\FG\Streamline_Inputs_Dx12.h" />
     <ClInclude Include="framegen\xefg\XeFG_Dx12.h" />
     <ClInclude Include="hooks\Advapi32_Hooks.h" />
@@ -401,7 +401,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="upscalers\fsr2\FSR2Feature_Dx11On12.h" />
     <ClInclude Include="upscalers\fsr2\FSR2Feature_Dx12.h" />
     <ClInclude Include="upscalers\fsr2\FSR2Feature_Vk.h" />
-    <ClInclude Include="FSR4Upgrade.h" />
+    <ClInclude Include="fsr4\FSR4Upgrade.h" />
     <ClInclude Include="upscalers\IFeature_Dx11.h" />
     <ClInclude Include="upscalers\IFeature_Dx12.h" />
     <ClInclude Include="upscalers\IFeature.h" />
@@ -470,7 +470,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="framegen\ffx\FSRFG_Dx12.cpp" />
     <ClCompile Include="framegen\IFGFeature.cpp" />
     <ClCompile Include="framegen\IFGFeature_Dx12.cpp" />
-    <ClCompile Include="FSR4ModelSelection.cpp" />
+    <ClCompile Include="fsr4\FSR4ModelSelection.cpp" />
     <ClCompile Include="inputs\FG\Streamline_Inputs_Dx12.cpp" />
     <ClCompile Include="framegen\xefg\XeFG_Dx12.cpp" />
     <ClCompile Include="hooks\Streamline_Hooks.cpp" />
