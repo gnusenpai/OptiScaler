@@ -3337,6 +3337,8 @@ bool MenuCommon::RenderMenu()
                             {
                                 ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
 
+                                ImGui::BeginDisabled(!fgOutput->IsUsingUI());
+
                                 // TODO: doesn't check if the UI is available, and doesn't save to config
                                 if (bool drawUIOverFG = Config::Instance()->DrawUIOverFG.value_or_default();
                                     ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
@@ -3348,6 +3350,8 @@ bool MenuCommon::RenderMenu()
                                         Config::Instance()->UIPremultipliedAlpha.value_or_default();
                                     ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
                                     Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
+
+                                ImGui::EndDisabled();
                             }
                             else
                             {
