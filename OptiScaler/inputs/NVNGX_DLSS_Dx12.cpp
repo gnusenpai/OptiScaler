@@ -492,8 +492,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
 
     DLSSFeatureDx12::Shutdown(D3D12Device);
 
+    // Added `&& !State::Instance().isShuttingDown` hack for crash on exit
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::IsDx12Inited() &&
-        NVNGXProxy::D3D12_Shutdown() != nullptr)
+        NVNGXProxy::D3D12_Shutdown() != nullptr && !State::Instance().isShuttingDown)
     {
         auto result = NVNGXProxy::D3D12_Shutdown()();
         NVNGXProxy::SetDx12Inited(false);
@@ -503,11 +504,12 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
     // Disabled for now to check if it cause any issues
     // HooksDx::UnHookDx();
 
-    if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
-    {
-        State::Instance().currentFG->Shutdown();
-        State::Instance().ClearCapturedHudlesses = true;
-    }
+    // Disabled to prevent crash
+    // if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
+    //{
+    //     State::Instance().currentFG->Shutdown();
+    //     State::Instance().ClearCapturedHudlesses = true;
+    // }
 
     shutdown = false;
 
@@ -525,8 +527,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown1(ID3D12Device* InDevice)
 
     DLSSGMod::D3D12_Shutdown1(InDevice);
 
+    // Added `&& !State::Instance().isShuttingDown` hack for crash on exit
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::IsDx12Inited() &&
-        NVNGXProxy::D3D12_Shutdown1() != nullptr)
+        NVNGXProxy::D3D12_Shutdown1() != nullptr && !State::Instance().isShuttingDown)
     {
         auto result = NVNGXProxy::D3D12_Shutdown1()(InDevice);
         NVNGXProxy::SetDx12Inited(false);
