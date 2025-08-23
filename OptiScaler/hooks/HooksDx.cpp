@@ -1169,11 +1169,6 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
     pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-    // Remove
-    // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
-    // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
-    // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
-    pDesc->Flags &= 0xFFB9;
     State::Instance().realExclusiveFullscreen = !pDesc->Windowed;
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG &&
@@ -1190,8 +1185,13 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
             //  pDesc->BufferDesc.Height = info.height;
         }
 
-        // Let's not stretch image to user
         pDesc->BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
+
+        // Remove
+        // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+        // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
+        // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+        // pDesc->Flags &= 0xFFB9;
     }
 
     // Crude implementation of EndlesslyFlowering's AutoHDR-ReShade
@@ -1557,12 +1557,6 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-    // Remove
-    // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
-    // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
-    // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
-    pDesc->Flags &= 0xFFB9;
-
     if (pFullscreenDesc != nullptr)
         State::Instance().realExclusiveFullscreen = !pFullscreenDesc->Windowed;
 
@@ -1579,6 +1573,12 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         }
 
         pDesc->Scaling = DXGI_SCALING_STRETCH;
+
+        // Remove
+        // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+        // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
+        // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+        // pDesc->Flags &= 0xFFB9;
     }
 
     // Disable FSR FG if amd dll is not found

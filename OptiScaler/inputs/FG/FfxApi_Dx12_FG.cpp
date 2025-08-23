@@ -544,15 +544,27 @@ ffxReturnCode_t ffxQuery_Dx12FG(ffxContext* context, ffxQueryDescHeader* desc)
 
     if (desc->type == FFX_API_QUERY_DESC_TYPE_FRAMEGENERATION_GPU_MEMORY_USAGE)
     {
+        auto cDesc = (ffxQueryDescFrameGenerationGetGPUMemoryUsage*) desc;
+        cDesc->gpuMemoryUsageFrameGeneration->aliasableUsageInBytes = 32768;
+        cDesc->gpuMemoryUsageFrameGeneration->totalUsageInBytes = 32768;
+
+        return FFX_API_RETURN_OK;
     }
     else if (desc->type == FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_INTERPOLATIONCOMMANDLIST_DX12)
     {
+        return FFX_API_RETURN_OK;
     }
     else if (desc->type == FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_INTERPOLATIONTEXTURE_DX12)
     {
+        return FFX_API_RETURN_OK;
     }
     else if (desc->type == FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_GPU_MEMORY_USAGE_DX12)
     {
+        auto cDesc = (ffxQueryFrameGenerationSwapChainGetGPUMemoryUsageDX12*) desc;
+        cDesc->gpuMemoryUsageFrameGenerationSwapchain->aliasableUsageInBytes = 32768;
+        cDesc->gpuMemoryUsageFrameGenerationSwapchain->totalUsageInBytes = 32768;
+
+        return FFX_API_RETURN_OK;
     }
 
     return rcContinue;
