@@ -3,6 +3,25 @@
 #include <d3d12.h>
 #include "NvApiTypes.h"
 
+enum TimingType : uint32_t
+{
+    TimeRange, // in ns, value stored in length
+    Simulation,
+    RenderSubmit,
+    Present,
+    Driver,
+    OsRenderQueue,
+    GpuRender,
+    COUNT,
+};
+
+// Normalized values, position + length <= 1
+struct TimingEntry
+{
+    double position;
+    double length;
+};
+
 class ReflexHooks
 {
     inline static bool _inited = false;
@@ -40,11 +59,14 @@ class ReflexHooks
                                                     NV_VULKAN_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams);
 
   public:
+    static std::optional<TimingEntry> timingData[TimingType::COUNT];
+
     static void hookReflex(PFN_NvApi_QueryInterface& queryInterface);
     static bool isDlssgDetected();
     static void setDlssgDetectedState(bool state);
     static bool isReflexHooked();
     static void* getHookedReflex(unsigned int InterfaceId);
+    static bool updateTimingData();
 
     // For updating information about Reflex hooks
     static void update(bool optiFg_FgState, bool isVulkan);

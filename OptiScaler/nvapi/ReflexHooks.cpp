@@ -6,6 +6,8 @@
 
 // #define LOG_REFLEX_CALLS
 
+std::optional<TimingEntry> ReflexHooks::timingData[TimingType::COUNT] {};
+
 NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams)
 {
 #ifdef LOG_REFLEX_CALLS
@@ -230,6 +232,69 @@ void* ReflexHooks::getHookedReflex(unsigned int InterfaceId)
     }
 
     return nullptr;
+}
+
+#define UPDATE_TIMING_ENTRY(name, type)                                                                                \
+    if (frameReport.name##EndTime >= frameReport.name##StartTime)                                                      \
+    {                                                                                                                  \
+        double name##Pos = (double) (frameReport.name##StartTime - start) / rangeNs;                                   \
+        double name##Length = (double) (frameReport.name##EndTime - frameReport.name##StartTime) / rangeNs;            \
+        timingData[TimingType::type##] = TimingEntry { .position = name##Pos, .length = name##Length };                \
+    }                                                                                                                  \
+    else                                                                                                               \
+    {                                                                                                                  \
+        timingData[TimingType::type##].reset();                                                                        \
+    }
+
+bool ReflexHooks::updateTimingData()
+{
+    bool canCall = ((State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_GetLatency &&
+                     fakenvapi::ForNvidia_GetLatency) ||
+                    o_NvAPI_D3D_GetLatency);
+
+    if (!canCall || !_lastSleepDev)
+        return false;
+
+    NV_LATENCY_RESULT_PARAMS results {};
+
+    if (auto result = hkNvAPI_D3D_GetLatency(_lastSleepDev, &results); result != NVAPI_OK)
+        return false;
+
+    // 64th element have the latest data
+    auto& frameReport = results.frameReport[63];
+
+    uint64_t start = UINT64_MAX;
+    uint64_t end = 0;
+
+    // Please don't look, just thought it would be least work
+    auto pTimes = (uint64_t*) &frameReport.simStartTime;
+    for (auto i = 0; i < 11; i++)
+    {
+        auto& time = pTimes[i];
+        if (time == 0)
+            continue;
+
+        if (time < start)
+            start = time;
+
+        if (time > end)
+            end = time;
+    }
+
+    if (end < start)
+        return false;
+
+    double rangeNs = end - start;
+
+    timingData[TimingType::TimeRange] = TimingEntry { .position = 0, .length = rangeNs };
+    UPDATE_TIMING_ENTRY(sim, Simulation)
+    UPDATE_TIMING_ENTRY(renderSubmit, RenderSubmit)
+    UPDATE_TIMING_ENTRY(present, Present)
+    UPDATE_TIMING_ENTRY(driver, Driver)
+    UPDATE_TIMING_ENTRY(osRenderQueue, OsRenderQueue)
+    UPDATE_TIMING_ENTRY(gpuRender, GpuRender)
+
+    return true;
 }
 
 // For updating information about Reflex hooks

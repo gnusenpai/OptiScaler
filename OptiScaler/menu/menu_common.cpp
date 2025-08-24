@@ -1740,6 +1740,58 @@ bool MenuCommon::RenderMenu()
                                  static_cast<int>(upscalerFrameTimeArray.size()), 0, nullptr, 0.0f, 20.0f, plotSize);
             }
 
+            if (Config::Instance()->FpsOverlayType.value_or_default() > 5)
+            {
+                constexpr auto delayBetweenPollsMs = 500;
+                static auto previousPoll = 0;
+                static bool gotData = false;
+                if (previousPoll == 0 || previousPoll + delayBetweenPollsMs < now)
+                {
+                    gotData = ReflexHooks::updateTimingData();
+                    previousPoll = now;
+                }
+
+                auto& timingData = ReflexHooks::timingData;
+
+                if (gotData && timingData[TimingType::TimeRange].has_value())
+                {
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    constexpr float offsetForText = 135;
+
+                    const auto& rangeInNs = timingData[TimingType::TimeRange].value().length;
+
+                    ImGui::Text(std::format("Reflex timings, whole frame: {:.1f}ms", rangeInNs / 1000).c_str());
+
+                    const auto maxWidth = Config::Instance()->FpsOverlayHorizontal.value_or_default()
+                                              ? ImGui::GetWindowWidth()
+                                              : plotSize.x;
+
+                    const auto drawTiming = [&](TimingType type, const char* desc, ImU32 color)
+                    {
+                        if (!timingData[type].has_value())
+                            return;
+
+                        auto& timing = timingData[type].value();
+                        float duration = timing.length * rangeInNs / 1000;
+                        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(color),
+                                           std::format("{:<12} {:>4.1f}ms", desc, duration).c_str());
+                        auto leftLimit = ImGui::GetItemRectMin().x + offsetForText * fpsScale;
+                        auto start = leftLimit + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) * timing.position;
+                        auto end = start + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) * timing.length;
+                        auto pos = ImVec2(start, ImGui::GetItemRectMin().y);
+                        auto size = ImVec2(end, ImGui::GetItemRectMax().y);
+                        drawList->AddRectFilled(pos, size, color);
+                    };
+
+                    drawTiming(TimingType::Simulation, "Simulation", IM_COL32(230, 25, 75, 255));
+                    drawTiming(TimingType::RenderSubmit, "RenderSubmit", IM_COL32(60, 180, 75, 255));
+                    drawTiming(TimingType::Present, "Present", IM_COL32(255, 225, 25, 255));
+                    drawTiming(TimingType::Driver, "Driver", IM_COL32(67, 99, 216, 255));
+                    drawTiming(TimingType::OsRenderQueue, "RenderQueue", IM_COL32(245, 130, 48, 255));
+                    drawTiming(TimingType::GpuRender, "GpuRender", IM_COL32(145, 30, 180, 255));
+                }
+            }
+
             ImGui::PopStyleColor(3); // Restore the style
         }
 
@@ -4330,13 +4382,13 @@ bool MenuCommon::RenderMenu()
                         ImGui::EndCombo();
                     }
 
-                    const char* fpsType[] = { "Just FPS",         "Simple", "Detailed",
-                                              "Detailed + Graph", "Full",   "Full + Graph" };
+                    const char* fpsType[] = { "Just FPS", "Simple",       "Detailed",      "Detailed + Graph",
+                                              "Full",     "Full + Graph", "Reflex timings" };
                     const char* selectedType = fpsType[Config::Instance()->FpsOverlayType.value_or_default()];
 
                     if (ImGui::BeginCombo("Overlay Type", selectedType))
                     {
-                        for (int n = 0; n < 6; n++)
+                        for (int n = 0; n < std::size(fpsType); n++)
                         {
                             if (ImGui::Selectable(fpsType[n],
                                                   (Config::Instance()->FpsOverlayType.value_or_default() == n)))

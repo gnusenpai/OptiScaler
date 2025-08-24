@@ -220,6 +220,7 @@ class Config
     CustomOptional<int> FpsOverlayPos { 0 };
     /// 0 Only FPS, 1 +Avg FPS & Upscaler info 2 +Frame Time,
     /// 3 +Upscaler Time, 4 +Frame Time Graph, 5 +Upscaler Time Graph
+    /// 6 +Reflex timings
     CustomOptional<int> FpsOverlayType { 0 };
     CustomOptional<int> FpsShortcutKey { VK_PRIOR };
     CustomOptional<int> FpsCycleShortcutKey { VK_NEXT };

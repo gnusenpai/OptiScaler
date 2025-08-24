@@ -324,7 +324,7 @@ bool Config::Reload(std::filesystem::path iniPath)
                 FpsOverlayPos.set_from_config(std::clamp(setting.value(), 0, 3));
 
             if (auto setting = readInt("Menu", "FpsOverlayType"); setting.has_value())
-                FpsOverlayType.set_from_config(std::clamp(setting.value(), 0, 4));
+                FpsOverlayType.set_from_config(std::clamp(setting.value(), 0, 6));
 
             FpsShortcutKey.set_from_config(readInt("Menu", "FpsShortcutKey"));
             FpsCycleShortcutKey.set_from_config(readInt("Menu", "FpsCycleShortcutKey"));
