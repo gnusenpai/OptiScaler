@@ -179,11 +179,13 @@ class State
     std::deque<double> upscaleTimes;
     std::deque<double> frameTimes;
     double lastFrameTime = 0.0;
+    double presentFrameTime = 0.0;
     std::mutex frameTimeMutex;
 
     // Swapchain info
     float screenWidth = 800.0;
     float screenHeight = 450.0;
+    bool realExclusiveFullscreen = false;
 
     // HDR
     std::vector<IUnknown*> SCbuffers;

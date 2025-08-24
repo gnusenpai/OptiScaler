@@ -89,7 +89,6 @@ static PFN_GetFullscreenState o_FGSCGetFullscreenState = nullptr;
 static PFN_GetFullscreenDesc o_FGSCGetFullscreenDesc = nullptr;
 static PFN_Present o_FGSCPresent = nullptr;
 static PFN_Present1 o_FGSCPresent1 = nullptr;
-static bool _exclusiveFullscreen = false;
 static HWND _hwnd = nullptr;
 
 static bool skipHighPerfCheck = false;
@@ -215,6 +214,8 @@ static bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnk
 
 static HRESULT hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDXGIOutput* pTarget)
 {
+    State::Instance().realExclusiveFullscreen = Fullscreen;
+
     bool modeChanged = false;
     if (Config::Instance()->FGXeFGForceBorderless.value_or_default())
     {
@@ -222,9 +223,9 @@ static HRESULT hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDXGI
         {
             Fullscreen = false;
 
-            if (!_exclusiveFullscreen)
+            if (!State::Instance().SCExclusiveFullscreen)
             {
-                _exclusiveFullscreen = true;
+                State::Instance().SCExclusiveFullscreen = true;
                 modeChanged = true;
             }
 
@@ -232,18 +233,27 @@ static HRESULT hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDXGI
         }
         else
         {
-            if (_exclusiveFullscreen)
+            if (State::Instance().SCExclusiveFullscreen)
             {
                 modeChanged = true;
-                _exclusiveFullscreen = false;
+                State::Instance().SCExclusiveFullscreen = false;
             }
         }
     }
 
-    State::Instance().SCExclusiveFullscreen = Fullscreen;
-
     auto result = o_FGSCSetFullscreenState(This, Fullscreen, pTarget);
-    LOG_DEBUG("Result: {:X}", (UINT) result);
+    LOG_DEBUG("Fullscreen: {}, Result: {:X}", Fullscreen, (UINT) result);
+
+    if (result == S_OK)
+    {
+        auto fg = State::Instance().currentFG;
+        if (fg != nullptr)
+        {
+            State::Instance().FGchanged = true;
+            fg->Deactivate();
+            fg->UpdateTarget();
+        }
+    }
 
     if (result == S_OK && modeChanged)
     {
@@ -252,7 +262,7 @@ static HRESULT hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDXGI
         DXGI_SWAP_CHAIN_DESC scDesc {};
         This->GetDesc(&scDesc);
 
-        if (_exclusiveFullscreen)
+        if (State::Instance().SCExclusiveFullscreen)
         {
             SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
             SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
@@ -288,7 +298,8 @@ static HRESULT hkGetFullscreenDesc(IDXGISwapChain* This, DXGI_SWAP_CHAIN_FULLSCR
 {
     auto result = o_FGSCGetFullscreenDesc(This, pDesc);
 
-    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() &&
+        State::Instance().SCExclusiveFullscreen)
         pDesc->Windowed = false;
 
     return result;
@@ -298,7 +309,8 @@ static HRESULT hkGetFullscreenState(IDXGISwapChain* This, BOOL* pFullscreen, IDX
 {
     auto result = o_FGSCGetFullscreenState(This, pFullscreen, ppTarget);
 
-    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() &&
+        State::Instance().SCExclusiveFullscreen)
         *pFullscreen = true;
 
     return result;
@@ -308,7 +320,7 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
                                UINT SwapChainFlags)
 {
     // Forcing screen size buffers does not help
-    // if (_exclusiveFullscreen)
+    // if (State::Instance().SCExclusiveFullscreen)
     //{
     //    auto info = Util::GetMonitorInfoForWindow(_hwnd);
     //    LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
@@ -316,22 +328,40 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
     //    Height = info.height;
     //}
 
-    DXGI_SWAP_CHAIN_DESC desc {};
-    if (This->GetDesc(&desc) == S_OK)
+    if (State::Instance().SCExclusiveFullscreen)
     {
-        if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height &&
-            (desc.BufferCount == BufferCount || BufferCount == 0) &&
-            (desc.BufferDesc.Format == NewFormat || NewFormat == DXGI_FORMAT_UNKNOWN))
+        DXGI_SWAP_CHAIN_DESC desc {};
+        if (This->GetDesc(&desc) == S_OK)
         {
-            LOG_DEBUG("Skipping resize");
-            return S_OK;
+            if (BufferCount == 0)
+                BufferCount = desc.BufferCount;
+
+            if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height &&
+                NewFormat == desc.BufferDesc.Format)
+            {
+                LOG_DEBUG("Skipping resize");
+                return S_OK;
+            }
         }
     }
 
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+    LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
+
+    if (result == S_OK)
+    {
+        auto fg = State::Instance().currentFG;
+        if (fg != nullptr)
+        {
+            State::Instance().FGchanged = true;
+            fg->Deactivate();
+            fg->UpdateTarget();
+        }
+    }
 
     // Resize window to cover the screen
-    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() &&
+        State::Instance().SCExclusiveFullscreen)
     {
         SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
         SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
@@ -356,14 +386,27 @@ static HRESULT hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTargetPa
         return S_OK;
     }
 
-    return o_FGSCResizeTarget(This, pNewTargetParameters);
+    auto result = o_FGSCResizeTarget(This, pNewTargetParameters);
+
+    if (result == S_OK)
+    {
+        auto fg = State::Instance().currentFG;
+        if (fg != nullptr)
+        {
+            State::Instance().FGchanged = true;
+            fg->Deactivate();
+            fg->UpdateTarget();
+        }
+    }
+
+    return result;
 }
 
 static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
                                 UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
     // Forcing screen size buffers does not help
-    // if (_exclusiveFullscreen)
+    // if (State::Instance().SCExclusiveFullscreen)
     //{
     //    auto info = Util::GetMonitorInfoForWindow(_hwnd);
     //    LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
@@ -371,23 +414,40 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
     //    Height = info.height;
     //}
 
-    DXGI_SWAP_CHAIN_DESC desc {};
-    if (This->GetDesc(&desc) == S_OK)
+    if (State::Instance().SCExclusiveFullscreen)
     {
-        if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height &&
-            (desc.BufferCount == BufferCount || BufferCount == 0) &&
-            (desc.BufferDesc.Format == Format || Format == DXGI_FORMAT_UNKNOWN))
+        DXGI_SWAP_CHAIN_DESC desc {};
+        if (This->GetDesc(&desc) == S_OK)
         {
-            LOG_DEBUG("Skipping resize");
-            return S_OK;
+            if (BufferCount == 0)
+                BufferCount = desc.BufferCount;
+
+            if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height && Format == desc.BufferDesc.Format)
+            {
+                LOG_DEBUG("Skipping resize");
+                return S_OK;
+            }
         }
     }
 
     auto result = o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
                                        ppPresentQueue);
+    LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
+
+    if (result == S_OK)
+    {
+        auto fg = State::Instance().currentFG;
+        if (fg != nullptr)
+        {
+            State::Instance().FGchanged = true;
+            fg->Deactivate();
+            fg->UpdateTarget();
+        }
+    }
 
     // Resize window to cover the screen
-    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() && _exclusiveFullscreen)
+    if (result == S_OK && Config::Instance()->FGXeFGForceBorderless.value_or_default() &&
+        State::Instance().SCExclusiveFullscreen)
     {
         SetWindowLongPtr(_hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
         SetWindowLongPtr(_hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
@@ -518,13 +578,19 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         if (!Config::Instance()->ForceVsync.value())
         {
             SyncInterval = 0;
-            Flags |= DXGI_PRESENT_ALLOW_TEARING;
+
+            if (State::Instance().SCExclusiveFullscreen)
+                Flags |= DXGI_PRESENT_ALLOW_TEARING;
         }
         else
         {
             // Remove allow tearing
             SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
-            Flags &= 0xFDFF;
+
+            if (State::Instance().SCExclusiveFullscreen)
+                Flags &= 0xFDFF;
+            else
+                SyncInterval = 1;
         }
     }
 
@@ -558,6 +624,13 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 static HRESULT hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
                             const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
+    // Skip XeFG's internal call
+    if (XeFGProxy::Module() == Util::GetCallerModule(_ReturnAddress()))
+    {
+        LOG_DEBUG("XeFG call skipping");
+        return o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
+    }
+
     LOG_DEBUG("SyncInterval: {}, Flags: {:X}", SyncInterval, Flags);
     return FGPresent(This, SyncInterval, Flags, pPresentParameters);
 }
@@ -579,7 +652,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
 
     auto willPresent = (Flags & DXGI_PRESENT_TEST) == 0;
 
-    if (State::Instance().activeFgInput != FGInput::Upscaler && willPresent)
+    if (willPresent)
     {
         double ftDelta = 0.0f;
 
@@ -589,8 +662,12 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
             ftDelta = now - _lastFrameTime;
 
         _lastFrameTime = now;
-        State::Instance().lastFrameTime = ftDelta;
-        LOG_DEBUG("Frametime: {:0.3f} ms", ftDelta);
+        State::Instance().presentFrameTime = ftDelta;
+
+        if (State::Instance().activeFgInput != FGInput::Upscaler)
+            State::Instance().lastFrameTime = ftDelta;
+
+        LOG_DEBUG("SyncInterval: {}, Flags: {:X}, Frametime: {:0.3f} ms", SyncInterval, Flags, ftDelta);
     }
 
     ID3D11Device* device = nullptr;
@@ -1092,11 +1169,14 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
     pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+    State::Instance().realExclusiveFullscreen = !pDesc->Windowed;
+
+    if (State::Instance().activeFgOutput == FGOutput::XeFG &&
+        Config::Instance()->FGXeFGForceBorderless.value_or_default())
     {
         if (!pDesc->Windowed)
         {
-            _exclusiveFullscreen = true;
+            State::Instance().SCExclusiveFullscreen = true;
             pDesc->Windowed = true;
             // auto info = Util::GetMonitorInfoForWindow(pDesc->OutputWindow);
             //  LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->BufferDesc.Width, pDesc->BufferDesc.Height,
@@ -1106,9 +1186,13 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         }
 
         pDesc->BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-    }
 
-    State::Instance().SCExclusiveFullscreen = !pDesc->Windowed;
+        // Remove
+        // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+        // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
+        // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+        // pDesc->Flags &= 0xFFB9;
+    }
 
     // Crude implementation of EndlesslyFlowering's AutoHDR-ReShade
     // https://github.com/EndlesslyFlowering/AutoHDR-ReShade
@@ -1473,11 +1557,15 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
     pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-    if (pFullscreenDesc != nullptr && State::Instance().activeFgOutput == FGOutput::XeFG)
+    if (pFullscreenDesc != nullptr)
+        State::Instance().realExclusiveFullscreen = !pFullscreenDesc->Windowed;
+
+    if (pFullscreenDesc != nullptr && State::Instance().activeFgOutput == FGOutput::XeFG &&
+        Config::Instance()->FGXeFGForceBorderless.value_or_default())
     {
         if (!pFullscreenDesc->Windowed)
         {
-            _exclusiveFullscreen = true;
+            State::Instance().SCExclusiveFullscreen = true;
             pFullscreenDesc->Windowed = true;
             // auto info = Util::GetMonitorInfoForWindow(hWnd);
             // LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->Width, pDesc->Height, info.width,
@@ -1485,9 +1573,13 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         }
 
         pDesc->Scaling = DXGI_SCALING_STRETCH;
-    }
 
-    State::Instance().SCExclusiveFullscreen = (pFullscreenDesc != nullptr) && (!pFullscreenDesc->Windowed);
+        // Remove
+        // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+        // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
+        // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+        // pDesc->Flags &= 0xFFB9;
+    }
 
     // Disable FSR FG if amd dll is not found
     if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::InitFfxDx12())
@@ -2247,10 +2339,11 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
 
         if (pSwapChainDesc->BufferCount < 2)
             pSwapChainDesc->BufferCount = 2;
-
-        pSwapChainDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        pSwapChainDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     }
+
+    pSwapChainDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    pSwapChainDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    pSwapChainDesc->Flags &= 0xFFBF; // Remove DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
 
     auto result = o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
                                                   SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel,
