@@ -248,14 +248,14 @@ void* ReflexHooks::getHookedReflex(unsigned int InterfaceId)
 
 bool ReflexHooks::updateTimingData()
 {
-    bool canCall = ((State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_GetLatency &&
-                     fakenvapi::ForNvidia_GetLatency) ||
+    bool canCall = ((State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_GetLatency) ||
                     o_NvAPI_D3D_GetLatency);
 
     if (!canCall || !_lastSleepDev)
         return false;
 
     NV_LATENCY_RESULT_PARAMS results {};
+    results.version = NV_LATENCY_RESULT_PARAMS_VER;
 
     if (auto result = hkNvAPI_D3D_GetLatency(_lastSleepDev, &results); result != NVAPI_OK)
         return false;
