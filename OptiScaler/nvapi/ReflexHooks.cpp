@@ -6,7 +6,7 @@
 
 // #define LOG_REFLEX_CALLS
 
-std::optional<TimingEntry> ReflexHooks::timingData[TimingType::COUNT] {};
+std::optional<TimingEntry> ReflexHooks::timingData[TimingType::TimingTypeCOUNT] {};
 
 NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams)
 {

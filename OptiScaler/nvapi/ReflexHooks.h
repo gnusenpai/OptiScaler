@@ -12,7 +12,8 @@ enum TimingType : uint32_t
     Driver,
     OsRenderQueue,
     GpuRender,
-    COUNT,
+
+    TimingTypeCOUNT
 };
 
 // Normalized values, position + length <= 1
@@ -59,7 +60,7 @@ class ReflexHooks
                                                     NV_VULKAN_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams);
 
   public:
-    static std::optional<TimingEntry> timingData[TimingType::COUNT];
+    static std::optional<TimingEntry> timingData[TimingType::TimingTypeCOUNT];
 
     static void hookReflex(PFN_NvApi_QueryInterface& queryInterface);
     static bool isDlssgDetected();

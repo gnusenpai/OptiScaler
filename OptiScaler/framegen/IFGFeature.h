@@ -32,10 +32,12 @@ typedef enum FG_ResourceType : uint32_t
     Velocity,
     HudlessColor,
     UIColor,
-    Distortion
+    Distortion,
+
+    ResourceTypeCOUNT
 };
 
-typedef enum FG_ResourceValidity : uint32_t
+enum class FG_ResourceValidity : uint32_t
 {
     ValidNow = 0,
     UntilPresent,
@@ -107,6 +109,7 @@ class IFGFeature
     bool IsResourceReady(FG_ResourceType type, int index = -1);
 
     bool IsUsingUI();
+    bool IsUsingUIAny(); // Same as IsUsingUI but checks if at least once buffer has UI
     bool IsUsingDistortionField();
     bool IsUsingHudless();
 
