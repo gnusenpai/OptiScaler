@@ -505,11 +505,11 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
     // HooksDx::UnHookDx();
 
     // Disabled to prevent crash
-    // if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
-    //{
-    //     State::Instance().currentFG->Shutdown();
-    //     State::Instance().ClearCapturedHudlesses = true;
-    // }
+    if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
+    {
+        State::Instance().currentFG->Shutdown();
+        State::Instance().ClearCapturedHudlesses = true;
+    }
 
     shutdown = false;
 
