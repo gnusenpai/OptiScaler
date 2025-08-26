@@ -147,6 +147,73 @@ inline static std::vector<std::filesystem::path> GetDriverStore()
 
 #pragma endregion
 
+#define STUB(number)                                                                                                   \
+    HRESULT STDMETHODCALLTYPE unknown##number()                                                                        \
+    {                                                                                                                  \
+        LOG_FUNC();                                                                                                    \
+        return S_OK;                                                                                                   \
+    }
+
+MIDL_INTERFACE("F714E11A-B54E-4E0F-ABC5-DF58B18133D1")
+IAmdExtFfxThird : public IUnknown
+{
+    virtual HRESULT unknown1() = 0;  // not used
+    virtual HRESULT unknown2() = 0;  // not used
+    virtual HRESULT unknown3() = 0;  // not used
+    virtual HRESULT unknown4() = 0;  // not used
+    virtual HRESULT unknown5() = 0;  // not used
+    virtual HRESULT unknown6() = 0;  // not used
+    virtual HRESULT unknown7() = 0;  // not used
+    virtual HRESULT unknown8() = 0;  // not used
+    virtual HRESULT unknown9() = 0;  // not used
+    virtual HRESULT unknown10() = 0; // not used
+    virtual HRESULT unknown11() = 0; // not used
+    virtual HRESULT unknown12() = 0; // not used
+    virtual HRESULT unknown13() = 0; // not used
+    virtual HRESULT unknown14(uint64_t* a, uint8_t* data) = 0;
+};
+
+struct AmdExtFfxThird : public IAmdExtFfxThird
+{
+    STUB(1)
+    STUB(2)
+    STUB(3)
+    STUB(4)
+    STUB(5)
+    STUB(6)
+    STUB(7)
+    STUB(8)
+    STUB(9)
+    STUB(10)
+    STUB(11)
+    STUB(12)
+    STUB(13)
+    HRESULT STDMETHODCALLTYPE unknown14(uint64_t* a, uint8_t* data)
+    {
+        LOG_TRACE(": {}", *a);
+
+        *reinterpret_cast<uint64_t*>(&data[0x00]) = 16;
+        *reinterpret_cast<uint64_t*>(&data[0x08]) = 16;
+        *reinterpret_cast<uint64_t*>(&data[0x10]) = 16;
+
+        *reinterpret_cast<uint32_t*>(&data[0x18]) = 11;
+        *reinterpret_cast<uint32_t*>(&data[0x1C]) = 11;
+
+        *reinterpret_cast<uint32_t*>(&data[0x20]) = 1;
+        *reinterpret_cast<uint32_t*>(&data[0x24]) = 1;
+
+        data[0x28] = 0;
+
+        return S_OK;
+    }
+
+    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override { return E_NOTIMPL; }
+    ULONG __stdcall AddRef(void) override { return 0; }
+    ULONG __stdcall Release(void) override { return 0; }
+};
+
+static AmdExtFfxThird* _amdExtFfxThird = nullptr;
+
 // Internal interfaces needed for custom the IAmdExtFfxApi
 MIDL_INTERFACE("BA019D53-CCAB-4CBD-B56A-7230ED4330AD")
 IAmdExtFfxSecond : public IUnknown
@@ -201,6 +268,17 @@ struct AmdExtFfxFirst : public IAmdExtFfxFirst
             *ppvObject = _amdExtFfxSecond;
 
             LOG_INFO("Custom IAmdExtFfxSecond queried, returning custom AmdExtFfxSecond");
+
+            return S_OK;
+        }
+        else if (riid == __uuidof(IAmdExtFfxThird))
+        {
+            if (_amdExtFfxThird == nullptr)
+                _amdExtFfxThird = new AmdExtFfxThird();
+
+            *ppvObject = _amdExtFfxThird;
+
+            LOG_INFO("Custom IAmdExtFfxThird queried, returning custom AmdExtFfxThird");
 
             return S_OK;
         }
