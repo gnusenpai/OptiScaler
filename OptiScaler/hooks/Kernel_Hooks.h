@@ -70,6 +70,9 @@ class KernelHooks
     {
         LOG_TRACE("{}", lcaseLibName);
 
+        // C:\\Path\\like\\this.dll
+        auto normalizedPath = std::filesystem::path(lcaseLibName).lexically_normal().string();
+
         // If Opti is not loading as nvngx.dll
         // if (!State::Instance().enablerAvailable && !State::Instance().isWorkingAsNvngx)
         //{
@@ -263,14 +266,14 @@ class KernelHooks
         {
             auto loadedBin = KernelBaseProxy::LoadLibraryExA_()(lpLibFullPath, NULL, 0);
 
-            if (loadedBin && lcaseLibName.contains("/versions/"))
+            if (loadedBin && normalizedPath.contains("\\versions\\"))
             {
-                if (lcaseLibName.contains("/dlss/"))
+                if (normalizedPath.contains("\\dlss\\"))
                 {
                     State::Instance().NGX_OTA_Dlss = lpLibFullPath;
                 }
 
-                if (lcaseLibName.contains("/dlssd/"))
+                if (normalizedPath.contains("\\dlssd\\"))
                 {
                     State::Instance().NGX_OTA_Dlssd = lpLibFullPath;
                 }
@@ -518,6 +521,9 @@ class KernelHooks
         auto lcaseLibNameA = wstring_to_string(lcaseLibName);
         LOG_TRACE("{}", lcaseLibNameA);
 
+        // C:\\Path\\like\\this.dll
+        auto normalizedPath = std::filesystem::path(lcaseLibName).lexically_normal().string();
+
         // If Opti is not loading as nvngx.dll
         // if (!State::Instance().enablerAvailable && !State::Instance().isWorkingAsNvngx)
         //{
@@ -578,14 +584,14 @@ class KernelHooks
         {
             auto loadedBin = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
 
-            if (loadedBin && lcaseLibName.contains(L"/versions/"))
+            if (loadedBin && normalizedPath.contains("\\versions\\"))
             {
-                if (lcaseLibName.contains(L"/dlss/"))
+                if (normalizedPath.contains("\\dlss\\"))
                 {
                     State::Instance().NGX_OTA_Dlss = wstring_to_string(lpLibFullPath);
                 }
 
-                if (lcaseLibName.contains(L"/dlssd/"))
+                if (normalizedPath.contains("\\dlssd\\"))
                 {
                     State::Instance().NGX_OTA_Dlssd = wstring_to_string(lpLibFullPath);
                 }
@@ -648,7 +654,7 @@ class KernelHooks
         // Try to catch something like this:
         // C:\ProgramData/NVIDIA/NGX/models/sl_dlss_0/versions/133120/files/190_E658703.dll
         if (CheckDllNameW(&lcaseLibName, &slDlssNamesW) ||
-            (lcaseLibName.contains(L"/versions/") && lcaseLibName.contains(L"/sl_dlss_0")))
+            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_dlss_0")))
         {
             auto dlssModule = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
 
@@ -666,7 +672,7 @@ class KernelHooks
 
         // sl.dlss_g.dll
         if (CheckDllNameW(&lcaseLibName, &slDlssgNamesW) ||
-            (lcaseLibName.contains(L"/versions/") && lcaseLibName.contains(L"/sl_dlss_g_")))
+            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_dlss_g_")))
         {
             auto dlssgModule = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
 
@@ -684,7 +690,7 @@ class KernelHooks
 
         // sl.reflex.dll
         if (CheckDllNameW(&lcaseLibName, &slReflexNamesW) ||
-            (lcaseLibName.contains(L"/versions/") && lcaseLibName.contains(L"/sl_reflex_")))
+            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_reflex_")))
         {
             auto reflexModule = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
 
@@ -702,7 +708,7 @@ class KernelHooks
 
         // sl.pcl.dll
         if (CheckDllNameW(&lcaseLibName, &slPclNamesW) ||
-            (lcaseLibName.contains(L"/versions/") && lcaseLibName.contains(L"/sl_pcl_")))
+            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_pcl_")))
         {
             auto pclModule = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
 
@@ -720,7 +726,7 @@ class KernelHooks
 
         // sl.common.dll
         if (CheckDllNameW(&lcaseLibName, &slCommonNamesW) ||
-            (lcaseLibName.contains(L"/versions/") && lcaseLibName.contains(L"/sl_common_")))
+            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_common_")))
         {
             auto commonModule = KernelBaseProxy::LoadLibraryExW_()(lpLibFullPath, NULL, 0);
 

@@ -532,10 +532,8 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             HooksDx::dx12UpscaleTrig = false;
         }
 
-        if (State::Instance().slFGInputs.readyForDispatch() && !State::Instance().slFGInputs.dispatchFG())
+        if (State::Instance().activeFgInput == FGInput::DLSSG && !State::Instance().slFGInputs.dispatchFG())
             LOG_DEBUG("Streamline FG was not dispatched");
-
-        State::Instance().slFGInputs.markLastSendAsRequired();
     }
 
     IFGFeature_Dx12* fg = State::Instance().currentFG;
@@ -560,7 +558,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         Hudfix_Dx12::PresentStart();
     }
 
-    if (willPresent && fg != nullptr && fg->IsUsingUI())
+    if (willPresent && fg != nullptr && fg->IsUsingUI() && Config::Instance()->DrawUIOverFG.value_or_default())
     {
         ID3D12Resource* backBuffer = nullptr;
         auto swapchain = ((IDXGISwapChain3*) This);
@@ -579,7 +577,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         {
             SyncInterval = 0;
 
-            if (State::Instance().SCExclusiveFullscreen)
+            if (!State::Instance().SCExclusiveFullscreen)
                 Flags |= DXGI_PRESENT_ALLOW_TEARING;
         }
         else
@@ -587,8 +585,8 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             // Remove allow tearing
             SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
 
-            if (State::Instance().SCExclusiveFullscreen)
-                Flags &= 0xFDFF;
+            if (!State::Instance().SCExclusiveFullscreen)
+                Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
             else
                 SyncInterval = 1;
         }
@@ -846,13 +844,19 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         if (!Config::Instance()->ForceVsync.value())
         {
             SyncInterval = 0;
-            Flags |= DXGI_PRESENT_ALLOW_TEARING;
+
+            if (!State::Instance().SCExclusiveFullscreen)
+                Flags |= DXGI_PRESENT_ALLOW_TEARING;
         }
         else
         {
             // Remove allow tearing
             SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
-            Flags &= 0xFDFF;
+
+            if (!State::Instance().SCExclusiveFullscreen)
+                Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
+            else
+                SyncInterval = 1;
         }
     }
 

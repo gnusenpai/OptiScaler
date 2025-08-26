@@ -53,6 +53,14 @@ bool IFGFeature::WaitingExecution(int index)
 void IFGFeature::SetExecuted() { _waitingExecute[GetIndex()] = false; }
 
 bool IFGFeature::IsUsingUI() { return !_noUi[GetIndex()]; }
+bool IFGFeature::IsUsingUIAny()
+{
+    for (const auto& value : _noUi)
+        if (value == false)
+            return true;
+
+    return false;
+}
 bool IFGFeature::IsUsingDistortionField() { return !_noDistortionField[GetIndex()]; }
 bool IFGFeature::IsUsingHudless() { return !_noHudless[GetIndex()]; }
 

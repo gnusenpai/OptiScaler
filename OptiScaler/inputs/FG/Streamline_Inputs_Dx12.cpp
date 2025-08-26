@@ -159,13 +159,6 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
     if (fgOutput == nullptr || !Config::Instance()->FGEnabled.value_or_default())
         return false;
 
-    bool UIDisabled = !Config::Instance()->DrawUIOverFG.value_or_default();
-
-    if (tag.type == sl::kBufferTypeUIColorAndAlpha && UIDisabled)
-    {
-        return true;
-    }
-
     if (dispatched)
     {
         fgOutput->StartNewFrame();
@@ -181,8 +174,6 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
     if (tag.type == sl::kBufferTypeHUDLessColor)
     {
         LOG_TRACE("Hudless lifecycle: {}", magic_enum::enum_name(tag.lifecycle));
-
-        hudlessSent = true;
 
         auto hudlessResource = (ID3D12Resource*) tag.resource->native;
 
@@ -238,8 +229,6 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
     {
         LOG_TRACE("Depth lifecycle: {}, type: {}", magic_enum::enum_name(tag.lifecycle), tag.type);
 
-        depthSent = true;
-
         auto depthResource = (ID3D12Resource*) tag.resource->native;
 
         auto width = tag.extent.width;
@@ -271,8 +260,6 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
     else if (tag.type == sl::kBufferTypeMotionVectors)
     {
         LOG_TRACE("MVs lifecycle: {}", magic_enum::enum_name(tag.lifecycle));
-
-        mvsSent = true;
 
         auto mvResource = (ID3D12Resource*) tag.resource->native;
 
@@ -309,44 +296,37 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
     {
         LOG_TRACE("UIColorAndAlpha lifecycle: {}", magic_enum::enum_name(tag.lifecycle));
 
-        uiSent = true;
+        auto uiResource = (ID3D12Resource*) tag.resource->native;
 
-        if (uiRequired)
+        auto width = tag.extent.width;
+        auto height = tag.extent.height;
+
+        if (!tag.extent)
         {
-            auto uiResource = (ID3D12Resource*) tag.resource->native;
-
-            auto width = tag.extent.width;
-            auto height = tag.extent.height;
-
-            if (!tag.extent)
-            {
-                const auto desc = uiResource->GetDesc();
-                width = desc.Width;
-                height = desc.Height;
-            }
-
-            const auto validity = (tag.lifecycle != sl::eOnlyValidNow) ? FG_ResourceValidity::UntilPresent
-                                                                       : FG_ResourceValidity::ValidNow;
-
-            Dx12Resource setResource {};
-            setResource.type = FG_ResourceType::UIColor;
-            setResource.cmdList = cmdBuffer;
-            setResource.resource = uiResource;
-            setResource.top = tag.extent.top;
-            setResource.left = tag.extent.left;
-            setResource.width = width;
-            setResource.height = height;
-            setResource.state = (D3D12_RESOURCE_STATES) tag.resource->state;
-            setResource.validity = validity;
-
-            fgOutput->SetResource(&setResource);
+            const auto desc = uiResource->GetDesc();
+            width = desc.Width;
+            height = desc.Height;
         }
+
+        const auto validity =
+            (tag.lifecycle != sl::eOnlyValidNow) ? FG_ResourceValidity::UntilPresent : FG_ResourceValidity::ValidNow;
+
+        Dx12Resource setResource {};
+        setResource.type = FG_ResourceType::UIColor;
+        setResource.cmdList = cmdBuffer;
+        setResource.resource = uiResource;
+        setResource.top = tag.extent.top;
+        setResource.left = tag.extent.left;
+        setResource.width = width;
+        setResource.height = height;
+        setResource.state = (D3D12_RESOURCE_STATES) tag.resource->state;
+        setResource.validity = validity;
+
+        fgOutput->SetResource(&setResource);
     }
     else if (tag.type == sl::kBufferTypeBidirectionalDistortionField)
     {
         LOG_TRACE("DistortionField lifecycle: {}", magic_enum::enum_name(tag.lifecycle));
-
-        distortionFieldSent = true;
 
         auto distortionFieldResource = (ID3D12Resource*) tag.resource->native;
 
@@ -498,18 +478,6 @@ bool Sl_Inputs_Dx12::dispatchFG()
     fgOutput->SetInterpolationRect(interpolationWidth, interpolationHeight);
 
     return true;
-}
-
-void Sl_Inputs_Dx12::markLastSendAsRequired()
-{
-    uiRequired = uiSent;
-    distortionFieldRequired = distortionFieldSent;
-
-    depthSent = false;
-    hudlessSent = false;
-    mvsSent = false;
-    uiSent = false;
-    distortionFieldSent = false;
 }
 
 void Sl_Inputs_Dx12::markPresent(uint64_t frameId)

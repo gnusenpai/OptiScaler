@@ -114,7 +114,8 @@ bool FSRFG_Dx12::Dispatch()
 
     auto uiColor = GetResource(FG_ResourceType::UIColor, fIndex);
     auto hudless = GetResource(FG_ResourceType::HudlessColor, fIndex);
-    if (uiColor != nullptr && IsResourceReady(FG_ResourceType::UIColor, fIndex))
+    if (uiColor != nullptr && IsResourceReady(FG_ResourceType::UIColor, fIndex) &&
+        Config::Instance()->DrawUIOverFG.value_or_default())
     {
         LOG_TRACE("Using UI: {:X}", (size_t) uiColor->GetResource());
 

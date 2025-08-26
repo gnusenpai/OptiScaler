@@ -12,15 +12,6 @@ class Sl_Inputs_Dx12
     std::optional<sl::Constants> slConstants[BUFFER_COUNT] {};
     sl::EngineType engineType = sl::EngineType::eCount;
 
-    // TODO: make "sent" map/array
-    bool depthSent = false;
-    bool hudlessSent = false;
-    bool mvsSent = false;
-    bool uiSent = false;
-    bool uiRequired = false;
-    bool distortionFieldSent = false;
-    bool distortionFieldRequired = false;
-
     bool dispatched = false;
     std::mutex reportResourceMutex {};
 
@@ -42,16 +33,7 @@ class Sl_Inputs_Dx12
     bool reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCommandList* cmdBuffer, uint32_t frameId);
     void reportEngineType(sl::EngineType type) { engineType = type; };
     bool dispatchFG();
-    void markLastSendAsRequired();
     void markPresent(uint64_t frameId);
-
-    // A minimum of required inputs
-    // If we are missing any by the time of present, then we have have bigger issues
-    bool readyForDispatch() const
-    {
-        return hudlessSent && depthSent && mvsSent && (uiRequired && uiSent || !uiRequired) &&
-               (distortionFieldRequired && distortionFieldSent || !distortionFieldRequired);
-    };
 
     // TODO: some shutdown and cleanup methods
 };
