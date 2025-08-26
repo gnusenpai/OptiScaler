@@ -1182,11 +1182,6 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         {
             State::Instance().SCExclusiveFullscreen = true;
             pDesc->Windowed = true;
-            // auto info = Util::GetMonitorInfoForWindow(pDesc->OutputWindow);
-            //  LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->BufferDesc.Width, pDesc->BufferDesc.Height,
-            //            info.width, info.height);
-            //  pDesc->BufferDesc.Width = info.width;
-            //  pDesc->BufferDesc.Height = info.height;
         }
 
         pDesc->BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
@@ -1571,9 +1566,6 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         {
             State::Instance().SCExclusiveFullscreen = true;
             pFullscreenDesc->Windowed = true;
-            // auto info = Util::GetMonitorInfoForWindow(hWnd);
-            // LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", pDesc->Width, pDesc->Height, info.width,
-            // info.height); pDesc->Width = info.width; pDesc->Height = info.height;
         }
 
         pDesc->Scaling = DXGI_SCALING_STRETCH;
@@ -2349,7 +2341,12 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
     {
         pSwapChainDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         pSwapChainDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-        pSwapChainDesc->Flags &= 0xFFBF; // Remove DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+
+        // Remove
+        // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+        // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
+        // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+        // pSwapChainDesc->Flags &= 0xFFB9;
     }
 
     auto result = o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
