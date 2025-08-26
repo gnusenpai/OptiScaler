@@ -109,9 +109,10 @@ bool XeFG_Dx12::DestroySwapchainContext()
 
     if (_swapChainContext != nullptr)
     {
+        auto context = _swapChainContext;
         _swapChainContext = nullptr;
 
-        auto result = XeFGProxy::Destroy()(_swapChainContext);
+        auto result = XeFGProxy::Destroy()(context);
 
         if (!State::Instance().isShuttingDown)
             LOG_INFO("Destroy result: {} ({})", magic_enum::enum_name(result), (UINT) result);
