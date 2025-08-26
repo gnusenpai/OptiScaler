@@ -839,7 +839,12 @@ void FSRFG_Dx12::SetResource(Dx12Resource* inputResource)
     if (inputResource == nullptr || inputResource->resource == nullptr)
         return;
 
+    auto fIndex = GetIndex();
     auto& type = inputResource->type;
+
+    if (type == FG_ResourceType::HudlessColor && Config::Instance()->DisableHudless.value_or_default())
+        return;
+
     std::lock_guard<std::mutex> lock(_frMutex);
 
     if (inputResource->cmdList == nullptr && inputResource->validity == FG_ResourceValidity::ValidNow)
@@ -848,7 +853,6 @@ void FSRFG_Dx12::SetResource(Dx12Resource* inputResource)
         return;
     }
 
-    auto fIndex = GetIndex();
     _frameResources[fIndex][type] = {};
     auto fResource = &_frameResources[fIndex][type];
     fResource->type = type;

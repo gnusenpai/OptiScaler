@@ -323,6 +323,13 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
         setResource.validity = validity;
 
         fgOutput->SetResource(&setResource);
+
+        // Use UI size as fallback for interpolated size
+        if (interpolationWidth == 0 && interpolationHeight == 0)
+        {
+            interpolationWidth = width;
+            interpolationHeight = height;
+        }
     }
     else if (tag.type == sl::kBufferTypeBidirectionalDistortionField)
     {
@@ -476,6 +483,8 @@ bool Sl_Inputs_Dx12::dispatchFG()
     fgOutput->SetReset(slConstsRef.reset == sl::Boolean::eTrue);
 
     fgOutput->SetInterpolationRect(interpolationWidth, interpolationHeight);
+    interpolationWidth = 0;
+    interpolationHeight = 0;
 
     return true;
 }

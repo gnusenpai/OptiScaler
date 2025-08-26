@@ -534,13 +534,22 @@ bool XeFG_Dx12::Dispatch()
             LOG_DEBUG("SwapChain Res: {}x{}, Interpolation Res: {}x{}", scDesc1.BufferDesc.Width,
                       scDesc1.BufferDesc.Height, _interpolationWidth[fIndex], _interpolationHeight[fIndex]);
 
-            auto calculatedLeft = ((int) scDesc1.BufferDesc.Width - (int) _interpolationWidth[fIndex]) / 2;
-            if (calculatedLeft > 0)
-                left = Config::Instance()->FGRectLeft.value_or(_interpolationLeft[fIndex].value_or(calculatedLeft));
+            if (_interpolationWidth[fIndex] == 0 && _interpolationHeight[fIndex] == 0)
+            {
+                LOG_WARN("Interpolation size is 0, using swapchain size");
+                _interpolationWidth[fIndex] = scDesc1.BufferDesc.Width;
+                _interpolationHeight[fIndex] = scDesc1.BufferDesc.Height;
+            }
+            else
+            {
+                auto calculatedLeft = ((int) scDesc1.BufferDesc.Width - (int) _interpolationWidth[fIndex]) / 2;
+                if (calculatedLeft > 0)
+                    left = Config::Instance()->FGRectLeft.value_or(_interpolationLeft[fIndex].value_or(calculatedLeft));
 
-            auto calculatedTop = ((int) scDesc1.BufferDesc.Height - (int) _interpolationHeight[fIndex]) / 2;
-            if (calculatedTop > 0)
-                top = Config::Instance()->FGRectTop.value_or(_interpolationTop[fIndex].value_or(calculatedTop));
+                auto calculatedTop = ((int) scDesc1.BufferDesc.Height - (int) _interpolationHeight[fIndex]) / 2;
+                if (calculatedTop > 0)
+                    top = Config::Instance()->FGRectTop.value_or(_interpolationTop[fIndex].value_or(calculatedTop));
+            }
         }
         else
         {
@@ -696,7 +705,12 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     if (inputResource == nullptr || inputResource->resource == nullptr)
         return;
 
+    auto fIndex = GetIndex();
     auto& type = inputResource->type;
+
+    if (type == FG_ResourceType::HudlessColor && Config::Instance()->DisableHudless.value_or_default())
+        return;
+
     std::lock_guard<std::mutex> lock(_frMutex);
 
     if (inputResource->cmdList == nullptr && inputResource->validity == FG_ResourceValidity::ValidNow)
@@ -711,7 +725,6 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
         return;
     }
 
-    auto fIndex = GetIndex();
     auto fResource = &_frameResources[fIndex][type];
     fResource->type = type;
     fResource->state = inputResource->state;

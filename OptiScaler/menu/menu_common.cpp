@@ -3406,6 +3406,18 @@ bool MenuCommon::RenderMenu()
                                     Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
 
                                 ImGui::EndDisabled();
+
+                                bool disableHudless = Config::Instance()->DisableHudless.value_or_default();
+                                ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny() && !disableHudless);
+
+                                // TODO: doesn't save to config
+                                if (ImGui::Checkbox("Disable hudless", &disableHudless))
+                                {
+                                    Config::Instance()->DisableHudless = disableHudless;
+                                    State::Instance().FGchanged = true;
+                                }
+
+                                ShowHelpMarker("For when the game sends hudless but you want to disable it");
                             }
                             else
                             {
@@ -3454,6 +3466,20 @@ bool MenuCommon::RenderMenu()
                             if (bool uiPremultipliedAlpha = Config::Instance()->UIPremultipliedAlpha.value_or_default();
                                 ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
                                 Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
+
+                            ImGui::EndDisabled();
+
+                            bool disableHudless = Config::Instance()->DisableHudless.value_or_default();
+                            ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny() && !disableHudless);
+
+                            // TODO: doesn't save to config
+                            if (ImGui::Checkbox("Disable hudless", &disableHudless))
+                            {
+                                Config::Instance()->DisableHudless = disableHudless;
+                                State::Instance().FGchanged = true;
+                            }
+
+                            ShowHelpMarker("For when the game sends hudless but you want to disable it");
 
                             ImGui::EndDisabled();
                         }

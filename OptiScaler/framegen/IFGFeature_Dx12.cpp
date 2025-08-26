@@ -12,7 +12,7 @@ bool IFGFeature_Dx12::GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATE
 
     auto resource = GetResource(type);
 
-    if (resource->copy == nullptr && resource->validity == FG_ResourceValidity::ValidNow)
+    if (!resource || resource->copy == nullptr && resource->validity == FG_ResourceValidity::ValidNow)
     {
         LOG_WARN("No resource copy of type {} to use", magic_enum::enum_name(type));
         return false;

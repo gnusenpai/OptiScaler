@@ -350,8 +350,9 @@ class Config
     // Frame Generation
     CustomOptional<FGInput> FGInput { FGInput::NoFG };
     CustomOptional<FGOutput> FGOutput { FGOutput::NoFG };
-    CustomOptional<bool> DrawUIOverFG { false };
+    CustomOptional<bool> DrawUIOverFG { false }; // TODO: not saved
     CustomOptional<bool> UIPremultipliedAlpha { true };
+    CustomOptional<bool> DisableHudless { false };
 
     // OptiFG
     CustomOptional<bool> FGEnabled { false };

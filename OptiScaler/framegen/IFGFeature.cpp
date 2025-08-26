@@ -63,6 +63,14 @@ bool IFGFeature::IsUsingUIAny()
 }
 bool IFGFeature::IsUsingDistortionField() { return !_noDistortionField[GetIndex()]; }
 bool IFGFeature::IsUsingHudless() { return !_noHudless[GetIndex()]; }
+bool IFGFeature::IsUsingHudlessAny()
+{
+    for (const auto& value : _noHudless)
+        if (value == false)
+            return true;
+
+    return false;
+}
 
 bool IFGFeature::CheckForRealObject(std::string functionName, IUnknown* pObject, IUnknown** ppRealObject)
 {

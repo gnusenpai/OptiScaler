@@ -22,6 +22,9 @@ class Sl_Inputs_Dx12
     uint32_t mvsWidth = 0;
     uint32_t mvsHeight = 0;
 
+    // TODO: add full position
+    // uint32_t interpolationTop = 0;
+    // uint32_t interpolationLeft = 0;
     uint32_t interpolationWidth = 0;
     uint32_t interpolationHeight = 0;
 

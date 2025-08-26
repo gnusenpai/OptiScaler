@@ -112,6 +112,7 @@ class IFGFeature
     bool IsUsingUIAny(); // Same as IsUsingUI but checks if at least once buffer has UI
     bool IsUsingDistortionField();
     bool IsUsingHudless();
+    bool IsUsingHudlessAny();
 
     void SetExecuted();
     bool WaitingExecution(int index = -1);
