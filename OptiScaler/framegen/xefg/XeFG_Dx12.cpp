@@ -484,8 +484,9 @@ bool XeFG_Dx12::Dispatch()
 
     // Cyberpunk seems to be sending LH so do the same
     // it also sends some extra data in usually empty spots but no idea what that is
-    if (_cameraNear[fIndex] > 0.f && _cameraFar[fIndex] > 0.f && _cameraVFov[fIndex] > 0.00001f &&
-        _cameraAspectRatio[fIndex] > 0.00001f)
+    if (_cameraNear[fIndex] > 0.f && _cameraFar[fIndex] > 0.f &&
+        !XMScalarNearEqual(_cameraVFov[fIndex], 0.0f, 0.00001f) &&
+        !XMScalarNearEqual(_cameraAspectRatio[fIndex], 0.0f, 0.00001f))
     {
         if (XMScalarNearEqual(_cameraNear[fIndex], _cameraFar[fIndex], 0.00001f))
             _cameraFar[fIndex]++;
@@ -709,6 +710,9 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     auto& type = inputResource->type;
 
     if (type == FG_ResourceType::HudlessColor && Config::Instance()->DisableHudless.value_or_default())
+        return;
+
+    if (type == FG_ResourceType::UIColor && Config::Instance()->DisableUI.value_or_default())
         return;
 
     std::lock_guard<std::mutex> lock(_frMutex);

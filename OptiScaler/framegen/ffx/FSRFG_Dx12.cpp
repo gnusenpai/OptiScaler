@@ -845,6 +845,9 @@ void FSRFG_Dx12::SetResource(Dx12Resource* inputResource)
     if (type == FG_ResourceType::HudlessColor && Config::Instance()->DisableHudless.value_or_default())
         return;
 
+    if (type == FG_ResourceType::UIColor && Config::Instance()->DisableUI.value_or_default())
+        return;
+
     std::lock_guard<std::mutex> lock(_frMutex);
 
     if (inputResource->cmdList == nullptr && inputResource->validity == FG_ResourceValidity::ValidNow)

@@ -353,6 +353,7 @@ class Config
     CustomOptional<bool> DrawUIOverFG { false }; // TODO: not saved
     CustomOptional<bool> UIPremultipliedAlpha { true };
     CustomOptional<bool> DisableHudless { false };
+    CustomOptional<bool> DisableUI { true };
 
     // OptiFG
     CustomOptional<bool> FGEnabled { false };

@@ -2758,6 +2758,63 @@ bool MenuCommon::RenderMenu()
                     ImGui::Spacing();
                 }
 
+                if (State::Instance().activeFgInput == FGInput::DLSSG ||
+                    State::Instance().activeFgInput == FGInput::FSRFG)
+                {
+                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                    if (fgOutput)
+                    {
+                        ImGui::BeginDisabled(!fgOutput->IsActive());
+                        const auto isUsingUIAny = fgOutput->IsUsingUIAny();
+                        const auto isUsingHudlessAny = fgOutput->IsUsingHudlessAny();
+
+                        bool disableUI = Config::Instance()->DisableUI.value_or_default();
+                        ImGui::BeginDisabled(!isUsingUIAny && !disableUI);
+
+                        if (ImGui::Checkbox("Disable UI texture", &disableUI))
+                        {
+                            Config::Instance()->DisableUI = disableUI;
+                            State::Instance().FGchanged = true;
+                        }
+
+                        ShowHelpMarker("For when the game sends a UI texture but you want to disable it");
+
+                        ImGui::EndDisabled();
+
+                        ImGui::SameLine();
+
+                        bool disableHudless = Config::Instance()->DisableHudless.value_or_default();
+                        ImGui::BeginDisabled(!isUsingHudlessAny && !disableHudless);
+
+                        if (ImGui::Checkbox("Disable hudless", &disableHudless))
+                        {
+                            // TODO: this can crash when toggling
+                            Config::Instance()->DisableHudless = disableHudless;
+                            State::Instance().FGchanged = true;
+                        }
+
+                        ShowHelpMarker("For when the game sends hudless but you want to disable it");
+
+                        ImGui::EndDisabled();
+
+                        ImGui::BeginDisabled(!isUsingUIAny || !isUsingHudlessAny);
+                        if (bool drawUIOverFG = Config::Instance()->DrawUIOverFG.value_or_default();
+                            ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
+                            Config::Instance()->DrawUIOverFG = drawUIOverFG;
+                        ImGui::EndDisabled();
+
+                        ImGui::SameLine();
+
+                        ImGui::BeginDisabled(!isUsingUIAny);
+                        if (bool uiPremultipliedAlpha = Config::Instance()->UIPremultipliedAlpha.value_or_default();
+                            ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
+                            Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
+                        ImGui::EndDisabled();
+
+                        ImGui::EndDisabled();
+                    }
+                }
+
                 // FSR FG controls
                 if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
                     State::Instance().activeFgInput != FGInput::NoFG &&
@@ -3388,43 +3445,9 @@ bool MenuCommon::RenderMenu()
                         if (State::Instance().FSRFGInputActive)
                         {
                             if (fgOutput->IsActive())
-                            {
                                 ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
-
-                                ImGui::BeginDisabled(!fgOutput->IsUsingUIAny());
-
-                                // TODO: doesn't save to config
-                                if (bool drawUIOverFG = Config::Instance()->DrawUIOverFG.value_or_default();
-                                    ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
-                                    Config::Instance()->DrawUIOverFG = drawUIOverFG;
-
-                                ImGui::SameLine();
-
-                                if (bool uiPremultipliedAlpha =
-                                        Config::Instance()->UIPremultipliedAlpha.value_or_default();
-                                    ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
-                                    Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
-
-                                ImGui::EndDisabled();
-
-                                bool disableHudless = Config::Instance()->DisableHudless.value_or_default();
-                                ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny() && !disableHudless);
-
-                                // TODO: doesn't save to config
-                                if (ImGui::Checkbox("Disable hudless", &disableHudless))
-                                {
-                                    Config::Instance()->DisableHudless = disableHudless;
-                                    State::Instance().FGchanged = true;
-                                }
-
-                                ShowHelpMarker("For when the game sends hudless but you want to disable it");
-
-                                ImGui::EndDisabled();
-                            }
                             else
-                            {
                                 ImGui::TextColored(ImVec4(1.0f, 0.647f, 0.0f, 1.f), "ACTIVATE FG");
-                            }
                         }
                         else
                         {
@@ -3455,35 +3478,6 @@ bool MenuCommon::RenderMenu()
                         if (fgOutput->IsActive())
                         {
                             ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
-
-                            ImGui::BeginDisabled(!fgOutput->IsUsingUIAny());
-
-                            // TODO: doesn't save to config
-                            if (bool drawUIOverFG = Config::Instance()->DrawUIOverFG.value_or_default();
-                                ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
-                                Config::Instance()->DrawUIOverFG = drawUIOverFG;
-
-                            ImGui::SameLine();
-
-                            if (bool uiPremultipliedAlpha = Config::Instance()->UIPremultipliedAlpha.value_or_default();
-                                ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
-                                Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
-
-                            ImGui::EndDisabled();
-
-                            bool disableHudless = Config::Instance()->DisableHudless.value_or_default();
-                            ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny() && !disableHudless);
-
-                            // TODO: doesn't save to config
-                            if (ImGui::Checkbox("Disable hudless", &disableHudless))
-                            {
-                                Config::Instance()->DisableHudless = disableHudless;
-                                State::Instance().FGchanged = true;
-                            }
-
-                            ShowHelpMarker("For when the game sends hudless but you want to disable it");
-
-                            ImGui::EndDisabled();
                         }
                         else
                         {
