@@ -77,7 +77,8 @@ static std::vector<std::string> splashText = { "May the coping commence...",
                                                "0.8 was an inside job",
                                                "<Your funny text goes here>",
                                                "FSR4 DP4a wenETA, AMD plz",
-                                               "OptiCopers, assemble!" };
+                                               "OptiCopers, assemble!",
+                                               "The Way It's Meant To Be Upscaled" };
 
 void MenuCommon::ShowTooltip(const char* tip)
 {
