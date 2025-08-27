@@ -1341,7 +1341,8 @@ bool MenuCommon::RenderMenu()
         }
 
         if (inputFpsCycle && Config::Instance()->ShowFps.value_or_default())
-            Config::Instance()->FpsOverlayType = (Config::Instance()->FpsOverlayType.value_or_default() + 1) % 6;
+            Config::Instance()->FpsOverlayType =
+                (FpsOverlay) ((Config::Instance()->FpsOverlayType.value_or_default() + 1) % FpsOverlay_COUNT);
 
         if (inputMenu)
         {
@@ -1608,11 +1609,11 @@ bool MenuCommon::RenderMenu()
             std::string thirdLine = "";
 
             // Prepare Line 1
-            if (Config::Instance()->FpsOverlayType.value_or_default() == 0)
+            if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_JustFPS)
             {
                 firstLine = std::format("{} | FPS: {:5.1f}", api.c_str(), frameRate);
             }
-            else if (Config::Instance()->FpsOverlayType.value_or_default() == 1)
+            else if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_Simple)
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                     firstLine =
@@ -1639,7 +1640,7 @@ bool MenuCommon::RenderMenu()
             }
 
             // Prepare Line 2
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 1)
+            if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Detailed)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                 {
@@ -1657,7 +1658,7 @@ bool MenuCommon::RenderMenu()
             }
 
             // Prepare Line 3
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 3)
+            if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Full)
             {
                 thirdLine = std::format("Upscaler Time: {:6.2f} ms, Avg: {:6.2f} ms",
                                         State::Instance().upscaleTimes.back(), averageUpscalerFT);
@@ -1690,7 +1691,7 @@ bool MenuCommon::RenderMenu()
             // Draw the overlay
             ImGui::Text(firstLine.c_str());
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 1)
+            if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Detailed)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                 {
@@ -1706,7 +1707,7 @@ bool MenuCommon::RenderMenu()
                 ImGui::Text(secondLine.c_str());
             }
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 2)
+            if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_DetailedGraph)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                     ImGui::SameLine(0.0f, 0.0f);
@@ -1716,7 +1717,7 @@ bool MenuCommon::RenderMenu()
                                  nullptr, 0.0f, 66.6f, plotSize);
             }
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 3)
+            if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Full)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                 {
@@ -1732,7 +1733,7 @@ bool MenuCommon::RenderMenu()
                 ImGui::Text(thirdLine.c_str());
             }
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 4)
+            if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_FullGraph)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                     ImGui::SameLine(0.0f, 0.0f);
@@ -1742,7 +1743,7 @@ bool MenuCommon::RenderMenu()
                                  static_cast<int>(upscalerFrameTimeArray.size()), 0, nullptr, 0.0f, 20.0f, plotSize);
             }
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 5)
+            if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_ReflexTimings)
             {
                 constexpr auto delayBetweenPollsMs = 500;
                 static auto previousPoll = 0;
@@ -4429,7 +4430,7 @@ bool MenuCommon::RenderMenu()
                         {
                             if (ImGui::Selectable(fpsType[n],
                                                   (Config::Instance()->FpsOverlayType.value_or_default() == n)))
-                                Config::Instance()->FpsOverlayType = n;
+                                Config::Instance()->FpsOverlayType = (FpsOverlay) n;
                         }
 
                         ImGui::EndCombo();

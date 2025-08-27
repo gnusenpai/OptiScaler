@@ -56,6 +56,8 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // Frame Generation
         {
+            FGEnabled.set_from_config(readBool("FrameGen", "Enabled"));
+            FGDebugView.set_from_config(readBool("FrameGen", "DebugView"));
             if (auto FGInputString = readString("FrameGen", "FGInput"); FGInputString.has_value())
             {
                 if (lstrcmpiA(FGInputString.value().c_str(), "nofg") == 0)
@@ -89,8 +91,6 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // FSR FG
         {
-            FGEnabled.set_from_config(readBool("FSRFG", "Enabled"));
-            FGDebugView.set_from_config(readBool("FSRFG", "DebugView"));
             FGDebugTearLines.set_from_config(readBool("FSRFG", "DebugTearLines"));
             FGDebugResetLines.set_from_config(readBool("FSRFG", "DebugResetLines"));
             FGDebugPacingLines.set_from_config(readBool("FSRFG", "DebugPacingLines"));
@@ -110,28 +110,6 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // OptiFG
         {
-            {
-                // If settings in the FSRFG section are not set, try using the old OptiFG section
-                FGEnabled.set_from_config(readBool("OptiFG", "Enabled"));
-                FGDebugView.set_from_config(readBool("OptiFG", "DebugView"));
-                FGDebugTearLines.set_from_config(readBool("OptiFG", "DebugTearLines"));
-                FGDebugResetLines.set_from_config(readBool("OptiFG", "DebugResetLines"));
-                FGDebugPacingLines.set_from_config(readBool("OptiFG", "DebugPacingLines"));
-                FGAsync.set_from_config(readBool("OptiFG", "AllowAsync"));
-                FGRectLeft.set_from_config(readInt("OptiFG", "RectLeft"));
-                FGRectTop.set_from_config(readInt("OptiFG", "RectTop"));
-                FGRectWidth.set_from_config(readInt("OptiFG", "RectWidth"));
-                FGRectHeight.set_from_config(readInt("OptiFG", "RectHeight"));
-                FGUseMutexForSwapchain.set_from_config(readBool("OptiFG", "UseMutexForSwapchain"));
-                FGFramePacingTuning.set_from_config(readBool("OptiFG", "FramePacingTuning"));
-                FGFPTSafetyMarginInMs.set_from_config(readFloat("OptiFG", "FPTSafetyMarginInMs"));
-                FGFPTVarianceFactor.set_from_config(readFloat("OptiFG", "FPTVarianceFactor"));
-                FGFPTAllowHybridSpin.set_from_config(readBool("OptiFG", "FPTHybridSpin"));
-                FGFPTHybridSpinTime.set_from_config(readInt("OptiFG", "FPTHybridSpinTime"));
-                FGFPTAllowWaitForSingleObjectOnFence.set_from_config(
-                    readInt("OptiFG", "FPTWaitForSingleObjectOnFence"));
-            }
-
             FGHUDFix.set_from_config(readBool("OptiFG", "HUDFix"));
             FGHUDLimit.set_from_config(readInt("OptiFG", "HUDLimit"));
             FGHUDFixExtended.set_from_config(readBool("OptiFG", "HUDFixExtended"));
@@ -323,8 +301,11 @@ bool Config::Reload(std::filesystem::path iniPath)
             if (auto setting = readInt("Menu", "FpsOverlayPos"); setting.has_value())
                 FpsOverlayPos.set_from_config(std::clamp(setting.value(), 0, 3));
 
-            if (auto setting = readInt("Menu", "FpsOverlayType"); setting.has_value())
-                FpsOverlayType.set_from_config(std::clamp(setting.value(), 0, 6));
+            if (auto setting = readUInt("Menu", "FpsOverlayType"); setting.has_value())
+            {
+                FpsOverlayType.set_from_config(
+                    (FpsOverlay) std::clamp(setting.value(), (uint32_t) FpsOverlay_JustFPS, FpsOverlay_COUNT - 1));
+            }
 
             FpsShortcutKey.set_from_config(readInt("Menu", "FpsShortcutKey"));
             FpsCycleShortcutKey.set_from_config(readInt("Menu", "FpsCycleShortcutKey"));
@@ -685,6 +666,8 @@ bool Config::SaveIni()
 
     // Frame Generation
     {
+        ini.SetValue("FrameGen", "Enabled", GetBoolValue(Instance()->FGEnabled.value_for_config()).c_str());
+        ini.SetValue("FrameGen", "DebugView", GetBoolValue(Instance()->FGDebugView.value_for_config()).c_str());
         std::string FGInputString = "auto";
         if (auto FGInputHeld = Instance()->FGInput.value_for_config(); FGInputHeld.has_value())
         {
@@ -716,10 +699,8 @@ bool Config::SaveIni()
         ini.SetValue("FrameGen", "FGOutput", FGOutputString.c_str());
     }
 
-    // FSR FG
+    // FSR FG output
     {
-        ini.SetValue("FSRFG", "Enabled", GetBoolValue(Instance()->FGEnabled.value_for_config()).c_str());
-        ini.SetValue("FSRFG", "DebugView", GetBoolValue(Instance()->FGDebugView.value_for_config()).c_str());
         ini.SetValue("FSRFG", "DebugTearLines", GetBoolValue(Instance()->FGDebugTearLines.value_for_config()).c_str());
         ini.SetValue("FSRFG", "DebugResetLines",
                      GetBoolValue(Instance()->FGDebugResetLines.value_for_config()).c_str());
@@ -746,6 +727,7 @@ bool Config::SaveIni()
                      GetBoolValue(Instance()->FGFPTAllowWaitForSingleObjectOnFence.value_for_config()).c_str());
     }
 
+    // XeFG output
     {
         ini.SetValue("XeFG", "DepthInverted", GetBoolValue(Instance()->FGXeFGDepthInverted.value_for_config()).c_str());
         ini.SetValue("XeFG", "JitteredMV", GetBoolValue(Instance()->FGXeFGJitteredMV.value_for_config()).c_str());

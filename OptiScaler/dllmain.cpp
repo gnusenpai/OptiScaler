@@ -1218,7 +1218,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         State::Instance().isRunningOnLinux = IsRunningOnWine();
         State::Instance().isRunningOnDXVK = State::Instance().isRunningOnLinux;
 
-
         if (!Config::Instance()->OverrideNvapiDll.has_value())
         {
             spdlog::info("OverrideNvapiDll not set, setting it to: {}",
