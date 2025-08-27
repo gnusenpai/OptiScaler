@@ -3418,6 +3418,8 @@ bool MenuCommon::RenderMenu()
                                 }
 
                                 ShowHelpMarker("For when the game sends hudless but you want to disable it");
+
+                                ImGui::EndDisabled();
                             }
                             else
                             {
