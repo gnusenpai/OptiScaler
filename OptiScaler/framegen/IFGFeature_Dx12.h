@@ -46,6 +46,9 @@ class IFGFeature_Dx12 : public virtual IFGFeature
 
     HWND _hwnd = NULL;
 
+    ID3D12GraphicsCommandList* _uiCommandList[BUFFER_COUNT] {};
+    ID3D12CommandAllocator* _uiCommandAllocator[BUFFER_COUNT] {};
+
     std::unordered_map<FG_ResourceType, Dx12Resource> _frameResources[BUFFER_COUNT] {};
     std::unordered_map<FG_ResourceType, ID3D12Resource*> _resourceCopy[BUFFER_COUNT] {};
     std::mutex _frMutex;
@@ -71,6 +74,9 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     virtual void CreateObjects(ID3D12Device* InDevice) = 0;
 
   public:
+    virtual void* FrameGenerationContext() = 0;
+    virtual void* SwapchainContext() = 0;
+
     virtual bool CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, DXGI_SWAP_CHAIN_DESC* desc,
                                  IDXGISwapChain** swapChain) = 0;
     virtual bool CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, HWND hwnd,
@@ -80,15 +86,13 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     virtual void CreateContext(ID3D12Device* device, FG_Constants& fgConstants) = 0;
     virtual void EvaluateState(ID3D12Device* device, FG_Constants& fgConstants) = 0;
 
-    virtual void* FrameGenerationContext() = 0;
-    virtual void* SwapchainContext() = 0;
+    virtual void SetResource(Dx12Resource* inputResource) = 0;
+    virtual void SetCommandQueue(FG_ResourceType type, ID3D12CommandQueue* queue) = 0;
+    virtual ID3D12GraphicsCommandList* GetUICommandList(int index = -1) = 0;
 
     Dx12Resource* GetResource(FG_ResourceType type, int index = -1);
     bool GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATES bufferState, ID3D12Resource* output);
-
-    virtual void SetResource(Dx12Resource* inputResource) = 0;
-
-    virtual void SetCommandQueue(FG_ResourceType type, ID3D12CommandQueue* queue) = 0;
+    ID3D12CommandQueue* GetCommandQueue();
 
     IFGFeature_Dx12() = default;
     virtual ~IFGFeature_Dx12() { DestroyCopyCmdList(); }

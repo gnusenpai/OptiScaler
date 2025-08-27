@@ -78,8 +78,7 @@ bool HC_Dx12::CreateBufferResource(UINT index, ID3D12Device* InDevice, ID3D12Res
         return false;
     }
 
-    texDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS |
-                     D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     texDesc.Width = texDesc.Width;
     texDesc.Height = texDesc.Height;
 
@@ -315,6 +314,8 @@ bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12CommandQueue* queue, ID3D12Res
         return false;
     }
 
+    scBuffer->Release();
+
     // Check Hudless Buffer
     D3D12_RESOURCE_DESC hudlessDesc = hudless->GetDesc();
 
@@ -332,14 +333,10 @@ bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12CommandQueue* queue, ID3D12Res
     if (_buffer[_counter] != nullptr)
         bufferDesc = _buffer[_counter]->GetDesc();
 
-    if (_buffer[_counter] == nullptr || bufferDesc.Format != scDesc.BufferDesc.Format ||
-        bufferDesc.Width != scDesc.BufferDesc.Width || bufferDesc.Height != scDesc.BufferDesc.Height)
+    if (!CreateBufferResource(_counter, _device, scBuffer, D3D12_RESOURCE_STATE_COPY_DEST))
     {
-        if (!CreateBufferResource(_counter, _device, scBuffer, D3D12_RESOURCE_STATE_COPY_DEST))
-        {
-            LOG_ERROR("CreateBufferResource error!");
-            return false;
-        }
+        LOG_ERROR("CreateBufferResource error!");
+        return false;
     }
 
     // Reset CommandList
@@ -367,7 +364,9 @@ bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12CommandQueue* queue, ID3D12Res
     ResourceBarrier(_commandList[_counter], scBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
                     D3D12_RESOURCE_STATE_RENDER_TARGET);
     SetBufferState(_counter, _commandList[_counter], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    ResourceBarrier(_commandList[_counter], hudless, state, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    if (state != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+        ResourceBarrier(_commandList[_counter], hudless, state, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     // Start setting pipeline
     UINT outWidth = scDesc.BufferDesc.Width;
@@ -508,11 +507,19 @@ bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12CommandQueue* queue, ID3D12Res
     _commandList[_counter]->DrawInstanced(3, 1, 0, 0);
 
     ResourceBarrier(_commandList[_counter], scBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-    ResourceBarrier(_commandList[_counter], hudless, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, state);
 
-    _commandList[_counter]->Close();
+    if (state != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+        ResourceBarrier(_commandList[_counter], hudless, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, state);
+
+    result = _commandList[_counter]->Close();
+
+    if (result != S_OK)
+    {
+        LOG_ERROR("_commandList[{}]->Close() error: {:X}", _counter, (UINT) result);
+        return false;
+    }
+
     queue->ExecuteCommandLists(1, (ID3D12CommandList**) &_commandList[_counter]);
-
     return true;
 }
 

@@ -7,6 +7,7 @@
 
 #include <framegen/ffx/FSRFG_Dx12.h>
 #include <framegen/xefg/XeFG_Dx12.h>
+#include <inputs/FG/FfxApi_Dx12_FG.h>
 
 #include <hudfix/Hudfix_Dx12.h>
 #include <menu/menu_overlay_dx.h>
@@ -21,8 +22,6 @@
 #include <nvapi/ReflexHooks.h>
 
 #include <detours/detours.h>
-#include <dx12/ffx_api_dx12.h>
-#include <ffx_framegeneration.h>
 
 #include <d3d11on12.h>
 #include <misc/FrameLimit.h>
@@ -549,6 +548,9 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
 
     if (willPresent && fg != nullptr && fg->IsActive())
     {
+        if (State::Instance().activeFgInput == FGInput::FSRFG)
+            ffxPresentCallback();
+
         fg->Present();
     }
 

@@ -89,6 +89,8 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
     void SetResourceReady(FG_ResourceType type) override final;
     void SetCommandQueue(FG_ResourceType type, ID3D12CommandQueue* queue) override final;
 
+    ID3D12GraphicsCommandList* GetUICommandList(int index = -1) override final;
+
     ffxReturnCode_t DispatchCallback(ffxDispatchDescFrameGeneration* params);
     FSRFG_Dx12() : IFGFeature_Dx12(), IFGFeature()
     {
