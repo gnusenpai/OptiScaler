@@ -558,7 +558,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         Hudfix_Dx12::PresentStart();
     }
 
-    if (willPresent && fg != nullptr && fg->IsUsingUI() && Config::Instance()->DrawUIOverFG.value_or_default())
+    if (willPresent && fg != nullptr && fg->IsUsingUI() && Config::Instance()->FGDrawUIOverFG.value_or_default())
     {
         ID3D12Resource* backBuffer = nullptr;
         auto swapchain = ((IDXGISwapChain3*) This);

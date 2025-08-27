@@ -232,7 +232,7 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
     if (Config::Instance()->FGXeFGHighResMV.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_HIGH_RES_MV;
 
-    if (!Config::Instance()->UIPremultipliedAlpha.value_or_default())
+    if (!Config::Instance()->FGUIPremultipliedAlpha.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_UITEXTURE_NOT_PREMUL_ALPHA;
 
     LOG_DEBUG("Inverted Depth: {}", Config::Instance()->FGXeFGDepthInverted.value_or_default());
@@ -318,7 +318,7 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     if (Config::Instance()->FGXeFGHighResMV.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_HIGH_RES_MV;
 
-    if (!Config::Instance()->UIPremultipliedAlpha.value_or_default())
+    if (!Config::Instance()->FGUIPremultipliedAlpha.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_UITEXTURE_NOT_PREMUL_ALPHA;
 
     LOG_DEBUG("Inverted Depth: {}", Config::Instance()->FGXeFGDepthInverted.value_or_default());
@@ -709,10 +709,10 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     auto fIndex = GetIndex();
     auto& type = inputResource->type;
 
-    if (type == FG_ResourceType::HudlessColor && Config::Instance()->DisableHudless.value_or_default())
+    if (type == FG_ResourceType::HudlessColor && Config::Instance()->FGDisableHudless.value_or_default())
         return;
 
-    if (type == FG_ResourceType::UIColor && Config::Instance()->DisableUI.value_or_default())
+    if (type == FG_ResourceType::UIColor && Config::Instance()->FGDisableUI.value_or_default())
         return;
 
     std::lock_guard<std::mutex> lock(_frMutex);

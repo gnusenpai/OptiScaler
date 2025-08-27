@@ -87,6 +87,10 @@ bool Config::Reload(std::filesystem::path iniPath)
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "xefg") == 0)
                     FGOutput.set_from_config(FGOutput::XeFG);
             }
+            FGDrawUIOverFG.set_from_config(readBool("FrameGen", "DrawUIOverFG"));
+            FGUIPremultipliedAlpha.set_from_config(readBool("FrameGen", "UIPremultipliedAlpha"));
+            FGDisableHudless.set_from_config(readBool("FrameGen", "DisableHudless"));
+            FGDisableUI.set_from_config(readBool("FrameGen", "DisableUI"));
         }
 
         // FSR FG
@@ -697,6 +701,12 @@ bool Config::SaveIni()
                 FGOutputString = "XeFG";
         }
         ini.SetValue("FrameGen", "FGOutput", FGOutputString.c_str());
+        ini.SetValue("FrameGen", "DrawUIOverFG", GetBoolValue(Instance()->FGDrawUIOverFG.value_for_config()).c_str());
+        ini.SetValue("FrameGen", "UIPremultipliedAlpha",
+                     GetBoolValue(Instance()->FGUIPremultipliedAlpha.value_for_config()).c_str());
+        ini.SetValue("FrameGen", "DisableHudless",
+                     GetBoolValue(Instance()->FGDisableHudless.value_for_config()).c_str());
+        ini.SetValue("FrameGen", "DisableUI", GetBoolValue(Instance()->FGDisableUI.value_for_config()).c_str());
     }
 
     // FSR FG output

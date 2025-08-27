@@ -2769,12 +2769,12 @@ bool MenuCommon::RenderMenu()
                         const auto isUsingUIAny = fgOutput->IsUsingUIAny();
                         const auto isUsingHudlessAny = fgOutput->IsUsingHudlessAny();
 
-                        bool disableUI = Config::Instance()->DisableUI.value_or_default();
+                        bool disableUI = Config::Instance()->FGDisableUI.value_or_default();
                         ImGui::BeginDisabled(!isUsingUIAny && !disableUI);
 
                         if (ImGui::Checkbox("Disable UI texture", &disableUI))
                         {
-                            Config::Instance()->DisableUI = disableUI;
+                            Config::Instance()->FGDisableUI = disableUI;
                             State::Instance().FGchanged = true;
                         }
 
@@ -2784,13 +2784,13 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::SameLine();
 
-                        bool disableHudless = Config::Instance()->DisableHudless.value_or_default();
+                        bool disableHudless = Config::Instance()->FGDisableHudless.value_or_default();
                         ImGui::BeginDisabled(!isUsingHudlessAny && !disableHudless);
 
                         if (ImGui::Checkbox("Disable hudless", &disableHudless))
                         {
                             // TODO: this can crash when toggling
-                            Config::Instance()->DisableHudless = disableHudless;
+                            Config::Instance()->FGDisableHudless = disableHudless;
                             State::Instance().FGchanged = true;
                         }
 
@@ -2799,17 +2799,17 @@ bool MenuCommon::RenderMenu()
                         ImGui::EndDisabled();
 
                         ImGui::BeginDisabled(!isUsingUIAny || !isUsingHudlessAny);
-                        if (bool drawUIOverFG = Config::Instance()->DrawUIOverFG.value_or_default();
+                        if (bool drawUIOverFG = Config::Instance()->FGDrawUIOverFG.value_or_default();
                             ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
-                            Config::Instance()->DrawUIOverFG = drawUIOverFG;
+                            Config::Instance()->FGDrawUIOverFG = drawUIOverFG;
                         ImGui::EndDisabled();
 
                         ImGui::SameLine();
 
                         ImGui::BeginDisabled(!isUsingUIAny);
-                        if (bool uiPremultipliedAlpha = Config::Instance()->UIPremultipliedAlpha.value_or_default();
+                        if (bool uiPremultipliedAlpha = Config::Instance()->FGUIPremultipliedAlpha.value_or_default();
                             ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
-                            Config::Instance()->UIPremultipliedAlpha = uiPremultipliedAlpha;
+                            Config::Instance()->FGUIPremultipliedAlpha = uiPremultipliedAlpha;
                         ImGui::EndDisabled();
 
                         ImGui::EndDisabled();

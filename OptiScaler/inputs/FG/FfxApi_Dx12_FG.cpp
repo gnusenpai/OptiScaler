@@ -231,7 +231,7 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
         return FFX_API_RETURN_ERROR_RUNTIME_ERROR;
     }
 
-    bool UIDisabled = !Config::Instance()->DrawUIOverFG.value_or_default();
+    bool UIDisabled = Config::Instance()->FGDisableUI.value_or_default();
 
     if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION)
     {
