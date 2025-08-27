@@ -992,6 +992,9 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DisableFFXInputs && !Config::Instance()->EnableFfxInputs.has_value())
         Config::Instance()->EnableFfxInputs.set_volatile_value(false);
 
+    if (quirks & GameQuirk::DisableDxgiSpoofing && !Config::Instance()->DxgiSpoofing.has_value())
+        Config::Instance()->DxgiSpoofing.set_volatile_value(false);
+
     if (quirks & GameQuirk::RestoreComputeSigOnNonNvidia && !State::Instance().isRunningOnNvidia &&
         !Config::Instance()->DxgiSpoofing.value_or_default() &&
         !Config::Instance()->RestoreComputeSignature.has_value())
@@ -1013,9 +1016,6 @@ static void CheckQuirks()
 
     if (quirks & GameQuirk::DisableUseFsrInputValues)
         Config::Instance()->FsrUseFsrInputValues.set_volatile_value(false);
-
-    if (quirks & GameQuirk::DisableDxgiSpoofing && !Config::Instance()->DxgiSpoofing.has_value())
-        Config::Instance()->DxgiSpoofing.set_volatile_value(false);
 
     if (quirks & GameQuirk::EnableVulkanSpoofing && !State::Instance().isRunningOnNvidia &&
         !Config::Instance()->VulkanSpoofing.has_value())
@@ -1162,37 +1162,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
             spdlog::warn("Can't read windows version");
 
         spdlog::info("");
-        CheckQuirks();
-
-        // OptiFG & Overlay Checks
-        // TODO: Either FGInput == FGInput::Upscaler or FGOutput == FGOutput::FSRFG
-        if ((Config::Instance()->FGInput.value_or_default() == FGInput::Upscaler) &&
-            !Config::Instance()->DisableOverlays.has_value())
-            Config::Instance()->DisableOverlays.set_volatile_value(true);
-
-        if (Config::Instance()->DisableOverlays.value_or_default())
-            SetEnvironmentVariable(L"SteamNoOverlayUIDrawing", L"1");
-
-        // Initial state of FG
-        State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
-        State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
 
         // Init Kernel proxies
         KernelBaseProxy::Init();
         Kernel32Proxy::Init();
-
-        // Hook FSR4 stuff as early as possible
-        spdlog::info("");
-        InitFSR4Update();
-
-        // Check for Wine
-        spdlog::info("");
-        State::Instance().isRunningOnLinux = IsRunningOnWine();
-        State::Instance().isRunningOnDXVK = State::Instance().isRunningOnLinux;
-
-        // Disable splash for Linux
-        if (!Config::Instance()->DisableSplash.has_value())
-            Config::Instance()->DisableSplash.set_volatile_value(State::Instance().isRunningOnLinux);
 
         // Check if real DLSS available
         if (Config::Instance()->DLSSEnabled.value_or_default())
@@ -1220,6 +1193,30 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
                 Config::Instance()->DLSSEnabled.set_volatile_value(false);
             }
         }
+
+        CheckQuirks();
+
+        // OptiFG & Overlay Checks
+        // TODO: Either FGInput == FGInput::Upscaler or FGOutput == FGOutput::FSRFG
+        if ((Config::Instance()->FGInput.value_or_default() == FGInput::Upscaler) &&
+            !Config::Instance()->DisableOverlays.has_value())
+            Config::Instance()->DisableOverlays.set_volatile_value(true);
+
+        if (Config::Instance()->DisableOverlays.value_or_default())
+            SetEnvironmentVariable(L"SteamNoOverlayUIDrawing", L"1");
+
+        // Initial state of FG
+        State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
+        State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
+
+        // Hook FSR4 stuff as early as possible
+        spdlog::info("");
+        InitFSR4Update();
+
+        // Check for Wine
+        spdlog::info("");
+        State::Instance().isRunningOnLinux = IsRunningOnWine();
+        State::Instance().isRunningOnDXVK = State::Instance().isRunningOnLinux;
 
         if (!Config::Instance()->OverrideNvapiDll.has_value())
         {
