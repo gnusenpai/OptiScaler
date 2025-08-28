@@ -186,6 +186,9 @@ static const QuirkEntry quirkTable[] = {
     // Nioh 2 – The Complete Edition
     QUIRK_ENTRY("nioh2.exe", GameQuirk::ForceAutoExposure),
 
+    // Supraworld
+    QUIRK_ENTRY("supraworld-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+
     // Warhammer 40,000: Darktide
     // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("darktide.exe", GameQuirk::DisableDxgiSpoofing),
