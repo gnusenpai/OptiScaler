@@ -756,88 +756,91 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         }
     }
 
-    if (_fgPresentCalled)
+    if (willPresent && _fgPresentCalled)
         _fgPresentCalled = false;
 
-    IFGFeature_Dx12* fg = State::Instance().currentFG;
-
-    if (fg != nullptr)
+    auto fg = State::Instance().currentFG;
+    if (willPresent && fg != nullptr)
         ReflexHooks::update(fg->IsActive(), false);
     else
         ReflexHooks::update(false, false);
 
     // Upscaler GPU time computation
-    if (State::Instance().activeFgInput != FGInput::Upscaler && HooksDx::dx12UpscaleTrig &&
-        HooksDx::readbackBuffer != nullptr && HooksDx::queryHeap != nullptr && cq != nullptr)
+    if (willPresent)
     {
-        UINT64* timestampData;
-        HooksDx::readbackBuffer->Map(0, nullptr, reinterpret_cast<void**>(&timestampData));
-
-        if (timestampData != nullptr)
+        if (State::Instance().activeFgInput != FGInput::Upscaler && HooksDx::dx12UpscaleTrig &&
+            HooksDx::readbackBuffer != nullptr && HooksDx::queryHeap != nullptr && cq != nullptr)
         {
-            // Get the GPU timestamp frequency (ticks per second)
-            UINT64 gpuFrequency;
-            cq->GetTimestampFrequency(&gpuFrequency);
+            UINT64* timestampData;
+            HooksDx::readbackBuffer->Map(0, nullptr, reinterpret_cast<void**>(&timestampData));
 
-            // Calculate elapsed time in milliseconds
-            UINT64 startTime = timestampData[0];
-            UINT64 endTime = timestampData[1];
-            double elapsedTimeMs = (endTime - startTime) / static_cast<double>(gpuFrequency) * 1000.0;
-
-            // filter out posibly wrong measured high values
-            if (elapsedTimeMs < 100.0)
+            if (timestampData != nullptr)
             {
-                State::Instance().frameTimeMutex.lock();
-                State::Instance().upscaleTimes.push_back(elapsedTimeMs);
-                State::Instance().upscaleTimes.pop_front();
-                State::Instance().frameTimeMutex.unlock();
-            }
-        }
-        else
-        {
-            LOG_WARN("timestampData is null!");
-        }
+                // Get the GPU timestamp frequency (ticks per second)
+                UINT64 gpuFrequency;
+                cq->GetTimestampFrequency(&gpuFrequency);
 
-        // Unmap the buffer
-        HooksDx::readbackBuffer->Unmap(0, nullptr);
-        HooksDx::dx12UpscaleTrig = false;
-    }
-    else if (HooksDx::dx11UpscaleTrig[HooksDx::currentFrameIndex] && device != nullptr &&
-             HooksDx::disjointQueries[0] != nullptr && HooksDx::startQueries[0] != nullptr &&
-             HooksDx::endQueries[0] != nullptr)
-    {
-        if (_d3d11DeviceContext == nullptr)
-            device->GetImmediateContext(&_d3d11DeviceContext);
+                // Calculate elapsed time in milliseconds
+                UINT64 startTime = timestampData[0];
+                UINT64 endTime = timestampData[1];
+                double elapsedTimeMs = (endTime - startTime) / static_cast<double>(gpuFrequency) * 1000.0;
 
-        // Retrieve the results from the previous frame
-        D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
-        if (_d3d11DeviceContext->GetData(HooksDx::disjointQueries[HooksDx::previousFrameIndex], &disjointData,
-                                         sizeof(disjointData), 0) == S_OK)
-        {
-            if (!disjointData.Disjoint && disjointData.Frequency > 0)
-            {
-                UINT64 startTime = 0, endTime = 0;
-                if (_d3d11DeviceContext->GetData(HooksDx::startQueries[HooksDx::previousFrameIndex], &startTime,
-                                                 sizeof(UINT64), 0) == S_OK &&
-                    _d3d11DeviceContext->GetData(HooksDx::endQueries[HooksDx::previousFrameIndex], &endTime,
-                                                 sizeof(UINT64), 0) == S_OK)
+                // filter out posibly wrong measured high values
+                if (elapsedTimeMs < 100.0)
                 {
-                    double elapsedTimeMs = (endTime - startTime) / static_cast<double>(disjointData.Frequency) * 1000.0;
+                    State::Instance().frameTimeMutex.lock();
+                    State::Instance().upscaleTimes.push_back(elapsedTimeMs);
+                    State::Instance().upscaleTimes.pop_front();
+                    State::Instance().frameTimeMutex.unlock();
+                }
+            }
+            else
+            {
+                LOG_WARN("timestampData is null!");
+            }
 
-                    // filter out posibly wrong measured high values
-                    if (elapsedTimeMs < 100.0)
+            // Unmap the buffer
+            HooksDx::readbackBuffer->Unmap(0, nullptr);
+            HooksDx::dx12UpscaleTrig = false;
+        }
+        else if (HooksDx::dx11UpscaleTrig[HooksDx::currentFrameIndex] && device != nullptr &&
+                 HooksDx::disjointQueries[0] != nullptr && HooksDx::startQueries[0] != nullptr &&
+                 HooksDx::endQueries[0] != nullptr)
+        {
+            if (_d3d11DeviceContext == nullptr)
+                device->GetImmediateContext(&_d3d11DeviceContext);
+
+            // Retrieve the results from the previous frame
+            D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
+            if (_d3d11DeviceContext->GetData(HooksDx::disjointQueries[HooksDx::previousFrameIndex], &disjointData,
+                                             sizeof(disjointData), 0) == S_OK)
+            {
+                if (!disjointData.Disjoint && disjointData.Frequency > 0)
+                {
+                    UINT64 startTime = 0, endTime = 0;
+                    if (_d3d11DeviceContext->GetData(HooksDx::startQueries[HooksDx::previousFrameIndex], &startTime,
+                                                     sizeof(UINT64), 0) == S_OK &&
+                        _d3d11DeviceContext->GetData(HooksDx::endQueries[HooksDx::previousFrameIndex], &endTime,
+                                                     sizeof(UINT64), 0) == S_OK)
                     {
-                        State::Instance().frameTimeMutex.lock();
-                        State::Instance().upscaleTimes.push_back(elapsedTimeMs);
-                        State::Instance().upscaleTimes.pop_front();
-                        State::Instance().frameTimeMutex.unlock();
+                        double elapsedTimeMs =
+                            (endTime - startTime) / static_cast<double>(disjointData.Frequency) * 1000.0;
+
+                        // filter out posibly wrong measured high values
+                        if (elapsedTimeMs < 100.0)
+                        {
+                            State::Instance().frameTimeMutex.lock();
+                            State::Instance().upscaleTimes.push_back(elapsedTimeMs);
+                            State::Instance().upscaleTimes.pop_front();
+                            State::Instance().frameTimeMutex.unlock();
+                        }
                     }
                 }
             }
-        }
 
-        HooksDx::dx11UpscaleTrig[HooksDx::currentFrameIndex] = false;
-        HooksDx::currentFrameIndex = (HooksDx::currentFrameIndex + 1) % HooksDx::QUERY_BUFFER_COUNT;
+            HooksDx::dx11UpscaleTrig[HooksDx::currentFrameIndex] = false;
+            HooksDx::currentFrameIndex = (HooksDx::currentFrameIndex + 1) % HooksDx::QUERY_BUFFER_COUNT;
+        }
     }
 
     // Fallback when FGPresent is not hooked for V-sync
@@ -887,23 +890,26 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         return presentResult;
     }
 
-    // Tick feature to let it know if it's frozen
-    if (auto currentFeature = State::Instance().currentFeature; currentFeature != nullptr)
-        currentFeature->TickFrozenCheck();
-
-    // Draw overlay
-    MenuOverlayDx::Present(pSwapChain, SyncInterval, Flags, pPresentParameters, pDevice, hWnd, isUWP);
-
-    if (State::Instance().activeFgOutput == FGOutput::FSRFG)
+    if (willPresent)
     {
-        fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
-    }
-    else if (State::Instance().activeFgOutput == FGOutput::XeFG)
-    {
-        fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
-    }
+        // Tick feature to let it know if it's frozen
+        if (auto currentFeature = State::Instance().currentFeature; currentFeature != nullptr)
+            currentFeature->TickFrozenCheck();
 
-    _frameCounter++;
+        // Draw overlay
+        MenuOverlayDx::Present(pSwapChain, SyncInterval, Flags, pPresentParameters, pDevice, hWnd, isUWP);
+
+        if (State::Instance().activeFgOutput == FGOutput::FSRFG)
+        {
+            fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
+        }
+        else if (State::Instance().activeFgOutput == FGOutput::XeFG)
+        {
+            fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
+        }
+
+        _frameCounter++;
+    }
 
     // swapchain present
     if (pPresentParameters == nullptr)
