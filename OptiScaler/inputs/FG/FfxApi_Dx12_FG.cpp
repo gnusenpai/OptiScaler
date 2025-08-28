@@ -482,7 +482,7 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                                 "FFX_FRAMEGENERATION_UI_COMPOSITION_FLAG_ENABLE_INTERNAL_UI_DOUBLE_BUFFERING is set!");
 
                             // Not sure which cmdList to use
-                            validity = FG_ResourceValidity::ValidNow;
+                            // validity = FG_ResourceValidity::ValidNow;
                         }
 
                         Dx12Resource ui {};
@@ -818,21 +818,32 @@ void ffxPresentCallback()
     if (fg != nullptr && fg->IsActive() && !fg->IsPaused())
     {
         auto fIndex = fg->GetIndex();
-        auto cmdList = fg->GetUICommandList(fIndex);
-
-        cdfgp.commandList = cmdList;
 
         IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
         auto scIndex = sc->GetCurrentBackBufferIndex();
 
         ID3D12Resource* currentBuffer = nullptr;
-        sc->GetBuffer(scIndex, IID_PPV_ARGS(&currentBuffer));
+        auto hr = sc->GetBuffer(scIndex, IID_PPV_ARGS(&currentBuffer));
+        if (hr != S_OK)
+        {
+            LOG_ERROR("sc->GetBuffer error: {:X}", (UINT) hr);
+            return;
+        }
+
         currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
+        if (currentBuffer == nullptr)
+        {
+            LOG_ERROR("currentBuffer is nullptr!");
+            return;
+        }
 
         if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &_hudless[fIndex]))
-        {
             _hudless[fIndex]->SetName(std::format(L"_hudless[{}]", fIndex).c_str());
-        }
+        else
+            return;
+
+        auto cmdList = fg->GetUICommandList(fIndex);
+        cdfgp.commandList = cmdList;
 
         ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_SOURCE);
         ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -866,7 +877,7 @@ void ffxPresentCallback()
             }
         }
 
-        auto hr = cmdList->Close();
+        hr = cmdList->Close();
         if (hr == S_OK)
         {
             ID3D12CommandList* cmdLists[1] = { cmdList };

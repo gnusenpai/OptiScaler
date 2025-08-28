@@ -457,6 +457,9 @@ ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationC
 
     LOG_DEBUG("context: {:X}", (size_t) *context);
 
+    if (*context == (void*) scContext || *context == (void*) fcContext)
+        return ffxDestroyContext_Dx12FG(context, memCb);
+
     bool upscalerContext = false;
     if (_contexts.contains(*context))
     {
