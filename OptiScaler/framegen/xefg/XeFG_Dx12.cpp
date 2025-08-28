@@ -37,55 +37,65 @@ bool XeFG_Dx12::CreateSwapchainContext(ID3D12Device* device)
         return false;
     }
 
+    auto createResult = false;
+
     State::Instance().skipSpoofing = true;
-    auto result = XeFGProxy::D3D12CreateContext()(device, &_swapChainContext);
-    State::Instance().skipSpoofing = false;
 
-    if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+    do
     {
-        LOG_ERROR("D3D12CreateContext error: {} ({})", magic_enum::enum_name(result), (UINT) result);
-        return false;
-    }
-
-    LOG_INFO("XeFG context created");
-    result = XeFGProxy::SetLoggingCallback()(_swapChainContext, XEFG_SWAPCHAIN_LOGGING_LEVEL_DEBUG, xefgLogCallback,
-                                             nullptr);
-
-    if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
-    {
-        LOG_ERROR("SetLoggingCallback error: {} ({})", magic_enum::enum_name(result), (UINT) result);
-    }
-
-    if (XeLLProxy::Context() == nullptr)
-        XeLLProxy::CreateContext(device);
-
-    if (XeLLProxy::Context() != nullptr)
-    {
-        xell_sleep_params_t sleepParams = {};
-        sleepParams.bLowLatencyMode = true;
-        sleepParams.bLowLatencyBoost = false;
-        sleepParams.minimumIntervalUs = 0;
-
-        auto xellResult = XeLLProxy::SetSleepMode()(XeLLProxy::Context(), &sleepParams);
-        if (xellResult != XELL_RESULT_SUCCESS)
-        {
-            LOG_ERROR("SetSleepMode error: {} ({})", magic_enum::enum_name(xellResult), (UINT) xellResult);
-            return false;
-        }
-
-        auto fnaResult = fakenvapi::setModeAndContext(XeLLProxy::Context(), Mode::XeLL);
-        LOG_DEBUG("fakenvapi::setModeAndContext: {}", fnaResult);
-
-        result = XeFGProxy::SetLatencyReduction()(_swapChainContext, XeLLProxy::Context());
+        auto result = XeFGProxy::D3D12CreateContext()(device, &_swapChainContext);
 
         if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
         {
-            LOG_ERROR("SetLatencyReduction error: {} ({})", magic_enum::enum_name(result), (UINT) result);
-            return false;
+            LOG_ERROR("D3D12CreateContext error: {} ({})", magic_enum::enum_name(result), (UINT) result);
+            return result;
         }
-    };
 
-    return true;
+        LOG_INFO("XeFG context created");
+        result = XeFGProxy::SetLoggingCallback()(_swapChainContext, XEFG_SWAPCHAIN_LOGGING_LEVEL_DEBUG, xefgLogCallback,
+                                                 nullptr);
+
+        if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+        {
+            LOG_ERROR("SetLoggingCallback error: {} ({})", magic_enum::enum_name(result), (UINT) result);
+        }
+
+        if (XeLLProxy::Context() == nullptr)
+            XeLLProxy::CreateContext(device);
+
+        if (XeLLProxy::Context() != nullptr)
+        {
+            xell_sleep_params_t sleepParams = {};
+            sleepParams.bLowLatencyMode = true;
+            sleepParams.bLowLatencyBoost = false;
+            sleepParams.minimumIntervalUs = 0;
+
+            auto xellResult = XeLLProxy::SetSleepMode()(XeLLProxy::Context(), &sleepParams);
+            if (xellResult != XELL_RESULT_SUCCESS)
+            {
+                LOG_ERROR("SetSleepMode error: {} ({})", magic_enum::enum_name(xellResult), (UINT) xellResult);
+                return result;
+            }
+
+            auto fnaResult = fakenvapi::setModeAndContext(XeLLProxy::Context(), Mode::XeLL);
+            LOG_DEBUG("fakenvapi::setModeAndContext: {}", fnaResult);
+
+            result = XeFGProxy::SetLatencyReduction()(_swapChainContext, XeLLProxy::Context());
+
+            if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+            {
+                LOG_ERROR("SetLatencyReduction error: {} ({})", magic_enum::enum_name(result), (UINT) result);
+                return result;
+            }
+        };
+
+        createResult = true;
+
+    } while (false);
+
+    State::Instance().skipSpoofing = false;
+
+    return createResult;
 }
 
 const char* XeFG_Dx12::Name() { return "XeFG"; }
@@ -248,8 +258,12 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
     if (Config::Instance()->FGXeFGHighResMV.value_or_default())
         _constants.flags |= FG_Flags::DisplayResolutionMVs;
 
+    State::Instance().skipSpoofing = true;
+
     auto result = XeFGProxy::D3D12InitFromSwapChainDesc()(_swapChainContext, hwnd, &scDesc, &fsDesc, realQueue,
                                                           factory12, &params);
+
+    State::Instance().skipSpoofing = false;
 
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
     {
@@ -334,8 +348,12 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     if (Config::Instance()->FGXeFGHighResMV.value_or_default())
         _constants.flags |= FG_Flags::DisplayResolutionMVs;
 
+    State::Instance().skipSpoofing = true;
+
     auto result = XeFGProxy::D3D12InitFromSwapChainDesc()(_swapChainContext, hwnd, desc, pFullscreenDesc, realQueue,
                                                           factory12, &params);
+
+    State::Instance().skipSpoofing = false;
 
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
     {
