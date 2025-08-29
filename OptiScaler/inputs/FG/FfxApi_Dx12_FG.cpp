@@ -325,6 +325,25 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
             return FFX_API_RETURN_OK;
         }
 
+        fg->SetInterpolationRect(cDesc->generationRect.width, cDesc->generationRect.height);
+        fg->SetInterpolationPos(cDesc->generationRect.left, cDesc->generationRect.top);
+
+        UINT width = cDesc->generationRect.width;
+        UINT height = cDesc->generationRect.height;
+        UINT left = cDesc->generationRect.left;
+        UINT top = cDesc->generationRect.top;
+
+        if (width == 0)
+        {
+            DXGI_SWAP_CHAIN_DESC scDesc {};
+            State::Instance().currentFGSwapchain->GetDesc(&scDesc);
+
+            width = scDesc.BufferDesc.Width;
+            height = scDesc.BufferDesc.Height;
+            top = 0;
+            left = 0;
+        }
+
         ffxConfigureDescHeader* next = nullptr;
         next = desc;
         while (next->pNext != nullptr)
@@ -340,14 +359,14 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                 {
                     Dx12Resource dfr {};
                     dfr.cmdList = nullptr; // Not sure about this
-                    dfr.height = cDesc->generationRect.height;
+                    dfr.height = height;
                     dfr.resource = (ID3D12Resource*) crDesc->distortionField.resource;
                     dfr.state = GetD3D12State((FfxApiResourceState) crDesc->distortionField.state);
                     dfr.type = FG_ResourceType::Distortion;
                     dfr.validity = FG_ResourceValidity::UntilPresent; // Not sure about this
-                    dfr.width = cDesc->generationRect.width;
-                    dfr.left = cDesc->generationRect.left;
-                    dfr.top = cDesc->generationRect.top;
+                    dfr.width = width;
+                    dfr.left = left;
+                    dfr.top = top;
 
                     fg->SetResource(&dfr);
                 }
@@ -371,14 +390,14 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
 
                     Dx12Resource ui {};
                     ui.cmdList = nullptr; // Not sure about this
-                    ui.height = cDesc->generationRect.height;
+                    ui.height = height;
                     ui.resource = (ID3D12Resource*) crDesc->uiResource.resource;
                     ui.state = GetD3D12State((FfxApiResourceState) crDesc->uiResource.state);
                     ui.type = FG_ResourceType::UIColor;
                     ui.validity = validity; // Not sure about this
-                    ui.width = cDesc->generationRect.width;
-                    ui.left = cDesc->generationRect.left;
-                    ui.top = cDesc->generationRect.top;
+                    ui.width = width;
+                    ui.left = left;
+                    ui.top = top;
 
                     fg->SetResource(&ui);
                 }
@@ -389,20 +408,17 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
         {
             Dx12Resource hudless {};
             hudless.cmdList = nullptr; // Not sure about this
-            hudless.height = cDesc->generationRect.height;
+            hudless.height = height;
             hudless.resource = (ID3D12Resource*) cDesc->HUDLessColor.resource;
             hudless.state = GetD3D12State((FfxApiResourceState) cDesc->HUDLessColor.state);
             hudless.type = FG_ResourceType::HudlessColor;
             hudless.validity = FG_ResourceValidity::UntilPresent; // Not sure about this
-            hudless.width = cDesc->generationRect.width;
-            hudless.left = cDesc->generationRect.left;
-            hudless.top = cDesc->generationRect.top;
+            hudless.width = width;
+            hudless.left = left;
+            hudless.top = top;
 
             fg->SetResource(&hudless);
         }
-
-        fg->SetInterpolationRect(cDesc->generationRect.width, cDesc->generationRect.height);
-        fg->SetInterpolationPos(cDesc->generationRect.left, cDesc->generationRect.top);
 
         if (cDesc->frameGenerationCallback != nullptr && cDesc->frameGenerationEnabled)
         {
@@ -458,6 +474,17 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
 
             fg->GetInterpolationRect(width, height);
             fg->GetInterpolationPos(left, top);
+
+            if (width == 0)
+            {
+                DXGI_SWAP_CHAIN_DESC scDesc {};
+                State::Instance().currentFGSwapchain->GetDesc(&scDesc);
+
+                width = scDesc.BufferDesc.Width;
+                height = scDesc.BufferDesc.Height;
+                top = 0;
+                left = 0;
+            }
 
             // Check for FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_REGISTERUIRESOURCE_DX12
             ffxConfigureDescHeader* next = nullptr;
@@ -531,6 +558,17 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
 
             fg->GetInterpolationRect(width, height);
             fg->GetInterpolationPos(left, top);
+
+            if (width == 0)
+            {
+                DXGI_SWAP_CHAIN_DESC scDesc {};
+                State::Instance().currentFGSwapchain->GetDesc(&scDesc);
+
+                width = scDesc.BufferDesc.Width;
+                height = scDesc.BufferDesc.Height;
+                top = 0;
+                left = 0;
+            }
 
             // Check for FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION_REGISTERDISTORTIONRESOURCE
             ffxConfigureDescHeader* next = nullptr;
@@ -677,14 +715,32 @@ ffxReturnCode_t ffxDispatch_Dx12FG(ffxContext* context, ffxDispatchDescHeader* d
 
             if (cdDesc->presentColor.resource != nullptr && fg->GetResource(FG_ResourceType::HudlessColor) == nullptr)
             {
+                UINT width = cdDesc->generationRect.width;
+                UINT height = cdDesc->generationRect.height;
+                UINT left = cdDesc->generationRect.left;
+                UINT top = cdDesc->generationRect.top;
+
+                if (width == 0)
+                {
+                    DXGI_SWAP_CHAIN_DESC scDesc {};
+                    State::Instance().currentFGSwapchain->GetDesc(&scDesc);
+
+                    width = scDesc.BufferDesc.Width;
+                    height = scDesc.BufferDesc.Height;
+                    top = 0;
+                    left = 0;
+                }
+
                 Dx12Resource hudless {};
                 hudless.cmdList = (ID3D12GraphicsCommandList*) cdDesc->commandList;
-                hudless.height = cdDesc->presentColor.description.height;
+                hudless.height = height;
                 hudless.resource = (ID3D12Resource*) cdDesc->presentColor.resource;
                 hudless.state = GetD3D12State((FfxApiResourceState) cdDesc->presentColor.state);
                 hudless.type = FG_ResourceType::HudlessColor;
                 hudless.validity = FG_ResourceValidity::UntilPresent;
-                hudless.width = cdDesc->presentColor.description.width;
+                hudless.width = width;
+                hudless.top = top;
+                hudless.left = left;
                 fg->SetResource(&hudless);
             }
         }
