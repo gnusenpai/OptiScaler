@@ -1252,16 +1252,22 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         cq->SetName(L"GameQueue");
         cq->Release();
 
-        // FG Init
         if (State::Instance().currentFG == nullptr)
         {
+            // FG Init
             if (State::Instance().activeFgOutput == FGOutput::FSRFG)
                 State::Instance().currentFG = new FSRFG_Dx12();
             else if (State::Instance().activeFgOutput == FGOutput::XeFG)
                 State::Instance().currentFG = new XeFG_Dx12();
         }
+        else
+        {
+            // FG Re-Init
+            if (State::Instance().currentFG->Hwnd() != pDesc->OutputWindow)
+                State::Instance().currentFG->ReleaseSwapchain(State::Instance().currentFG->Hwnd());
+        }
 
-        HooksDx::ReleaseDx12SwapChain(pDesc->OutputWindow);
+        // HooksDx::ReleaseDx12SwapChain(pDesc->OutputWindow);
 
         auto fg = State::Instance().currentFG;
 
@@ -1614,16 +1620,22 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         cq->SetName(L"GameQueue");
         cq->Release();
 
-        // FG Init
         if (State::Instance().currentFG == nullptr)
         {
+            // FG Init
             if (State::Instance().activeFgOutput == FGOutput::FSRFG)
                 State::Instance().currentFG = new FSRFG_Dx12();
             else if (State::Instance().activeFgOutput == FGOutput::XeFG)
                 State::Instance().currentFG = new XeFG_Dx12();
         }
+        else
+        {
+            // FG Re-Init
+            if (State::Instance().currentFG->Hwnd() != hWnd)
+                State::Instance().currentFG->ReleaseSwapchain(State::Instance().currentFG->Hwnd());
+        }
 
-        HooksDx::ReleaseDx12SwapChain(hWnd);
+        // HooksDx::ReleaseDx12SwapChain(pDesc->OutputWindow);
 
         auto fg = State::Instance().currentFG;
 
@@ -3117,7 +3129,7 @@ void HooksDx::ReleaseDx12SwapChain(HWND hwnd)
 {
     State::Instance().currentSwapchain = nullptr;
 
-    IFGFeature_Dx12* fg = State::Instance().currentFG;
+    auto fg = State::Instance().currentFG;
     if (fg == nullptr)
         return;
 
