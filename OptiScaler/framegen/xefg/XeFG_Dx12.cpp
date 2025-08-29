@@ -111,6 +111,8 @@ feature_version XeFG_Dx12::Version()
     return { 0, 0, 0 };
 }
 
+HWND XeFG_Dx12::Hwnd() { return _hwnd; }
+
 bool XeFG_Dx12::DestroySwapchainContext()
 {
     LOG_DEBUG("");

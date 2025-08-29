@@ -65,6 +65,7 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
     // IFGFeature
     const char* Name() override final;
     feature_version Version() override final;
+    HWND Hwnd() override final;
 
     void* FrameGenerationContext() override final;
     void* SwapchainContext() override final;

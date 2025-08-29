@@ -61,6 +61,8 @@ feature_version FSRFG_Dx12::Version()
     return { 0, 0, 0 };
 }
 
+HWND FSRFG_Dx12::Hwnd() { return _hwnd; }
+
 const char* FSRFG_Dx12::Name() { return "FSR-FG"; }
 
 bool FSRFG_Dx12::Dispatch()

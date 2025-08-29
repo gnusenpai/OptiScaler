@@ -76,6 +76,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
   public:
     virtual void* FrameGenerationContext() = 0;
     virtual void* SwapchainContext() = 0;
+    virtual HWND Hwnd() = 0;
 
     virtual bool CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, DXGI_SWAP_CHAIN_DESC* desc,
                                  IDXGISwapChain** swapChain) = 0;
