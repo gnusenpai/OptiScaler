@@ -174,6 +174,14 @@ ffxReturnCode_t ffxCreateContext_Dx12FG(ffxContext* context, ffxCreateContextDes
             if ((ccDesc->flags & FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE) > 0)
                 _fgConst.flags |= FG_Flags::Hdr;
 
+            Config::Instance()->FGXeFGDepthInverted = _fgConst.flags[FG_Flags::InvertedDepth];
+            Config::Instance()->FGXeFGJitteredMV = _fgConst.flags[FG_Flags::JitteredMVs];
+            Config::Instance()->FGXeFGHighResMV = _fgConst.flags[FG_Flags::DisplayResolutionMVs];
+            LOG_DEBUG("XeFG DepthInverted: {}", Config::Instance()->FGXeFGDepthInverted.value_or_default());
+            LOG_DEBUG("XeFG JitteredMV: {}", Config::Instance()->FGXeFGJitteredMV.value_or_default());
+            LOG_DEBUG("XeFG HighResMV: {}", Config::Instance()->FGXeFGHighResMV.value_or_default());
+            Config::Instance()->SaveXeFG();
+
             *context = (ffxContext) fcContext;
             return FFX_API_RETURN_OK;
         }
