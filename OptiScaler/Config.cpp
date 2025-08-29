@@ -581,6 +581,7 @@ bool Config::Reload(std::filesystem::path iniPath)
         {
             ForceHDR.set_from_config(readBool("HDR", "ForceHDR"));
             UseHDR10.set_from_config(readBool("HDR", "UseHDR10"));
+            SkipColorSpace.set_from_config(readBool("HDR", "SkipColorSpace"));
         }
 
         // V-Sync

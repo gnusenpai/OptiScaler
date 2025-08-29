@@ -451,6 +451,7 @@ class Config
     // HDR
     CustomOptional<bool> ForceHDR { false };
     CustomOptional<bool> UseHDR10 { false };
+    CustomOptional<bool> SkipColorSpace { false };
 
     // V-Sync
     CustomOptional<bool, NoDefault> ForceVsync;

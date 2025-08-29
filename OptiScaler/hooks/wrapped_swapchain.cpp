@@ -369,28 +369,31 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
                 hdrCS = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
             }
 
-            UINT css = 0;
-
-            result = m_pReal3->CheckColorSpaceSupport(hdrCS, &css);
-
-            if (result != S_OK)
+            if (!Config::Instance()->SkipColorSpace.value_or_default())
             {
-                LOG_ERROR("CheckColorSpaceSupport error: {:X}", (UINT) result);
-                break;
-            }
+                UINT css = 0;
 
-            if (DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT & css)
-            {
-                result = m_pReal3->SetColorSpace1(hdrCS);
+                result = m_pReal3->CheckColorSpaceSupport(hdrCS, &css);
 
                 if (result != S_OK)
                 {
-                    LOG_ERROR("SetColorSpace1 error: {:X}", (UINT) result);
+                    LOG_ERROR("CheckColorSpaceSupport error: {:X}", (UINT) result);
                     break;
                 }
-            }
 
-            LOG_INFO("HDR format and color space are set");
+                if (DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT & css)
+                {
+                    result = m_pReal3->SetColorSpace1(hdrCS);
+
+                    if (result != S_OK)
+                    {
+                        LOG_ERROR("SetColorSpace1 error: {:X}", (UINT) result);
+                        break;
+                    }
+                }
+
+                LOG_INFO("HDR format and color space are set");
+            }
 
         } while (false);
     }
@@ -658,28 +661,31 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
                 hdrCS = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
             }
 
-            UINT css = 0;
-
-            auto result = m_pReal3->CheckColorSpaceSupport(hdrCS, &css);
-
-            if (result != S_OK)
+            if (!Config::Instance()->SkipColorSpace.value_or_default())
             {
-                LOG_ERROR("CheckColorSpaceSupport error: {:X}", (UINT) result);
-                break;
-            }
+                UINT css = 0;
 
-            if (DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT & css)
-            {
-                result = m_pReal3->SetColorSpace1(hdrCS);
+                auto result = m_pReal3->CheckColorSpaceSupport(hdrCS, &css);
 
                 if (result != S_OK)
                 {
-                    LOG_ERROR("SetColorSpace1 error: {:X}", (UINT) result);
+                    LOG_ERROR("CheckColorSpaceSupport error: {:X}", (UINT) result);
                     break;
                 }
-            }
 
-            LOG_INFO("HDR format and color space are set");
+                if (DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT & css)
+                {
+                    result = m_pReal3->SetColorSpace1(hdrCS);
+
+                    if (result != S_OK)
+                    {
+                        LOG_ERROR("SetColorSpace1 error: {:X}", (UINT) result);
+                        break;
+                    }
+                }
+
+                LOG_INFO("HDR format and color space are set");
+            }
 
         } while (false);
     }
