@@ -383,11 +383,11 @@ void XeFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
     LOG_DEBUG("");
 
     _device = device;
+    CreateObjects(device);
 
     if (_fgContext == nullptr && _swapChainContext != nullptr)
     {
         _fgContext = _swapChainContext;
-        CreateObjects(device);
     }
 }
 
@@ -602,6 +602,8 @@ void* XeFG_Dx12::FrameGenerationContext() { return _fgContext; }
 
 void* XeFG_Dx12::SwapchainContext() { return _swapChainContext; }
 
+XeFG_Dx12::~XeFG_Dx12() { Shutdown(); }
+
 void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 {
     LOG_FUNC();
@@ -626,7 +628,6 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
         if (_fgContext == nullptr)
         {
             // Create it again
-            CreateObjects(device);
             CreateContext(device, fgConstants);
 
             // Pause for 10 frames
@@ -912,10 +913,10 @@ bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
     if (_fgContext != nullptr)
         DestroyFGContext();
 
-    if (_swapChainContext != nullptr)
-        DestroySwapchainContext();
+    // if (_swapChainContext != nullptr)
+    //     DestroySwapchainContext();
 
-    ReleaseObjects();
+    // ReleaseObjects();
 
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
     {

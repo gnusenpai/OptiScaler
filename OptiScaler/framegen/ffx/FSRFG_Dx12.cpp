@@ -378,6 +378,8 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
     return dispatchResult;
 }
 
+FSRFG_Dx12::~FSRFG_Dx12() { Shutdown(); }
+
 void* FSRFG_Dx12::FrameGenerationContext()
 {
     LOG_DEBUG("");
@@ -417,9 +419,6 @@ void FSRFG_Dx12::DestroyFGContext()
 bool FSRFG_Dx12::Shutdown()
 {
     Deactivate();
-
-    if (_fgContext != nullptr)
-        DestroyFGContext();
 
     if (_swapChainContext != nullptr)
         ReleaseSwapchain(_hwnd);
@@ -529,8 +528,6 @@ bool FSRFG_Dx12::ReleaseSwapchain(HWND hwnd)
         _swapChainContext = nullptr;
     }
 
-    ReleaseObjects();
-
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
     {
         LOG_TRACE("Releasing Mutex: {}", Mutex.getOwner());
@@ -543,6 +540,8 @@ bool FSRFG_Dx12::ReleaseSwapchain(HWND hwnd)
 void FSRFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
 {
     LOG_DEBUG("");
+
+    CreateObjects(device);
 
     _constants = fgConstants;
 
@@ -738,7 +737,6 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
         if (_fgContext == nullptr)
         {
             // Create it again
-            CreateObjects(device);
             CreateContext(device, fgConstants);
 
             // Pause for 10 frames

@@ -97,4 +97,6 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
     {
         //
     }
+
+    ~FSRFG_Dx12();
 };

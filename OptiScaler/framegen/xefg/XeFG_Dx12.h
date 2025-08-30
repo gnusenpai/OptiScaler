@@ -72,4 +72,6 @@ class XeFG_Dx12 : public virtual IFGFeature_Dx12
         if (XeFGProxy::Module() == nullptr)
             XeFGProxy::InitXeFG();
     }
+
+    ~XeFG_Dx12();
 };
