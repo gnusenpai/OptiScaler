@@ -8,6 +8,50 @@
 #include <sl_dlss_g.h>
 #include <sl_pcl.h>
 #include <sl_reflex.h>
+#include "include/sl.param/parameters.h"
+
+struct Adapter
+{
+    LUID id {};
+    VendorId::Value vendor {};
+    uint32_t bit; // in the adapter bit-mask
+    uint32_t architecture {};
+    uint32_t implementation {};
+    uint32_t revision {};
+    uint32_t deviceId {};
+    void* nativeInterface {};
+};
+
+constexpr uint32_t kMaxNumSupportedGPUs = 8;
+
+struct SystemCaps
+{
+    uint32_t gpuCount {};
+    uint32_t osVersionMajor {};
+    uint32_t osVersionMinor {};
+    uint32_t osVersionBuild {};
+    uint32_t driverVersionMajor {};
+    uint32_t driverVersionMinor {};
+    Adapter adapters[kMaxNumSupportedGPUs] {};
+    uint32_t gpuLoad[kMaxNumSupportedGPUs] {}; // percentage
+    bool hwsSupported {};                      // OS wide setting, not per adapter
+    bool laptopDevice {};
+};
+
+struct SystemCapsSl15
+{
+    uint32_t gpuCount {};
+    uint32_t osVersionMajor {};
+    uint32_t osVersionMinor {};
+    uint32_t osVersionBuild {};
+    uint32_t driverVersionMajor {};
+    uint32_t driverVersionMinor {};
+    uint32_t architecture[kMaxNumSupportedGPUs] {};
+    uint32_t implementation[kMaxNumSupportedGPUs] {};
+    uint32_t revision[kMaxNumSupportedGPUs] {};
+    uint32_t gpuLoad[kMaxNumSupportedGPUs] {}; // percentage
+    bool hwSchedulingEnabled {};
+};
 
 class StreamlineHooks
 {
@@ -42,6 +86,14 @@ class StreamlineHooks
   private:
     static sl::RenderAPI renderApi;
     static std::mutex setConstantsMutex;
+
+    // System caps
+    static SystemCaps* systemCaps;
+    static SystemCapsSl15* systemCapsSl15;
+    static void hookSystemCaps(sl::param::IParameters* params);
+    static uint32_t getSystemCapsArch();
+    static void setArch(uint32_t arch);
+    static void spoofArch(uint32_t currentArch, sl::Feature feature);
 
     // Interposer
     static decltype(&slInit) o_slInit;
@@ -112,8 +164,10 @@ class StreamlineHooks
 
     // PCL
     static PFN_slGetPluginFunction o_pcl_slGetPluginFunction;
+    static PFN_slOnPluginLoad o_pcl_slOnPluginLoad;
     static decltype(&slPCLSetMarker) o_slPCLSetMarker;
 
+    static bool hkpcl_slOnPluginLoad(void* params, const char* loaderJSON, const char** pluginJSON);
     static void* hkpcl_slGetPluginFunction(const char* functionName);
     static sl::Result hkslPCLSetMarker(sl::PCLMarker marker, const sl::FrameToken& frame);
 

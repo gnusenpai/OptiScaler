@@ -10,11 +10,12 @@
 #include <nvapi/ReflexHooks.h>
 #include <magic_enum.hpp>
 #include <sl1_reflex.h>
-#include "include/sl.param/parameters.h"
 #include <nvapi/fakenvapi.h>
 
 sl::RenderAPI StreamlineHooks::renderApi = sl::RenderAPI::eCount;
 std::mutex StreamlineHooks::setConstantsMutex {};
+SystemCaps* StreamlineHooks::systemCaps = nullptr;
+SystemCapsSl15* StreamlineHooks::systemCapsSl15 = nullptr;
 
 // interposer
 decltype(&slInit) StreamlineHooks::o_slInit = nullptr;
@@ -50,6 +51,7 @@ sl::ReflexMode StreamlineHooks::reflexGamesLastMode = sl::ReflexMode::eOff;
 
 // PCL
 StreamlineHooks::PFN_slGetPluginFunction StreamlineHooks::o_pcl_slGetPluginFunction = nullptr;
+StreamlineHooks::PFN_slOnPluginLoad StreamlineHooks::o_pcl_slOnPluginLoad = nullptr;
 decltype(&slPCLSetMarker) StreamlineHooks::o_slPCLSetMarker = nullptr;
 
 // Common
@@ -271,143 +273,123 @@ bool StreamlineHooks::hkslInit_sl1(sl1::Preferences* pref, int applicationId)
     return o_slInit_sl1(*pref, applicationId);
 }
 
-struct Adapter
-{
-    LUID id {};
-    VendorId::Value vendor {};
-    uint32_t bit; // in the adapter bit-mask
-    uint32_t architecture {};
-    uint32_t implementation {};
-    uint32_t revision {};
-    uint32_t deviceId {};
-    void* nativeInterface {};
-};
-
-constexpr uint32_t kMaxNumSupportedGPUs = 8;
-
-struct SystemCaps
-{
-    uint32_t gpuCount {};
-    uint32_t osVersionMajor {};
-    uint32_t osVersionMinor {};
-    uint32_t osVersionBuild {};
-    uint32_t driverVersionMajor {};
-    uint32_t driverVersionMinor {};
-    Adapter adapters[kMaxNumSupportedGPUs] {};
-    uint32_t gpuLoad[kMaxNumSupportedGPUs] {}; // percentage
-    bool hwsSupported {};                      // OS wide setting, not per adapter
-    bool laptopDevice {};
-};
-
-struct SystemCapsSl15
-{
-    uint32_t gpuCount {};
-    uint32_t osVersionMajor {};
-    uint32_t osVersionMinor {};
-    uint32_t osVersionBuild {};
-    uint32_t driverVersionMajor {};
-    uint32_t driverVersionMinor {};
-    uint32_t architecture[kMaxNumSupportedGPUs] {};
-    uint32_t implementation[kMaxNumSupportedGPUs] {};
-    uint32_t revision[kMaxNumSupportedGPUs] {};
-    uint32_t gpuLoad[kMaxNumSupportedGPUs] {}; // percentage
-    bool hwSchedulingEnabled {};
-};
-
-void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch, sl::Feature feature)
+void StreamlineHooks::hookSystemCaps(sl::param::IParameters* params)
 {
     if (State::Instance().streamlineVersion.major > 1)
     {
-        SystemCaps* caps = {};
-        sl::param::getPointerParam(params, sl::param::common::kSystemCaps, &caps);
-
-        if (caps)
-        {
-            for (auto& adapter : caps->adapters)
-            {
-                LOG_TRACE("vendor: {}, feature: {}, original arch: {:X}", (uint32_t) adapter.vendor, feature,
-                          adapter.architecture);
-                if (adapter.vendor == VendorId::Nvidia && !fakenvapi::isUsingFakenvapi())
-                {
-                    // Don't change arch for DLSS with turing and above
-                    if (feature == sl::kFeatureDLSS)
-                    {
-                        if (adapter.architecture < NV_GPU_ARCHITECTURE_TU100)
-                            adapter.architecture = arch;
-                        break;
-                    }
-
-                    // Don't change arch for DLSSD with turing and above
-                    else if (feature == sl::kFeatureDLSS_RR)
-                    {
-                        if (adapter.architecture < NV_GPU_ARCHITECTURE_TU100)
-                            adapter.architecture = arch;
-                        break;
-                    }
-
-                    // Don't change arch for DLSSG with turing and above
-                    else if (feature == sl::kFeatureDLSS_G)
-                    {
-                        if (adapter.architecture < NV_GPU_ARCHITECTURE_AD100)
-                            adapter.architecture = arch;
-                        break;
-                    }
-                }
-                else if ((uint32_t) adapter.vendor != 0)
-                {
-                    adapter.vendor = VendorId::Nvidia;
-                    adapter.architecture = arch;
-                }
-            }
-
-            caps->driverVersionMajor = 999;
-            caps->hwsSupported = true;
-        }
+        if (!systemCaps)
+            sl::param::getPointerParam(params, sl::param::common::kSystemCaps, &systemCaps);
     }
     else if (State::Instance().streamlineVersion.major == 1)
     {
         // This should be Streamline 1.5 as previous versions don't even have slOnPluginLoad
-
-        LOG_TRACE("Attempting to change system caps for Streamline v1, this could fail depending on the exact version");
-        SystemCapsSl15* caps = {};
-        sl::param::getPointerParam(params, sl::param::common::kSystemCaps, &caps);
-
-        if (caps)
+        if (!systemCapsSl15)
         {
-            if (!fakenvapi::isUsingFakenvapi() && State::Instance().isRunningOnNvidia)
-            {
-                // Don't change arch for DLSS with turing and above
-                if (feature == sl::kFeatureDLSS)
-                {
-                    if (caps->architecture[0] < NV_GPU_ARCHITECTURE_TU100)
-                        caps->architecture[0] = arch;
-                }
-
-                // Don't change arch for DLSSD with turing and above
-                else if (feature == sl::kFeatureDLSS_RR)
-                {
-                    if (caps->architecture[0] < NV_GPU_ARCHITECTURE_TU100)
-                        caps->architecture[0] = arch;
-                }
-
-                // Don't change arch for DLSSG with turing and above
-                else if (feature == sl::kFeatureDLSS_G)
-                {
-                    if (caps->architecture[0] < NV_GPU_ARCHITECTURE_AD100)
-                        caps->architecture[0] = arch;
-                }
-            }
-            else
-            {
-                caps->architecture[0] = arch;
-                caps->driverVersionMajor = 999;
-            }
-
-            // This will write outside the struct if SystemCaps is smaller than expected
-            // Witcher 3 (sl 1.5) uses this layout
-            // Layout from Streamline 1.3 is somehow bigger than this so it should be fine
-            caps->hwSchedulingEnabled = true;
+            LOG_TRACE(
+                "Attempting to get system caps for Streamline v1, this could fail depending on the exact version");
+            sl::param::getPointerParam(params, sl::param::common::kSystemCaps, &systemCapsSl15);
         }
+    }
+}
+
+uint32_t StreamlineHooks::getSystemCapsArch()
+{
+    uint32_t highestArch = 0;
+
+    if (!fakenvapi::isUsingFakenvapi() && State::Instance().isRunningOnNvidia)
+    {
+        if (State::Instance().streamlineVersion.major > 1)
+        {
+            if (systemCaps)
+            {
+                for (auto& adapter : systemCaps->adapters)
+                {
+                    if (adapter.architecture > highestArch)
+                        highestArch = adapter.architecture;
+                }
+            }
+        }
+        else if (State::Instance().streamlineVersion.major == 1)
+        {
+            if (systemCapsSl15)
+            {
+                for (uint32_t i = 0; i < systemCapsSl15->gpuCount; i++)
+                {
+                    if (systemCapsSl15->architecture[i] > highestArch)
+                        highestArch = systemCapsSl15->architecture[i];
+                }
+            }
+        }
+    }
+
+    // By default spoof Pascal, gets Reflex but not DLSSD
+    // Could be problematic if not using fakenvapi but nvapi might not be initialized yet
+    if (highestArch == 0)
+        highestArch = NV_GPU_ARCHITECTURE_GP100;
+
+    return highestArch;
+}
+
+void StreamlineHooks::setArch(uint32_t arch)
+{
+    if (State::Instance().streamlineVersion.major > 1)
+    {
+        if (systemCaps)
+        {
+            for (uint32_t i = 0; i < systemCaps->gpuCount; i++)
+            {
+                systemCaps->adapters[i].architecture = arch;
+                systemCaps->adapters[i].vendor = VendorId::Nvidia;
+            }
+
+            if (fakenvapi::isUsingFakenvapi() || !State::Instance().isRunningOnNvidia)
+                systemCaps->driverVersionMajor = 999;
+
+            systemCaps->hwsSupported = true;
+        }
+    }
+    else if (State::Instance().streamlineVersion.major == 1)
+    {
+        if (systemCapsSl15)
+        {
+            for (uint32_t i = 0; i < systemCapsSl15->gpuCount; i++)
+                systemCapsSl15->architecture[i] = arch;
+
+            if (fakenvapi::isUsingFakenvapi() || !State::Instance().isRunningOnNvidia)
+                systemCapsSl15->driverVersionMajor = 999;
+        }
+    }
+}
+
+// Spoof arch based on feature and current arch
+void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature)
+{
+    constexpr uint32_t maxArch = 0xFFFFFFFF;
+
+    // Don't change arch for DLSS/DLSSD with turing and above
+    if (feature == sl::kFeatureDLSS)
+    {
+        if (currentArch < NV_GPU_ARCHITECTURE_TU100)
+            return setArch(maxArch);
+    }
+
+    // Don't spoof DLSSD at all
+    else if (feature == sl::kFeatureDLSS_RR)
+    {
+        return;
+    }
+
+    // Don't change arch for DLSSG with ada and above
+    else if (feature == sl::kFeatureDLSS_G)
+    {
+        if (currentArch < NV_GPU_ARCHITECTURE_AD100)
+            return setArch(maxArch);
+    }
+
+    else if (feature == sl::kFeatureReflex || feature == sl::kFeaturePCL)
+    {
+        if (fakenvapi::isUsingFakenvapi())
+            return setArch(maxArch);
     }
 }
 
@@ -418,10 +400,18 @@ bool StreamlineHooks::hkdlss_slOnPluginLoad(void* params, const char* loaderJSON
     // TODO: do it better than "static" and hoping for the best
     static std::string config;
 
+    uint32_t currentArch = 0;
     if (Config::Instance()->StreamlineSpoofing.value_or_default())
-        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX, sl::kFeatureDLSS);
+    {
+        hookSystemCaps((sl::param::IParameters*) params);
+        currentArch = getSystemCapsArch();
+        spoofArch(currentArch, sl::kFeatureDLSS);
+    }
 
     auto result = o_dlss_slOnPluginLoad(params, loaderJSON, pluginJSON);
+
+    if (Config::Instance()->StreamlineSpoofing.value_or_default())
+        setArch(currentArch);
 
     if (Config::Instance()->VulkanExtensionSpoofing.value_or_default())
     {
@@ -446,17 +436,22 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(void* params, const char* loaderJSO
     // TODO: do it better than "static" and hoping for the best
     static std::string config;
 
-    bool skipArchSpoof =
+    bool shouldSpoofArch =
         Config::Instance()->StreamlineSpoofing.value_or_default() &&
-        !(Config::Instance()->FGInput == FGInput::Nukems || Config::Instance()->FGInput == FGInput::DLSSG);
+        (Config::Instance()->FGInput == FGInput::Nukems || Config::Instance()->FGInput == FGInput::DLSSG);
 
-    if (skipArchSpoof)
-        setSystemCapsArch((sl::param::IParameters*) params, 0, sl::kFeatureDLSS_G);
+    uint32_t currentArch = 0;
+    if (shouldSpoofArch)
+    {
+        hookSystemCaps((sl::param::IParameters*) params);
+        currentArch = getSystemCapsArch();
+        spoofArch(currentArch, sl::kFeatureDLSS);
+    }
 
     auto result = o_dlssg_slOnPluginLoad(params, loaderJSON, pluginJSON);
 
-    if (skipArchSpoof)
-        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX, sl::kFeatureDLSS_G);
+    if (shouldSpoofArch)
+        setArch(currentArch);
 
     nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
 
@@ -515,10 +510,6 @@ bool StreamlineHooks::hkcommon_slOnPluginLoad(void* params, const char* loaderJS
     //    *pluginJSON = config.c_str();
     //}
 
-    // For the common plugin, spoof only architectures older than Turing (or not-Nvidia)
-    if (Config::Instance()->StreamlineSpoofing.value_or_default())
-        setSystemCapsArch((sl::param::IParameters*) params, UINT_MAX, sl::kFeatureDLSS);
-
     return result;
 }
 
@@ -549,7 +540,21 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
 
 bool StreamlineHooks::hkreflex_slOnPluginLoad(void* params, const char* loaderJSON, const char** pluginJSON)
 {
+    LOG_FUNC();
+
+    uint32_t currentArch = 0;
+    if (Config::Instance()->StreamlineSpoofing.value_or_default())
+    {
+        hookSystemCaps((sl::param::IParameters*) params);
+        currentArch = getSystemCapsArch();
+        spoofArch(currentArch, sl::kFeatureReflex);
+    }
+
     auto result = o_reflex_slOnPluginLoad(params, loaderJSON, pluginJSON);
+
+    if (Config::Instance()->StreamlineSpoofing.value_or_default())
+        setArch(currentArch);
+
     return result;
 }
 
@@ -682,14 +687,40 @@ sl::Result StreamlineHooks::hkslPCLSetMarker(sl::PCLMarker marker, const sl::Fra
     return o_slPCLSetMarker(marker, frame);
 }
 
+bool StreamlineHooks::hkpcl_slOnPluginLoad(void* params, const char* loaderJSON, const char** pluginJSON)
+{
+    LOG_FUNC();
+
+    uint32_t currentArch = 0;
+    if (Config::Instance()->StreamlineSpoofing.value_or_default())
+    {
+        hookSystemCaps((sl::param::IParameters*) params);
+        currentArch = getSystemCapsArch();
+        spoofArch(currentArch, sl::kFeaturePCL);
+    }
+
+    auto result = o_pcl_slOnPluginLoad(params, loaderJSON, pluginJSON);
+
+    if (Config::Instance()->StreamlineSpoofing.value_or_default())
+        setArch(currentArch);
+
+    return result;
+}
+
 void* StreamlineHooks::hkpcl_slGetPluginFunction(const char* functionName)
 {
-    LOG_DEBUG("{}", functionName);
+    // LOG_DEBUG("{}", functionName);
 
-    if (strcmp(functionName, "slPCLSetMarker") == 0)
+    if (strcmp(functionName, "slPCLSetMarker") == 0 && State::Instance().gameQuirks & GameQuirk::FixSlSimulationMarkers)
     {
         o_slPCLSetMarker = (decltype(&slPCLSetMarker)) o_pcl_slGetPluginFunction(functionName);
         return &hkslPCLSetMarker;
+    }
+
+    if (strcmp(functionName, "slOnPluginLoad") == 0)
+    {
+        o_pcl_slOnPluginLoad = (PFN_slOnPluginLoad) o_pcl_slGetPluginFunction(functionName);
+        return &hkpcl_slOnPluginLoad;
     }
 
     return o_pcl_slGetPluginFunction(functionName);
@@ -1103,9 +1134,6 @@ void StreamlineHooks::hookPcl(HMODULE slPcl)
         return;
     }
 
-    if (!(State::Instance().gameQuirks & GameQuirk::FixSlSimulationMarkers))
-        return;
-
     if (o_pcl_slGetPluginFunction)
         unhookPcl();
 
@@ -1138,6 +1166,9 @@ void StreamlineHooks::unhookCommon()
         DetourDetach(&(PVOID&) o_common_slGetPluginFunction, hkcommon_slGetPluginFunction);
         o_common_slGetPluginFunction = nullptr;
     }
+
+    systemCaps = nullptr;
+    systemCapsSl15 = nullptr;
 
     DetourTransactionCommit();
 }
