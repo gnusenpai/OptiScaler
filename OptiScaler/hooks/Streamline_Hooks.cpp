@@ -374,7 +374,7 @@ void setSystemCapsArch(sl::param::IParameters* params, uint32_t arch, sl::Featur
 
         if (caps)
         {
-            if (!fakenvapi::isUsingFakenvapi())
+            if (!fakenvapi::isUsingFakenvapi() && State::Instance().isRunningOnNvidia)
             {
                 // Don't change arch for DLSS with turing and above
                 if (feature == sl::kFeatureDLSS)
