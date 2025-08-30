@@ -21,8 +21,36 @@ UINT64 _presentCallbackFrameId = 0;
 std::mutex _newFrameMutex;
 
 ID3D12Resource* _hudless[BUFFER_COUNT] = {};
-ID3D12Resource* _ui[BUFFER_COUNT] = {};
-ID3D12Resource* _final[BUFFER_COUNT] = {};
+Dx12Resource _uiRes[BUFFER_COUNT] = {};
+
+static FfxApiResourceState GetFfxApiState(D3D12_RESOURCE_STATES state)
+{
+    switch (state)
+    {
+    case D3D12_RESOURCE_STATE_COMMON:
+        return FFX_API_RESOURCE_STATE_COMMON;
+    case D3D12_RESOURCE_STATE_UNORDERED_ACCESS:
+        return FFX_API_RESOURCE_STATE_UNORDERED_ACCESS;
+    case D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE:
+        return FFX_API_RESOURCE_STATE_COMPUTE_READ;
+    case D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE:
+        return FFX_API_RESOURCE_STATE_PIXEL_READ;
+    case (D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE):
+        return FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ;
+    case D3D12_RESOURCE_STATE_COPY_SOURCE:
+        return FFX_API_RESOURCE_STATE_COPY_SRC;
+    case D3D12_RESOURCE_STATE_COPY_DEST:
+        return FFX_API_RESOURCE_STATE_COPY_DEST;
+    case D3D12_RESOURCE_STATE_GENERIC_READ:
+        return FFX_API_RESOURCE_STATE_GENERIC_READ;
+    case D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT:
+        return FFX_API_RESOURCE_STATE_INDIRECT_ARGUMENT;
+    case D3D12_RESOURCE_STATE_RENDER_TARGET:
+        return FFX_API_RESOURCE_STATE_RENDER_TARGET;
+    default:
+        return FFX_API_RESOURCE_STATE_COMMON;
+    }
+}
 
 static D3D12_RESOURCE_STATES GetD3D12State(FfxApiResourceState state)
 {
@@ -182,6 +210,8 @@ ffxReturnCode_t ffxCreateContext_Dx12FG(ffxContext* context, ffxCreateContextDes
             LOG_DEBUG("XeFG HighResMV: {}", Config::Instance()->FGXeFGHighResMV.value_or_default());
             Config::Instance()->SaveXeFG();
 
+            State::Instance().currentFG->CreateContext(_device, _fgConst);
+
             *context = (ffxContext) fcContext;
             return FFX_API_RETURN_OK;
         }
@@ -314,10 +344,12 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
             {
                 _currentFrameId = cDesc->frameID;
                 fg->StartNewFrame();
+                _uiRes[fg->GetIndex()] = {};
             }
         }
 
-        LOG_DEBUG("FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION frameID: {} ", cDesc->frameID);
+        LOG_DEBUG("FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION frameID: {}, enabled: {} ", cDesc->frameID,
+                  cDesc->frameGenerationEnabled);
 
         State::Instance().FSRFGInputActive = cDesc->frameGenerationEnabled;
 
@@ -330,7 +362,6 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
         {
             fg->Deactivate();
             fg->ResetCounters();
-            return FFX_API_RETURN_OK;
         }
 
         fg->SetInterpolationRect(cDesc->generationRect.width, cDesc->generationRect.height);
@@ -407,6 +438,8 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                     ui.left = left;
                     ui.top = top;
 
+                    _uiRes[fg->GetIndex()] = ui;
+
                     fg->SetResource(&ui);
                 }
             }
@@ -443,7 +476,7 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                      (size_t) cDesc->frameGenerationCallback, (size_t) cDesc->frameGenerationCallbackUserContext);
         }
 
-        if (cDesc->presentCallback != nullptr && cDesc->frameGenerationEnabled)
+        if (cDesc->presentCallback != nullptr)
         {
             _presentCallback = cDesc->presentCallback;
             _presentCallbackUserContext = cDesc->presentCallbackUserContext;
@@ -530,6 +563,8 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
                         ui.width = width;
                         ui.left = left;
                         ui.top = top;
+
+                        _uiRes[fg->GetIndex()] = ui;
 
                         fg->SetResource(&ui);
                     }
@@ -618,6 +653,8 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
             ui.width = width;
             ui.left = left;
             ui.top = top;
+
+            _uiRes[fg->GetIndex()] = ui;
 
             fg->SetResource(&ui);
         }
@@ -767,92 +804,86 @@ ffxReturnCode_t ffxDispatch_Dx12FG(ffxContext* context, ffxDispatchDescHeader* d
             {
                 _currentFrameId = cdDesc->frameID;
                 fg->StartNewFrame();
+                _uiRes[fg->GetIndex()] = {};
             }
         }
 
         auto device = _device == nullptr ? State::Instance().currentD3D12Device : _device;
         fg->EvaluateState(device, _fgConst);
 
-        if (fg->IsActive() && !fg->IsPaused())
+        //  Camera Data
+        bool cameraDataFound = false;
+        ffxDispatchDescHeader* next = nullptr;
+        next = desc;
+        while (next->pNext != nullptr)
         {
-            // Camera Data
-            bool cameraDataFound = false;
-            ffxDispatchDescHeader* next = nullptr;
-            next = desc;
-            while (next->pNext != nullptr)
+            next = next->pNext;
+
+            if (next->type == FFX_API_DISPATCH_DESC_TYPE_FRAMEGENERATION_PREPARE_CAMERAINFO)
             {
-                next = next->pNext;
+                auto cameraDesc = (ffxDispatchDescFrameGenerationPrepareCameraInfo*) next;
 
-                if (next->type == FFX_API_DISPATCH_DESC_TYPE_FRAMEGENERATION_PREPARE_CAMERAINFO)
-                {
-                    auto cameraDesc = (ffxDispatchDescFrameGenerationPrepareCameraInfo*) next;
+                fg->SetCameraData(cameraDesc->cameraPosition, cameraDesc->cameraUp, cameraDesc->cameraRight,
+                                  cameraDesc->cameraForward);
 
-                    fg->SetCameraData(cameraDesc->cameraPosition, cameraDesc->cameraUp, cameraDesc->cameraRight,
-                                      cameraDesc->cameraForward);
-
-                    cameraDataFound = true;
-                    break;
-                }
-            }
-
-            // Camera Values
-            UINT dispWidth = 0;
-            UINT dispHeight = 0;
-            fg->GetInterpolationRect(dispWidth, dispHeight);
-            auto aspectRatio = (float) dispWidth / (float) dispHeight;
-            fg->SetCameraValues(cdDesc->cameraNear, cdDesc->cameraFar, cdDesc->cameraFovAngleVertical, aspectRatio);
-
-            // Other values
-            fg->SetFrameTimeDelta(cdDesc->frameTimeDelta);
-            fg->SetJitter(cdDesc->jitterOffset.x, cdDesc->jitterOffset.y);
-            fg->SetMVScale(cdDesc->motionVectorScale.x, cdDesc->motionVectorScale.y);
-            fg->SetReset(cdDesc->unused_reset ? 1 : 0);
-
-            if (cdDesc->depth.resource != nullptr)
-            {
-                Dx12Resource depth {};
-                depth.cmdList = (ID3D12GraphicsCommandList*) cdDesc->commandList;
-                depth.height = cdDesc->renderSize.height; // cdDesc->depth.description.width;
-                depth.resource = (ID3D12Resource*) cdDesc->depth.resource;
-                depth.state = GetD3D12State((FfxApiResourceState) cdDesc->depth.state);
-                depth.type = FG_ResourceType::Depth;
-                depth.validity = FG_ResourceValidity::JustTrackCmdlist;
-                depth.width = cdDesc->renderSize.width; // cdDesc->depth.description.height;
-
-                fg->SetResource(&depth);
-            }
-
-            if (cdDesc->motionVectors.resource != nullptr)
-            {
-                uint32_t width = 0;
-                uint32_t height = 0;
-
-                if (_fgConst.flags & FG_Flags::DisplayResolutionMVs)
-                {
-                    width = _fgConst.displayWidth;
-                    height = _fgConst.displayHeight;
-                }
-                else
-                {
-                    width = cdDesc->renderSize.width;
-                    height = cdDesc->renderSize.height;
-                }
-
-                Dx12Resource velocity {};
-                velocity.cmdList = (ID3D12GraphicsCommandList*) cdDesc->commandList;
-                velocity.height = height; // cdDesc->motionVectors.description.width;
-                velocity.resource = (ID3D12Resource*) cdDesc->motionVectors.resource;
-                velocity.state = GetD3D12State((FfxApiResourceState) cdDesc->motionVectors.state);
-                velocity.type = FG_ResourceType::Velocity;
-                velocity.validity = FG_ResourceValidity::JustTrackCmdlist;
-                velocity.width = width; // cdDesc->motionVectors.description.height;
-
-                fg->SetResource(&velocity);
+                cameraDataFound = true;
+                break;
             }
         }
-        else
+
+        // Camera Values
+        UINT dispWidth = 0;
+        UINT dispHeight = 0;
+        fg->GetInterpolationRect(dispWidth, dispHeight);
+        auto aspectRatio = (float) dispWidth / (float) dispHeight;
+        fg->SetCameraValues(cdDesc->cameraNear, cdDesc->cameraFar, cdDesc->cameraFovAngleVertical, aspectRatio);
+
+        // Other values
+        fg->SetFrameTimeDelta(cdDesc->frameTimeDelta);
+        fg->SetJitter(cdDesc->jitterOffset.x, cdDesc->jitterOffset.y);
+        fg->SetMVScale(cdDesc->motionVectorScale.x, cdDesc->motionVectorScale.y);
+        fg->SetReset(cdDesc->unused_reset ? 1 : 0);
+
+        if (cdDesc->depth.resource != nullptr)
         {
-            LOG_DEBUG("IsActive: {}, IsPaused: {}", fg->IsActive(), fg->IsPaused());
+            Dx12Resource depth {};
+            depth.cmdList = (ID3D12GraphicsCommandList*) cdDesc->commandList;
+            depth.height = cdDesc->renderSize.height; // cdDesc->depth.description.width;
+            depth.resource = (ID3D12Resource*) cdDesc->depth.resource;
+            depth.state = GetD3D12State((FfxApiResourceState) cdDesc->depth.state);
+            depth.type = FG_ResourceType::Depth;
+            depth.validity = FG_ResourceValidity::JustTrackCmdlist;
+            depth.width = cdDesc->renderSize.width; // cdDesc->depth.description.height;
+
+            fg->SetResource(&depth);
+        }
+
+        if (cdDesc->motionVectors.resource != nullptr)
+        {
+            uint32_t width = 0;
+            uint32_t height = 0;
+
+            if (_fgConst.flags & FG_Flags::DisplayResolutionMVs)
+            {
+                width = _fgConst.displayWidth;
+                height = _fgConst.displayHeight;
+            }
+            else
+            {
+                width = cdDesc->renderSize.width;
+                height = cdDesc->renderSize.height;
+            }
+
+            Dx12Resource velocity {};
+            velocity.cmdList = (ID3D12GraphicsCommandList*) cdDesc->commandList;
+            velocity.height = height; // cdDesc->motionVectors.description.width;
+            velocity.resource = (ID3D12Resource*) cdDesc->motionVectors.resource;
+            velocity.state = GetD3D12State((FfxApiResourceState) cdDesc->motionVectors.state);
+            velocity.type = FG_ResourceType::Velocity;
+            velocity.validity = FG_ResourceValidity::JustTrackCmdlist;
+            velocity.width = width; // cdDesc->motionVectors.description.height;
+
+            fg->SetResource(&velocity);
         }
 
         LOG_DEBUG("DISPATCH_DESC_TYPE_FRAMEGENERATION_PREPARE done");
@@ -872,6 +903,8 @@ void ffxPresentCallback()
     if (_presentCallback == nullptr)
         return;
 
+    LOG_DEBUG("");
+
     ffxCallbackDescFrameGenerationPresent cdfgp {};
     cdfgp.header.type = FFX_API_CALLBACK_DESC_TYPE_FRAMEGENERATION_PRESENT;
     cdfgp.frameID = _presentCallbackFrameId;
@@ -879,7 +912,7 @@ void ffxPresentCallback()
     cdfgp.isGeneratedFrame = true;
 
     auto fg = State::Instance().currentFG;
-    if (fg != nullptr && fg->IsActive() && !fg->IsPaused())
+    if (fg != nullptr)
     {
         auto fIndex = fg->GetIndex();
 
@@ -921,6 +954,9 @@ void ffxPresentCallback()
 
         cdfgp.outputSwapChainBuffer = ffxApiGetResourceDX12(currentBuffer, FFX_API_RESOURCE_STATE_PRESENT);
         cdfgp.currentBackBuffer = ffxApiGetResourceDX12(_hudless[fIndex], FFX_API_RESOURCE_STATE_PIXEL_READ);
+
+        if (_uiRes[fIndex].resource != nullptr)
+            cdfgp.currentUI = ffxApiGetResourceDX12(_uiRes[fIndex].resource, GetFfxApiState(_uiRes[fIndex].state));
 
         auto result = _presentCallback(&cdfgp, _presentCallbackUserContext);
 

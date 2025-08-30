@@ -539,7 +539,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             LOG_DEBUG("Streamline FG was not dispatched");
     }
 
-    IFGFeature_Dx12* fg = State::Instance().currentFG;
+    auto fg = State::Instance().currentFG;
     bool mutexUsed = false;
     if (willPresent && fg != nullptr && fg->IsActive() &&
         Config::Instance()->FGUseMutexForSwapchain.value_or_default() && fg->Mutex.getOwner() != 2)
@@ -550,12 +550,17 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         LOG_TRACE("Accuired FG->Mutex: {}", fg->Mutex.getOwner());
     }
 
-    if (willPresent && fg != nullptr && fg->IsActive())
+    if (willPresent && fg != nullptr)
     {
+        // Some games use this callback to render UI even when
+        // FG is disabled. So call it when there is FGFeature
         if (State::Instance().activeFgInput == FGInput::FSRFG)
             ffxPresentCallback();
 
-        fg->Present();
+        // And if Optiscalers FG is active call
+        // FG Features present
+        if (fg->IsActive())
+            fg->Present();
     }
 
     if (willPresent)
@@ -1266,9 +1271,10 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         }
         else
         {
-            // FG Re-Init
-            if (State::Instance().currentFG->Hwnd() != pDesc->OutputWindow)
-                State::Instance().currentFG->ReleaseSwapchain(State::Instance().currentFG->Hwnd());
+            // Release swapchain if FG Feaeture is FSR-FG
+            // Because it can't recreate swapchain on exsiting one
+            if (State::Instance().activeFgOutput == FGOutput::FSRFG)
+                State::Instance().currentFG->ReleaseSwapchain(pDesc->OutputWindow);
         }
 
         // HooksDx::ReleaseDx12SwapChain(pDesc->OutputWindow);
@@ -1404,8 +1410,7 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
             return S_OK;
         }
 
-        LOG_ERROR("D3D12_CreateContext error: {}", scResult);
-
+        LOG_ERROR("D3D12_CreateContext error: {:X}", scResult);
         return E_INVALIDARG;
     }
 
@@ -1639,9 +1644,10 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         }
         else
         {
-            // FG Re-Init
-            if (State::Instance().currentFG->Hwnd() != hWnd)
-                State::Instance().currentFG->ReleaseSwapchain(State::Instance().currentFG->Hwnd());
+            // Release swapchain if FG Feaeture is FSR-FG
+            // Because it can't recreate swapchain on exsiting one
+            if (State::Instance().activeFgOutput == FGOutput::FSRFG)
+                State::Instance().currentFG->ReleaseSwapchain(hWnd);
         }
 
         // HooksDx::ReleaseDx12SwapChain(pDesc->OutputWindow);
