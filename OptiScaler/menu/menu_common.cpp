@@ -2776,7 +2776,7 @@ bool MenuCommon::RenderMenu()
                         if (ImGui::Checkbox("Disable UI texture", &disableUI))
                         {
                             Config::Instance()->FGDisableUI = disableUI;
-                            State::Instance().FGchanged = true;
+                            fgOutput->UpdateTarget();
                         }
 
                         ShowHelpMarker("For when the game sends a UI texture but you want to disable it");
@@ -2790,9 +2790,12 @@ bool MenuCommon::RenderMenu()
 
                         if (ImGui::Checkbox("Disable hudless", &disableHudless))
                         {
-                            // TODO: this can crash when toggling
                             Config::Instance()->FGDisableHudless = disableHudless;
-                            State::Instance().FGchanged = true;
+
+                            // Prevent FG dispatch from being called for a few frames
+                            // Seems like XeFG doesn't like having hudless suddenly started to be tagged
+                            // and then be required to use it right away
+                            fgOutput->UpdateTarget();
                         }
 
                         ShowHelpMarker("For when the game sends hudless but you want to disable it");
