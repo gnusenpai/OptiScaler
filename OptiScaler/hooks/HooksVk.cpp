@@ -102,8 +102,9 @@ static void hkvkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipelineStag
         // Those are already in the correct layouts
         if (imageMemoryBarrierCount == 4)
         {
+            // In the Voyagers update, the 2nd oldLayout has changed
             if (pImageMemoryBarriers[0].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-                pImageMemoryBarriers[1].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+                // pImageMemoryBarriers[1].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
                 pImageMemoryBarriers[2].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
                 pImageMemoryBarriers[3].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
             {
