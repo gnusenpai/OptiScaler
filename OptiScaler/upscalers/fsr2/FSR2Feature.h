@@ -70,7 +70,6 @@ class FSR2Feature : public virtual IFeature
 
     virtual bool InitFSR2(const NVSDK_NGX_Parameter* InParameters) = 0;
 
-    double MillisecondsNow();
     double GetDeltaTime();
 
   public:
@@ -81,7 +80,7 @@ class FSR2Feature : public virtual IFeature
     {
         _initParameters = SetInitParameters(InParameters);
         _moduleLoaded = true;
-        _lastFrameTime = MillisecondsNow();
+        _lastFrameTime = Util::MillisecondsNow();
     }
 
     ~FSR2Feature();
