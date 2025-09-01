@@ -36,6 +36,7 @@ static bool _skipFGSwapChainCreation = false;
 // Swapchain frame counter
 static UINT64 _frameCounter = 0;
 static double _lastFrameTime = 0.0;
+static double _lastFGFrameTime = 0.0;
 static bool _fgPresentCalled = false;
 
 #pragma endregion
@@ -487,10 +488,10 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
 
         auto now = Util::MillisecondsNow();
 
-        if (_lastFrameTime != 0)
-            ftDelta = now - _lastFrameTime;
+        if (_lastFGFrameTime != 0)
+            ftDelta = now - _lastFGFrameTime;
 
-        _lastFrameTime = now;
+        _lastFGFrameTime = now;
         State::Instance().lastFrameTime = ftDelta;
 
         LOG_DEBUG("_frameCounter: {}, flags: {:X}, Frametime: {}", _frameCounter, Flags, ftDelta);
@@ -673,7 +674,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         _lastFrameTime = now;
         State::Instance().presentFrameTime = ftDelta;
 
-        if (State::Instance().activeFgInput != FGInput::Upscaler)
+        if (o_FGSCPresent == nullptr)
             State::Instance().lastFrameTime = ftDelta;
 
         LOG_DEBUG("SyncInterval: {}, Flags: {:X}, Frametime: {:0.3f} ms", SyncInterval, Flags, ftDelta);
