@@ -4750,7 +4750,27 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::PopItemWidth();
 
-                        ImGui::Text("Will be applied after RESOLUTION/PRESET change !!!");
+                        bool afComp = Config::Instance()->AnisotropyModifyComp.value_or_default();
+                        if (ImGui::Checkbox("Modify Compare", &afComp))
+                            Config::Instance()->AnisotropyModifyComp = afComp;
+
+                        ShowHelpMarker("Update comparison filters");
+
+                        ImGui::SameLine(0.0f, 6.0f);
+
+                        bool afMinMax = Config::Instance()->AnisotropyModifyMinMax.value_or_default();
+                        if (ImGui::Checkbox("Modify Min/Max", &afMinMax))
+                            Config::Instance()->AnisotropyModifyMinMax = afMinMax;
+
+                        ShowHelpMarker("Update min/max filters");
+
+                        bool afSkipPoint = Config::Instance()->AnisotropySkipPointFilter.value_or_default();
+                        if (ImGui::Checkbox("Skip Point Filters", &afSkipPoint))
+                            Config::Instance()->AnisotropySkipPointFilter = afSkipPoint;
+
+                        ShowHelpMarker("Skip updating of point filters");
+
+                        ImGui::Text("Will might be applied after RESOLUTION/PRESET change !!!");
                     }
                 }
 
