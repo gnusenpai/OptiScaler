@@ -394,13 +394,23 @@ bool Config::Reload(std::filesystem::path iniPath)
                 readFloat("QualityOverrides", "QualityRatioUltraPerformance"));
         }
 
-        // Hotfixes
+        // Anisotropy
         {
-            DisableOverlays.set_from_config(readBool("Hotfix", "DisableOverlays"));
+            if (auto setting = readInt("Anisotropy", "AnisotropyOverride");
+                setting.has_value() && setting.value() <= 16 && setting.value() >= 1)
+                AnisotropyOverride.set_from_config(setting);
 
-            RoundInternalResolution.set_from_config(readInt("Hotfix", "RoundInternalResolution"));
+            if (AnisotropyOverride.has_value() && (AnisotropyOverride.value() > 16 || AnisotropyOverride.value() < 1))
+                AnisotropyOverride.reset();
 
-            if (auto setting = readFloat("Hotfix", "MipmapBiasOverride");
+            AnisotropySkipPointFilter.set_from_config(readBool("Anisotropy", "SkipPointFilter"));
+            AnisotropyModifyComp.set_from_config(readBool("Anisotropy", "AFModifyComparison"));
+            AnisotropyModifyMinMax.set_from_config(readBool("Anisotropy", "AFModifyMinMax"));
+        }
+
+        // Mipmap
+        {
+            if (auto setting = readFloat("Mipmap", "MipmapBiasOverride");
                 setting.has_value() && setting.value() <= 15.0 && setting.value() >= -15.0)
                 MipmapBiasOverride.set_from_config(setting);
 
@@ -410,18 +420,16 @@ bool Config::Reload(std::filesystem::path iniPath)
                 (MipmapBiasOverride.value() > 15.0 || MipmapBiasOverride.value() < -15.0))
                 MipmapBiasOverride.reset();
 
-            MipmapBiasFixedOverride.set_from_config(readBool("Hotfix", "MipmapBiasFixedOverride"));
-            MipmapBiasScaleOverride.set_from_config(readBool("Hotfix", "MipmapBiasScaleOverride"));
-            MipmapBiasOverrideAll.set_from_config(readBool("Hotfix", "MipmapBiasOverrideAll"));
+            MipmapBiasFixedOverride.set_from_config(readBool("Mipmap", "MipmapBiasFixedOverride"));
+            MipmapBiasScaleOverride.set_from_config(readBool("Mipmap", "MipmapBiasScaleOverride"));
+            MipmapBiasOverrideAll.set_from_config(readBool("Mipmap", "MipmapBiasOverrideAll"));
+        }
 
-            if (auto setting = readInt("Hotfix", "AnisotropyOverride");
-                setting.has_value() && setting.value() <= 16 && setting.value() >= 1)
-                AnisotropyOverride.set_from_config(setting);
+        // Hotfixes
+        {
+            DisableOverlays.set_from_config(readBool("Hotfix", "DisableOverlays"));
 
-            if (AnisotropyOverride.has_value() && (AnisotropyOverride.value() > 16 || AnisotropyOverride.value() < 1))
-                AnisotropyOverride.reset();
-
-            OverrideShaderSampler.set_from_config(readBool("Hotfix", "OverrideShaderSampler"));
+            RoundInternalResolution.set_from_config(readInt("Hotfix", "RoundInternalResolution"));
 
             RestoreComputeSignature.set_from_config(readBool("Hotfix", "RestoreComputeSignature"));
             RestoreGraphicSignature.set_from_config(readBool("Hotfix", "RestoreGraphicSignature"));
@@ -969,28 +977,38 @@ bool Config::SaveIni()
                      GetFloatValue(Instance()->QualityRatio_UltraPerformance.value_for_config()).c_str());
     }
 
+    // Anisotropy
+    {
+        ini.SetValue("Anisotropy", "AnisotropyOverride",
+                     GetIntValue(Instance()->AnisotropyOverride.value_for_config()).c_str());
+        ini.SetValue("Anisotropy", "ModifyComparison",
+                     GetBoolValue(Instance()->AnisotropyModifyComp.value_for_config()).c_str());
+        ini.SetValue("Anisotropy", "ModifyMinMax",
+                     GetBoolValue(Instance()->AnisotropyModifyMinMax.value_for_config()).c_str());
+        ini.SetValue("Anisotropy", "SkipPointFilter",
+                     GetBoolValue(Instance()->AnisotropySkipPointFilter.value_for_config()).c_str());
+    }
+
+    // Mipmap
+    {
+        ini.SetValue("Mipmap", "MipmapBiasOverride",
+                     GetFloatValue(Instance()->MipmapBiasOverride.value_for_config()).c_str());
+        ini.SetValue("Mipmap", "MipmapBiasOverrideAll",
+                     GetBoolValue(Instance()->MipmapBiasOverrideAll.value_for_config()).c_str());
+        ini.SetValue("Mipmap", "MipmapBiasFixedOverride",
+                     GetBoolValue(Instance()->MipmapBiasFixedOverride.value_for_config()).c_str());
+        ini.SetValue("Mipmap", "MipmapBiasScaleOverride",
+                     GetBoolValue(Instance()->MipmapBiasScaleOverride.value_for_config()).c_str());
+    }
+
     // Hotfixes
     {
         ini.SetValue("Hotfix", "DisableOverlays",
                      Instance()->DisableOverlays.has_value() ? (Instance()->DisableOverlays.value() ? "true" : "false")
                                                              : "auto");
 
-        ini.SetValue("Hotfix", "MipmapBiasOverride",
-                     GetFloatValue(Instance()->MipmapBiasOverride.value_for_config()).c_str());
-        ini.SetValue("Hotfix", "MipmapBiasOverrideAll",
-                     GetBoolValue(Instance()->MipmapBiasOverrideAll.value_for_config()).c_str());
-        ini.SetValue("Hotfix", "MipmapBiasFixedOverride",
-                     GetBoolValue(Instance()->MipmapBiasFixedOverride.value_for_config()).c_str());
-        ini.SetValue("Hotfix", "MipmapBiasScaleOverride",
-                     GetBoolValue(Instance()->MipmapBiasScaleOverride.value_for_config()).c_str());
-
-        ini.SetValue("Hotfix", "AnisotropyOverride",
-                     GetIntValue(Instance()->AnisotropyOverride.value_for_config()).c_str());
         ini.SetValue("Hotfix", "RoundInternalResolution",
                      GetIntValue(Instance()->RoundInternalResolution.value_for_config()).c_str());
-
-        ini.SetValue("Hotfix", "OverrideShaderSampler",
-                     GetBoolValue(Instance()->OverrideShaderSampler.value_for_config()).c_str());
 
         ini.SetValue("Hotfix", "RestoreComputeSignature",
                      GetBoolValue(Instance()->RestoreComputeSignature.value_for_config()).c_str());

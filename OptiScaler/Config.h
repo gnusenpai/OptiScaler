@@ -266,17 +266,23 @@ class Config
 
     // Hotfixes
     CustomOptional<bool> DisableOverlays { false };
+
     CustomOptional<float, NoDefault> MipmapBiasOverride; // disabled by default
     CustomOptional<bool> MipmapBiasFixedOverride { false };
     CustomOptional<bool> MipmapBiasScaleOverride { false };
     CustomOptional<bool> MipmapBiasOverrideAll { false };
+
     CustomOptional<int, NoDefault> AnisotropyOverride; // disabled by default
-    CustomOptional<bool> OverrideShaderSampler { false };
+    CustomOptional<bool> OverrideShaderSampler { true };
+    CustomOptional<bool> AnisotropyModifyComp { true };
+    CustomOptional<bool> AnisotropyModifyMinMax { true };
+    CustomOptional<bool> AnisotropySkipPointFilter { true };
+
     CustomOptional<int, NoDefault> RoundInternalResolution; // disabled by default
 
+    CustomOptional<int, NoDefault> SkipFirstFrames; // disabled by default
     CustomOptional<bool> RestoreComputeSignature { false };
     CustomOptional<bool> RestoreGraphicSignature { false };
-    CustomOptional<int, NoDefault> SkipFirstFrames; // disabled by default
 
     CustomOptional<bool> UsePrecompiledShaders { true };
 
