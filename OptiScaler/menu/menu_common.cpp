@@ -2459,7 +2459,7 @@ bool MenuCommon::RenderMenu()
 
                         if (overridden)
                         {
-                            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Presets are overridden externally");
+                            ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "Presets are overridden externally");
                             ShowHelpMarker("This usually happens due to using tools\n"
                                            "such as Nvidia App or Nvidia Inspector");
                             ImGui::Text("Selecting setting below will disable that external override\n"
@@ -3034,13 +3034,29 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::SeparatorText("Frame Generation (XeFG)");
 
-                        if (!State::Instance().currentFG->IsLowResMV() || State::Instance().SCExclusiveFullscreen)
+                        bool nativeAA = false;
+                        if (State::Instance().activeFgInput == FGInput::Upscaler && currentFeature != nullptr)
+                            nativeAA = currentFeature->RenderWidth() == currentFeature->DisplayWidth();
+
+                        const bool correctMVs = State::Instance().currentFG->IsLowResMV() || nativeAA;
+
+                        if (!correctMVs || State::Instance().SCExclusiveFullscreen)
                         {
                             Config::Instance()->FGEnabled.reset();
                             Config::Instance()->FGXeFGDebugView.reset();
                         }
 
-                        if (!State::Instance().currentFG->IsLowResMV())
+                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                        if (fgOutput && Config::Instance()->FGXeFGDepthInverted.value_or_default() !=
+                                            fgOutput->IsInvertedDepth() ||
+                            Config::Instance()->FGXeFGJitteredMV.value_or_default() != fgOutput->IsJitteredMVs() ||
+                            Config::Instance()->FGXeFGHighResMV.value_or_default() == fgOutput->IsLowResMV())
+                        {
+                            ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
+                                               "Restart the game to apply correct XeFG settings");
+                        }
+
+                        if (!correctMVs)
                             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Requires disabling dilated motion vectors");
 
                         if (State::Instance().SCExclusiveFullscreen)
@@ -3049,8 +3065,7 @@ bool MenuCommon::RenderMenu()
                         if (State::Instance().isHdrActive)
                             ImGui::TextColored(ImVec4(1.0f, 0.647f, 0.0f, 1.f), "XeFG only supports HDR10");
 
-                        ImGui::BeginDisabled(!State::Instance().currentFG->IsLowResMV() ||
-                                             State::Instance().SCExclusiveFullscreen);
+                        ImGui::BeginDisabled(!correctMVs || State::Instance().SCExclusiveFullscreen);
 
                         bool fgActive = Config::Instance()->FGEnabled.value_or_default();
                         if (ImGui::Checkbox("Active##3", &fgActive))

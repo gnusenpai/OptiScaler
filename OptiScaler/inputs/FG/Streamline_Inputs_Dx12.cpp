@@ -110,6 +110,8 @@ bool Sl_Inputs_Dx12::evaluateState(ID3D12Device* device)
     fgConstants.displayWidth = 0;
     fgConstants.displayHeight = 0;
 
+    fgConstants.flags.reset();
+
     // if ()
     //     fgConstants.flags |= FG_Flags::Hdr;
 
