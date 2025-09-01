@@ -5,6 +5,7 @@
 #include <nvsdk_ngx_defs.h>
 
 #include <unordered_set>
+#include <Util.h>
 
 #define DLSS_MOD_ID_OFFSET 1000000
 
