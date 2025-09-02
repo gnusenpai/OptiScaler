@@ -1167,15 +1167,23 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
 
                 if (State::Instance().newBackend != "dlssd")
                 {
-                    State::Instance().newBackend = "fsr21";
-                    State::Instance().changeBackend[handleId] = true;
+                    if (Config::Instance()->VulkanUpscaler == "dlss")
+                    {
+                        State::Instance().newBackend = "xess";
+                    }
+                    else
+                    {
+                        State::Instance().newBackend = "fsr21";
+                    }
                 }
                 else
                 {
-                    State::Instance().newBackend = "";
-                    State::Instance().changeBackend[handleId] = false;
-                    return NVSDK_NGX_Result_Success;
+                    // Retry DLSSD
+                    State::Instance().newBackend = "dlssd";
                 }
+
+                State::Instance().changeBackend[handleId] = true;
+                return NVSDK_NGX_Result_Success;
             }
             else
             {
