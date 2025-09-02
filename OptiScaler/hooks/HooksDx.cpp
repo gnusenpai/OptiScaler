@@ -657,7 +657,8 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             LOG_WARN("Couldn't copy hudless into the backbuffer");
     }
 
-    if (willPresent && Config::Instance()->ForceVsync.has_value())
+    if (willPresent && Config::Instance()->OverrideVsync.value_or_default() &&
+        Config::Instance()->ForceVsync.has_value())
     {
         if (!Config::Instance()->ForceVsync.value())
         {
@@ -928,7 +929,8 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
     }
 
     // Fallback when FGPresent is not hooked for V-sync
-    if (willPresent && Config::Instance()->ForceVsync.has_value() && o_FGSCPresent == nullptr)
+    if (willPresent && Config::Instance()->OverrideVsync.value_or_default() &&
+        Config::Instance()->ForceVsync.has_value() && o_FGSCPresent == nullptr)
     {
         if (!Config::Instance()->ForceVsync.value())
         {
@@ -1114,8 +1116,14 @@ static HRESULT hkCreateSwapChainForCoreWindow(IDXGIFactory2* pFactory, IUnknown*
     }
 
     // For vsync override
-    pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    if (Config::Instance()->OverrideVsync.value_or_default())
+    {
+        pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+        if (pDesc->BufferCount < 2)
+            pDesc->BufferCount = 2;
+    }
 
     ID3D12CommandQueue* realQ = nullptr;
     if (!CheckForRealObject(__FUNCTION__, pDevice, (IUnknown**) &realQ))
@@ -1145,7 +1153,7 @@ static HRESULT hkCreateSwapChainForCoreWindow(IDXGIFactory2* pFactory, IUnknown*
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain, (UINT64) pWindow);
         *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, (HWND) pWindow, hkPresent,
+            new WrappedIDXGISwapChain4(realSC, readDevice, (HWND) pWindow, pDesc->Flags, hkPresent,
                                        MenuOverlayDx::CleanupRenderTarget, HooksDx::ReleaseDx12SwapChain, true);
 
         if (!_skipFGSwapChainCreation)
@@ -1265,10 +1273,6 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
               pDesc->BufferDesc.Width, pDesc->BufferDesc.Height, (UINT) pDesc->BufferDesc.Format, pDesc->BufferCount,
               (UINT) pDesc->OutputWindow, pDesc->Windowed, _skipFGSwapChainCreation);
 
-    // For vsync override
-    pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-    pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-
     State::Instance().realExclusiveFullscreen = !pDesc->Windowed;
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG &&
@@ -1281,12 +1285,6 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         }
 
         pDesc->BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-
-        // Remove
-        // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
-        // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
-        // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
-        // pDesc->Flags &= 0xFFB9;
     }
 
     // Crude implementation of EndlesslyFlowering's AutoHDR-ReShade
@@ -1305,6 +1303,22 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
             LOG_INFO("Not using HDR10");
             pDesc->BufferDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         }
+
+        if (pDesc->BufferCount < 2)
+            pDesc->BufferCount = 2;
+    }
+
+    // For vsync override
+    if (!pDesc->Windowed)
+    {
+        LOG_INFO("Game is creating fullscreen swapchain, disabled V-Sync overrides");
+        Config::Instance()->OverrideVsync.set_volatile_value(false);
+    }
+
+    if (Config::Instance()->OverrideVsync.value_or_default())
+    {
+        pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
         if (pDesc->BufferCount < 2)
             pDesc->BufferCount = 2;
@@ -1522,7 +1536,7 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain, (UINT64) pDesc->OutputWindow);
         *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, pDesc->OutputWindow, hkPresent,
+            new WrappedIDXGISwapChain4(realSC, readDevice, pDesc->OutputWindow, pDesc->Flags, hkPresent,
                                        MenuOverlayDx::CleanupRenderTarget, HooksDx::ReleaseDx12SwapChain, false);
 
         if (!_skipFGSwapChainCreation)
@@ -1659,10 +1673,6 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
             pDesc->BufferCount = 2;
     }
 
-    // For vsync override
-    pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-
     if (pFullscreenDesc != nullptr)
         State::Instance().realExclusiveFullscreen = !pFullscreenDesc->Windowed;
 
@@ -1676,12 +1686,22 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         }
 
         pDesc->Scaling = DXGI_SCALING_STRETCH;
+    }
 
-        // Remove
-        // DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
-        // DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE
-        // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
-        // pDesc->Flags &= 0xFFB9;
+    // For vsync override
+    if (pFullscreenDesc != nullptr && !pFullscreenDesc->Windowed)
+    {
+        LOG_INFO("Game is creating fullscreen swapchain, disabled V-Sync overrides");
+        Config::Instance()->OverrideVsync.set_volatile_value(false);
+    }
+
+    if (Config::Instance()->OverrideVsync.value_or_default())
+    {
+        pDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        pDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+        if (pDesc->BufferCount < 2)
+            pDesc->BufferCount = 2;
     }
 
     // Disable FSR FG if amd dll is not found
@@ -1892,8 +1912,8 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain, (UINT64) hWnd);
         *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, hWnd, hkPresent, MenuOverlayDx::CleanupRenderTarget,
-                                       HooksDx::ReleaseDx12SwapChain, false);
+            new WrappedIDXGISwapChain4(realSC, readDevice, hWnd, pDesc->Flags, hkPresent,
+                                       MenuOverlayDx::CleanupRenderTarget, HooksDx::ReleaseDx12SwapChain, false);
         LOG_DEBUG("Created new WrappedIDXGISwapChain4: {0:X}, pDevice: {1:X}", (UINT64) *ppSwapChain, (UINT64) pDevice);
 
         if (!_skipFGSwapChainCreation)
@@ -2455,13 +2475,13 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
             pSwapChainDesc->BufferCount = 2;
     }
 
-    if (pSwapChainDesc != nullptr)
+    if (Config::Instance()->OverrideVsync.value_or_default() && pSwapChainDesc != nullptr)
     {
         pSwapChainDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         pSwapChainDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-        // pSwapChainDesc->Flags &= ~(DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT |
-        //                            DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE | DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+        if (pSwapChainDesc->BufferCount < 2)
+            pSwapChainDesc->BufferCount = 2;
     }
 
     auto result = o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
@@ -2497,9 +2517,9 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain,
                   (UINT64) pSwapChainDesc->OutputWindow);
-        *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, pSwapChainDesc->OutputWindow, hkPresent,
-                                       MenuOverlayDx::CleanupRenderTarget, HooksDx::ReleaseDx12SwapChain, false);
+        *ppSwapChain = new WrappedIDXGISwapChain4(realSC, readDevice, pSwapChainDesc->OutputWindow,
+                                                  pSwapChainDesc->Flags, hkPresent, MenuOverlayDx::CleanupRenderTarget,
+                                                  HooksDx::ReleaseDx12SwapChain, false);
 
         if (!_skipFGSwapChainCreation)
             State::Instance().currentSwapchain = *ppSwapChain;

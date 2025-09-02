@@ -2695,128 +2695,133 @@ bool MenuCommon::RenderMenu()
                     Config::Instance()->FGOutput =
                         Config::Instance()->FGOutput.value_or_default(); // need to have a value before combo
 
-                ImGui::SeparatorText("Frame Generation");
-
-                if (ImGui::BeginTable("fgSelection", 2, ImGuiTableFlags_SizingStretchSame))
+                if (State::Instance().api != DX11)
                 {
-                    ImGui::TableNextColumn();
+                    ImGui::SeparatorText("Frame Generation");
 
-                    PopulateCombo(
-                        "FG Source", reinterpret_cast<CustomOptional<uint32_t>*>(&Config::Instance()->FGInput),
-                        fgInputOptions, fgInputDesc.data(), fgInputOptionsCount, disabledMaskInput.data(), false);
-                    ShowTooltip("The data source to be used for FG");
-
-                    ImGui::TableNextColumn();
-
-                    const bool disableOutputs = Config::Instance()->FGInput.value_or_default() == FGInput::Nukems;
-
-                    ImGui::BeginDisabled(disableOutputs);
-                    PopulateCombo(
-                        "FG Output", reinterpret_cast<CustomOptional<uint32_t>*>(&Config::Instance()->FGOutput),
-                        fgOutputOptions, fgOutputDesc.data(), fgOutputOptionsCount, disabledMaskOutput.data(), false);
-                    ImGui::EndDisabled();
-
-                    if (disableOutputs)
-                        ShowTooltip("Doesn't matter with the selected FG Source");
-
-                    ImGui::EndTable();
-                }
-
-                auto static fgInputOverridden = false;
-
-                if (Config::Instance()->FGOutput == FGOutput::Nukems && !fgInputOverridden)
-                {
-                    Config::Instance()->FGInput = FGInput::Nukems;
-                    fgInputOverridden = true;
-                }
-                else if (Config::Instance()->FGInput != FGInput::Nukems && fgInputOverridden)
-                {
-                    Config::Instance()->FGOutput = FGOutput::NoFG;
-                    fgInputOverridden = false;
-                }
-
-                if (State::Instance().activeFgOutput == FGOutput::FSRFG ||
-                    State::Instance().activeFgOutput == FGOutput::XeFG)
-                {
-                    ImGui::Checkbox("Show Detected UI", &State::Instance().FGHudlessCompare);
-                    ShowHelpMarker("Needs hudless texture to compare with final image.\n"
-                                   "UI elements and ONLY UI elements should have a pink tint!");
-                }
-
-                // if (State::Instance().activeFgInput != Config::Instance()->FGInput.value_or_default())
-                //{
-                //     State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
-                //     State::Instance().FGchanged = true; // Formats might be different so reconfigure
-                // }
-
-                State::Instance().fgSettingsChanged =
-                    State::Instance().activeFgOutput != Config::Instance()->FGOutput.value_or_default() ||
-                    State::Instance().activeFgInput != Config::Instance()->FGInput.value_or_default();
-
-                if (State::Instance().fgSettingsChanged)
-                {
-                    ImGui::Spacing();
-                    ImGui::TextColored(ImVec4(1.f, 0.f, 0.0f, 1.f), "Save INI and restart to apply the changes");
-                    ImGui::Spacing();
-                }
-
-                if (State::Instance().activeFgInput == FGInput::DLSSG ||
-                    State::Instance().activeFgInput == FGInput::FSRFG)
-                {
-                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
-                    if (fgOutput)
+                    if (ImGui::BeginTable("fgSelection", 2, ImGuiTableFlags_SizingStretchSame))
                     {
-                        ImGui::BeginDisabled(!fgOutput->IsActive());
-                        const auto isUsingUIAny = fgOutput->IsUsingUIAny();
-                        const auto isUsingHudlessAny = fgOutput->IsUsingHudlessAny();
+                        ImGui::TableNextColumn();
 
-                        bool disableUI = Config::Instance()->FGDisableUI.value_or_default();
-                        ImGui::BeginDisabled(!isUsingUIAny && !disableUI);
+                        PopulateCombo(
+                            "FG Source", reinterpret_cast<CustomOptional<uint32_t>*>(&Config::Instance()->FGInput),
+                            fgInputOptions, fgInputDesc.data(), fgInputOptionsCount, disabledMaskInput.data(), false);
+                        ShowTooltip("The data source to be used for FG");
 
-                        if (ImGui::Checkbox("Disable UI texture", &disableUI))
+                        ImGui::TableNextColumn();
+
+                        const bool disableOutputs = Config::Instance()->FGInput.value_or_default() == FGInput::Nukems;
+
+                        ImGui::BeginDisabled(disableOutputs);
+                        PopulateCombo("FG Output",
+                                      reinterpret_cast<CustomOptional<uint32_t>*>(&Config::Instance()->FGOutput),
+                                      fgOutputOptions, fgOutputDesc.data(), fgOutputOptionsCount,
+                                      disabledMaskOutput.data(), false);
+                        ImGui::EndDisabled();
+
+                        if (disableOutputs)
+                            ShowTooltip("Doesn't matter with the selected FG Source");
+
+                        ImGui::EndTable();
+                    }
+
+                    auto static fgInputOverridden = false;
+
+                    if (Config::Instance()->FGOutput == FGOutput::Nukems && !fgInputOverridden)
+                    {
+                        Config::Instance()->FGInput = FGInput::Nukems;
+                        fgInputOverridden = true;
+                    }
+                    else if (Config::Instance()->FGInput != FGInput::Nukems && fgInputOverridden)
+                    {
+                        Config::Instance()->FGOutput = FGOutput::NoFG;
+                        fgInputOverridden = false;
+                    }
+
+                    if (State::Instance().activeFgOutput == FGOutput::FSRFG ||
+                        State::Instance().activeFgOutput == FGOutput::XeFG)
+                    {
+                        ImGui::Checkbox("Show Detected UI", &State::Instance().FGHudlessCompare);
+                        ShowHelpMarker("Needs hudless texture to compare with final image.\n"
+                                       "UI elements and ONLY UI elements should have a pink tint!");
+                    }
+
+                    // if (State::Instance().activeFgInput != Config::Instance()->FGInput.value_or_default())
+                    //{
+                    //     State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
+                    //     State::Instance().FGchanged = true; // Formats might be different so reconfigure
+                    // }
+
+                    State::Instance().fgSettingsChanged =
+                        State::Instance().activeFgOutput != Config::Instance()->FGOutput.value_or_default() ||
+                        State::Instance().activeFgInput != Config::Instance()->FGInput.value_or_default();
+
+                    if (State::Instance().fgSettingsChanged)
+                    {
+                        ImGui::Spacing();
+                        ImGui::TextColored(ImVec4(1.f, 0.f, 0.0f, 1.f), "Save INI and restart to apply the changes");
+                        ImGui::Spacing();
+                    }
+
+                    if (State::Instance().activeFgInput == FGInput::DLSSG ||
+                        State::Instance().activeFgInput == FGInput::FSRFG)
+                    {
+                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                        if (fgOutput)
                         {
-                            Config::Instance()->FGDisableUI = disableUI;
-                            fgOutput->UpdateTarget();
+                            ImGui::BeginDisabled(!fgOutput->IsActive());
+                            const auto isUsingUIAny = fgOutput->IsUsingUIAny();
+                            const auto isUsingHudlessAny = fgOutput->IsUsingHudlessAny();
+
+                            bool disableUI = Config::Instance()->FGDisableUI.value_or_default();
+                            ImGui::BeginDisabled(!isUsingUIAny && !disableUI);
+
+                            if (ImGui::Checkbox("Disable UI texture", &disableUI))
+                            {
+                                Config::Instance()->FGDisableUI = disableUI;
+                                fgOutput->UpdateTarget();
+                            }
+
+                            ShowHelpMarker("For when the game sends a UI texture but you want to disable it");
+
+                            ImGui::EndDisabled();
+
+                            ImGui::SameLine();
+
+                            bool disableHudless = Config::Instance()->FGDisableHudless.value_or_default();
+                            ImGui::BeginDisabled(!isUsingHudlessAny && !disableHudless);
+
+                            if (ImGui::Checkbox("Disable hudless", &disableHudless))
+                            {
+                                Config::Instance()->FGDisableHudless = disableHudless;
+
+                                // Prevent FG dispatch from being called for a few frames
+                                // Seems like XeFG doesn't like having hudless suddenly started to be tagged
+                                // and then be required to use it right away
+                                fgOutput->UpdateTarget();
+                            }
+
+                            ShowHelpMarker("For when the game sends hudless but you want to disable it");
+
+                            ImGui::EndDisabled();
+
+                            ImGui::BeginDisabled(!isUsingUIAny || !isUsingHudlessAny);
+                            if (bool drawUIOverFG = Config::Instance()->FGDrawUIOverFG.value_or_default();
+                                ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
+                                Config::Instance()->FGDrawUIOverFG = drawUIOverFG;
+                            ImGui::EndDisabled();
+
+                            ImGui::SameLine();
+
+                            ImGui::BeginDisabled(!isUsingUIAny);
+                            if (bool uiPremultipliedAlpha =
+                                    Config::Instance()->FGUIPremultipliedAlpha.value_or_default();
+                                ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
+                                Config::Instance()->FGUIPremultipliedAlpha = uiPremultipliedAlpha;
+                            ImGui::EndDisabled();
+
+                            ImGui::EndDisabled();
                         }
-
-                        ShowHelpMarker("For when the game sends a UI texture but you want to disable it");
-
-                        ImGui::EndDisabled();
-
-                        ImGui::SameLine();
-
-                        bool disableHudless = Config::Instance()->FGDisableHudless.value_or_default();
-                        ImGui::BeginDisabled(!isUsingHudlessAny && !disableHudless);
-
-                        if (ImGui::Checkbox("Disable hudless", &disableHudless))
-                        {
-                            Config::Instance()->FGDisableHudless = disableHudless;
-
-                            // Prevent FG dispatch from being called for a few frames
-                            // Seems like XeFG doesn't like having hudless suddenly started to be tagged
-                            // and then be required to use it right away
-                            fgOutput->UpdateTarget();
-                        }
-
-                        ShowHelpMarker("For when the game sends hudless but you want to disable it");
-
-                        ImGui::EndDisabled();
-
-                        ImGui::BeginDisabled(!isUsingUIAny || !isUsingHudlessAny);
-                        if (bool drawUIOverFG = Config::Instance()->FGDrawUIOverFG.value_or_default();
-                            ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
-                            Config::Instance()->FGDrawUIOverFG = drawUIOverFG;
-                        ImGui::EndDisabled();
-
-                        ImGui::SameLine();
-
-                        ImGui::BeginDisabled(!isUsingUIAny);
-                        if (bool uiPremultipliedAlpha = Config::Instance()->FGUIPremultipliedAlpha.value_or_default();
-                            ImGui::Checkbox("UI Premult. alpha", &uiPremultipliedAlpha))
-                            Config::Instance()->FGUIPremultipliedAlpha = uiPremultipliedAlpha;
-                        ImGui::EndDisabled();
-
-                        ImGui::EndDisabled();
                     }
                 }
 
@@ -4523,7 +4528,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // DX11 & DX12 -----------------------------
-                if (State::Instance().api != Vulkan)
+                if (State::Instance().api != Vulkan && Config::Instance()->OverrideVsync.value_or_default())
                 {
                     // V-SYNC -----------------------------
                     ImGui::Spacing();

@@ -15,7 +15,7 @@ typedef void (*PFN_SC_Release)(HWND);
 
 struct DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapChain4 final : public IDXGISwapChain4
 {
-    WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd, PFN_SC_Present renderTrig,
+    WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd, UINT flags, PFN_SC_Present renderTrig,
                            PFN_SC_Clean clearTrig, PFN_SC_Release releaseTrig, bool isUWP);
     ~WrappedIDXGISwapChain4();
 
@@ -83,6 +83,7 @@ struct DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapCha
 
     IDXGISwapChain* m_pReal = nullptr;
     LONG m_iRefcount;
+    UINT _lastFlags = 0;
 
     IUnknown* Device = nullptr;
     IUnknown* Device2 = nullptr;

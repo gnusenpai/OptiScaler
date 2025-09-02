@@ -460,6 +460,7 @@ class Config
     CustomOptional<bool> SkipColorSpace { false };
 
     // V-Sync
+    CustomOptional<bool> OverrideVsync { false };
     CustomOptional<bool, NoDefault> ForceVsync;
     CustomOptional<UINT> VsyncInterval { 0 };
 

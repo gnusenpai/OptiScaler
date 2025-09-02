@@ -13,13 +13,14 @@
 
 static int scCount = 0;
 
-WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd,
+WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd, UINT flags,
                                                PFN_SC_Present renderTrig, PFN_SC_Clean clearTrig,
                                                PFN_SC_Release releaseTrig, bool isUWP)
     : m_pReal(real), Device(pDevice), Handle(hWnd), RenderTrig(renderTrig), ClearTrig(clearTrig),
       ReleaseTrig(releaseTrig), m_iRefcount(1), UWP(isUWP)
 {
     id = ++scCount;
+    _lastFlags = flags;
 
     m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal1));
     if (m_pReal1 != nullptr)
@@ -330,12 +331,22 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
     State::Instance().SCchanged = true;
 
+    if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen &&
+        State::Instance().currentFG == nullptr)
+    {
+        SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+        if (BufferCount < 2)
+            BufferCount = 2;
+    }
+
     LOG_DEBUG("BufferCount: {0}, Width: {1}, Height: {2}, NewFormat: {3}, SwapChainFlags: {4:X}", BufferCount, Width,
               Height, (UINT) NewFormat, SwapChainFlags);
 
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
         State::Instance().skipHeapCapture = true;
 
+    _lastFlags = SwapChainFlags;
     result = m_pReal->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
 
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
@@ -623,6 +634,15 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     State::Instance().SCchanged = true;
 
+    if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen &&
+        State::Instance().currentFG == nullptr)
+    {
+        SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+        if (BufferCount < 2)
+            BufferCount = 2;
+    }
+
     LOG_DEBUG(
         "BufferCount: {0}, Width: {1}, Height: {2}, NewFormat: {3}, SwapChainFlags: {4:X}, pCreationNodeMask: {5}",
         BufferCount, Width, Height, (UINT) Format, SwapChainFlags, *pCreationNodeMask);
@@ -630,6 +650,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
         State::Instance().skipHeapCapture = true;
 
+    _lastFlags = SwapChainFlags;
     result =
         m_pReal3->ResizeBuffers1(BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask, ppPresentQueue);
 

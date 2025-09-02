@@ -23,6 +23,7 @@ enum class GameQuirk : uint64_t
     DontUseNTShared,
     DontUseUnrealBarriers,
     SkipFirst10Frames,
+    DisableVsyncOverride,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessStateOverride,
@@ -189,6 +190,9 @@ static const QuirkEntry quirkTable[] = {
     // Supraworld
     QUIRK_ENTRY("supraworld-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
+    // Final Fantasy XIV
+    QUIRK_ENTRY("ffxiv_dx11.exe", GameQuirk::DisableVsyncOverride),
+
     // Warhammer 40,000: Darktide
     // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("darktide.exe", GameQuirk::DisableDxgiSpoofing),
@@ -289,6 +293,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Skip turning the first swapchain created into an FSR swapchain");
     if (quirks & GameQuirk::FixSlSimulationMarkers)
         spdlog::info("Quirk: Correct simulation start marker's frame id");
+    if (quirks & GameQuirk::DisableVsyncOverride)
+        spdlog::info("Quirk: Don't use V-Sync overrides");
 
     return;
 }

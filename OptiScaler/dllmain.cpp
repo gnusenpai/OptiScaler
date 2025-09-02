@@ -1044,6 +1044,9 @@ static void CheckQuirks()
     if (quirks & GameQuirk::SkipFirst10Frames && !Config::Instance()->SkipFirstFrames.has_value())
         Config::Instance()->SkipFirstFrames.set_volatile_value(10);
 
+    if (quirks & GameQuirk::DisableVsyncOverride && !Config::Instance()->OverrideVsync.has_value())
+        Config::Instance()->OverrideVsync.set_volatile_value(false);
+
     State::Instance().gameQuirks = quirks;
 }
 
