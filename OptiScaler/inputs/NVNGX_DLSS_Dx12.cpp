@@ -38,55 +38,6 @@ static void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Reso
     InCommandList->ResourceBarrier(1, &barrier);
 }
 
-static bool CreateBufferResource(LPCWSTR Name, ID3D12Device* InDevice, ID3D12Resource* InSource,
-                                 D3D12_RESOURCE_STATES InState, ID3D12Resource** OutResource)
-{
-    if (InDevice == nullptr || InSource == nullptr)
-        return false;
-
-    D3D12_RESOURCE_DESC texDesc = InSource->GetDesc();
-
-    if (*OutResource != nullptr)
-    {
-        auto bufDesc = (*OutResource)->GetDesc();
-
-        if (bufDesc.Width != (UINT64) (texDesc.Width) || bufDesc.Height != (UINT) (texDesc.Height) ||
-            bufDesc.Format != texDesc.Format)
-        {
-            (*OutResource)->Release();
-            (*OutResource) = nullptr;
-        }
-        else
-        {
-            return true;
-        }
-    }
-
-    D3D12_HEAP_PROPERTIES heapProperties;
-    D3D12_HEAP_FLAGS heapFlags;
-    HRESULT hr = InSource->GetHeapProperties(&heapProperties, &heapFlags);
-
-    if (hr != S_OK)
-    {
-        LOG_ERROR("GetHeapProperties result: {0:X}", hr);
-        return false;
-    }
-
-    // texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; // | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
-    hr = InDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &texDesc, InState, nullptr,
-                                           IID_PPV_ARGS(OutResource));
-
-    if (hr != S_OK)
-    {
-        LOG_ERROR("CreateCommittedResource result: {0:X}", hr);
-        return false;
-    }
-
-    (*OutResource)->SetName(Name);
-    return true;
-}
-
 #pragma region Hooks
 
 typedef void (*PFN_SetComputeRootSignature)(ID3D12GraphicsCommandList* commandList,
