@@ -114,7 +114,7 @@ class KernelHooks
         // NvApi64.dll
         if (CheckDllName(&lcaseLibName, &nvapiNames))
         {
-            if (!State::Instance().enablerAvailable && Config::Instance()->OverrideNvapiDll.value_or_default())
+            if (Config::Instance()->OverrideNvapiDll.value_or_default())
             {
                 LOG_INFO("{0} call!", lcaseLibName);
 
@@ -366,12 +366,9 @@ class KernelHooks
 
             if (module != nullptr)
             {
-                if (!State::Instance().enablerAvailable)
-                {
-                    HookForVulkanSpoofing(module);
-                    HookForVulkanExtensionSpoofing(module);
-                    HookForVulkanVRAMSpoofing(module);
-                }
+                HookForVulkanSpoofing(module);
+                HookForVulkanExtensionSpoofing(module);
+                HookForVulkanVRAMSpoofing(module);
 
                 HooksVk::HookVk(module);
             }
@@ -393,7 +390,7 @@ class KernelHooks
 
                 CheckForGPU();
 
-                if (!State::Instance().enablerAvailable && Config::Instance()->DxgiSpoofing.value_or_default())
+                if (Config::Instance()->DxgiSpoofing.value_or_default())
                     HookDxgiForSpoofing();
 
                 if (Config::Instance()->OverlayMenu.value_or_default())
@@ -602,7 +599,7 @@ class KernelHooks
         // NvApi64.dll
         if (CheckDllNameW(&lcaseLibName, &nvapiNamesW))
         {
-            if (!State::Instance().enablerAvailable && Config::Instance()->OverrideNvapiDll.value_or_default())
+            if (Config::Instance()->OverrideNvapiDll.value_or_default())
             {
                 LOG_INFO("{0} call!", lcaseLibNameA);
 
@@ -829,12 +826,9 @@ class KernelHooks
 
             if (module != nullptr)
             {
-                if (!State::Instance().enablerAvailable)
-                {
-                    HookForVulkanSpoofing(module);
-                    HookForVulkanExtensionSpoofing(module);
-                    HookForVulkanVRAMSpoofing(module);
-                }
+                HookForVulkanSpoofing(module);
+                HookForVulkanExtensionSpoofing(module);
+                HookForVulkanVRAMSpoofing(module);
 
                 HooksVk::HookVk(module);
             }
@@ -852,7 +846,7 @@ class KernelHooks
 
                 CheckForGPU();
 
-                if (!State::Instance().enablerAvailable && Config::Instance()->DxgiSpoofing.value_or_default())
+                if (Config::Instance()->DxgiSpoofing.value_or_default())
                     HookDxgiForSpoofing();
 
                 if (Config::Instance()->OverlayMenu.value_or_default())

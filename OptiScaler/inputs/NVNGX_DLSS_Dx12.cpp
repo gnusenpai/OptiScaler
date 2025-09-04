@@ -682,14 +682,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_CreateFeature(ID3D12GraphicsComma
     auto handleId = IFeature::GetNextHandleId();
     LOG_INFO("HandleId: {0}", handleId);
 
-    // DLSS Enabler check
-    int deAvail;
-    if (InParameters->Get("DLSSEnabler.Available", &deAvail) == NVSDK_NGX_Result_Success)
-    {
-        LOG_INFO("DLSSEnabler.Available: {0}", deAvail);
-        State::Instance().enablerAvailable = (deAvail > 0);
-    }
-
     // nvsdk logging - ini first
     if (!Config::Instance()->LogToNGX.has_value())
     {
@@ -1173,70 +1165,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
 
     if (InCallback)
         LOG_INFO("callback exist");
-
-    // DLSS Enabler
-    {
-        int deAvail = 0;
-        if (!State::Instance().enablerAvailable &&
-            InParameters->Get("DLSSEnabler.Available", &deAvail) == NVSDK_NGX_Result_Success)
-        {
-            if (State::Instance().enablerAvailable != (deAvail > 0))
-                LOG_INFO("DLSSEnabler.Available: {0}", deAvail);
-
-            State::Instance().enablerAvailable = (deAvail > 0);
-        }
-
-        if (State::Instance().enablerAvailable)
-        {
-            int limit = 0;
-            if (InParameters->Get("FramerateLimit", &limit) == NVSDK_NGX_Result_Success)
-            {
-                if (Config::Instance()->DE_FramerateLimit.has_value())
-                {
-                    if (Config::Instance()->DE_FramerateLimit.value() != limit)
-                    {
-                        LOG_DEBUG("DLSS Enabler FramerateLimit new value: {0}",
-                                  Config::Instance()->DE_FramerateLimit.value());
-                        InParameters->Set("FramerateLimit", Config::Instance()->DE_FramerateLimit.value());
-                    }
-                }
-                else
-                {
-                    LOG_INFO("DLSS Enabler FramerateLimit initial value: {0}", limit);
-                    Config::Instance()->DE_FramerateLimit = limit;
-                }
-            }
-            else if (Config::Instance()->DE_FramerateLimit.has_value())
-            {
-                InParameters->Set("FramerateLimit", Config::Instance()->DE_FramerateLimit.value());
-            }
-
-            int dfgAvail = 0;
-            if (!Config::Instance()->DE_DynamicLimitAvailable &&
-                InParameters->Get("DFG.Available", &dfgAvail) == NVSDK_NGX_Result_Success)
-                Config::Instance()->DE_DynamicLimitAvailable = dfgAvail;
-
-            int dfgEnabled = 0;
-            if (InParameters->Get("DFG.Enabled", &dfgEnabled) == NVSDK_NGX_Result_Success)
-            {
-                if (Config::Instance()->DE_DynamicLimitEnabled.has_value())
-                {
-                    if (Config::Instance()->DE_DynamicLimitEnabled.value() != dfgEnabled)
-                    {
-                        LOG_DEBUG("DLSS Enabler DFG {0}",
-                                  Config::Instance()->DE_DynamicLimitEnabled.value() == 0 ? "disabled" : "enabled");
-                        InParameters->Set("DFG.Enabled", Config::Instance()->DE_DynamicLimitEnabled.value());
-                    }
-                }
-                else
-                {
-                    LOG_INFO("DLSS Enabler DFG initial value: {0} ({1})", dfgEnabled == 0 ? "disabled" : "enabled",
-                             dfgEnabled);
-                    Config::Instance()->DE_DynamicLimitEnabled = dfgEnabled;
-                }
-            }
-        }
-    }
 
     if (deviceContext->feature)
     {

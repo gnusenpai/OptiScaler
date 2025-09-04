@@ -110,7 +110,7 @@ void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
 
     if (functionPointer)
     {
-        if (InterfaceId == GET_ID(NvAPI_GPU_GetArchInfo) && !State::Instance().enablerAvailable)
+        if (InterfaceId == GET_ID(NvAPI_GPU_GetArchInfo))
         {
             o_NvAPI_GPU_GetArchInfo = reinterpret_cast<decltype(&NvAPI_GPU_GetArchInfo)>(functionPointer);
             return &hkNvAPI_GPU_GetArchInfo;

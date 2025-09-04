@@ -422,15 +422,6 @@ class Config
     CustomOptional<bool> FGXeFGDebugView { false };
     CustomOptional<bool> FGXeFGForceBorderless { false };
 
-    // DLSS Enabler
-    std::optional<int> DE_FramerateLimit; // off - vsync - number
-    std::optional<bool> DE_FramerateLimitVsync;
-    std::optional<int> DE_DynamicLimitAvailable; // DFG.Available
-    std::optional<int> DE_DynamicLimitEnabled;   // DFG.Enabled
-    std::optional<std::string> DE_Generator;     // auto - fsr30 - fsr31 - dlssg // "auto"
-    std::optional<std::string> DE_Reflex;        // on - boost - off // "on"
-    std::optional<std::string> DE_ReflexEmu;     // auto - on - off // "auto"
-
     // fakenvapi
     CustomOptional<bool> FN_EnableLogs { true };
     CustomOptional<bool> FN_EnableTraceLogs { false };

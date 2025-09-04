@@ -40,7 +40,7 @@ class NtdllHooks
         auto lcaseLibNameA = wstring_to_string(lcaseLibName);
 
         // If Opti is not loading as nvngx.dll
-        if (!State::Instance().enablerAvailable && !State::Instance().isWorkingAsNvngx)
+        if (!State::Instance().isWorkingAsNvngx)
         {
             // exe path
             auto exePath = Util::ExePath().parent_path().wstring();
