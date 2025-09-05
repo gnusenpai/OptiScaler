@@ -3,7 +3,7 @@
 #include "ffx_api.h"
 
 const size_t scContext = 0x13375CC;
-const size_t fcContext = 0x133757C;
+const size_t fgContext = 0x133757C;
 const uint32_t rcContinue = 100;
 
 ffxReturnCode_t ffxCreateContext_Dx12FG(ffxContext* context, ffxCreateContextDescHeader* desc,

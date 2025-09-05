@@ -356,9 +356,6 @@
     <ClInclude Include="inputs\FfxApi_Vk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FSR4Upgrade.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="inputs\NVNGX_DLSS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -542,7 +539,16 @@
     <ClInclude Include="inputs\FG\FfxApi_Dx12_FG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FSR4ModelSelection.h">
+    <ClInclude Include="fsr4\FSR4ModelSelection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fsr4\FSR4Upgrade.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inputs\FG\FSR3_Dx12_FG.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inputs\FG\Upscaler_Inputs_Dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -848,7 +854,13 @@
     <ClCompile Include="inputs\FG\FfxApi_Dx12_FG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FSR4ModelSelection.cpp">
+    <ClCompile Include="fsr4\FSR4ModelSelection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="inputs\FG\FSR3_Dx12_FG.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="inputs\FG\Upscaler_Inputs_Dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

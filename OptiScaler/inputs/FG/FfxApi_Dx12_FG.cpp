@@ -212,7 +212,7 @@ ffxReturnCode_t ffxCreateContext_Dx12FG(ffxContext* context, ffxCreateContextDes
 
             State::Instance().currentFG->CreateContext(_device, _fgConst);
 
-            *context = (ffxContext) fcContext;
+            *context = (ffxContext) fgContext;
             return FFX_API_RETURN_OK;
         }
     }
@@ -312,7 +312,7 @@ ffxReturnCode_t ffxDestroyContext_Dx12FG(ffxContext* context, const ffxAllocatio
         State::Instance().currentFG->Shutdown();
         return FFX_API_RETURN_OK;
     }
-    else if (State::Instance().currentFG != nullptr && (void*) fcContext == *context)
+    else if (State::Instance().currentFG != nullptr && (void*) fgContext == *context)
     {
         LOG_INFO("Destroying FG Context: {:X}", (size_t) State::Instance().currentFG);
         State::Instance().currentFG->DestroyFGContext();

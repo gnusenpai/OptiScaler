@@ -12,6 +12,8 @@
 #include "ffx_upscale.h"
 #include "dx12/ffx_api_dx12.h"
 
+#include <magic_enum.hpp>
+
 static std::unordered_map<ffxContext, ffxCreateContextDescUpscale> _initParams;
 static std::unordered_map<ffxContext, NVSDK_NGX_Parameter*> _nvParams;
 static std::unordered_map<ffxContext, NVSDK_NGX_Handle*> _contexts;
@@ -389,7 +391,7 @@ ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationC
 
     LOG_DEBUG("context: {:X}", (size_t) *context);
 
-    if (*context == (void*) scContext || *context == (void*) fcContext)
+    if (*context == (void*) scContext || *context == (void*) fgContext)
         return ffxDestroyContext_Dx12FG(context, memCb);
 
     bool upscalerContext = false;
@@ -445,9 +447,17 @@ ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, ffxConfigureDescHeader* d
             return result;
     }
 
-    if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE &&
-        !Config::Instance()->EnableHotSwapping.value_or_default())
-        return FFX_API_RETURN_OK;
+    if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE)
+    {
+
+        auto kvDesc = (ffxConfigureDescUpscaleKeyValue*) desc;
+
+        LOG_DEBUG("key: {}, value: {}, ptr: {:X}", magic_enum::enum_name((FfxApiConfigureUpscaleKey) kvDesc->key),
+                  kvDesc->u64, (size_t) kvDesc->ptr);
+
+        if (!Config::Instance()->EnableHotSwapping.value_or_default())
+            return FFX_API_RETURN_OK;
+    }
 
     return FfxApiProxy::D3D12_Configure()(context, desc);
 }
