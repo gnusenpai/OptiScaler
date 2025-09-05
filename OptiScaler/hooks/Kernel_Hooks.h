@@ -1694,7 +1694,7 @@ class KernelHooks
         if (lpProcName != nullptr && (hModule == amdxc64Mark || hModule == nullptr) &&
             lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0)
         {
-            return (FARPROC) &customAmdExtD3DCreateInterface;
+            return (FARPROC) &hkAmdExtD3DCreateInterface;
         }
 
         if (State::Instance().isRunningOnLinux && lpProcName != nullptr &&
