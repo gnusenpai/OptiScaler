@@ -152,7 +152,7 @@ bool FeatureProvider_Dx12::ChangeFeature(std::string upscalerName, ID3D12Device*
                 contextData->changeBackendCounter = 0;
             }
 
-            return NVSDK_NGX_Result_Success;
+            return true;
         }
 
         // create new feature
@@ -165,10 +165,10 @@ bool FeatureProvider_Dx12::ChangeFeature(std::string upscalerName, ID3D12Device*
             if (!GetFeature(State::Instance().newBackend, handleId, parameters, &contextData->feature))
             {
                 LOG_ERROR("Upscaler can't created");
-                return NVSDK_NGX_Result_Fail;
+                return false;
             }
 
-            return NVSDK_NGX_Result_Success;
+            return true;
         }
 
         // init feature

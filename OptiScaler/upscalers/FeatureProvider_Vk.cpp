@@ -1,58 +1,40 @@
-#include "FeatureProvider_Dx11.h"
+#include "FeatureProvider_Vk.h"
 
 #include "Util.h"
 #include "Config.h"
 
 #include "NVNGX_Parameter.h"
 
-#include "upscalers/dlss/DLSSFeature_Dx11.h"
-#include "upscalers/dlssd/DLSSDFeature_Dx11.h"
-#include "upscalers/fsr2/FSR2Feature_Dx11.h"
-#include "upscalers/fsr2/FSR2Feature_Dx11On12.h"
-#include "upscalers/fsr2_212/FSR2Feature_Dx11On12_212.h"
-#include "upscalers/fsr31/FSR31Feature_Dx11.h"
-#include "upscalers/fsr31/FSR31Feature_Dx11On12.h"
-#include "upscalers/xess/XeSSFeature_Dx11.h"
-#include "upscalers/xess/XeSSFeature_Dx11on12.h"
+#include "upscalers/fsr2/FSR2Feature_Vk.h"
+#include "upscalers/dlss/DLSSFeature_Vk.h"
+#include "upscalers/dlssd/DLSSDFeature_Vk.h"
+#include "upscalers/fsr2_212/FSR2Feature_Vk_212.h"
+#include "upscalers/fsr31/FSR31Feature_Vk.h"
+#include "upscalers/xess/XeSSFeature_Vk.h"
 
-bool FeatureProvider_Dx11::GetFeature(std::string upscalerName, UINT handleId, NVSDK_NGX_Parameter* parameters,
-                                      std::unique_ptr<IFeature_Dx11>* feature)
+bool FeatureProvider_Vk::GetFeature(std::string upscalerName, UINT handleId, NVSDK_NGX_Parameter* parameters,
+                                    std::unique_ptr<IFeature_Vk>* feature)
 {
     do
     {
         if (upscalerName == "xess")
         {
-            *feature = std::make_unique<XeSSFeature_Dx11>(handleId, parameters);
+            *feature = std::make_unique<XeSSFeature_Vk>(handleId, parameters);
             break;
         }
-        else if (upscalerName == "xess_12")
+        else if (upscalerName == "fsr21")
         {
-            *feature = std::make_unique<XeSSFeatureDx11on12>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr21_12")
-        {
-            *feature = std::make_unique<FSR2FeatureDx11on12_212>(handleId, parameters);
+            *feature = std::make_unique<FSR2FeatureVk212>(handleId, parameters);
             break;
         }
         else if (upscalerName == "fsr22")
         {
-            *feature = std::make_unique<FSR2FeatureDx11>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr22_12")
-        {
-            *feature = std::make_unique<FSR2FeatureDx11on12>(handleId, parameters);
+            *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
             break;
         }
         else if (upscalerName == "fsr31")
         {
-            *feature = std::make_unique<FSR31FeatureDx11>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr31_12")
-        {
-            *feature = std::make_unique<FSR31FeatureDx11on12>(handleId, parameters);
+            *feature = std::make_unique<FSR31FeatureVk>(handleId, parameters);
             break;
         }
 
@@ -60,12 +42,12 @@ bool FeatureProvider_Dx11::GetFeature(std::string upscalerName, UINT handleId, N
         {
             if (upscalerName == "dlss")
             {
-                *feature = std::make_unique<DLSSFeatureDx11>(handleId, parameters);
+                *feature = std::make_unique<DLSSFeatureVk>(handleId, parameters);
                 break;
             }
             else if (upscalerName == "dlssd")
             {
-                *feature = std::make_unique<DLSSDFeatureDx11>(handleId, parameters);
+                *feature = std::make_unique<DLSSDFeatureVk>(handleId, parameters);
                 break;
             }
         }
@@ -75,7 +57,7 @@ bool FeatureProvider_Dx11::GetFeature(std::string upscalerName, UINT handleId, N
     if (!(*feature)->ModuleLoaded())
     {
         (*feature).reset();
-        *feature = std::make_unique<FSR2FeatureDx11>(handleId, parameters);
+        *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
         upscalerName = "fsr22";
     }
 
@@ -86,21 +68,24 @@ bool FeatureProvider_Dx11::GetFeature(std::string upscalerName, UINT handleId, N
         if (upscalerName == "dlssd")
             upscalerName = "dlss";
 
-        Config::Instance()->Dx11Upscaler = upscalerName;
+        Config::Instance()->VulkanUpscaler = upscalerName;
     }
 
     return result;
 }
 
-bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device* device,
-                                         ID3D11DeviceContext* devContext, UINT handleId,
-                                         NVSDK_NGX_Parameter* parameters, ContextData<IFeature_Dx11>* contextData)
+bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance instance, VkPhysicalDevice pd,
+                                       VkDevice device, VkCommandBuffer cmdBuffer, PFN_vkGetInstanceProcAddr gipa,
+                                       PFN_vkGetDeviceProcAddr gdpa, UINT handleId, NVSDK_NGX_Parameter* parameters,
+                                       ContextData<IFeature_Vk>* contextData)
 {
     if (State::Instance().newBackend == "" ||
         (!Config::Instance()->DLSSEnabled.value_or_default() && State::Instance().newBackend == "dlss"))
-        State::Instance().newBackend = Config::Instance()->Dx11Upscaler.value_or_default();
+        State::Instance().newBackend = Config::Instance()->VulkanUpscaler.value_or_default();
 
     contextData->changeBackendCounter++;
+
+    LOG_INFO("changeBackend is true, counter: {0}", contextData->changeBackendCounter);
 
     // first release everything
     if (contextData->changeBackendCounter == 1)
@@ -112,7 +97,7 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
             auto dc = contextData->feature.get();
 
             if (State::Instance().newBackend != "dlssd" && State::Instance().newBackend != "dlss")
-                contextData->createParams = GetNGXParameters("OptiDx11");
+                contextData->createParams = GetNGXParameters("OptiVk");
             else
                 contextData->createParams = parameters;
 
@@ -123,7 +108,9 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
             contextData->createParams->Set(NVSDK_NGX_Parameter_OutHeight, dc->DisplayHeight());
             contextData->createParams->Set(NVSDK_NGX_Parameter_PerfQualityValue, dc->PerfQualityValue());
 
-            LOG_TRACE("sleeping before reset of current feature for 1000ms");
+            dc = nullptr;
+
+            LOG_DEBUG("sleeping before reset of current feature for 1000ms");
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
             contextData->feature.reset();
@@ -133,7 +120,7 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
         }
         else
         {
-            LOG_ERROR("can't find handle {0} in Dx11Contexts!", handleId);
+            LOG_ERROR("can't find handle {0} in VkContexts!", handleId);
 
             State::Instance().newBackend = "";
             State::Instance().changeBackend[handleId] = false;
@@ -147,7 +134,7 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
             contextData->changeBackendCounter = 0;
         }
 
-        return true;
+        return NVSDK_NGX_Result_Success;
     }
 
     if (contextData->changeBackendCounter == 2)
@@ -167,14 +154,9 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
 
     if (contextData->changeBackendCounter == 3)
     {
-        // then init and continue
-        auto initResult = contextData->feature->Init(device, devContext, contextData->createParams);
-
-        if (Config::Instance()->Dx11DelayedInit.value_or_default())
-        {
-            LOG_TRACE("sleeping after new Init of new feature for 1000ms");
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
+        // next frame create context
+        auto initResult =
+            contextData->feature->Init(instance, pd, device, cmdBuffer, gipa, gdpa, contextData->createParams);
 
         contextData->changeBackendCounter = 0;
 
@@ -184,15 +166,23 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
 
             if (State::Instance().newBackend != "dlssd")
             {
-                State::Instance().newBackend = "fsr22";
-                State::Instance().changeBackend[handleId] = true;
+                if (Config::Instance()->VulkanUpscaler == "dlss")
+                {
+                    State::Instance().newBackend = "xess";
+                }
+                else
+                {
+                    State::Instance().newBackend = "fsr21";
+                }
             }
             else
             {
-                State::Instance().newBackend = "";
-                State::Instance().changeBackend[handleId] = false;
-                return NVSDK_NGX_Result_Fail;
+                // Retry DLSSD
+                State::Instance().newBackend = "dlssd";
             }
+
+            State::Instance().changeBackend[handleId] = true;
+            return NVSDK_NGX_Result_Success;
         }
         else
         {
