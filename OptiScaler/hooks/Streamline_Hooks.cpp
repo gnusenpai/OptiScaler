@@ -115,7 +115,12 @@ sl::Result StreamlineHooks::hkslInit(sl::Preferences* pref, uint64_t sdkVersion)
 
     // renderAPI is optional so need to be careful, should only matter for Vulkan
     renderApi = pref->renderAPI;
+
     State::Instance().slFGInputs.reportEngineType(pref->engine);
+
+    // Treat engine type set in Streamline as ground truth
+    if (pref->engine == sl::EngineType::eUnreal)
+        State::Instance().gameQuirks |= GameQuirk::ForceUnrealEngine;
 
     // bool hookSetTag =
     //     (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG);
