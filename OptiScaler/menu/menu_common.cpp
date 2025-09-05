@@ -8,7 +8,7 @@
 #include <proxies/XeFG_Proxy.h>
 #include <proxies/FfxApi_Proxy.h>
 
-#include "DLSSG_Mod.h"
+#include <inputs/FG/DLSSG_Mod.h>
 
 #include <framegen/ffx/FSRFG_Dx12.h>
 

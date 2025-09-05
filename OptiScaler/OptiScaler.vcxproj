@@ -377,7 +377,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="upscalers\fsr31\FSR31Feature_Dx11On12.h" />
     <ClInclude Include="upscalers\fsr31\FSR31Feature_Dx12.h" />
     <ClInclude Include="upscalers\fsr31\FSR31Feature_Vk.h" />
-    <ClInclude Include="DLSSG_Mod.h" />
+    <ClInclude Include="inputs\FG\DLSSG_Mod.h" />
     <ClInclude Include="inputs\FfxApi_Dx12.h" />
     <ClInclude Include="inputs\FSR2_Dx12.h" />
     <ClInclude Include="inputs\FSR3_Dx12.h" />
