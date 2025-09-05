@@ -483,48 +483,6 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
             _presentCallback = cDesc->presentCallback;
             _presentCallbackUserContext = cDesc->presentCallbackUserContext;
             _presentCallbackFrameId = cDesc->frameID;
-
-            // Probably because of queue can't capture at correct state
-            // if (fg->GetResource(FG_ResourceType::HudlessColor) == nullptr)
-            //{
-            //    LOG_DEBUG("Trying to copy current swapchain buffer as hudless");
-
-            //    IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
-            //    auto scIndex = sc->GetCurrentBackBufferIndex();
-
-            //    ID3D12Resource* currentBuffer = nullptr;
-            //    auto hr = sc->GetBuffer(scIndex, IID_PPV_ARGS(&currentBuffer));
-            //    if (hr != S_OK)
-            //    {
-            //        LOG_ERROR("sc->GetBuffer error: {:X}", (UINT) hr);
-            //    }
-
-            //    auto cmdList = fg->GetUICommandList();
-
-            //    auto hDesc = currentBuffer->GetDesc();
-            //    Dx12Resource hudless {};
-            //    hudless.cmdList = cmdList;
-            //    hudless.height = hDesc.Height;
-            //    hudless.resource = currentBuffer;
-            //    hudless.state = D3D12_RESOURCE_STATE_PRESENT;
-            //    hudless.type = FG_ResourceType::HudlessColor;
-            //    hudless.validity = FG_ResourceValidity::ValidNow;
-            //    hudless.width = hDesc.Width;
-            //    fg->SetResource(&hudless);
-
-            //    hr = cmdList->Close();
-            //    if (hr == S_OK)
-            //    {
-            //        ID3D12CommandList* cmdLists[1] = { cmdList };
-            //        fg->GetCommandQueue()->ExecuteCommandLists(1, cmdLists);
-            //    }
-            //    else
-            //    {
-            //        LOG_ERROR("cmdList->Close() error: {:X}", (UINT) hr);
-            //    }
-
-            //    currentBuffer->Release();
-            //}
         }
 
         if (cDesc->allowAsyncWorkloads || cDesc->onlyPresentGenerated)
@@ -735,14 +693,14 @@ ffxReturnCode_t ffxQuery_Dx12FG(ffxContext* context, ffxQueryDescHeader* desc)
     }
     else if (desc->type == FFX_API_QUERY_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_INTERPOLATIONCOMMANDLIST_DX12)
     {
-        // auto cDesc = (ffxQueryDescFrameGenerationSwapChainInterpolationCommandListDX12*) desc;
-        // auto fg = State::Instance().currentFG;
+        auto cDesc = (ffxQueryDescFrameGenerationSwapChainInterpolationCommandListDX12*) desc;
+        auto fg = State::Instance().currentFG;
 
-        // if (fg != nullptr)
-        //{
-        //     *cDesc->pOutCommandList = fg->GetUICommandList();
-        //     LOG_DEBUG("Returning cmdList: {:X}", (size_t) *cDesc->pOutCommandList);
-        // }
+        if (fg != nullptr)
+        {
+            *cDesc->pOutCommandList = fg->GetUICommandList();
+            LOG_DEBUG("Returning cmdList: {:X}", (size_t) *cDesc->pOutCommandList);
+        }
 
         return FFX_API_RETURN_OK;
     }

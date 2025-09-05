@@ -822,12 +822,25 @@ bool FSRFG_Dx12::ExecuteCommandList(int index)
 {
     LOG_DEBUG();
 
+    std::vector<ID3D12CommandList*> lists;
+
+    if (_uiCommandListResetted[index])
+    {
+        LOG_DEBUG("Executing UI cmdList: {:X}", (size_t) _uiCommandList[index]);
+        lists.push_back(_uiCommandList[index]);
+        _uiCommandListResetted[index] = false;
+    }
+
     if (WaitingExecution(index))
     {
-        LOG_DEBUG("Executing FG cmdList: {:X} with queue: {:X}", (size_t) _fgCommandList[index],
-                  (size_t) _gameCommandQueue);
-        _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_fgCommandList[index]);
+        LOG_DEBUG("Executing FG cmdList: {:X}", (size_t) _fgCommandList[index]);
+        lists.push_back(_fgCommandList[index]);
         SetExecuted();
+    }
+
+    if (lists.size() > 0)
+    {
+        _gameCommandQueue->ExecuteCommandLists(lists.size(), lists.data());
         return true;
     }
 
@@ -930,18 +943,21 @@ ID3D12GraphicsCommandList* FSRFG_Dx12::GetUICommandList(int index)
     if (index < 0)
         index = GetIndex();
 
-    auto result = _uiCommandAllocator[index]->Reset();
-
-    if (result == S_OK)
+    if (!_uiCommandListResetted[index])
     {
-        result = _uiCommandList[index]->Reset(_uiCommandAllocator[index], nullptr);
+        auto result = _uiCommandAllocator[index]->Reset();
 
-        if (result != S_OK)
-            LOG_ERROR("_uiCommandList[{}]->Reset() error: {:X}", index, (UINT) result);
-    }
-    else
-    {
-        LOG_ERROR("_uiCommandAllocator[{}]->Reset() error: {:X}", index, (UINT) result);
+        if (result == S_OK)
+        {
+            result = _uiCommandList[index]->Reset(_uiCommandAllocator[index], nullptr);
+
+            if (result != S_OK)
+                LOG_ERROR("_uiCommandList[{}]->Reset() error: {:X}", index, (UINT) result);
+        }
+        else
+        {
+            LOG_ERROR("_uiCommandAllocator[{}]->Reset() error: {:X}", index, (UINT) result);
+        }
     }
 
     return _uiCommandList[index];

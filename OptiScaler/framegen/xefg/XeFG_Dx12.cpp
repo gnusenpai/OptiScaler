@@ -775,6 +775,14 @@ bool XeFG_Dx12::Present()
         }
     }
 
+    auto fIndex = GetIndex();
+    if (_uiCommandListResetted[fIndex])
+    {
+        LOG_DEBUG("Executing UI cmdList: {:X}", (size_t) _uiCommandList[fIndex]);
+        _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[fIndex]);
+        _uiCommandListResetted[fIndex] = false;
+    }
+
     return Dispatch();
 }
 
@@ -893,8 +901,22 @@ ID3D12GraphicsCommandList* XeFG_Dx12::GetUICommandList(int index)
     if (index < 0)
         index = GetIndex();
 
-    _uiCommandAllocator[index]->Reset();
-    _uiCommandList[index]->Reset(_uiCommandAllocator[index], nullptr);
+    if (!_uiCommandListResetted[index])
+    {
+        auto result = _uiCommandAllocator[index]->Reset();
+
+        if (result == S_OK)
+        {
+            result = _uiCommandList[index]->Reset(_uiCommandAllocator[index], nullptr);
+
+            if (result != S_OK)
+                LOG_ERROR("_uiCommandList[{}]->Reset() error: {:X}", index, (UINT) result);
+        }
+        else
+        {
+            LOG_ERROR("_uiCommandAllocator[{}]->Reset() error: {:X}", index, (UINT) result);
+        }
+    }
 
     return _uiCommandList[index];
 }

@@ -20,19 +20,18 @@ bool IFGFeature_Dx12::GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATE
 
     auto fIndex = GetIndex();
 
-    auto result = _copyCommandAllocator[fIndex]->Reset();
-    if (result != S_OK)
-        return false;
+    if (!_uiCommandListResetted[fIndex])
+    {
+        auto result = _copyCommandAllocator[fIndex]->Reset();
+        if (result != S_OK)
+            return false;
 
-    result = _copyCommandList[fIndex]->Reset(_copyCommandAllocator[fIndex], nullptr);
-    if (result != S_OK)
-        return false;
+        result = _copyCommandList[fIndex]->Reset(_copyCommandAllocator[fIndex], nullptr);
+        if (result != S_OK)
+            return false;
+    }
 
     _copyCommandList[fIndex]->CopyResource(output, resource->GetResource());
-
-    _copyCommandList[fIndex]->Close();
-    ID3D12CommandList* commandList = _copyCommandList[fIndex];
-    _gameCommandQueue->ExecuteCommandLists(1, &commandList);
 
     return true;
 }
@@ -62,6 +61,7 @@ void IFGFeature_Dx12::NewFrame()
     LOG_DEBUG("_frameCount: {}, fIndex: {}", _frameCount, fIndex);
 
     _frameResources[fIndex].clear();
+    _uiCommandListResetted[fIndex] = false;
 }
 
 void IFGFeature_Dx12::FlipResource(Dx12Resource* resource)
