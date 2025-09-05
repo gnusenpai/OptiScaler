@@ -1012,6 +1012,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         FeatureProvider_Dx12::ChangeFeature(State::Instance().newBackend, D3D12Device, InCmdList, handleId,
                                             InParameters, deviceContext);
 
+        evalCounter = 0;
+
         return NVSDK_NGX_Result_Success;
     }
 

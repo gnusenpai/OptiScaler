@@ -11,6 +11,7 @@
 #include "upscalers/fsr2_212/FSR2Feature_Dx12_212.h"
 #include "upscalers/fsr31/FSR31Feature_Dx12.h"
 #include "upscalers/xess/XeSSFeature_Dx12.h"
+#include "FeatureProvider_Dx11.h"
 
 bool FeatureProvider_Dx12::GetFeature(std::string upscalerName, UINT handleId, NVSDK_NGX_Parameter* parameters,
                                       std::unique_ptr<IFeature_Dx12>* feature)
@@ -161,8 +162,7 @@ bool FeatureProvider_Dx12::ChangeFeature(std::string upscalerName, ID3D12Device*
 
             contextData->feature.reset();
 
-            if (!FeatureProvider_Dx12::GetFeature(State::Instance().newBackend, handleId, parameters,
-                                                  &contextData->feature))
+            if (!GetFeature(State::Instance().newBackend, handleId, parameters, &contextData->feature))
             {
                 LOG_ERROR("Upscaler can't created");
                 return NVSDK_NGX_Result_Fail;
