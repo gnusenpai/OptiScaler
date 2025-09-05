@@ -117,13 +117,7 @@ void HC_Dx12::SetBufferState(UINT index, ID3D12GraphicsCommandList* InCommandLis
     if (_bufferState[index] == InState)
         return;
 
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = _buffer[index];
-    barrier.Transition.StateBefore = _bufferState[index];
-    barrier.Transition.StateAfter = InState;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    InCommandList->ResourceBarrier(1, &barrier);
+    ResourceBarrier(InCommandList, _buffer[index], _bufferState[index], InState);
 
     _bufferState[index] = InState;
 }
