@@ -458,11 +458,24 @@ inline static HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOu
 {
     CheckForGPU();
 
-    if (!Config::Instance()->Fsr4Update.value_or_default())
+    if (!Config::Instance()->Fsr4Update.value_or_default() && o_AmdExtD3DCreateInterface != nullptr)
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
 
-    // If querying IAmdExtFfxApi
-    if (riid == __uuidof(IAmdExtFfxApi))
+    // Proton bleeding edge ships amdxc64 that is missing some required functions
+    else if (riid == __uuidof(IAmdExtFfxFirst) && State::Instance().isRunningOnLinux)
+    {
+        // Required for the custom AmdExtFfxApi, lack of it triggers visual glitches
+        if (_amdExtFfxFirst == nullptr)
+            _amdExtFfxFirst = new AmdExtFfxFirst();
+
+        *ppvObject = _amdExtFfxFirst;
+
+        LOG_INFO("IAmdExtFfxFirst queried, returning custom AmdExtFfxFirst");
+
+        return S_OK;
+    }
+
+    else if (riid == __uuidof(IAmdExtFfxApi))
     {
         if (_amdExtFfxApi == nullptr)
             _amdExtFfxApi = new AmdExtFfxApi();
@@ -475,38 +488,8 @@ inline static HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOu
         return S_OK;
     }
 
-    if (o_AmdExtD3DCreateInterface != nullptr)
+    else if (o_AmdExtD3DCreateInterface != nullptr)
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
-
-    return E_NOINTERFACE;
-}
-
-inline static HRESULT STDMETHODCALLTYPE customAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
-{
-    if (riid == __uuidof(IAmdExtFfxFirst))
-    {
-        // Required for the custom AmdExtFfxApi, lack of it triggers visual glitches
-        if (_amdExtFfxFirst == nullptr)
-            _amdExtFfxFirst = new AmdExtFfxFirst();
-
-        *ppvObject = _amdExtFfxFirst;
-
-        LOG_INFO("Custom IAmdExtFfxFirst queried, returning custom AmdExtFfxFirst");
-
-        return S_OK;
-    }
-    else if (riid == __uuidof(IAmdExtFfxApi))
-    {
-        if (_amdExtFfxApi == nullptr)
-            _amdExtFfxApi = new AmdExtFfxApi();
-
-        // Return custom one
-        *ppvObject = _amdExtFfxApi;
-
-        LOG_INFO("Custom IAmdExtFfxApi queried, returning custom AmdExtFfxApi");
-
-        return S_OK;
-    }
 
     return E_NOINTERFACE;
 }
