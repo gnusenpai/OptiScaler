@@ -1,7 +1,9 @@
 #pragma once
 #include "pch.h"
+
 #include "Config.h"
-#include "DLSSG_Mod.h"
+
+// #include "inputs/FG/DLSSG_Mod.h"
 
 #include <ankerl/unordered_dense.h>
 
@@ -469,7 +471,7 @@ inline static void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
     InParams->Set(NVSDK_NGX_Parameter_RTXValue, 0);
 
     // not ideal as it doesn't take different APIs into account
-    if (DLSSGMod::isLoaded() || Config::Instance()->FGInput == FGInput::DLSSG)
+    if (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG)
     {
         InParams->Set("FrameGeneration.Available", 1);
         InParams->Set("FrameInterpolation.Available", 1);
