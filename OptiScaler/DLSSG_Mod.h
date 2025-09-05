@@ -64,7 +64,7 @@ class DLSSGMod
         if (_dx12_inited)
             return;
 
-        if (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems && !State::Instance().enablerAvailable)
+        if (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems)
         {
             if (_dll == nullptr)
             {
@@ -111,7 +111,7 @@ class DLSSGMod
         if (_vulkan_inited)
             return;
 
-        if (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems && !State::Instance().enablerAvailable)
+        if (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems)
         {
             if (_dll == nullptr)
             {

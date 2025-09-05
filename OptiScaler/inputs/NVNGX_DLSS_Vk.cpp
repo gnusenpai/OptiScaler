@@ -689,33 +689,25 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature1(VkDevice InDevice
             upscalerChoice = 2;
 
         // if Enabler does not set any upscaler
-        if (InParameters->Get("DLSSEnabler.VkBackend", &upscalerChoice) != NVSDK_NGX_Result_Success)
+        if (Config::Instance()->VulkanUpscaler.has_value())
         {
+            LOG_INFO("DLSS Enabler does not set any upscaler using ini: {0}",
+                     Config::Instance()->VulkanUpscaler.value());
 
-            if (Config::Instance()->VulkanUpscaler.has_value())
-            {
-                LOG_INFO("DLSS Enabler does not set any upscaler using ini: {0}",
-                         Config::Instance()->VulkanUpscaler.value());
-
-                if (Config::Instance()->VulkanUpscaler.value() == "fsr21")
-                    upscalerChoice = 0;
-                else if (Config::Instance()->VulkanUpscaler.value() == "fsr22")
-                    upscalerChoice = 1;
-                else if (Config::Instance()->VulkanUpscaler.value() == "dlss" &&
-                         Config::Instance()->DLSSEnabled.value_or_default())
-                    upscalerChoice = 2;
-                else if (Config::Instance()->VulkanUpscaler.value() == "fsr31")
-                    upscalerChoice = 3;
-                else if (Config::Instance()->VulkanUpscaler.value() == "xess")
-                    upscalerChoice = 4;
-            }
-
-            LOG_INFO("upscalerChoice: {0}", upscalerChoice);
+            if (Config::Instance()->VulkanUpscaler.value() == "fsr21")
+                upscalerChoice = 0;
+            else if (Config::Instance()->VulkanUpscaler.value() == "fsr22")
+                upscalerChoice = 1;
+            else if (Config::Instance()->VulkanUpscaler.value() == "dlss" &&
+                     Config::Instance()->DLSSEnabled.value_or_default())
+                upscalerChoice = 2;
+            else if (Config::Instance()->VulkanUpscaler.value() == "fsr31")
+                upscalerChoice = 3;
+            else if (Config::Instance()->VulkanUpscaler.value() == "xess")
+                upscalerChoice = 4;
         }
-        else
-        {
-            LOG_INFO("DLSS Enabler upscalerChoice: {0}", upscalerChoice);
-        }
+
+        LOG_INFO("upscalerChoice: {0}", upscalerChoice);
 
         if (upscalerChoice == 2)
         {
@@ -795,9 +787,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature1(VkDevice InDevice
             LOG_INFO("creating new FSR 2.2.1 feature");
             VkContexts[handleId].feature = std::make_unique<FSR2FeatureVk>(handleId, InParameters);
         }
-
-        // write back finel selected upscaler
-        InParameters->Set("DLSSEnabler.VkBackend", upscalerChoice);
     }
     else
     {
@@ -1014,16 +1003,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
     if (Config::Instance()->SkipFirstFrames.has_value() && evalCounter < Config::Instance()->SkipFirstFrames.value())
         return NVSDK_NGX_Result_Success;
 
-    // DLSS Enabler check
-    int deAvail;
-    if (InParameters->Get("DLSSEnabler.Available", &deAvail) == NVSDK_NGX_Result_Success)
-    {
-        if (State::Instance().enablerAvailable != (deAvail > 0))
-            LOG_INFO("DLSSEnabler.Available: {0}", deAvail);
-
-        State::Instance().enablerAvailable = (deAvail > 0);
-    }
-
     if (InCallback)
         LOG_WARN("callback exist");
 
@@ -1146,9 +1125,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
                     std::make_unique<FSR2FeatureVk212>(handleId, VkContexts[handleId].createParams);
                 upscalerChoice = 0;
             }
-
-            if (upscalerChoice >= 0)
-                InParameters->Set("DLSSEnabler.VkBackend", upscalerChoice);
 
             return NVSDK_NGX_Result_Success;
         }

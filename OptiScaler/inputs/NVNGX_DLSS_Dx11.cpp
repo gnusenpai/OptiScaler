@@ -695,16 +695,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
     if (Config::Instance()->SkipFirstFrames.has_value() && evalCounter < Config::Instance()->SkipFirstFrames.value())
         return NVSDK_NGX_Result_Success;
 
-    // DLSS Enabler check
-    int deAvail;
-    if (InParameters->Get("DLSSEnabler.Available", &deAvail) == NVSDK_NGX_Result_Success)
-    {
-        if (State::Instance().enablerAvailable != (deAvail > 0))
-            LOG_INFO("DLSSEnabler.Available: {0}", deAvail);
-
-        State::Instance().enablerAvailable = (deAvail > 0);
-    }
-
     if (InCallback)
         LOG_INFO("callback exist");
 

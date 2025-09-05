@@ -431,18 +431,6 @@ class NVNGXProxy
 
             do
             {
-                // From DLSS Enabler
-                _dll = KernelBaseProxy::LoadLibraryExW_()(L"dlss-enabler-ngx.dll", NULL, 0);
-
-                LOG_INFO("trying to load dlss-enabler-ngx.dll");
-
-                if (_dll)
-                {
-                    State::Instance().enablerAvailable = true;
-                    LOG_INFO("dlss-enabler-ngx.dll loaded from DLSS Enabler, ptr: {0:X}", (ULONG64) _dll);
-                    break;
-                }
-
                 std::wstring libraryName;
                 std::wstring libraryNameUS;
 
@@ -560,8 +548,7 @@ class NVNGXProxy
 
         if (_dll != nullptr)
         {
-            if (!State::Instance().enablerAvailable)
-                HookNgxApi(_dll);
+            HookNgxApi(_dll);
 
             LOG_INFO("getting nvngx method addresses");
 

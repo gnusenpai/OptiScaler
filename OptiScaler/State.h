@@ -129,9 +129,6 @@ class State
     API api = API::NotSelected;
     API swapchainApi = API::NotSelected;
 
-    // DLSS Enabler
-    bool enablerAvailable = false;
-
     // Framerate
     bool reflexLimitsFps = false;
     bool reflexShowWarning = false;

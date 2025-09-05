@@ -267,12 +267,6 @@ static void CheckWorkingMode()
             dllNamesW.push_back(L"OptiScaler_DontLoad.dll");
             dllNamesW.push_back(L"OptiScaler_DontLoad");
 
-            State::Instance().enablerAvailable = lCaseFilename == "dlss-enabler-upscaler.dll";
-            if (State::Instance().enablerAvailable)
-                Config::Instance()->LogToNGX.set_volatile_value(true);
-
-            State::Instance().isWorkingAsNvngx = !State::Instance().enablerAvailable;
-
             modeFound = true;
             break;
         }
@@ -667,11 +661,10 @@ static void CheckWorkingMode()
     {
         Config::Instance()->CheckUpscalerFiles();
 
-        if (!State::Instance().isWorkingAsNvngx || State::Instance().enablerAvailable)
+        if (!State::Instance().isWorkingAsNvngx)
         {
-            Config::Instance()->OverlayMenu.set_volatile_value(
-                (!State::Instance().isWorkingAsNvngx || State::Instance().enablerAvailable) &&
-                Config::Instance()->OverlayMenu.value_or_default());
+            Config::Instance()->OverlayMenu.set_volatile_value(!State::Instance().isWorkingAsNvngx &&
+                                                               Config::Instance()->OverlayMenu.value_or_default());
 
             // DXGI
             if (DxgiProxy::Module() == nullptr)
@@ -687,7 +680,7 @@ static void CheckWorkingMode()
 
                     DxgiProxy::Init(dxgiModule);
 
-                    if (!State::Instance().enablerAvailable && Config::Instance()->DxgiSpoofing.value_or_default())
+                    if (Config::Instance()->DxgiSpoofing.value_or_default())
                         HookDxgiForSpoofing();
 
                     if (Config::Instance()->OverlayMenu.value())
@@ -700,7 +693,7 @@ static void CheckWorkingMode()
 
                 CheckForGPU();
 
-                if (!State::Instance().enablerAvailable && Config::Instance()->DxgiSpoofing.value_or_default())
+                if (Config::Instance()->DxgiSpoofing.value_or_default())
                     HookDxgiForSpoofing();
 
                 if (Config::Instance()->OverlayMenu.value())
@@ -752,12 +745,9 @@ static void CheckWorkingMode()
             {
                 LOG_DEBUG("vulkan-1.dll already in memory");
 
-                if (!State::Instance().enablerAvailable)
-                {
-                    HookForVulkanSpoofing(vulkanModule);
-                    HookForVulkanExtensionSpoofing(vulkanModule);
-                    HookForVulkanVRAMSpoofing(vulkanModule);
-                }
+                HookForVulkanSpoofing(vulkanModule);
+                HookForVulkanExtensionSpoofing(vulkanModule);
+                HookForVulkanVRAMSpoofing(vulkanModule);
 
                 HooksVk::HookVk(vulkanModule);
             }
@@ -881,8 +871,8 @@ static void CheckWorkingMode()
             }
 
             // SpecialK
-            if (!State::Instance().enablerAvailable && !Config::Instance()->OverlayMenu.value_or_default() &&
-                skModule == nullptr && Config::Instance()->LoadSpecialK.value_or_default())
+            if (!Config::Instance()->OverlayMenu.value_or_default() && skModule == nullptr &&
+                Config::Instance()->LoadSpecialK.value_or_default())
             {
                 auto skFile = Util::DllPath().parent_path() / L"SpecialK64.dll";
                 SetEnvironmentVariableW(L"RESHADE_DISABLE_GRAPHICS_HOOK", L"1");
@@ -895,8 +885,7 @@ static void CheckWorkingMode()
             }
 
             // ReShade
-            if (!State::Instance().enablerAvailable && reshadeModule == nullptr &&
-                Config::Instance()->LoadReShade.value_or_default())
+            if (reshadeModule == nullptr && Config::Instance()->LoadReShade.value_or_default())
             {
                 auto rsFile = Util::DllPath().parent_path() / L"ReShade64.dll";
                 SetEnvironmentVariableW(L"RESHADE_DISABLE_LOADING_CHECK", L"1");
