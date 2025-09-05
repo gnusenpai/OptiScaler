@@ -26,24 +26,10 @@ static int evalCounter = 0;
 static std::wstring appDataPath = L".";
 static bool shutdown = false;
 
-static void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Resource* InResource,
-                            D3D12_RESOURCE_STATES InBeforeState, D3D12_RESOURCE_STATES InAfterState)
-{
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource = InResource;
-    barrier.Transition.StateBefore = InBeforeState;
-    barrier.Transition.StateAfter = InAfterState;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    InCommandList->ResourceBarrier(1, &barrier);
-}
-
 #pragma region Hooks
 
 typedef void (*PFN_SetComputeRootSignature)(ID3D12GraphicsCommandList* commandList,
                                             ID3D12RootSignature* pRootSignature);
-typedef void (*PFN_CreateSampler)(ID3D12Device* device, const D3D12_SAMPLER_DESC* pDesc,
-                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
 
 static PFN_SetComputeRootSignature orgSetComputeRootSignature = nullptr;
 static PFN_SetComputeRootSignature orgSetGraphicRootSignature = nullptr;
@@ -51,18 +37,6 @@ static PFN_SetComputeRootSignature orgSetGraphicRootSignature = nullptr;
 static bool contextRendering = false;
 static std::shared_mutex computeSigatureMutex;
 static std::shared_mutex graphSigatureMutex;
-
-static IID streamlineRiid {};
-
-static int64_t GetTicks()
-{
-    LARGE_INTEGER ticks;
-
-    if (!QueryPerformanceCounter(&ticks))
-        return 0;
-
-    return ticks.QuadPart;
-}
 
 static void hkSetComputeRootSignature(ID3D12GraphicsCommandList* commandList, ID3D12RootSignature* pRootSignature)
 {
