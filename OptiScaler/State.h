@@ -95,7 +95,6 @@ class State
     bool FGHudlessCompare = false;
     bool FGchanged = false;
     bool SCchanged = false;
-    bool SCExclusiveFullscreen = false;
     bool skipHeapCapture = false;
 
     bool FGcaptureResources = false;
@@ -183,6 +182,8 @@ class State
     float screenWidth = 800.0;
     float screenHeight = 450.0;
     bool realExclusiveFullscreen = false;
+    bool SCExclusiveFullscreen = false;
+    bool SCAllowTearing = false;
 
     // HDR
     std::vector<IUnknown*> SCbuffers;

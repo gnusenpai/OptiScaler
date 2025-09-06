@@ -419,7 +419,10 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
         }
     }
 
-    SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen)
+        SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+    State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
 
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
     LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
@@ -506,10 +509,14 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
         }
     }
 
-    SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen)
+        SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+    State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
 
     auto result = o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
                                        ppPresentQueue);
+
     LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
 
     if (result == S_OK)
@@ -663,7 +670,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         {
             SyncInterval = 0;
 
-            if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen)
+            if (State::Instance().SCAllowTearing && !State::Instance().SCExclusiveFullscreen)
                 Flags |= DXGI_PRESENT_ALLOW_TEARING;
         }
         else
@@ -674,7 +681,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             if (SyncInterval < 1)
                 SyncInterval = 1;
 
-            if (Config::Instance()->OverrideVsync.value_or_default() && State::Instance().SCExclusiveFullscreen)
+            if (!State::Instance().SCAllowTearing || State::Instance().SCExclusiveFullscreen)
                 Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
         }
     }
@@ -935,7 +942,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         {
             SyncInterval = 0;
 
-            if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen)
+            if (State::Instance().SCAllowTearing && !State::Instance().SCExclusiveFullscreen)
                 Flags |= DXGI_PRESENT_ALLOW_TEARING;
         }
         else
@@ -946,7 +953,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
             if (SyncInterval < 1)
                 SyncInterval = 1;
 
-            if (Config::Instance()->OverrideVsync.value_or_default() && State::Instance().SCExclusiveFullscreen)
+            if (!State::Instance().SCAllowTearing || State::Instance().SCExclusiveFullscreen)
                 Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
         }
     }
@@ -1124,6 +1131,8 @@ static HRESULT hkCreateSwapChainForCoreWindow(IDXGIFactory2* pFactory, IUnknown*
         if (pDesc->BufferCount < 2)
             pDesc->BufferCount = 2;
     }
+
+    State::Instance().SCAllowTearing = (pDesc->Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
 
     ID3D12CommandQueue* realQ = nullptr;
     if (!CheckForRealObject(__FUNCTION__, pDevice, (IUnknown**) &realQ))
@@ -1323,6 +1332,8 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         if (pDesc->BufferCount < 2)
             pDesc->BufferCount = 2;
     }
+
+    State::Instance().SCAllowTearing = (pDesc->Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
 
     // Disable FSR FG if amd dll is not found
     if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::InitFfxDx12())
@@ -1703,6 +1714,8 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         if (pDesc->BufferCount < 2)
             pDesc->BufferCount = 2;
     }
+
+    State::Instance().SCAllowTearing = (pDesc->Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
 
     // Disable FSR FG if amd dll is not found
     if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::InitFfxDx12())
