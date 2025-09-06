@@ -4426,7 +4426,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // DX11 & DX12 -----------------------------
-                if (State::Instance().api != Vulkan && Config::Instance()->OverrideVsync.value_or_default())
+                if (State::Instance().api != Vulkan)
                 {
                     // V-SYNC -----------------------------
                     ImGui::Spacing();

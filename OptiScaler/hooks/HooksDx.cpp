@@ -657,14 +657,13 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             LOG_WARN("Couldn't copy hudless into the backbuffer");
     }
 
-    if (willPresent && Config::Instance()->OverrideVsync.value_or_default() &&
-        Config::Instance()->ForceVsync.has_value())
+    if (willPresent && Config::Instance()->ForceVsync.has_value())
     {
         if (!Config::Instance()->ForceVsync.value())
         {
             SyncInterval = 0;
 
-            if (!State::Instance().SCExclusiveFullscreen)
+            if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen)
                 Flags |= DXGI_PRESENT_ALLOW_TEARING;
         }
         else
@@ -672,10 +671,11 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             // Remove allow tearing
             SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
 
-            if (!State::Instance().SCExclusiveFullscreen)
-                Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
-            else
+            if (SyncInterval < 1)
                 SyncInterval = 1;
+
+            if (Config::Instance()->OverrideVsync.value_or_default() && State::Instance().SCExclusiveFullscreen)
+                Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
         }
     }
 
@@ -929,14 +929,13 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
     }
 
     // Fallback when FGPresent is not hooked for V-sync
-    if (willPresent && Config::Instance()->OverrideVsync.value_or_default() &&
-        Config::Instance()->ForceVsync.has_value() && o_FGSCPresent == nullptr)
+    if (willPresent && Config::Instance()->ForceVsync.has_value())
     {
         if (!Config::Instance()->ForceVsync.value())
         {
             SyncInterval = 0;
 
-            if (!State::Instance().SCExclusiveFullscreen)
+            if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen)
                 Flags |= DXGI_PRESENT_ALLOW_TEARING;
         }
         else
@@ -944,10 +943,11 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
             // Remove allow tearing
             SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
 
-            if (!State::Instance().SCExclusiveFullscreen)
-                Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
-            else
+            if (SyncInterval < 1)
                 SyncInterval = 1;
+
+            if (Config::Instance()->OverrideVsync.value_or_default() && State::Instance().SCExclusiveFullscreen)
+                Flags &= ~(DXGI_PRESENT_ALLOW_TEARING);
         }
     }
 
