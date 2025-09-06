@@ -878,6 +878,15 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     if (fResource->cmdList == nullptr && resourceParam.validity == XEFG_SWAPCHAIN_RV_UNTIL_NEXT_PRESENT)
         fResource->cmdList = (ID3D12GraphicsCommandList*) 1;
 
+    // HACK: XeFG seems to crash if the resource is in COPY_SOURCE state
+    // even though the docs say it's the preferred state
+    if (inputResource->state == D3D12_RESOURCE_STATE_COPY_SOURCE)
+    {
+        ResourceBarrier(inputResource->cmdList, inputResource->resource, inputResource->state,
+                        D3D12_RESOURCE_STATE_COPY_DEST);
+        resourceParam.incomingState = D3D12_RESOURCE_STATE_COPY_DEST;
+    }
+
     auto result =
         XeFGProxy::D3D12TagFrameResource()(_swapChainContext, fResource->cmdList, _frameCount, &resourceParam);
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
@@ -885,6 +894,13 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
         LOG_ERROR("D3D12TagFrameResource {} error: {} ({})", magic_enum::enum_name(type), magic_enum::enum_name(result),
                   (UINT) result);
         return;
+    }
+
+    // Potentially we don't need to restore but do it just to be safe
+    if (inputResource->state == D3D12_RESOURCE_STATE_COPY_SOURCE)
+    {
+        ResourceBarrier(inputResource->cmdList, inputResource->resource, D3D12_RESOURCE_STATE_COPY_DEST,
+                        inputResource->state);
     }
 
     SetResourceReady(type);

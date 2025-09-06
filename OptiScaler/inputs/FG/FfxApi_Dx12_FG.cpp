@@ -136,6 +136,9 @@ static bool CreateBufferResource(ID3D12Device* InDevice, ID3D12Resource* InResou
 static void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Resource* InResource,
                             D3D12_RESOURCE_STATES InBeforeState, D3D12_RESOURCE_STATES InAfterState)
 {
+    if (InBeforeState == InAfterState)
+        return;
+
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = InResource;
