@@ -12,8 +12,8 @@
 
 #include "detours/detours.h"
 
-#include "fsr3/dx12/ffx_dx12.h"
 #include "fsr3/ffx_fsr3.h"
+#include "fsr3/dx12/ffx_dx12.h"
 #include "fsr3/ffx_frameinterpolation.h"
 
 // Swapchain create
@@ -52,32 +52,32 @@ typedef Fsr3::FfxErrorCode (*PFN_ffxFsr3ConfigureFrameGeneration)(void* context,
                                                                   Fsr3::FfxFrameGenerationConfig* config);
 
 // Swapchain
-PFN_ffxReplaceSwapchainForFrameinterpolationDX12 o_ffxReplaceSwapchainForFrameinterpolationDX12 = nullptr;
-PFN_ffxCreateFrameinterpolationSwapchainDX12 o_ffxCreateFrameinterpolationSwapchainDX12 = nullptr;
-PFN_ffxCreateFrameinterpolationSwapchainForHwndDX12 o_ffxCreateFrameinterpolationSwapchainForHwndDX12 = nullptr;
-PFN_ffxWaitForPresents o_ffxWaitForPresents = nullptr;
-PFN_ffxRegisterFrameinterpolationUiResourceDX12 o_ffxRegisterFrameinterpolationUiResourceDX12 = nullptr;
-PFN_ffxGetFrameinterpolationCommandlistDX12 o_ffxGetFrameinterpolationCommandlistDX12 = nullptr;
-PFN_ffxGetFrameinterpolationTextureDX12 o_ffxGetFrameinterpolationTextureDX12 = nullptr;
+static PFN_ffxReplaceSwapchainForFrameinterpolationDX12 o_ffxReplaceSwapchainForFrameinterpolationDX12 = nullptr;
+static PFN_ffxCreateFrameinterpolationSwapchainDX12 o_ffxCreateFrameinterpolationSwapchainDX12 = nullptr;
+static PFN_ffxCreateFrameinterpolationSwapchainForHwndDX12 o_ffxCreateFrameinterpolationSwapchainForHwndDX12 = nullptr;
+static PFN_ffxWaitForPresents o_ffxWaitForPresents = nullptr;
+static PFN_ffxRegisterFrameinterpolationUiResourceDX12 o_ffxRegisterFrameinterpolationUiResourceDX12 = nullptr;
+static PFN_ffxGetFrameinterpolationCommandlistDX12 o_ffxGetFrameinterpolationCommandlistDX12 = nullptr;
+static PFN_ffxGetFrameinterpolationTextureDX12 o_ffxGetFrameinterpolationTextureDX12 = nullptr;
 
 // Context
-PFN_ffxFrameInterpolationContextCreate o_ffxFrameInterpolationContextCreate = nullptr;
-PFN_ffxFrameInterpolationDispatch o_ffxFrameInterpolationDispatch = nullptr;
-PFN_ffxFrameInterpolationContextDestroy o_ffxFrameInterpolationContextDestroy = nullptr;
-PFN_ffxFsr3ConfigureFrameGeneration o_ffxFsr3ConfigureFrameGeneration = nullptr;
+static PFN_ffxFrameInterpolationContextCreate o_ffxFrameInterpolationContextCreate = nullptr;
+static PFN_ffxFrameInterpolationDispatch o_ffxFrameInterpolationDispatch = nullptr;
+static PFN_ffxFrameInterpolationContextDestroy o_ffxFrameInterpolationContextDestroy = nullptr;
+static PFN_ffxFsr3ConfigureFrameGeneration o_ffxFsr3ConfigureFrameGeneration = nullptr;
 
-ID3D12Device* _device = nullptr;
-FG_Constants _fgConst {};
-UINT64 _currentFrameId = 0;
+static ID3D12Device* _device = nullptr;
+static FG_Constants _fgConst {};
+static UINT64 _currentFrameId = 0;
 
-Fsr3::FfxPresentCallbackFunc _presentCallback = nullptr;
-void* _presentCallbackUserContext = nullptr;
-UINT64 _presentCallbackFrameId = 0;
+static Fsr3::FfxPresentCallbackFunc _presentCallback = nullptr;
+static void* _presentCallbackUserContext = nullptr;
+static UINT64 _presentCallbackFrameId = 0;
 
-std::mutex _newFrameMutex;
+static std::mutex _newFrameMutex;
 
-ID3D12Resource* _hudless[BUFFER_COUNT] = {};
-Dx12Resource _uiRes[BUFFER_COUNT] = {};
+static ID3D12Resource* _hudless[BUFFER_COUNT] = {};
+static Dx12Resource _uiRes[BUFFER_COUNT] = {};
 
 static Fsr3::FfxResourceStates GetFfxApiState(D3D12_RESOURCE_STATES state)
 {
@@ -506,18 +506,20 @@ void HookFSR3FGExeInputs()
     o_ffxFsr3ConfigureFrameGeneration = (PFN_ffxFsr3ConfigureFrameGeneration) KernelBaseProxy::GetProcAddress_()(
         exeModule, "ffxFsr3ConfigureFrameGeneration");
 
-    LOG_DEBUG("ffxReplaceSwapchainForFrameinterpolationDX12: {:X}", o_ffxReplaceSwapchainForFrameinterpolationDX12);
-    LOG_DEBUG("ffxCreateFrameinterpolationSwapchainDX12: {:X}", o_ffxCreateFrameinterpolationSwapchainDX12);
+    LOG_DEBUG("ffxReplaceSwapchainForFrameinterpolationDX12: {:X}",
+              (size_t) o_ffxReplaceSwapchainForFrameinterpolationDX12);
+    LOG_DEBUG("ffxCreateFrameinterpolationSwapchainDX12: {:X}", (size_t) o_ffxCreateFrameinterpolationSwapchainDX12);
     LOG_DEBUG("ffxCreateFrameinterpolationSwapchainForHwndDX12: {:X}",
-              o_ffxCreateFrameinterpolationSwapchainForHwndDX12);
-    LOG_DEBUG("ffxWaitForPresents: {:X}", o_ffxWaitForPresents);
-    LOG_DEBUG("ffxRegisterFrameinterpolationUiResourceDX12: {:X}", o_ffxRegisterFrameinterpolationUiResourceDX12);
-    LOG_DEBUG("ffxGetFrameinterpolationCommandlistDX12: {:X}", o_ffxGetFrameinterpolationCommandlistDX12);
-    LOG_DEBUG("ffxGetFrameinterpolationTextureDX12: {:X}", o_ffxGetFrameinterpolationTextureDX12);
-    LOG_DEBUG("ffxFrameInterpolationContextCreate: {:X}", o_ffxFrameInterpolationContextCreate);
-    LOG_DEBUG("ffxFrameInterpolationDispatch: {:X}", o_ffxFrameInterpolationDispatch);
-    LOG_DEBUG("ffxFrameInterpolationContextDestroy: {:X}", o_ffxFrameInterpolationContextDestroy);
-    LOG_DEBUG("ffxFsr3ConfigureFrameGeneration: {:X}", o_ffxFsr3ConfigureFrameGeneration);
+              (size_t) o_ffxCreateFrameinterpolationSwapchainForHwndDX12);
+    LOG_DEBUG("ffxWaitForPresents: {:X}", (size_t) o_ffxWaitForPresents);
+    LOG_DEBUG("ffxRegisterFrameinterpolationUiResourceDX12: {:X}",
+              (size_t) o_ffxRegisterFrameinterpolationUiResourceDX12);
+    LOG_DEBUG("ffxGetFrameinterpolationCommandlistDX12: {:X}", (size_t) o_ffxGetFrameinterpolationCommandlistDX12);
+    LOG_DEBUG("ffxGetFrameinterpolationTextureDX12: {:X}", (size_t) o_ffxGetFrameinterpolationTextureDX12);
+    LOG_DEBUG("ffxFrameInterpolationContextCreate: {:X}", (size_t) o_ffxFrameInterpolationContextCreate);
+    LOG_DEBUG("ffxFrameInterpolationDispatch: {:X}", (size_t) o_ffxFrameInterpolationDispatch);
+    LOG_DEBUG("ffxFrameInterpolationContextDestroy: {:X}", (size_t) o_ffxFrameInterpolationContextDestroy);
+    LOG_DEBUG("ffxFsr3ConfigureFrameGeneration: {:X}", (size_t) o_ffxFsr3ConfigureFrameGeneration);
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());

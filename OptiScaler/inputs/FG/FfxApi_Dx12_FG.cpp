@@ -10,18 +10,18 @@
 #include "ffx_framegeneration.h"
 #include "dx12/ffx_api_dx12.h"
 
-ID3D12Device* _device = nullptr;
-FG_Constants _fgConst {};
-UINT64 _currentFrameId = 0;
+static ID3D12Device* _device = nullptr;
+static FG_Constants _fgConst {};
+static UINT64 _currentFrameId = 0;
 
-FfxApiPresentCallbackFunc _presentCallback = nullptr;
-void* _presentCallbackUserContext = nullptr;
-UINT64 _presentCallbackFrameId = 0;
+static FfxApiPresentCallbackFunc _presentCallback = nullptr;
+static void* _presentCallbackUserContext = nullptr;
+static UINT64 _presentCallbackFrameId = 0;
 
-std::mutex _newFrameMutex;
+static std::mutex _newFrameMutex;
 
-ID3D12Resource* _hudless[BUFFER_COUNT] = {};
-Dx12Resource _uiRes[BUFFER_COUNT] = {};
+static ID3D12Resource* _hudless[BUFFER_COUNT] = {};
+static Dx12Resource _uiRes[BUFFER_COUNT] = {};
 
 static FfxApiResourceState GetFfxApiState(D3D12_RESOURCE_STATES state)
 {
