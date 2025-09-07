@@ -78,6 +78,10 @@ bool FeatureProvider_Dx11::GetFeature(std::string upscalerName, UINT handleId, N
         *feature = std::make_unique<FSR2FeatureDx11>(handleId, parameters);
         upscalerName = "fsr22";
     }
+    else
+    {
+        Config::Instance()->Dx11Upscaler = upscalerName;
+    }
 
     auto result = (*feature)->ModuleLoaded();
 

@@ -60,6 +60,10 @@ bool FeatureProvider_Vk::GetFeature(std::string upscalerName, UINT handleId, NVS
         *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
         upscalerName = "fsr22";
     }
+    else
+    {
+        Config::Instance()->VulkanUpscaler = upscalerName;
+    }
 
     auto result = (*feature)->ModuleLoaded();
 
