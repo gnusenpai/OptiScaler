@@ -404,7 +404,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
     // Disabled to prevent crash
     if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
     {
-        State::Instance().currentFG->Shutdown();
+        State::Instance().currentFG->DestroyFGContext();
         State::Instance().ClearCapturedHudlesses = true;
     }
 
