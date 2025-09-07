@@ -143,6 +143,12 @@ sl::Result StreamlineHooks::hkslSetTag(sl::ViewportHandle& viewport, sl::Resourc
     if (renderApi == sl::RenderAPI::eCount)
         LOG_WARN("Incomplete Streamline hooks");
 
+    if (tags == nullptr)
+    {
+        LOG_WARN("Game trying to remove a tag");
+        return o_slSetTag(viewport, tags, numTags, cmdBuffer);
+    }
+
     for (uint32_t i = 0; i < numTags; i++)
     {
         if (tags[i].resource == nullptr || tags[i].resource->native == nullptr)
@@ -187,6 +193,12 @@ sl::Result StreamlineHooks::hkslSetTagForFrame(const sl::FrameToken& frame, cons
 
     if (renderApi == sl::RenderAPI::eCount)
         LOG_WARN("Incomplete Streamline hooks");
+
+    if (resources == nullptr)
+    {
+        LOG_WARN("Game trying to remove a tag");
+        return o_slSetTagForFrame(frame, viewport, resources, numResources, cmdBuffer);
+    }
 
     for (uint32_t i = 0; i < numResources; i++)
     {

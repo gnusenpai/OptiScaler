@@ -35,6 +35,7 @@ enum class GameQuirk : uint64_t
     ForceUnrealEngine,
     NoFSRFGFirstSwapchain,
     FixSlSimulationMarkers,
+    HitmanReflexHacks,
     // Don't forget to add the new entry to printQuirks
     _
 };
@@ -158,7 +159,7 @@ static const QuirkEntry quirkTable[] = {
 
     // HITMAN World of Assassination
     // SL spoof enough to unlock everything DLSS
-    QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::HitmanReflexHacks),
 
     // Marvel's Guardians of the Galaxy
     // no spoof needed for DLSS inputs
@@ -294,6 +295,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Correct simulation start marker's frame id");
     if (quirks & GameQuirk::DisableVsyncOverride)
         spdlog::info("Quirk: Don't use V-Sync overrides");
+    if (quirks & GameQuirk::HitmanReflexHacks)
+        spdlog::info("Quirk: Hack for broken Hitman reflex");
 
     return;
 }
