@@ -128,6 +128,10 @@ bool XeFG_Dx12::DestroySwapchainContext()
 
         if (!State::Instance().isShuttingDown)
             LOG_INFO("Destroy result: {} ({})", magic_enum::enum_name(result), (UINT) result);
+
+        // Set it back because context is not destroyed
+        if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+            _swapChainContext = context;
     }
 
     return true;
@@ -968,8 +972,8 @@ bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
     if (_fgContext != nullptr)
         DestroyFGContext();
 
-    // if (_swapChainContext != nullptr)
-    //     DestroySwapchainContext();
+    if (State::Instance().isShuttingDown && _swapChainContext != nullptr)
+        DestroySwapchainContext();
 
     // ReleaseObjects();
 
