@@ -17,6 +17,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_
     memcpy(&_lastSleepParams, pSetSleepModeParams, sizeof(NV_SET_SLEEP_MODE_PARAMS));
     _lastSleepDev = pDev;
 
+    if (State::Instance().gameQuirks & GameQuirk::HitmanReflexHacks)
+        _lastSetSleepThread = std::this_thread::get_id();
+
     if (_minimumIntervalUs != 0)
         pSetSleepModeParams->minimumIntervalUs = _minimumIntervalUs;
 
@@ -66,6 +69,32 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
         _dlssgDetected = false;
 
     State::Instance().rtssReflexInjection = pSetLatencyMarkerParams->frameID >> 32;
+
+    if (State::Instance().gameQuirks & GameQuirk::HitmanReflexHacks)
+    {
+        if ((pSetLatencyMarkerParams->markerType != PRESENT_START &&
+             pSetLatencyMarkerParams->markerType != PRESENT_END) &&
+            _lastSetSleepThread != std::this_thread::get_id())
+        {
+            LOG_TRACE("Skipping marker for a hack");
+            return NVAPI_OK;
+        }
+
+        if (pSetLatencyMarkerParams->markerType == SIMULATION_END)
+        {
+            NV_LATENCY_MARKER_PARAMS newParams = *pSetLatencyMarkerParams;
+            auto previousThread = _lastSetSleepThread;
+            _lastSetSleepThread = std::this_thread::get_id();
+
+            newParams.markerType = RENDERSUBMIT_START;
+            hkNvAPI_D3D_SetLatencyMarker(pDev, &newParams);
+
+            newParams.markerType = RENDERSUBMIT_END;
+            hkNvAPI_D3D_SetLatencyMarker(pDev, &newParams);
+
+            _lastSetSleepThread = previousThread;
+        }
+    }
 
     // For now this means that dlssg inputs require fakenvapi, as otherwise hooks won't be called
     if (pSetLatencyMarkerParams->markerType == RENDERSUBMIT_START && State::Instance().activeFgInput == FGInput::DLSSG)

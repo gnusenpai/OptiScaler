@@ -36,6 +36,8 @@ class ReflexHooks
     inline static NV_VULKAN_SET_SLEEP_MODE_PARAMS _lastVkSleepParams {};
     inline static HANDLE _lastVkSleepDev = nullptr;
 
+    inline static std::thread::id _lastSetSleepThread {};
+
     // D3D
     inline static decltype(&NvAPI_D3D_SetSleepMode) o_NvAPI_D3D_SetSleepMode = nullptr;
     inline static decltype(&NvAPI_D3D_Sleep) o_NvAPI_D3D_Sleep = nullptr;
