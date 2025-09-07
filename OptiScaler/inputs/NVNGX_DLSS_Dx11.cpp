@@ -254,6 +254,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_GetParameters(NVSDK_NGX_Parameter
 {
     LOG_FUNC();
 
+    if (OutParameters == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
+
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::D3D11_GetParameters() != nullptr)
     {
@@ -277,6 +280,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_GetParameters(NVSDK_NGX_Parameter
 NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_GetCapabilityParameters(NVSDK_NGX_Parameter** OutParameters)
 {
     LOG_FUNC();
+
+    if (OutParameters == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
 
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::IsDx11Inited() && NVNGXProxy::D3D11_GetCapabilityParameters() != nullptr)
@@ -328,7 +334,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_PopulateParameters_Impl(NVSDK_NGX
     LOG_FUNC();
 
     if (InParameters == nullptr)
-        return NVSDK_NGX_Result_Fail;
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
 
     InitNGXParameters(InParameters);
 

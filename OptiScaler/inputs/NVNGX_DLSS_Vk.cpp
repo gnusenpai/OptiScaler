@@ -303,6 +303,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetParameters(NVSDK_NGX_Paramete
 {
     LOG_FUNC();
 
+    if (OutParameters == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
+
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::VULKAN_GetParameters() != nullptr)
     {
@@ -326,6 +329,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequi
     VkExtensionProperties** OutExtensionProperties)
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
+
+    if (OutExtensionProperties == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
 
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::VULKAN_GetFeatureInstanceExtensionRequirements() != nullptr)
@@ -411,6 +417,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequire
     uint32_t* OutExtensionCount, VkExtensionProperties** OutExtensionProperties)
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
+
+    if (OutExtensionProperties == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
 
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::VULKAN_GetFeatureDeviceExtensionRequirements() != nullptr)
@@ -564,6 +573,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureRequirements(
 NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetCapabilityParameters(NVSDK_NGX_Parameter** OutParameters)
 {
     LOG_FUNC();
+
+    if (OutParameters == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
 
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::IsVulkanInited() && NVNGXProxy::VULKAN_GetCapabilityParameters() != nullptr)

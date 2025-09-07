@@ -445,6 +445,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_GetParameters(NVSDK_NGX_Parameter
 {
     LOG_FUNC();
 
+    if (OutParameters == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
+
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::D3D12_GetParameters() != nullptr)
     {
@@ -461,12 +464,16 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_GetParameters(NVSDK_NGX_Parameter
     }
 
     *OutParameters = GetNGXParameters("OptiDx12");
+
     return NVSDK_NGX_Result_Success;
 }
 
 NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_GetCapabilityParameters(NVSDK_NGX_Parameter** OutParameters)
 {
     LOG_FUNC();
+
+    if (OutParameters == nullptr)
+        return NVSDK_NGX_Result_FAIL_InvalidParameter;
 
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::IsDx12Inited() && NVNGXProxy::D3D12_GetCapabilityParameters() != nullptr)
