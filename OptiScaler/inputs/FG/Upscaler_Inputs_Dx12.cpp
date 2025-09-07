@@ -9,7 +9,7 @@ static DS_Dx12* DepthScale = nullptr;
 
 void UpscalerInputsDx12::Init(ID3D12Device* device)
 {
-    if (State::Instance().currentFG == nullptr || State::Instance().activeFgInput != FGInput::Upscaler)
+    if (State::Instance().activeFgInput != FGInput::Upscaler)
         return;
 
     _device = device;
