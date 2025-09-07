@@ -3058,15 +3058,15 @@ bool MenuCommon::RenderMenu()
                         if (State::Instance().activeFgInput == FGInput::Upscaler && currentFeature != nullptr)
                             nativeAA = currentFeature->RenderWidth() == currentFeature->DisplayWidth();
 
-                        const bool correctMVs = State::Instance().currentFG->IsLowResMV() || nativeAA;
+                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                        const bool correctMVs = fgOutput && fgOutput->IsLowResMV() || nativeAA;
 
-                        if (!correctMVs || State::Instance().SCExclusiveFullscreen)
+                        if (!correctMVs || State::Instance().realExclusiveFullscreen)
                         {
                             Config::Instance()->FGEnabled.reset();
                             Config::Instance()->FGXeFGDebugView.reset();
                         }
 
-                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
                         const bool restartNeeded =
                             fgOutput &&
                             (Config::Instance()->FGXeFGDepthInverted.value_or_default() !=
@@ -3085,14 +3085,14 @@ bool MenuCommon::RenderMenu()
                                 ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                                    "Requires disabling dilated motion vectors");
 
-                            if (State::Instance().SCExclusiveFullscreen)
+                            if (State::Instance().realExclusiveFullscreen)
                                 ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Borderless display mode required");
 
                             if (State::Instance().isHdrActive)
                                 ImGui::TextColored(ImVec4(1.0f, 0.647f, 0.0f, 1.f), "XeFG only supports HDR10");
                         }
 
-                        ImGui::BeginDisabled(!correctMVs || State::Instance().SCExclusiveFullscreen);
+                        ImGui::BeginDisabled(!correctMVs || State::Instance().realExclusiveFullscreen);
 
                         bool fgActive = Config::Instance()->FGEnabled.value_or_default();
                         if (ImGui::Checkbox("Active##3", &fgActive))
