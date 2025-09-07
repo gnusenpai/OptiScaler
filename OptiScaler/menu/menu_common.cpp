@@ -2809,11 +2809,6 @@ bool MenuCommon::RenderMenu()
                             if (ImGui::Checkbox("Disable hudless", &disableHudless))
                             {
                                 Config::Instance()->FGDisableHudless = disableHudless;
-
-                                // Prevent FG dispatch from being called for a few frames
-                                // Seems like XeFG doesn't like having hudless suddenly started to be tagged
-                                // and then be required to use it right away
-                                fgOutput->UpdateTarget();
                             }
 
                             ShowHelpMarker("For when the game sends hudless but you want to disable it");
