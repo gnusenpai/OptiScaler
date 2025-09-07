@@ -6,6 +6,9 @@
 #include "resource.h"
 #include "NVNGX_Parameter.h"
 
+#include <framegen/ffx/FSRFG_Dx12.h>
+#include <framegen/xefg/XeFG_Dx12.h>
+
 #include "shaders/depth_scale/DS_Dx12.h"
 
 #include <proxies/KernelBase_Proxy.h>
@@ -377,40 +380,26 @@ static Fsr3::FfxErrorCode hkffxCreateFrameinterpolationSwapchainDX12(DXGI_SWAP_C
                                                                      IDXGIFactory* dxgiFactory,
                                                                      Fsr3::FfxSwapchain& outGameSwapChain)
 {
-    if (State::Instance().currentFG != nullptr && State::Instance().currentFGSwapchain != nullptr)
-    {
-        auto result =
-            State::Instance().currentFG->CreateSwapchain(dxgiFactory, queue, desc, (IDXGISwapChain**) outGameSwapChain);
+    auto result = dxgiFactory->CreateSwapChain(queue, desc, (IDXGISwapChain**) &outGameSwapChain);
 
-        return result ? Fsr3::FFX_OK : Fsr3::FFX_ERROR_BACKEND_API_ERROR;
-    }
-    else
-    {
-        LOG_ERROR("currentFG: {:X}, currentFGSwapchain: {:X}", (size_t) State::Instance().currentFG,
-                  (size_t) State::Instance().currentFGSwapchain);
-
-        return Fsr3::FFX_ERROR_INVALID_ALIGNMENT;
-    }
+    return result == S_OK ? Fsr3::FFX_OK : Fsr3::FFX_ERROR_BACKEND_API_ERROR;
 }
 
 static Fsr3::FfxErrorCode hkffxCreateFrameinterpolationSwapchainForHwndDX12(
     HWND hWnd, DXGI_SWAP_CHAIN_DESC1* desc1, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullscreenDesc, ID3D12CommandQueue* queue,
     IDXGIFactory* dxgiFactory, Fsr3::FfxSwapchain& outGameSwapChain)
 {
-    if (State::Instance().currentFG != nullptr && State::Instance().currentFGSwapchain != nullptr)
-    {
-        auto result = State::Instance().currentFG->CreateSwapchain1(dxgiFactory, queue, hWnd, desc1, fullscreenDesc,
-                                                                    (IDXGISwapChain1**) outGameSwapChain);
+    IDXGIFactory2* df = nullptr;
+    HRESULT result = E_ABORT;
 
-        return result ? Fsr3::FFX_OK : Fsr3::FFX_ERROR_BACKEND_API_ERROR;
-    }
-    else
+    if (dxgiFactory->QueryInterface(IID_PPV_ARGS(&df)) == S_OK)
     {
-        LOG_ERROR("currentFG: {:X}, currentFGSwapchain: {:X}", (size_t) State::Instance().currentFG,
-                  (size_t) State::Instance().currentFGSwapchain);
-
-        return Fsr3::FFX_ERROR_INVALID_ALIGNMENT;
+        df->Release();
+        result = df->CreateSwapChainForHwnd(queue, hWnd, desc1, fullscreenDesc, nullptr,
+                                            (IDXGISwapChain1**) &outGameSwapChain);
     }
+
+    return result == S_OK ? Fsr3::FFX_OK : Fsr3::FFX_ERROR_BACKEND_API_ERROR;
 }
 
 static Fsr3::FfxErrorCode hkffxWaitForPresents(Fsr3::FfxSwapchain gameSwapChain) { return Fsr3::FFX_OK; }
