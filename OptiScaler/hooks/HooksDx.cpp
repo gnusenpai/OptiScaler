@@ -2530,13 +2530,23 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
             pSwapChainDesc->BufferCount = 2;
     }
 
-    if (Config::Instance()->OverrideVsync.value_or_default() && pSwapChainDesc != nullptr)
+    if (pSwapChainDesc != nullptr)
     {
-        pSwapChainDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        pSwapChainDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+        // For vsync override
+        if (!pSwapChainDesc->Windowed)
+        {
+            LOG_INFO("Game is creating fullscreen swapchain, disabled V-Sync overrides");
+            Config::Instance()->OverrideVsync.set_volatile_value(false);
+        }
 
-        if (pSwapChainDesc->BufferCount < 2)
-            pSwapChainDesc->BufferCount = 2;
+        if (Config::Instance()->OverrideVsync.value_or_default())
+        {
+            pSwapChainDesc->SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+            pSwapChainDesc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+            if (pSwapChainDesc->BufferCount < 2)
+                pSwapChainDesc->BufferCount = 2;
+        }
     }
 
     auto result = o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
