@@ -269,6 +269,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
             }
         }
 
+        State::Instance().realExclusiveFullscreen = Fullscreen;
+
         result = m_pReal->SetFullscreenState(Fullscreen, pTarget);
 
         if (result != S_OK)
@@ -334,6 +336,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
     if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen &&
         State::Instance().currentFG == nullptr)
     {
+        LOG_DEBUG("Overriding flags");
         SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
         if (BufferCount < 2)
@@ -639,6 +642,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
     if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen &&
         State::Instance().currentFG == nullptr)
     {
+        LOG_DEBUG("Overriding flags");
         SwapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
         if (BufferCount < 2)
