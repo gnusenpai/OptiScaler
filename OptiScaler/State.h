@@ -32,7 +32,8 @@ enum class FGInput : uint32_t
     FSRFG,
     DLSSG, // technically Streamline inputs
     XeFG,
-    Upscaler // OptiFG
+    Upscaler, // OptiFG
+    FSRFG30,
 };
 
 enum class FGOutput : uint32_t

@@ -73,6 +73,8 @@ bool Config::Reload(std::filesystem::path iniPath)
                     FGInput.set_from_config(FGInput::DLSSG);
                 else if (lstrcmpiA(FGInputString.value().c_str(), "fsrfg") == 0)
                     FGInput.set_from_config(FGInput::FSRFG);
+                else if (lstrcmpiA(FGInputString.value().c_str(), "fsrfg30") == 0)
+                    FGInput.set_from_config(FGInput::FSRFG30);
             }
 
             if (auto FGOutputString = readString("FrameGen", "FGOutput");
@@ -615,6 +617,8 @@ bool Config::SaveIni()
                 FGInputString = "DLSSG";
             else if (FGInputHeld.value() == FGInput::FSRFG)
                 FGInputString = "FSRFG";
+            else if (FGInputHeld.value() == FGInput::FSRFG30)
+                FGInputString = "FSRFG30";
         }
         ini.SetValue("FrameGen", "FGInput", FGInputString.c_str());
 

@@ -8,6 +8,7 @@
 #include <upscalers/FeatureProvider_Dx12.h>
 
 #include "FG/DLSSG_Mod.h"
+#include "FG/FSR3_Dx12_FG.h"
 #include "FG/Upscaler_Inputs_Dx12.h"
 
 #include "hooks/HooksDx.h"
@@ -945,6 +946,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     }
 
     UpscalerInputsDx12::UpscaleStart(InCmdList, InParameters, deviceContext->feature.get());
+    FSR3FG::SetUpscalerInputs(InCmdList, InParameters, deviceContext->feature.get());
 
     // Record the first timestamp
     if (!State::Instance().isWorkingAsNvngx && HooksDx::queryHeap != nullptr)

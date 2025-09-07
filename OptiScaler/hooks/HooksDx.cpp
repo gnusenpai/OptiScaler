@@ -7,6 +7,8 @@
 
 #include <framegen/ffx/FSRFG_Dx12.h>
 #include <framegen/xefg/XeFG_Dx12.h>
+
+#include "inputs/FG/FSR3_Dx12_FG.h"
 #include <inputs/FG/FfxApi_Dx12_FG.h>
 
 #include <hudfix/Hudfix_Dx12.h>
@@ -654,6 +656,8 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
         // FG is disabled. So call it when there is FGFeature
         if (State::Instance().activeFgInput == FGInput::FSRFG)
             ffxPresentCallback();
+        else if (State::Instance().activeFgInput == FGInput::FSRFG30)
+            FSR3FG::ffxPresentCallback();
 
         // And if Optiscalers FG is active call
         // FG Features present

@@ -24,6 +24,7 @@
 #include "inputs/FfxApi_Dx12.h"
 #include "inputs/FfxApi_Vk.h"
 #include "inputs/FfxApiExe_Dx12.h"
+#include "inputs/FG/FSR3_Dx12_FG.h"
 
 #include "spoofing/Vulkan_Spoofing.h"
 
@@ -1272,6 +1273,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
             HookFSR3ExeInputs();
         }
         // HookFfxExeInputs();
+
+        if (State::Instance().activeFgInput == FGInput::FSRFG30)
+            FSR3FG::HookFSR3FGExeInputs();
 
         for (size_t i = 0; i < 300; i++)
         {

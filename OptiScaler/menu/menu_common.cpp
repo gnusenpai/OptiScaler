@@ -2566,20 +2566,23 @@ bool MenuCommon::RenderMenu()
                 const char* fgInputOptions[] = {
                     "No Frame Generation",
                     "Nukem's DLSSG",
-                    "FSR FG",
+                    "FSR 3.1 FG",
                     "DLSSG via Streamline",
                     "XeFG",
                     "OptiFG (Upscaler)",
+                    "FSR 3.0 FG",
                 };
                 std::vector<std::string> fgInputDesc = {
                     "",
                     "Limited to FSR 3 FG\n\nSupports hudless out of the box\n\nUses streamline swapchain for pacing", 
-                    "Can be used with any FG Output\n\nSupports hudless out of the box\n\nCurrently only FSR3.1 FG is supported", 
+                    "Can be used with any FG Output\n\nSupports hudless out of the box", 
                     "Can be used with any FG Output\n\nSupports hudless out of the box\n\nLimited to games that use Streamline v2", 
                     "Support not implemented", 
                     "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, Hudfix required",
+                    "Can be used with any FG Output\n\nSupports hudless out of the box", 
                 };
                 std::vector<uint8_t> disabledMaskInput = { 
+                    false, 
                     false, 
                     false, 
                     false, 
@@ -2779,7 +2782,8 @@ bool MenuCommon::RenderMenu()
                     }
 
                     if (State::Instance().activeFgInput == FGInput::DLSSG ||
-                        State::Instance().activeFgInput == FGInput::FSRFG)
+                        State::Instance().activeFgInput == FGInput::FSRFG ||
+                        State::Instance().activeFgInput == FGInput::FSRFG30)
                     {
                         auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
                         if (fgOutput)
@@ -2815,7 +2819,7 @@ bool MenuCommon::RenderMenu()
 
                             ImGui::EndDisabled();
 
-                            ImGui::BeginDisabled(!isUsingUIAny || !isUsingHudlessAny);
+                            ImGui::BeginDisabled(!isUsingUIAny /*|| !isUsingHudlessAny*/);
                             if (bool drawUIOverFG = Config::Instance()->FGDrawUIOverFG.value_or_default();
                                 ImGui::Checkbox("Draw UI over FG", &drawUIOverFG))
                                 Config::Instance()->FGDrawUIOverFG = drawUIOverFG;
@@ -3475,7 +3479,8 @@ bool MenuCommon::RenderMenu()
 
                 // FSR-FG Inputs
                 if (State::Instance().api == DX12 && !State::Instance().isWorkingAsNvngx &&
-                    State::Instance().activeFgInput == FGInput::FSRFG)
+                    (State::Instance().activeFgInput == FGInput::FSRFG ||
+                     State::Instance().activeFgInput == FGInput::FSRFG30))
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR-FG Inputs)", "Select FSR-FG in-game");
 
