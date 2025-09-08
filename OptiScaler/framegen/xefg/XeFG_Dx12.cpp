@@ -787,10 +787,17 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     // HACK: Prevent FG dispatch from being called for a few frames
     if (_reEnableTargetFrame == _frameCount)
     {
-        _reEnableTargetFrame = 0;
-
         if (_isActive)
-            XeFGProxy::SetEnabled()(_swapChainContext, true);
+        {
+            if (XeFGProxy::SetEnabled()(_swapChainContext, true) == XEFG_SWAPCHAIN_RESULT_SUCCESS)
+                _reEnableTargetFrame = 0;
+            else
+                _reEnableTargetFrame++; // Try enabling next frame
+        }
+        else
+        {
+            _reEnableTargetFrame = 0;
+        }
     }
 
     auto fIndex = GetIndex();
@@ -876,8 +883,8 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
         // and then be required to use it right away
         if (lastHudlessFrameId == UINT64_MAX || lastHudlessFrameId + 2 < _frameCount)
         {
-            _reEnableTargetFrame = _frameCount + 5;
-            XeFGProxy::SetEnabled()(_swapChainContext, false);
+            if (XeFGProxy::SetEnabled()(_swapChainContext, false) == XEFG_SWAPCHAIN_RESULT_SUCCESS)
+                _reEnableTargetFrame = _frameCount + 5;
         }
 
         lastHudlessFrameId = _frameCount;
