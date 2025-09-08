@@ -53,6 +53,35 @@ static bool _skipDispatch = false;
 static bool _skipDestroy = false;
 static float qualityRatios[] = { 1.0, 1.5, 1.7, 2.0, 3.0 };
 
+static D3D12_RESOURCE_STATES GetD3D12State(Fsr3::FfxResourceStates state)
+{
+    switch (state)
+    {
+    case Fsr3::FFX_RESOURCE_STATE_COMMON:
+        return D3D12_RESOURCE_STATE_COMMON;
+    case Fsr3::FFX_RESOURCE_STATE_UNORDERED_ACCESS:
+        return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    case Fsr3::FFX_RESOURCE_STATE_COMPUTE_READ:
+        return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    case Fsr3::FFX_RESOURCE_STATE_PIXEL_READ:
+        return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    case Fsr3::FFX_RESOURCE_STATE_PIXEL_COMPUTE_READ:
+        return (D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    case Fsr3::FFX_RESOURCE_STATE_COPY_SRC:
+        return D3D12_RESOURCE_STATE_COPY_SOURCE;
+    case Fsr3::FFX_RESOURCE_STATE_COPY_DEST:
+        return D3D12_RESOURCE_STATE_COPY_DEST;
+    case Fsr3::FFX_RESOURCE_STATE_GENERIC_READ:
+        return D3D12_RESOURCE_STATE_GENERIC_READ;
+    case Fsr3::FFX_RESOURCE_STATE_INDIRECT_ARGUMENT:
+        return D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+    case Fsr3::FFX_RESOURCE_STATE_RENDER_TARGET:
+        return D3D12_RESOURCE_STATE_RENDER_TARGET;
+    default:
+        return D3D12_RESOURCE_STATE_COMMON;
+    }
+}
+
 static bool CreateDLSSContext(Fsr3::FfxFsr3UpscalerContext* handle,
                               const Fsr3::FfxFsr3UpscalerDispatchDescription* pExecParams)
 {
@@ -342,6 +371,26 @@ static Fsr3::FfxErrorCode ffxFsr3ContextDispatch_Dx12(Fsr3::FfxFsr3UpscalerConte
     params->Set("FSR.viewSpaceToMetersFactor", pDispatchDescription->viewSpaceToMetersFactor);
     params->Set(NVSDK_NGX_Parameter_Sharpness, pDispatchDescription->sharpness);
 
+    if (pDispatchDescription->color.resource != nullptr && pDispatchDescription->color.state > 0)
+        Config::Instance()->ColorResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->color.state));
+
+    if (pDispatchDescription->depth.resource != nullptr && pDispatchDescription->depth.state > 0)
+        Config::Instance()->DepthResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->depth.state));
+
+    if (pDispatchDescription->exposure.resource != nullptr && pDispatchDescription->exposure.state > 0)
+        Config::Instance()->ExposureResourceBarrier.set_volatile_value(
+            GetD3D12State(pDispatchDescription->exposure.state));
+
+    if (pDispatchDescription->motionVectors.resource != nullptr && pDispatchDescription->motionVectors.state > 0)
+        Config::Instance()->MVResourceBarrier.set_volatile_value(
+            GetD3D12State(pDispatchDescription->motionVectors.state));
+
+    if (pDispatchDescription->output.resource != nullptr && pDispatchDescription->output.state > 0)
+        Config::Instance()->OutputResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->output.state));
+
+    if (pDispatchDescription->reactive.resource != nullptr && pDispatchDescription->reactive.state > 0)
+        Config::Instance()->MaskResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->reactive.state));
+
     LOG_DEBUG("handle: {:X}, internalResolution: {}x{}", handle->Id, pDispatchDescription->renderSize.width,
               pDispatchDescription->renderSize.height);
 
@@ -536,6 +585,26 @@ ffxFsr3ContextDispatch_Pattern_Dx12(Fsr3::FfxFsr3UpscalerContext* pContext,
     params->Set("FSR.reactive", pDispatchDescription->reactive.resource);
     params->Set("FSR.viewSpaceToMetersFactor", pDispatchDescription->viewSpaceToMetersFactor);
     params->Set(NVSDK_NGX_Parameter_Sharpness, pDispatchDescription->sharpness);
+
+    if (pDispatchDescription->color.resource != nullptr && pDispatchDescription->color.state > 0)
+        Config::Instance()->ColorResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->color.state));
+
+    if (pDispatchDescription->depth.resource != nullptr && pDispatchDescription->depth.state > 0)
+        Config::Instance()->DepthResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->depth.state));
+
+    if (pDispatchDescription->exposure.resource != nullptr && pDispatchDescription->exposure.state > 0)
+        Config::Instance()->ExposureResourceBarrier.set_volatile_value(
+            GetD3D12State(pDispatchDescription->exposure.state));
+
+    if (pDispatchDescription->motionVectors.resource != nullptr && pDispatchDescription->motionVectors.state > 0)
+        Config::Instance()->MVResourceBarrier.set_volatile_value(
+            GetD3D12State(pDispatchDescription->motionVectors.state));
+
+    if (pDispatchDescription->output.resource != nullptr && pDispatchDescription->output.state > 0)
+        Config::Instance()->OutputResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->output.state));
+
+    if (pDispatchDescription->reactive.resource != nullptr && pDispatchDescription->reactive.state > 0)
+        Config::Instance()->MaskResourceBarrier.set_volatile_value(GetD3D12State(pDispatchDescription->reactive.state));
 
     LOG_DEBUG("handle: {:X}, internalResolution: {}x{}", handle->Id, pDispatchDescription->renderSize.width,
               pDispatchDescription->renderSize.height);
