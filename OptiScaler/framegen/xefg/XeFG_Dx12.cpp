@@ -119,15 +119,14 @@ bool XeFG_Dx12::DestroySwapchainContext()
 
     _isActive = false;
 
-    if (_swapChainContext != nullptr)
+    if (_swapChainContext != nullptr && !State::Instance().isShuttingDown)
     {
         auto context = _swapChainContext;
         _swapChainContext = nullptr;
 
         auto result = XeFGProxy::Destroy()(context);
 
-        if (!State::Instance().isShuttingDown)
-            LOG_INFO("Destroy result: {} ({})", magic_enum::enum_name(result), (UINT) result);
+        LOG_INFO("Destroy result: {} ({})", magic_enum::enum_name(result), (UINT) result);
 
         // Set it back because context is not destroyed
         if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
@@ -640,9 +639,7 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             CreateContext(device, fgConstants);
 
             // Pause for 10 frames
-            if (State::Instance().activeFgInput == FGInput::Upscaler ||
-                State::Instance().activeFgInput == FGInput::DLSSG)
-                UpdateTarget();
+            UpdateTarget();
         }
         // If there is a change deactivate it
         else if (State::Instance().FGchanged)
@@ -650,29 +647,22 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             Deactivate();
 
             // Pause for 10 frames
-            if (State::Instance().activeFgInput == FGInput::Upscaler ||
-                State::Instance().activeFgInput == FGInput::DLSSG)
-                UpdateTarget();
+            UpdateTarget();
 
             // Destroy if Swapchain has a change destroy FG Context too
             if (State::Instance().SCchanged)
                 DestroyFGContext();
         }
 
-        if ((State::Instance().activeFgInput == FGInput::Upscaler ||
-             State::Instance().activeFgInput == FGInput::DLSSG) &&
-            _fgContext != nullptr && !IsPaused() && !IsActive())
+        if (_fgContext != nullptr && !IsPaused() && !IsActive())
             Activate();
     }
     else
     {
         Deactivate();
 
-        if (State::Instance().activeFgInput == FGInput::Upscaler || State::Instance().activeFgInput == FGInput::DLSSG)
-        {
-            State::Instance().ClearCapturedHudlesses = true;
-            Hudfix_Dx12::ResetCounters();
-        }
+        State::Instance().ClearCapturedHudlesses = true;
+        Hudfix_Dx12::ResetCounters();
     }
 
     if (State::Instance().FGchanged)
@@ -681,8 +671,7 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 
         State::Instance().FGchanged = false;
 
-        if (State::Instance().activeFgInput == FGInput::Upscaler || State::Instance().activeFgInput == FGInput::DLSSG)
-            Hudfix_Dx12::ResetCounters();
+        Hudfix_Dx12::ResetCounters();
 
         // Pause for 10 frames
         UpdateTarget();
@@ -756,10 +745,7 @@ void XeFG_Dx12::CreateObjects(ID3D12Device* InDevice)
 
 bool XeFG_Dx12::Present()
 {
-    if (!IsActive() || IsPaused())
-        return false;
-
-    if (State::Instance().FGHudlessCompare)
+    if (IsActive() && !IsPaused() && State::Instance().FGHudlessCompare)
     {
         auto hudless = GetResource(FG_ResourceType::HudlessColor);
         if (hudless != nullptr && hudless->validity == FG_ResourceValidity::UntilPresent)
@@ -783,7 +769,10 @@ bool XeFG_Dx12::Present()
     if (_uiCommandListResetted[fIndex])
     {
         LOG_DEBUG("Executing UI cmdList: {:X}", (size_t) _uiCommandList[fIndex]);
-        _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[fIndex]);
+
+        if (_uiCommandList[fIndex]->Close() == S_OK)
+            _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[fIndex]);
+
         _uiCommandListResetted[fIndex] = false;
     }
 
@@ -877,7 +866,10 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
         // Seems like XeFG doesn't like having hudless suddenly started to be tagged
         // and then be required to use it right away
         if (lastHudlessFrameId == UINT64_MAX || lastHudlessFrameId + 2 < _frameCount)
+        {
+            Deactivate();
             UpdateTarget();
+        }
 
         lastHudlessFrameId = _frameCount;
     }
@@ -935,6 +927,8 @@ ID3D12GraphicsCommandList* XeFG_Dx12::GetUICommandList(int index)
 
     if (!_uiCommandListResetted[index])
     {
+        _uiCommandListResetted[index] = true;
+
         auto result = _uiCommandAllocator[index]->Reset();
 
         if (result == S_OK)

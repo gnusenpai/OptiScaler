@@ -740,9 +740,7 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             CreateContext(device, fgConstants);
 
             // Pause for 10 frames
-            if (State::Instance().activeFgInput == FGInput::Upscaler ||
-                State::Instance().activeFgInput == FGInput::DLSSG)
-                UpdateTarget();
+            UpdateTarget();
         }
         // If there is a change deactivate it
         else if (State::Instance().FGchanged)
@@ -750,29 +748,22 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             Deactivate();
 
             // Pause for 10 frames
-            if (State::Instance().activeFgInput == FGInput::Upscaler ||
-                State::Instance().activeFgInput == FGInput::DLSSG)
-                UpdateTarget();
+            UpdateTarget();
 
             // Destroy if Swapchain has a change destroy FG Context too
             if (State::Instance().SCchanged)
                 DestroyFGContext();
         }
 
-        if ((State::Instance().activeFgInput == FGInput::Upscaler ||
-             State::Instance().activeFgInput == FGInput::DLSSG) &&
-            _fgContext != nullptr && !IsPaused() && !IsActive())
+        if (_fgContext != nullptr && !IsPaused() && !IsActive())
             Activate();
     }
     else if (IsActive())
     {
         Deactivate();
 
-        if (State::Instance().activeFgInput == FGInput::Upscaler || State::Instance().activeFgInput == FGInput::DLSSG)
-        {
-            State::Instance().ClearCapturedHudlesses = true;
-            Hudfix_Dx12::ResetCounters();
-        }
+        State::Instance().ClearCapturedHudlesses = true;
+        Hudfix_Dx12::ResetCounters();
     }
 
     if (State::Instance().FGchanged)
@@ -781,8 +772,7 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 
         State::Instance().FGchanged = false;
 
-        if (State::Instance().activeFgInput == FGInput::Upscaler || State::Instance().activeFgInput == FGInput::DLSSG)
-            Hudfix_Dx12::ResetCounters();
+        Hudfix_Dx12::ResetCounters();
 
         // Pause for 10 frames
         UpdateTarget();
@@ -945,6 +935,8 @@ ID3D12GraphicsCommandList* FSRFG_Dx12::GetUICommandList(int index)
 
     if (!_uiCommandListResetted[index])
     {
+        _uiCommandListResetted[index] = true;
+
         auto result = _uiCommandAllocator[index]->Reset();
 
         if (result == S_OK)
@@ -1048,9 +1040,6 @@ void FSRFG_Dx12::CreateObjects(ID3D12Device* InDevice)
 
 bool FSRFG_Dx12::Present()
 {
-    if (!IsActive() || IsPaused())
-        return false;
-
     if (State::Instance().FGHudlessCompare)
     {
         auto hudless = GetResource(FG_ResourceType::HudlessColor);
@@ -1069,6 +1058,17 @@ bool FSRFG_Dx12::Present()
                 }
             }
         }
+    }
+
+    auto fIndex = GetIndex();
+    if (_uiCommandListResetted[fIndex])
+    {
+        LOG_DEBUG("Executing UI cmdList: {:X}", (size_t) _uiCommandList[fIndex]);
+
+        if (_uiCommandList[fIndex]->Close() == S_OK)
+            _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[fIndex]);
+
+        _uiCommandListResetted[fIndex] = false;
     }
 
     auto result = false;

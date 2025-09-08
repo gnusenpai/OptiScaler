@@ -661,8 +661,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
 
         // And if Optiscalers FG is active call
         // FG Features present
-        if (fg->IsActive())
-            fg->Present();
+        fg->Present();
     }
 
     if (willPresent)
