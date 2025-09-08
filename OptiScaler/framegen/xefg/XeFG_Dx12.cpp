@@ -788,7 +788,9 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     if (_reEnableTargetFrame == _frameCount)
     {
         _reEnableTargetFrame = 0;
-        XeFGProxy::SetEnabled()(_swapChainContext, true);
+
+        if (_isActive)
+            XeFGProxy::SetEnabled()(_swapChainContext, true);
     }
 
     auto fIndex = GetIndex();
