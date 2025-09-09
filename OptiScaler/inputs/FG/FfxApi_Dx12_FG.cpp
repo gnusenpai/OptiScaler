@@ -912,7 +912,7 @@ void ffxPresentCallback()
         cdfgp.header.type = FFX_API_CALLBACK_DESC_TYPE_FRAMEGENERATION_PRESENT;
         cdfgp.frameID = _callbackFrameId;
         cdfgp.device = _device;
-        cdfgp.isGeneratedFrame = true;
+        cdfgp.isGeneratedFrame = false;
 
         IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
         auto scIndex = sc->GetCurrentBackBufferIndex();
@@ -932,7 +932,9 @@ void ffxPresentCallback()
             return;
         }
 
-        if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &_hudless[fIndex]))
+        currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
+
+        if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_COMMON, &_hudless[fIndex]))
             _hudless[fIndex]->SetName(std::format(L"_hudless[{}]", fIndex).c_str());
         else
             return;
@@ -946,8 +948,12 @@ void ffxPresentCallback()
         cmdList->CopyResource(_hudless[fIndex], currentBuffer);
 
         ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PRESENT);
-        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COPY_DEST,
-                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
+
+        cdfgp.outputSwapChainBuffer =
+            ffxApiGetResourceDX12(currentBuffer, FFX_API_RESOURCE_STATE_PRESENT, FFX_API_RESOURCE_USAGE_UAV);
+        cdfgp.currentBackBuffer =
+            ffxApiGetResourceDX12(_hudless[fIndex], FFX_API_RESOURCE_STATE_PRESENT, FFX_API_RESOURCE_USAGE_UAV);
 
         cdfgp.outputSwapChainBuffer = ffxApiGetResourceDX12(currentBuffer, FFX_API_RESOURCE_STATE_PRESENT);
         cdfgp.currentBackBuffer = ffxApiGetResourceDX12(_hudless[fIndex], FFX_API_RESOURCE_STATE_PIXEL_READ);
@@ -1021,15 +1027,24 @@ void ffxPresentCallback()
 
         cmdList->CopyResource(_hudless[fIndex], currentBuffer);
 
-        ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PRESENT);
+        ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COPY_DEST,
-                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-        ddfg.outputs[0] = ffxApiGetResourceDX12(currentBuffer, FFX_API_RESOURCE_STATE_PRESENT);
-        ddfg.presentColor = ffxApiGetResourceDX12(_hudless[fIndex], FFX_API_RESOURCE_STATE_PIXEL_READ);
+        ddfg.outputs[0] = ffxApiGetResourceDX12(currentBuffer, FFX_API_RESOURCE_STATE_GENERIC_READ,
+                                                FFX_API_RESOURCE_USAGE_RENDERTARGET);
+        ddfg.presentColor = ffxApiGetResourceDX12(_hudless[fIndex], FFX_API_RESOURCE_STATE_GENERIC_READ);
         ddfg.reset = false;
 
         auto result = _fgCallback(&ddfg, _fgCallbackUserContext);
+
+        ResourceBarrier(cmdList, currentBuffer,
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+                        D3D12_RESOURCE_STATE_PRESENT);
+        ResourceBarrier(cmdList, _hudless[fIndex],
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (result == FFX_API_RETURN_OK)
         {
