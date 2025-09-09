@@ -26,6 +26,8 @@ static std::mutex _newFrameMutex;
 static ID3D12Resource* _hudless[BUFFER_COUNT] = {};
 static Dx12Resource _uiRes[BUFFER_COUNT] = {};
 
+// #define PASSTHRU
+
 static FfxApiResourceState GetFfxApiState(D3D12_RESOURCE_STATES state)
 {
     switch (state)
@@ -110,16 +112,16 @@ static bool CreateBufferResource(ID3D12Device* InDevice, ID3D12Resource* InResou
 
     HRESULT hr;
 
-    D3D12_HEAP_PROPERTIES heapProperties;
-    D3D12_HEAP_FLAGS heapFlags;
-    hr = InResource->GetHeapProperties(&heapProperties, &heapFlags);
-    if (hr != S_OK)
-    {
-        LOG_ERROR("GetHeapProperties result: {:X}", (UINT64) hr);
-        return false;
-    }
+    // D3D12_HEAP_PROPERTIES heapProperties;
+    // D3D12_HEAP_FLAGS heapFlags;
+    // hr = InResource->GetHeapProperties(&heapProperties, &heapFlags);
+    // if (hr != S_OK)
+    //{
+    //     LOG_ERROR("GetHeapProperties result: {:X}", (UINT64) hr);
+    //     return false;
+    // }
 
-    // CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
     inDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; //    | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
@@ -154,6 +156,10 @@ static void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Reso
 ffxReturnCode_t ffxCreateContext_Dx12FG(ffxContext* context, ffxCreateContextDescHeader* desc,
                                         const ffxAllocationCallbacks* memCb)
 {
+#ifdef PASSTHRU
+    return (ffxReturnCode_t) 0xFFFFFFFF;
+#endif
+
     LOG_DEBUG("");
 
     if (desc->type == FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATION)
@@ -310,6 +316,10 @@ ffxReturnCode_t ffxCreateContext_Dx12FG(ffxContext* context, ffxCreateContextDes
 
 ffxReturnCode_t ffxDestroyContext_Dx12FG(ffxContext* context, const ffxAllocationCallbacks* memCb)
 {
+#ifdef PASSTHRU
+    return (ffxReturnCode_t) 0xFFFFFFFF;
+#endif
+
     LOG_DEBUG("");
 
     if (State::Instance().currentFG != nullptr && (void*) scContext == *context)
@@ -330,6 +340,37 @@ ffxReturnCode_t ffxDestroyContext_Dx12FG(ffxContext* context, const ffxAllocatio
 
 ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader* desc)
 {
+
+#ifdef PASSTHRU
+    if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION)
+    {
+        auto cDesc = (ffxConfigureDescFrameGeneration*) desc;
+
+        if (cDesc->presentCallback != nullptr)
+        {
+            LOG_DEBUG("presentCallback exist");
+
+            _presentCallback = cDesc->presentCallback;
+
+            cDesc->presentCallback = [](ffxCallbackDescFrameGenerationPresent* params,
+                                        void* pUserCtx) -> ffxReturnCode_t
+            {
+                IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
+                auto scIndex = sc->GetCurrentBackBufferIndex();
+
+                ID3D12Resource* currentBuffer = nullptr;
+                auto hr = sc->GetBuffer(scIndex, IID_PPV_ARGS(&currentBuffer));
+                currentBuffer->Release();
+
+                auto result = _presentCallback(params, pUserCtx);
+                return result;
+            };
+        }
+    }
+
+    return (ffxReturnCode_t) 0xFFFFFFFF;
+#endif
+
     auto fg = State::Instance().currentFG;
 
     if (fg == nullptr)
@@ -682,6 +723,10 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
 
 ffxReturnCode_t ffxQuery_Dx12FG(ffxContext* context, ffxQueryDescHeader* desc)
 {
+#ifdef PASSTHRU
+    return (ffxReturnCode_t) 0xFFFFFFFF;
+#endif
+
     LOG_DEBUG();
 
     if (desc->type == FFX_API_QUERY_DESC_TYPE_FRAMEGENERATION_GPU_MEMORY_USAGE)
@@ -734,6 +779,10 @@ ffxReturnCode_t ffxQuery_Dx12FG(ffxContext* context, ffxQueryDescHeader* desc)
 
 ffxReturnCode_t ffxDispatch_Dx12FG(ffxContext* context, ffxDispatchDescHeader* desc)
 {
+#ifdef PASSTHRU
+    return (ffxReturnCode_t) 0xFFFFFFFF;
+#endif
+
     auto fg = State::Instance().currentFG;
 
     if (fg == nullptr)
@@ -895,6 +944,10 @@ ffxReturnCode_t ffxDispatch_Dx12FG(ffxContext* context, ffxDispatchDescHeader* d
 
 void ffxPresentCallback()
 {
+#ifdef PASSTHRU
+    return;
+#endif
+
     LOG_DEBUG("");
 
     auto fg = State::Instance().currentFG;
@@ -925,7 +978,6 @@ void ffxPresentCallback()
             return;
         }
 
-        currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
         if (currentBuffer == nullptr)
         {
             LOG_ERROR("currentBuffer is nullptr!");
@@ -954,9 +1006,6 @@ void ffxPresentCallback()
             ffxApiGetResourceDX12(currentBuffer, FFX_API_RESOURCE_STATE_PRESENT, FFX_API_RESOURCE_USAGE_UAV);
         cdfgp.currentBackBuffer =
             ffxApiGetResourceDX12(_hudless[fIndex], FFX_API_RESOURCE_STATE_PRESENT, FFX_API_RESOURCE_USAGE_UAV);
-
-        cdfgp.outputSwapChainBuffer = ffxApiGetResourceDX12(currentBuffer, FFX_API_RESOURCE_STATE_PRESENT);
-        cdfgp.currentBackBuffer = ffxApiGetResourceDX12(_hudless[fIndex], FFX_API_RESOURCE_STATE_PIXEL_READ);
 
         if (_uiRes[fIndex].resource != nullptr)
             cdfgp.currentUI = ffxApiGetResourceDX12(_uiRes[fIndex].resource, GetFfxApiState(_uiRes[fIndex].state));

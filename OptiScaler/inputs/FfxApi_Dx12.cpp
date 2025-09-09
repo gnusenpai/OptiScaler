@@ -277,8 +277,10 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
     {
         auto result = ffxCreateContext_Dx12FG(context, desc, memCb);
 
-        if (result != rcContinue)
-            return result;
+        if (result == (ffxReturnCode_t) 0xffffffff)
+            return FfxApiProxy::D3D12_CreateContext()(context, desc, memCb);
+
+        return result;
     }
 
     bool upscaleContext = false;
@@ -392,7 +394,14 @@ ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationC
     LOG_DEBUG("context: {:X}", (size_t) *context);
 
     if (*context == (void*) scContext || *context == (void*) fgContext)
-        return ffxDestroyContext_Dx12FG(context, memCb);
+    {
+        auto result = ffxDestroyContext_Dx12FG(context, memCb);
+
+        if (result == (ffxReturnCode_t) 0xffffffff)
+            return FfxApiProxy::D3D12_DestroyContext()(context, memCb);
+
+        return result;
+    }
 
     bool upscalerContext = false;
     if (_contexts.contains(*context))
@@ -443,8 +452,10 @@ ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, ffxConfigureDescHeader* d
     {
         auto result = ffxConfigure_Dx12FG(context, desc);
 
-        if (result != rcContinue)
-            return result;
+        if (result == (ffxReturnCode_t) 0xffffffff)
+            return FfxApiProxy::D3D12_Configure()(context, desc);
+
+        return result;
     }
 
     if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE)
@@ -475,8 +486,10 @@ ffxReturnCode_t ffxQuery_Dx12(ffxContext* context, ffxQueryDescHeader* desc)
     {
         auto result = ffxQuery_Dx12FG(context, desc);
 
-        if (result != rcContinue)
-            return result;
+        if (result == (ffxReturnCode_t) 0xffffffff)
+            return FfxApiProxy::D3D12_Query()(context, desc);
+
+        return result;
     }
 
     if (desc->type == FFX_API_QUERY_DESC_TYPE_UPSCALE_GETRENDERRESOLUTIONFROMQUALITYMODE)
@@ -542,8 +555,10 @@ ffxReturnCode_t ffxDispatch_Dx12(ffxContext* context, ffxDispatchDescHeader* des
     {
         auto result = ffxDispatch_Dx12FG(context, desc);
 
-        if (result != rcContinue)
-            return result;
+        if (result == (ffxReturnCode_t) 0xffffffff)
+            return FfxApiProxy::D3D12_Dispatch()(context, desc);
+
+        return result;
     }
 
     if (context == nullptr || !_initParams.contains(*context))
