@@ -933,6 +933,8 @@ ID3D12GraphicsCommandList* FSRFG_Dx12::GetUICommandList(int index)
     if (index < 0)
         index = GetIndex();
 
+    LOG_DEBUG("index: {}", index);
+
     if (!_uiCommandListResetted[index])
     {
         _uiCommandListResetted[index] = true;
@@ -1063,10 +1065,14 @@ bool FSRFG_Dx12::Present()
     auto fIndex = GetIndex();
     if (_uiCommandListResetted[fIndex])
     {
-        LOG_DEBUG("Executing UI cmdList: {:X}", (size_t) _uiCommandList[fIndex]);
 
-        if (_uiCommandList[fIndex]->Close() == S_OK)
+        LOG_DEBUG("Executing _uiCommandList[fIndex][{}]: {:X}", fIndex, (size_t) _uiCommandList[fIndex]);
+        auto closeResult = _uiCommandList[fIndex]->Close();
+
+        if (closeResult == S_OK)
             _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[fIndex]);
+        else
+            LOG_ERROR("_uiCommandList[{}]->Close() error", fIndex, (UINT) closeResult);
 
         _uiCommandListResetted[fIndex] = false;
     }
