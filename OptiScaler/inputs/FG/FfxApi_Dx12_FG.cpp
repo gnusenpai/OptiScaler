@@ -1023,7 +1023,7 @@ void ffxPresentCallback()
                 hudless.resource = _hudless[fIndex];
                 hudless.state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
                 hudless.type = FG_ResourceType::HudlessColor;
-                hudless.validity = FG_ResourceValidity::JustTrackCmdlist;
+                hudless.validity = FG_ResourceValidity::ValidNow;
                 hudless.width = hDesc.Width;
                 fg->SetResource(&hudless);
             }
@@ -1106,7 +1106,7 @@ void ffxPresentCallback()
                 hudless.resource = _hudless[fIndex];
                 hudless.state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
                 hudless.type = FG_ResourceType::HudlessColor;
-                hudless.validity = FG_ResourceValidity::JustTrackCmdlist;
+                hudless.validity = FG_ResourceValidity::ValidNow;
                 hudless.width = hDesc.Width;
                 fg->SetResource(&hudless);
             }
