@@ -175,6 +175,7 @@ class Config
     // Logging
     CustomOptional<bool> LogToFile { false };
     CustomOptional<bool> LogToConsole { false };
+    CustomOptional<bool> LogToDebug { false };
     CustomOptional<bool> LogToNGX { false };
     CustomOptional<bool> OpenConsole { false };
     CustomOptional<bool> DebugWait { false }; // not in ini
