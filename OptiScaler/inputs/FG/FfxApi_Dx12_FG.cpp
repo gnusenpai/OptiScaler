@@ -950,6 +950,9 @@ void ffxPresentCallback()
 
     LOG_DEBUG("");
 
+    if (_presentCallback != nullptr && _fgCallback != nullptr)
+        return;
+
     auto fg = State::Instance().currentFG;
 
     if (fg == nullptr)

@@ -935,6 +935,16 @@ ID3D12GraphicsCommandList* FSRFG_Dx12::GetUICommandList(int index)
 
     LOG_DEBUG("index: {}", index);
 
+    if (_uiCommandAllocator[0] == nullptr)
+    {
+        if (_device != nullptr)
+            CreateObjects(_device);
+        else if (State::Instance().currentD3D12Device != nullptr)
+            CreateObjects(State::Instance().currentD3D12Device);
+        else
+            return nullptr;
+    }
+
     if (!_uiCommandListResetted[index])
     {
         _uiCommandListResetted[index] = true;
@@ -961,8 +971,8 @@ void FSRFG_Dx12::CreateObjects(ID3D12Device* InDevice)
 {
     _device = InDevice;
 
-    if (_fgCommandAllocator != nullptr)
-        ReleaseObjects();
+    if (_fgCommandAllocator[0] != nullptr)
+        return;
 
     LOG_DEBUG("");
 

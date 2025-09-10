@@ -692,10 +692,8 @@ void XeFG_Dx12::ReleaseObjects()
 
 void XeFG_Dx12::CreateObjects(ID3D12Device* InDevice)
 {
-    _device = InDevice;
-
-    if (_uiCommandAllocator != nullptr)
-        ReleaseObjects();
+    if (_uiCommandAllocator[0] != nullptr)
+        return;
 
     LOG_DEBUG("");
 
@@ -946,6 +944,16 @@ ID3D12GraphicsCommandList* XeFG_Dx12::GetUICommandList(int index)
         index = GetIndex();
 
     LOG_DEBUG("index: {}", index);
+
+    if (_uiCommandAllocator[0] == nullptr)
+    {
+        if (_device != nullptr)
+            CreateObjects(_device);
+        else if (State::Instance().currentD3D12Device != nullptr)
+            CreateObjects(State::Instance().currentD3D12Device);
+        else
+            return nullptr;
+    }
 
     if (!_uiCommandListResetted[index])
     {
