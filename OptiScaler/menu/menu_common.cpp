@@ -2585,10 +2585,10 @@ bool MenuCommon::RenderMenu()
                     false, 
                     false, 
                     false, 
-                    false, 
                     false, // TODO: Disable DLSSG inputs in games that can't support it
                     true, 
-                    false 
+                    false,
+                    false,
                 };
                 // clang-format on
 
