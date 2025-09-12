@@ -347,6 +347,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="proxies\KernelBase_Proxy.h" />
     <ClInclude Include="proxies\XeFG_Proxy.h" />
     <ClInclude Include="proxies\XeLL_Proxy.h" />
+    <ClInclude Include="proxies\Ntdll_Proxy.h" />
     <ClInclude Include="resource_tracking\ResTrack_dx12.h" />
     <ClInclude Include="shaders\hudless_compare\HC_Common.h" />
     <ClInclude Include="shaders\hudless_compare\HC_Dx12.h" />

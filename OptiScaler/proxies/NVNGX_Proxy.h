@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "Logger.h"
 
+#include <proxies/Ntdll_Proxy.h>
 #include <proxies/KernelBase_Proxy.h>
 
 #include "nvapi/NvApiHooks.h"
@@ -427,8 +428,6 @@ class NVNGXProxy
 
         if (_dll == nullptr)
         {
-            State::DisableChecks(333);
-
             do
             {
                 std::wstring libraryName;
@@ -454,7 +453,7 @@ class NVNGXProxy
 
                     if (cfgPath.has_filename())
                     {
-                        _dll = KernelBaseProxy::LoadLibraryExW_()(cfgPath.c_str(), NULL, 0);
+                        _dll = NtdllProxy::LoadLibraryExW_Ldr(cfgPath.c_str(), NULL, 0);
 
                         if (_dll)
                         {
@@ -468,7 +467,7 @@ class NVNGXProxy
                         auto path = cfgPath / libraryNameUS;
 
                         LOG_INFO("trying to load _nvngx.dll path: {0}", wstring_to_string(cfgPath.wstring()));
-                        _dll = KernelBaseProxy::LoadLibraryExW_()(path.c_str(), NULL, 0);
+                        _dll = NtdllProxy::LoadLibraryExW_Ldr(path.c_str(), NULL, 0);
 
                         if (_dll)
                         {
@@ -479,7 +478,7 @@ class NVNGXProxy
 
                         path = cfgPath / libraryName;
                         LOG_INFO("trying to load nvngx.dll path: {0}", wstring_to_string(cfgPath.wstring()));
-                        _dll = KernelBaseProxy::LoadLibraryExW_()(path.c_str(), NULL, 0);
+                        _dll = NtdllProxy::LoadLibraryExW_Ldr(path.c_str(), NULL, 0);
 
                         if (_dll)
                         {
@@ -497,7 +496,7 @@ class NVNGXProxy
                     auto nvngxPath = regNGXCorePath.value() / libraryNameUS;
                     LOG_INFO("trying to load _nvngx.dll path: {0}", wstring_to_string(nvngxPath.wstring()));
 
-                    _dll = KernelBaseProxy::LoadLibraryExW_()(nvngxPath.wstring().c_str(), NULL, 0);
+                    _dll = NtdllProxy::LoadLibraryExW_Ldr(nvngxPath.wstring().c_str(), NULL, 0);
                     if (_dll)
                     {
                         LOG_INFO("_nvngx.dll loaded from {0}, ptr: {1:X}", wstring_to_string(nvngxPath.wstring()),
@@ -508,7 +507,7 @@ class NVNGXProxy
                     nvngxPath = regNGXCorePath.value() / libraryName;
                     LOG_INFO("trying to load nvngx.dll path: {0}", wstring_to_string(nvngxPath.wstring()));
 
-                    _dll = KernelBaseProxy::LoadLibraryExW_()(nvngxPath.wstring().c_str(), NULL, 0);
+                    _dll = NtdllProxy::LoadLibraryExW_Ldr(nvngxPath.wstring().c_str(), NULL, 0);
                     if (_dll)
                     {
                         LOG_INFO("nvngx.dll loaded from {0}, ptr: {1:X}", wstring_to_string(nvngxPath.wstring()),
@@ -525,7 +524,7 @@ class NVNGXProxy
                 auto nvngxPath = sysPath / libraryNameUS;
                 LOG_INFO("trying to load _nvngx.dll path: {0}", wstring_to_string(nvngxPath.wstring()));
 
-                _dll = KernelBaseProxy::LoadLibraryExW_()(nvngxPath.wstring().c_str(), NULL, 0);
+                _dll = NtdllProxy::LoadLibraryExW_Ldr(nvngxPath.wstring().c_str(), NULL, 0);
                 if (_dll)
                 {
                     LOG_INFO("_nvngx.dll loaded from {0}, ptr: {1:X}", wstring_to_string(nvngxPath.wstring()),
@@ -536,14 +535,12 @@ class NVNGXProxy
                 nvngxPath = sysPath / libraryName;
                 LOG_INFO("trying to load nvngx.dll path: {0}", wstring_to_string(nvngxPath.wstring()));
 
-                _dll = KernelBaseProxy::LoadLibraryExW_()(nvngxPath.wstring().c_str(), NULL, 0);
+                _dll = NtdllProxy::LoadLibraryExW_Ldr(nvngxPath.wstring().c_str(), NULL, 0);
                 if (_dll)
                     LOG_INFO("nvngx.dll loaded from {0}, ptr: {1:X}", wstring_to_string(nvngxPath.wstring()),
                              (ULONG64) _dll);
 
             } while (false);
-
-            State::EnableChecks(333);
         }
 
         if (_dll != nullptr)

@@ -144,7 +144,7 @@ bool fakenvapi::loadForNvidia()
     if (_dllForNvidia != nullptr)
         return true;
 
-    _dllForNvidia = KernelBaseProxy::LoadLibraryExW_()(L"fakenvapi.dll", NULL, 0);
+    _dllForNvidia = NtdllProxy::LoadLibraryExW_Ldr(L"fakenvapi.dll", NULL, 0);
 
     if (!_dllForNvidia)
         return false;

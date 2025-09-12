@@ -5,6 +5,7 @@
 #include <Util.h>
 #include <Config.h>
 
+#include "Ntdll_Proxy.h"
 #include "KernelBase_Proxy.h"
 
 #include <detours/detours.h>
@@ -12,20 +13,20 @@
 class Kernel32Proxy
 {
   public:
-    typedef BOOL (*PFN_FreeLibrary)(HMODULE lpLibrary);
-    typedef HMODULE (*PFN_LoadLibraryA)(LPCSTR lpLibFileName);
-    typedef HMODULE (*PFN_LoadLibraryW)(LPCWSTR lpLibFileName);
-    typedef HMODULE (*PFN_LoadLibraryExA)(LPCSTR lpLibFileName, HANDLE hFile, DWORD dwFlags);
-    typedef HMODULE (*PFN_LoadLibraryExW)(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags);
-    typedef FARPROC (*PFN_GetProcAddress)(HMODULE hModule, LPCSTR lpProcName);
-    typedef HMODULE (*PFN_GetModuleHandleA)(LPCSTR lpModuleName);
-    typedef HMODULE (*PFN_GetModuleHandleW)(LPCWSTR lpModuleName);
-    typedef BOOL (*PFN_GetModuleHandleExA)(DWORD dwFlags, LPCSTR lpModuleName, HMODULE* phModule);
-    typedef BOOL (*PFN_GetModuleHandleExW)(DWORD dwFlags, LPCWSTR lpModuleName, HMODULE* phModule);
-    typedef DWORD (*PFN_GetFileAttributesW)(LPCWSTR lpFileName);
-    typedef HANDLE (*PFN_CreateFileW)(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
-                                      LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
-                                      DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+    typedef BOOL(WINAPI* PFN_FreeLibrary)(HMODULE lpLibrary);
+    typedef HMODULE(WINAPI* PFN_LoadLibraryA)(LPCSTR lpLibFileName);
+    typedef HMODULE(WINAPI* PFN_LoadLibraryW)(LPCWSTR lpLibFileName);
+    typedef HMODULE(WINAPI* PFN_LoadLibraryExA)(LPCSTR lpLibFileName, HANDLE hFile, DWORD dwFlags);
+    typedef HMODULE(WINAPI* PFN_LoadLibraryExW)(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags);
+    typedef FARPROC(WINAPI* PFN_GetProcAddress)(HMODULE hModule, LPCSTR lpProcName);
+    typedef HMODULE(WINAPI* PFN_GetModuleHandleA)(LPCSTR lpModuleName);
+    typedef HMODULE(WINAPI* PFN_GetModuleHandleW)(LPCWSTR lpModuleName);
+    typedef BOOL(WINAPI* PFN_GetModuleHandleExA)(DWORD dwFlags, LPCSTR lpModuleName, HMODULE* phModule);
+    typedef BOOL(WINAPI* PFN_GetModuleHandleExW)(DWORD dwFlags, LPCWSTR lpModuleName, HMODULE* phModule);
+    typedef DWORD(WINAPI* PFN_GetFileAttributesW)(LPCWSTR lpFileName);
+    typedef HANDLE(WINAPI* PFN_CreateFileW)(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
+                                            LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
+                                            DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 
     static void Init()
     {
@@ -35,7 +36,7 @@ class Kernel32Proxy
         _dll = KernelBaseProxy::GetModuleHandleW_()(L"kernel32.dll");
 
         if (_dll == nullptr)
-            _dll = KernelBaseProxy::LoadLibraryExW_()(L"kernel32.dll", NULL, 0);
+            _dll = NtdllProxy::LoadLibraryExW_Ldr(L"kernel32.dll", NULL, 0);
 
         if (_dll == nullptr)
             return;

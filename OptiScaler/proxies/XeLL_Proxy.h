@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "Logger.h"
 
+#include <proxies/Ntdll_Proxy.h>
 #include <proxies/KernelBase_Proxy.h>
 
 #include <xell.h>
@@ -170,7 +171,7 @@ class XeLLProxy
             {
                 std::filesystem::path libXeLLPath = dllPath.parent_path() / libraryName;
                 LOG_INFO("Trying to load libxell.dll from dll path: {}", libXeLLPath.string());
-                mainModule = KernelBaseProxy::LoadLibraryExW_()(libXeLLPath.c_str(), NULL, 0);
+                mainModule = NtdllProxy::LoadLibraryExW_Ldr(libXeLLPath.c_str(), NULL, 0);
             }
 
         } while (false);

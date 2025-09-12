@@ -6,6 +6,7 @@
 #include <inputs/FG/Streamline_Inputs_Dx12.h>
 #include "misc/Quirks.h"
 
+#include <set>
 #include <deque>
 #include <vulkan/vulkan.h>
 #include <ankerl/unordered_dense.h>
@@ -194,6 +195,7 @@ class State
     std::string currentInputApiName;
 
     bool isShuttingDown = false;
+    std::set<PVOID> modulesToFree;
 
     // menu warnings
     bool fgSettingsChanged = false;

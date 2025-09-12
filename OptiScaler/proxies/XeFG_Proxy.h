@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "Logger.h"
 
+#include <proxies/Ntdll_Proxy.h>
 #include <proxies/KernelBase_Proxy.h>
 
 #include <xefg_swapchain.h>
@@ -192,7 +193,7 @@ class XeFGProxy
         {
             std::filesystem::path libXeFGPath = dllPath.parent_path() / libraryName;
             LOG_INFO("Trying to load libxess_fg.dll from dll path: {}", libXeFGPath.string());
-            mainModule = KernelBaseProxy::LoadLibraryExW_()(libXeFGPath.c_str(), NULL, 0);
+            mainModule = NtdllProxy::LoadLibraryExW_Ldr(libXeFGPath.c_str(), NULL, 0);
         }
 
         if (mainModule != nullptr)

@@ -5,7 +5,7 @@
 
 #include <menu/menu_overlay_vk.h>
 
-#include <proxies/Kernel32_Proxy.h>
+#include <proxies/KernelBase_Proxy.h>
 
 #include <detours/detours.h>
 #include <misc/FrameLimit.h>

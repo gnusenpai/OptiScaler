@@ -17,6 +17,7 @@
 #include <hooks/Streamline_Hooks.h>
 #include "proxies/Kernel32_Proxy.h"
 #include "proxies/KernelBase_Proxy.h"
+#include "proxies/Ntdll_Proxy.h"
 #include <proxies/IGDExt_Proxy.h>
 
 #include "inputs/FSR2_Dx12.h"
@@ -32,7 +33,6 @@
 #include <hooks/HooksVk.h>
 #include <hooks/Ntdll_Hooks.h>
 #include <hooks/Kernel_Hooks.h>
-
 #include <nvapi/NvApiHooks.h>
 
 #include <cwctype>
@@ -190,7 +190,7 @@ void LoadAsiPlugins()
 
         if (ext == L".asi")
         {
-            HMODULE hMod = KernelBaseProxy::LoadLibraryW_()(entry.path().c_str());
+            HMODULE hMod = NtdllProxy::LoadLibraryExW_Ldr(entry.path().c_str(), NULL, 0);
 
             if (hMod != nullptr)
             {
@@ -237,14 +237,6 @@ static void CheckWorkingMode()
 {
     LOG_FUNC();
 
-    if (Config::Instance()->EarlyHooking.value_or_default())
-    {
-
-        NtdllHooks::Hook();
-        KernelHooks::Hook();
-        KernelHooks::HookBase();
-    }
-
     bool modeFound = false;
     std::string filename = Util::DllPath().filename().string();
     std::string lCaseFilename(filename);
@@ -272,13 +264,20 @@ static void CheckWorkingMode()
             break;
         }
 
+        if (Config::Instance()->EarlyHooking.value_or_default())
+        {
+            NtdllHooks::Hook();
+            KernelHooks::Hook();
+            KernelHooks::HookBase();
+        }
+
         // version.dll
         if (lCaseFilename == "version.dll")
         {
             do
             {
                 auto pluginFilePath = pluginPath / L"version.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(pluginFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -286,7 +285,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(L"version-original.dll", NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"version-original.dll", NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -295,7 +294,7 @@ static void CheckWorkingMode()
                 }
 
                 auto sysFilePath = sysPath / L"version.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                     LOG_INFO("OptiScaler working as version.dll, system dll loaded");
@@ -328,7 +327,7 @@ static void CheckWorkingMode()
             do
             {
                 auto pluginFilePath = pluginPath / L"winmm.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(pluginFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -336,7 +335,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(L"winmm-original.dll", NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"winmm-original.dll", NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -345,7 +344,7 @@ static void CheckWorkingMode()
                 }
 
                 auto sysFilePath = sysPath / L"winmm.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                     LOG_INFO("OptiScaler working as winmm.dll, system dll loaded");
@@ -377,7 +376,7 @@ static void CheckWorkingMode()
             do
             {
                 auto pluginFilePath = pluginPath / L"wininet.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(pluginFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -385,7 +384,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(L"wininet-original.dll", NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"wininet-original.dll", NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -394,7 +393,7 @@ static void CheckWorkingMode()
                 }
 
                 auto sysFilePath = sysPath / L"wininet.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                     LOG_INFO("OptiScaler working as wininet.dll, system dll loaded");
@@ -426,7 +425,7 @@ static void CheckWorkingMode()
             do
             {
                 auto pluginFilePath = pluginPath / L"dbghelp.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(pluginFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -434,7 +433,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(L"dbghelp-original.dll", NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"dbghelp-original.dll", NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -443,7 +442,7 @@ static void CheckWorkingMode()
                 }
 
                 auto sysFilePath = sysPath / L"dbghelp.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                     LOG_INFO("OptiScaler working as dbghelp.dll, system dll loaded");
@@ -509,7 +508,7 @@ static void CheckWorkingMode()
             do
             {
                 auto pluginFilePath = pluginPath / L"winhttp.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(pluginFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -517,7 +516,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(L"winhttp-original.dll", NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"winhttp-original.dll", NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -526,7 +525,7 @@ static void CheckWorkingMode()
                 }
 
                 auto sysFilePath = sysPath / L"winhttp.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                     LOG_INFO("OptiScaler working as winhttp.dll, system dll loaded");
@@ -558,7 +557,7 @@ static void CheckWorkingMode()
             do
             {
                 auto pluginFilePath = pluginPath / L"dxgi.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(pluginFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -566,7 +565,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(L"dxgi-original.dll", NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"dxgi-original.dll", NULL, 0);
 
                 if (originalModule != nullptr)
                 {
@@ -575,7 +574,7 @@ static void CheckWorkingMode()
                 }
 
                 auto sysFilePath = sysPath / L"dxgi.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                     LOG_INFO("OptiScaler working as dxgi.dll, system dll loaded");
@@ -609,17 +608,18 @@ static void CheckWorkingMode()
             do
             {
                 // Moved here to cover agility sdk
+                NtdllHooks::Hook();
                 KernelHooks::HookBase();
 
                 auto pluginFilePath = pluginPath / L"d3d12.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(pluginFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
                 if (originalModule != nullptr)
                 {
                     LOG_INFO("OptiScaler working as d3d12.dll, original dll loaded from plugin folder");
                     break;
                 }
 
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(L"d3d12-original.dll", NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"d3d12-original.dll", NULL, 0);
                 if (originalModule != nullptr)
                 {
                     LOG_INFO("OptiScaler working as d3d12.dll, d3d12-original.dll loaded");
@@ -627,7 +627,7 @@ static void CheckWorkingMode()
                 }
 
                 auto sysFilePath = sysPath / L"d3d12.dll";
-                originalModule = KernelBaseProxy::LoadLibraryExW_()(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
 
                 if (originalModule != nullptr)
                     LOG_INFO("OptiScaler working as d3d12.dll, system dll loaded");
@@ -706,6 +706,7 @@ static void CheckWorkingMode()
             {
                 // Moved here to cover agility sdk
                 KernelHooks::HookBase();
+                NtdllHooks::Hook();
 
                 LOG_DEBUG("Check for d3d12");
                 HMODULE d3d12Module = nullptr;
@@ -740,7 +741,7 @@ static void CheckWorkingMode()
             // Vulkan
             vulkanModule = GetDllNameWModule(&vkNamesW);
             if ((State::Instance().isRunningOnDXVK || State::Instance().isRunningOnLinux) && vulkanModule == nullptr)
-                vulkanModule = KernelBaseProxy::LoadLibraryExW_()(vkNamesW[0].c_str(), NULL, 0);
+                vulkanModule = NtdllProxy::LoadLibraryExW_Ldr(vkNamesW[0].c_str(), NULL, 0);
 
             if (vulkanModule != nullptr)
             {
@@ -879,7 +880,7 @@ static void CheckWorkingMode()
                 SetEnvironmentVariableW(L"RESHADE_DISABLE_GRAPHICS_HOOK", L"1");
 
                 State::EnableServeOriginal(200);
-                skModule = LoadLibraryW(skFile.c_str());
+                skModule = NtdllProxy::LoadLibraryExW_Ldr(skFile.c_str(), NULL, 0);
                 State::DisableServeOriginal(200);
 
                 LOG_INFO("Loading SpecialK64.dll, result: {0:X}", (UINT64) skModule);
@@ -895,7 +896,7 @@ static void CheckWorkingMode()
                     SetEnvironmentVariableW(L"RESHADE_DISABLE_GRAPHICS_HOOK", L"1");
 
                 State::EnableServeOriginal(201);
-                reshadeModule = LoadLibraryW(rsFile.c_str());
+                reshadeModule = NtdllProxy::LoadLibraryExW_Ldr(rsFile.c_str(), NULL, 0);
                 State::DisableServeOriginal(201);
 
                 LOG_INFO("Loading ReShade64.dll, result: {0:X}", (size_t) reshadeModule);
@@ -917,7 +918,7 @@ static void CheckWorkingMode()
             // Intel Extension Framework
             if (Config::Instance()->UESpoofIntelAtomics64.value_or_default())
             {
-                HMODULE igdext = KernelBaseProxy::LoadLibraryW_()(L"igdext64.dll");
+                HMODULE igdext = NtdllProxy::LoadLibraryExW_Ldr(L"igdext64.dll", NULL, 0);
 
                 if (igdext == nullptr)
                 {
@@ -927,7 +928,7 @@ static void CheckWorkingMode()
                     {
                         auto dllPath = paths[i] / L"igdext64.dll";
                         LOG_DEBUG("Trying to load: {}", wstring_to_string(dllPath.c_str()));
-                        igdext = KernelBaseProxy::LoadLibraryExW_()(dllPath.c_str(), NULL, 0);
+                        igdext = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
 
                         if (igdext != nullptr)
                         {
@@ -1048,7 +1049,7 @@ bool isNvidia()
 
     if (!nvapiModule)
     {
-        nvapiModule = KernelBaseProxy::LoadLibraryExW_()(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        nvapiModule = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
         loadedHere = true;
     }
 
@@ -1105,7 +1106,7 @@ bool isNvidia()
     }
 
     if (loadedHere)
-        KernelBaseProxy::FreeLibrary_()(nvapiModule);
+        NtdllProxy::FreeLibrary_Ldr(nvapiModule);
 
     LOG_DEBUG("Detected: {}", nvidiaDetected);
 
@@ -1157,8 +1158,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         spdlog::info("");
 
         // Init Kernel proxies
+        NtdllProxy::Init();
         KernelBaseProxy::Init();
         Kernel32Proxy::Init();
+
+        // Check for working mode and attach hooks
+        spdlog::info("");
+        CheckWorkingMode();
 
         // Check if real DLSS available
         if (Config::Instance()->DLSSEnabled.value_or_default())
@@ -1221,10 +1227,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
             if (!State::Instance().isRunningOnNvidia && !Config::Instance()->NvapiDllPath.has_value())
                 Config::Instance()->NvapiDllPath.set_volatile_value(L"fakenvapi.dll");
         }
-
-        // Check for working mode and attach hooks
-        spdlog::info("");
-        CheckWorkingMode();
 
         // Asi plugins
         if (!State::Instance().isWorkingAsNvngx && Config::Instance()->LoadAsiPlugins.value_or_default())
@@ -1291,6 +1293,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         break;
 
     case DLL_PROCESS_DETACH:
+        State::Instance().isShuttingDown = true;
+
         // Unhooking and cleaning stuff causing issues during shutdown.
         // Disabled for now to check if it cause any issues
         // UnhookApis();
@@ -1302,15 +1306,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         // DetachHooks();
 
         if (skModule != nullptr)
-            KernelBaseProxy::FreeLibrary_()(skModule);
+            NtdllProxy::FreeLibrary_Ldr(skModule);
 
         if (reshadeModule != nullptr)
-            KernelBaseProxy::FreeLibrary_()(reshadeModule);
+            NtdllProxy::FreeLibrary_Ldr(reshadeModule);
 
         if (_asiHandles.size() > 0)
         {
             for (size_t i = 0; i < _asiHandles.size(); i++)
-                KernelBaseProxy::FreeLibrary_()(_asiHandles[i]);
+                NtdllProxy::FreeLibrary_Ldr(_asiHandles[i]);
+        }
+
+        for (const PVOID& v : State::Instance().modulesToFree)
+        {
+            NtdllProxy::FreeLibrary_Ldr(v);
         }
 
         spdlog::info("");
