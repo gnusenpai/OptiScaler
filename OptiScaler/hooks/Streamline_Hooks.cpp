@@ -462,7 +462,7 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(void* params, const char* loaderJSO
     {
         hookSystemCaps((sl::param::IParameters*) params);
         currentArch = getSystemCapsArch();
-        spoofArch(currentArch, sl::kFeatureDLSS);
+        spoofArch(currentArch, sl::kFeatureDLSS_G);
     }
 
     auto result = o_dlssg_slOnPluginLoad(params, loaderJSON, pluginJSON);
