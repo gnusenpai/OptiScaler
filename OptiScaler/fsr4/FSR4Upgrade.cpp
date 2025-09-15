@@ -2,8 +2,6 @@
 
 #include <pch.h>
 #include <proxies/Dxgi_Proxy.h>
-#include <proxies/KernelBase_Proxy.h>
-#include <proxies/Ntdll_Proxy.h>
 #include <detours/detours.h>
 #include <scanner/scanner.h>
 #include "FSR4ModelSelection.h"

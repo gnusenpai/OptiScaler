@@ -5,6 +5,7 @@
 #include <State.h>
 
 #include <proxies/Ntdll_Proxy.h>
+#include <proxies/KernelBase_Proxy.h>
 
 #include <detours/detours.h>
 
