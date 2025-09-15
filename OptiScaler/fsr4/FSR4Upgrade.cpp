@@ -19,46 +19,9 @@ static AmdExtFfxApi* amdExtFfxApi = nullptr;
 
 static PFN_AmdExtD3DCreateInterface o_AmdExtD3DCreateInterface = nullptr;
 
-#pragma region GDI32
-
-// Manually define structures
-typedef struct _D3DKMT_UMDFILENAMEINFO_L
-{
-    UINT Version;
-    WCHAR UmdFileName[MAX_PATH];
-} D3DKMT_UMDFILENAMEINFO_L;
-
-typedef struct _D3DKMT_ADAPTERINFO_L
-{
-    UINT hAdapter;
-    LUID AdapterLuid;
-    ULONG NumOfSources;
-    BOOL bPrecisePresentRegionsPreferred;
-} D3DKMT_ADAPTERINFO_L;
-
-typedef struct _D3DKMT_QUERYADAPTERINFO_L
-{
-    UINT hAdapter;
-    UINT Type;
-    VOID* pPrivateDriverData;
-    UINT PrivateDriverDataSize;
-} D3DKMT_QUERYADAPTERINFO_L;
-
-typedef struct _D3DKMT_ENUMADAPTERS_L
-{
-    ULONG NumAdapters;
-    D3DKMT_ADAPTERINFO_L Adapters[16];
-} D3DKMT_ENUMADAPTERS_L;
-
-typedef struct _D3DKMT_CLOSEADAPTER_L
-{
-    UINT hAdapter; // in: adapter handle
-} D3DKMT_CLOSEADAPTER_L;
-
-// Function pointers
-typedef UINT (*PFN_D3DKMTQueryAdapterInfo_L)(D3DKMT_QUERYADAPTERINFO_L*);
-typedef UINT (*PFN_D3DKMTEnumAdapters_L)(D3DKMT_ENUMADAPTERS_L*);
-typedef UINT (*PFN_D3DKMTCloseAdapter)(D3DKMT_CLOSEADAPTER_L*);
+typedef decltype(&D3DKMTQueryAdapterInfo) PFN_D3DKMTQueryAdapterInfo;
+typedef decltype(&D3DKMTEnumAdapters) PFN_D3DKMTEnumAdapters;
+typedef decltype(&D3DKMTCloseAdapter) PFN_D3DKMTCloseAdapter;
 
 std::vector<std::filesystem::path> GetDriverStore()
 {
@@ -83,9 +46,9 @@ std::vector<std::filesystem::path> GetDriverStore()
     do
     {
         auto o_D3DKMTEnumAdapters =
-            (PFN_D3DKMTEnumAdapters_L) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTEnumAdapters");
+            (PFN_D3DKMTEnumAdapters) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTEnumAdapters");
         auto o_D3DKMTQueryAdapterInfo =
-            (PFN_D3DKMTQueryAdapterInfo_L) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTQueryAdapterInfo");
+            (PFN_D3DKMTQueryAdapterInfo) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTQueryAdapterInfo");
         auto o_D3DKMTCloseAdapter =
             (PFN_D3DKMTCloseAdapter) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTCloseAdapter");
 
@@ -95,14 +58,14 @@ std::vector<std::filesystem::path> GetDriverStore()
             break;
         }
 
-        D3DKMT_UMDFILENAMEINFO_L umdFileInfo = {};
-        D3DKMT_QUERYADAPTERINFO_L queryAdapterInfo = {};
+        D3DKMT_UMDFILENAMEINFO umdFileInfo = {};
+        D3DKMT_QUERYADAPTERINFO queryAdapterInfo = {};
 
-        queryAdapterInfo.Type = 1; // KMTQAITYPE_UMDRIVERNAME
+        queryAdapterInfo.Type = KMTQAITYPE_UMDRIVERNAME;
         queryAdapterInfo.pPrivateDriverData = &umdFileInfo;
         queryAdapterInfo.PrivateDriverDataSize = sizeof(umdFileInfo);
 
-        D3DKMT_ENUMADAPTERS_L enumAdapters = {};
+        D3DKMT_ENUMADAPTERS enumAdapters = {};
 
         // Query the number of adapters first
         if (o_D3DKMTEnumAdapters(&enumAdapters) != 0)
@@ -116,7 +79,7 @@ std::vector<std::filesystem::path> GetDriverStore()
         {
             for (size_t i = 0; i < enumAdapters.NumAdapters; i++)
             {
-                D3DKMT_ADAPTERINFO_L adapter = enumAdapters.Adapters[i];
+                D3DKMT_ADAPTERINFO adapter = enumAdapters.Adapters[i];
                 queryAdapterInfo.hAdapter = adapter.hAdapter;
 
                 auto hr = o_D3DKMTQueryAdapterInfo(&queryAdapterInfo);
@@ -126,7 +89,7 @@ std::vector<std::filesystem::path> GetDriverStore()
                 else
                     result.push_back(std::filesystem::path(umdFileInfo.UmdFileName).parent_path());
 
-                D3DKMT_CLOSEADAPTER_L closeAdapter = {};
+                D3DKMT_CLOSEADAPTER closeAdapter = {};
                 closeAdapter.hAdapter = adapter.hAdapter;
                 auto closeResult = o_D3DKMTCloseAdapter(&closeAdapter);
                 if (closeResult != 0)

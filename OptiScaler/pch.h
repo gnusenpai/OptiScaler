@@ -12,6 +12,9 @@
 #include <libloaderapi.h>
 #include <ranges>
 
+#include <winternl.h>
+#include <d3dkmthk.h>
+
 #define NV_WINDOWS
 #define NVSDK_NGX
 #define NGX_ENABLE_DEPRECATED_GET_PARAMETERS
