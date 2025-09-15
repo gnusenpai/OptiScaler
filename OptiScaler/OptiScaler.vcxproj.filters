@@ -890,6 +890,9 @@
     <ClCompile Include="upscalers\FeatureProvider_Vk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fsr4\FSR4Upgrade.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OptiScaler.rc" />

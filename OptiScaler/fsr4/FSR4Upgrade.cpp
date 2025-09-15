@@ -1,25 +1,23 @@
-#pragma once
+#include "FSR4Upgrade.h"
 
 #include <pch.h>
-
 #include <proxies/Dxgi_Proxy.h>
 #include <proxies/KernelBase_Proxy.h>
-
+#include <proxies/Ntdll_Proxy.h>
 #include <detours/detours.h>
-
-#include <Unknwn.h>
-#include <filesystem>
-
-// Forward declarations
-struct AmdExtFfxApi;
-struct AmdExtFfxQuery;
-struct AmdExtFfxCapability2;
-struct AmdExtFfxCapability;
-
-typedef HRESULT(__cdecl* PFN_AmdExtD3DCreateInterface)(IUnknown* pOuter, REFIID riid, void** ppvObject);
+#include <scanner/scanner.h>
+#include "FSR4ModelSelection.h"
 
 static HMODULE moduleAmdxc64 = nullptr;
 static HMODULE fsr4Module = nullptr;
+
+static AmdExtFfxCapability* amdExtFfxThird = nullptr;
+static AmdExtFfxCapability2* amdExtFfxSecond = nullptr;
+static AmdExtFfxQuery* amdExtFfxQuery = nullptr;
+static AmdExtFfxQuery* o_amdExtFfxQuery = nullptr;
+static AmdExtFfxApi* amdExtFfxApi = nullptr;
+
+static PFN_AmdExtD3DCreateInterface o_AmdExtD3DCreateInterface = nullptr;
 
 #pragma region GDI32
 
@@ -62,7 +60,7 @@ typedef UINT (*PFN_D3DKMTQueryAdapterInfo_L)(D3DKMT_QUERYADAPTERINFO_L*);
 typedef UINT (*PFN_D3DKMTEnumAdapters_L)(D3DKMT_ENUMADAPTERS_L*);
 typedef UINT (*PFN_D3DKMTCloseAdapter)(D3DKMT_CLOSEADAPTER_L*);
 
-inline static std::vector<std::filesystem::path> GetDriverStore()
+std::vector<std::filesystem::path> GetDriverStore()
 {
     std::vector<std::filesystem::path> result;
 
@@ -72,7 +70,7 @@ inline static std::vector<std::filesystem::path> GetDriverStore()
 
     if (hGdi32 == nullptr)
     {
-        hGdi32 = KernelBaseProxy::LoadLibraryExW_()(L"Gdi32.dll", NULL, 0);
+        hGdi32 = NtdllProxy::LoadLibraryExW_Ldr(L"Gdi32.dll", NULL, 0);
         libraryLoaded = hGdi32 != nullptr;
     }
 
@@ -144,184 +142,14 @@ inline static std::vector<std::filesystem::path> GetDriverStore()
     } while (false);
 
     if (libraryLoaded)
-        KernelBaseProxy::FreeLibrary_()(hGdi32);
+        NtdllProxy::FreeLibrary_Ldr(hGdi32);
 
     return result;
 }
 
 #pragma endregion
 
-#define STUB(number)                                                                                                   \
-    HRESULT STDMETHODCALLTYPE unknown##number()                                                                        \
-    {                                                                                                                  \
-        LOG_FUNC();                                                                                                    \
-        return S_OK;                                                                                                   \
-    }
-
-MIDL_INTERFACE("F714E11A-B54E-4E0F-ABC5-DF58B18133D1")
-IAmdExtFfxCapability : public IUnknown
-{
-    virtual HRESULT unknown1() = 0;  // not used
-    virtual HRESULT unknown2() = 0;  // not used
-    virtual HRESULT unknown3() = 0;  // not used
-    virtual HRESULT unknown4() = 0;  // not used
-    virtual HRESULT unknown5() = 0;  // not used
-    virtual HRESULT unknown6() = 0;  // not used
-    virtual HRESULT unknown7() = 0;  // not used
-    virtual HRESULT unknown8() = 0;  // not used
-    virtual HRESULT unknown9() = 0;  // not used
-    virtual HRESULT unknown10() = 0; // not used
-    virtual HRESULT unknown11() = 0; // not used
-    virtual HRESULT unknown12() = 0; // not used
-    virtual HRESULT unknown13() = 0; // not used
-    virtual HRESULT CheckWMMASupport(uint64_t* a, uint8_t* data) = 0;
-};
-
-MIDL_INTERFACE("014937EC-9288-446F-A9AC-D75A8E3A984F")
-IAmdExtFfxQuery : public IUnknown
-{
-  public:
-    virtual HRESULT queryInternal(IUnknown * pOuter, REFIID riid, void** ppvObject) = 0;
-};
-
-struct AmdExtFfxFirst : public IAmdExtFfxFirst
-{
-    HRESULT STDMETHODCALLTYPE queryInternal(IUnknown* pOuter, REFIID riid, void** ppvObject) override
-    {
-        if (riid == __uuidof(IAmdExtFfxSecond))
-        {
-            if (_amdExtFfxSecond == nullptr)
-                _amdExtFfxSecond = new AmdExtFfxSecond();
-
-            *ppvObject = _amdExtFfxSecond;
-
-            LOG_INFO("Custom IAmdExtFfxSecond queried, returning custom AmdExtFfxSecond");
-
-            return S_OK;
-        }
-        else if (riid == __uuidof(IAmdExtFfxThird))
-        {
-            if (_amdExtFfxThird == nullptr)
-                _amdExtFfxThird = new AmdExtFfxThird();
-
-            *ppvObject = _amdExtFfxThird;
-
-            LOG_INFO("Custom IAmdExtFfxThird queried, returning custom AmdExtFfxThird");
-
-            return S_OK;
-        }
-
-        return E_NOINTERFACE;
-    }
-
-    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override { return E_NOTIMPL; }
-    ULONG __stdcall AddRef(void) override { return 0; }
-    ULONG __stdcall Release(void) override { return 0; }
-};
-
-static AmdExtFfxFirst* _amdExtFfxFirst = nullptr;
-
-/* Potato_of_Doom's Implementation */
-#pragma region IAmdExtFfxApi
-
-MIDL_INTERFACE("b58d6601-7401-4234-8180-6febfc0e484c")
-IAmdExtFfxApi : public IUnknown
-{
-  public:
-    virtual HRESULT UpdateFfxApiProvider(void* pData, uint32_t dataSizeInBytes) = 0;
-};
-
-typedef HRESULT(STDMETHODCALLTYPE* PFN_UpdateFfxApiProvider)(void* pData, uint32_t dataSizeInBytes);
-
-struct AmdExtFfxApi : public IAmdExtFfxApi
-{
-    PFN_UpdateFfxApiProvider o_UpdateFfxApiProvider = nullptr;
-
-    HRESULT STDMETHODCALLTYPE UpdateFfxApiProvider(void* pData, uint32_t dataSizeInBytes) override
-    {
-        LOG_INFO("UpdateFfxApiProvider called");
-
-        if (o_UpdateFfxApiProvider == nullptr)
-        {
-            fsr4Module = KernelBaseProxy::LoadLibraryExW_()(L"amdxcffx64.dll", NULL, 0);
-
-            if (fsr4Module == nullptr)
-            {
-                auto storePath = GetDriverStore();
-
-                for (size_t i = 0; i < storePath.size(); i++)
-                {
-                    if (fsr4Module == nullptr)
-                    {
-                        auto dllPath = storePath[i] / L"amdxcffx64.dll";
-                        LOG_DEBUG("Trying to load: {}", wstring_to_string(dllPath.c_str()));
-                        fsr4Module = KernelBaseProxy::LoadLibraryExW_()(dllPath.c_str(), NULL, 0);
-
-                        if (fsr4Module != nullptr)
-                        {
-                            LOG_INFO("amdxcffx64 loaded from {}", dllPath.string());
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                LOG_INFO("amdxcffx64 loaded from game folder");
-            }
-
-            if (fsr4Module == nullptr)
-            {
-                LOG_ERROR("Failed to load amdxcffx64.dll");
-                return E_NOINTERFACE;
-            }
-
-            auto sdk2upscalingModule = KernelBaseProxy::GetModuleHandleA_()("amd_fidelityfx_upscaler_dx12.dll");
-            constexpr bool unhookOld = false;
-
-            if (sdk2upscalingModule != nullptr)
-                FSR4ModelSelection::Hook(sdk2upscalingModule, unhookOld);
-            else
-                FSR4ModelSelection::Hook(fsr4Module, unhookOld);
-
-            o_UpdateFfxApiProvider =
-                (PFN_UpdateFfxApiProvider) KernelBaseProxy::GetProcAddress_()(fsr4Module, "UpdateFfxApiProvider");
-
-            if (o_UpdateFfxApiProvider == nullptr)
-            {
-                LOG_ERROR("Failed to get UpdateFfxApiProvider");
-                return E_NOINTERFACE;
-            }
-        }
-
-        if (o_UpdateFfxApiProvider != nullptr)
-        {
-            State::DisableChecks(1);
-            auto result = o_UpdateFfxApiProvider(pData, dataSizeInBytes);
-            LOG_INFO("UpdateFfxApiProvider called, result: {} ({:X})", result == S_OK ? "Ok" : "Error", (UINT) result);
-            State::EnableChecks(1);
-            return result;
-        }
-
-        return E_NOINTERFACE;
-    }
-
-    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override { return E_NOTIMPL; }
-
-    ULONG __stdcall AddRef(void) override { return 0; }
-
-    ULONG __stdcall Release(void) override { return 0; }
-};
-
-#pragma endregion
-
-static AmdExtFfxApi* _amdExtFfxApi = nullptr;
-static PFN_AmdExtD3DCreateInterface o_AmdExtD3DCreateInterface = nullptr;
-
-/// <summary>
-/// Sets Config::Instance()->Fsr4Update if GPU is RDNA4
-/// </summary>
-static inline void CheckForGPU()
+void CheckForGPU()
 {
     if (Config::Instance()->Fsr4Update.has_value())
         return;
@@ -382,47 +210,205 @@ static inline void CheckForGPU()
     LOG_INFO("Fsr4Update: {}", Config::Instance()->Fsr4Update.value_or_default());
 }
 
-inline static HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
+struct AmdExtFfxApi : public IAmdExtFfxApi
 {
-    CheckForGPU();
+    PFN_UpdateFfxApiProvider o_UpdateFfxApiProvider = nullptr;
 
-    if (!Config::Instance()->Fsr4Update.value_or_default() && o_AmdExtD3DCreateInterface != nullptr)
-        return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
-
-    // Proton bleeding edge ships amdxc64 that is missing some required functions
-    else if (riid == __uuidof(IAmdExtFfxFirst) && State::Instance().isRunningOnLinux)
+    HRESULT STDMETHODCALLTYPE UpdateFfxApiProvider(void* pData, uint32_t dataSizeInBytes) override
     {
-        // Required for the custom AmdExtFfxApi, lack of it triggers visual glitches
-        if (_amdExtFfxFirst == nullptr)
-            _amdExtFfxFirst = new AmdExtFfxFirst();
+        LOG_INFO("UpdateFfxApiProvider called");
 
-        *ppvObject = _amdExtFfxFirst;
+        if (o_UpdateFfxApiProvider == nullptr)
+        {
+            fsr4Module = NtdllProxy::LoadLibraryExW_Ldr(L"amdxcffx64.dll", NULL, 0);
 
-        LOG_INFO("IAmdExtFfxFirst queried, returning custom AmdExtFfxFirst");
+            if (fsr4Module == nullptr)
+            {
+                auto storePath = GetDriverStore();
+
+                for (size_t i = 0; i < storePath.size(); i++)
+                {
+                    if (fsr4Module == nullptr)
+                    {
+                        auto dllPath = storePath[i] / L"amdxcffx64.dll";
+                        LOG_DEBUG("Trying to load: {}", wstring_to_string(dllPath.c_str()));
+                        fsr4Module = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
+
+                        if (fsr4Module != nullptr)
+                        {
+                            LOG_INFO("amdxcffx64 loaded from {}", dllPath.string());
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                LOG_INFO("amdxcffx64 loaded from game folder");
+            }
+
+            if (fsr4Module == nullptr)
+            {
+                LOG_ERROR("Failed to load amdxcffx64.dll");
+                return E_NOINTERFACE;
+            }
+
+            auto sdk2upscalingModule = KernelBaseProxy::GetModuleHandleA_()("amd_fidelityfx_upscaler_dx12.dll");
+            constexpr bool unhookOld = false;
+
+            if (sdk2upscalingModule != nullptr)
+                FSR4ModelSelection::Hook(sdk2upscalingModule, unhookOld);
+            else
+                FSR4ModelSelection::Hook(fsr4Module, unhookOld);
+
+            o_UpdateFfxApiProvider =
+                (PFN_UpdateFfxApiProvider) KernelBaseProxy::GetProcAddress_()(fsr4Module, "UpdateFfxApiProvider");
+
+            if (o_UpdateFfxApiProvider == nullptr)
+            {
+                LOG_ERROR("Failed to get UpdateFfxApiProvider");
+                return E_NOINTERFACE;
+            }
+        }
+
+        if (o_UpdateFfxApiProvider != nullptr)
+        {
+            State::DisableChecks(1);
+            auto result = o_UpdateFfxApiProvider(pData, dataSizeInBytes);
+            LOG_INFO("UpdateFfxApiProvider called, result: {} ({:X})", result == S_OK ? "Ok" : "Error", (UINT) result);
+            State::EnableChecks(1);
+            return result;
+        }
+
+        return E_NOINTERFACE;
+    }
+
+    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override { return E_NOTIMPL; }
+
+    ULONG __stdcall AddRef(void) override { return 0; }
+
+    ULONG __stdcall Release(void) override { return 0; }
+};
+
+#define STUB(number)                                                                                                   \
+    HRESULT STDMETHODCALLTYPE unknown##number()                                                                        \
+    {                                                                                                                  \
+        LOG_FUNC();                                                                                                    \
+        return S_OK;                                                                                                   \
+    }
+
+struct AmdExtFfxCapability2 : public IAmdExtFfxCapability2
+{
+    STUB(1)
+    HRESULT STDMETHODCALLTYPE IsSupported(uint64_t a)
+    {
+        LOG_TRACE(": {}", a);
+        return S_OK;
+    }
+    STUB(3)
+
+    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override { return E_NOTIMPL; }
+    ULONG __stdcall AddRef(void) override { return 0; }
+    ULONG __stdcall Release(void) override { return 0; }
+};
+
+struct AmdExtFfxCapability : public IAmdExtFfxCapability
+{
+    STUB(1)
+    STUB(2)
+    STUB(3)
+    STUB(4)
+    STUB(5)
+    STUB(6)
+    STUB(7)
+    STUB(8)
+    STUB(9)
+    STUB(10)
+    STUB(11)
+    STUB(12)
+    STUB(13)
+    HRESULT STDMETHODCALLTYPE CheckWMMASupport(uint64_t* a, uint8_t* data)
+    {
+        LOG_TRACE(": {}", *a);
+
+        *reinterpret_cast<uint64_t*>(&data[0x00]) = 16;
+        *reinterpret_cast<uint64_t*>(&data[0x08]) = 16;
+        *reinterpret_cast<uint64_t*>(&data[0x10]) = 16;
+
+        *reinterpret_cast<uint32_t*>(&data[0x18]) = 11;
+        *reinterpret_cast<uint32_t*>(&data[0x1C]) = 11;
+
+        *reinterpret_cast<uint32_t*>(&data[0x20]) = 1;
+        *reinterpret_cast<uint32_t*>(&data[0x24]) = 1;
+
+        data[0x28] = 0;
 
         return S_OK;
     }
 
-    else if (riid == __uuidof(IAmdExtFfxApi))
+    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override { return E_NOTIMPL; }
+    ULONG __stdcall AddRef(void) override { return 0; }
+    ULONG __stdcall Release(void) override { return 0; }
+};
+
+struct AmdExtFfxQuery : public IAmdExtFfxQuery
+{
+    HRESULT STDMETHODCALLTYPE queryInternal(IUnknown* pOuter, REFIID riid, void** ppvObject) override
     {
-        if (_amdExtFfxApi == nullptr)
-            _amdExtFfxApi = new AmdExtFfxApi();
+        if (riid == __uuidof(IAmdExtFfxCapability2))
+        {
+            if (amdExtFfxSecond == nullptr)
+                amdExtFfxSecond = new AmdExtFfxCapability2();
 
-        // Return custom one
-        *ppvObject = _amdExtFfxApi;
+            *ppvObject = amdExtFfxSecond;
 
-        LOG_INFO("IAmdExtFfxApi queried, returning custom AmdExtFfxApi");
+            LOG_INFO("Custom IAmdExtFfxCapability2 queried, returning custom AmdExtFfxCapability2");
 
-        return S_OK;
+            return S_OK;
+        }
+        else if (riid == __uuidof(IAmdExtFfxCapability))
+        {
+            if (amdExtFfxThird == nullptr)
+                amdExtFfxThird = new AmdExtFfxCapability();
+
+            *ppvObject = amdExtFfxThird;
+
+            LOG_INFO("Custom IAmdExtFfxCapability queried, returning custom AmdExtFfxCapability");
+
+            return S_OK;
+        }
+        else if (o_amdExtFfxQuery)
+        {
+            return o_amdExtFfxQuery->queryInternal(pOuter, riid, ppvObject);
+        }
+
+        return E_NOINTERFACE;
     }
 
-    else if (o_AmdExtD3DCreateInterface != nullptr)
-        return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
+    HRESULT __stdcall QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        if (o_amdExtFfxQuery)
+            return o_amdExtFfxQuery->QueryInterface(riid, ppvObject);
 
-    return E_NOINTERFACE;
-}
+        return E_NOTIMPL;
+    }
+    ULONG __stdcall AddRef(void) override
+    {
+        if (o_amdExtFfxQuery)
+            return o_amdExtFfxQuery->AddRef();
 
-inline void InitFSR4Update()
+        return 0;
+    }
+    ULONG __stdcall Release(void) override
+    {
+        if (o_amdExtFfxQuery)
+            return o_amdExtFfxQuery->Release();
+
+        return 0;
+    }
+};
+
+void InitFSR4Update()
 {
     if (Config::Instance()->Fsr4Update.has_value() && !Config::Instance()->Fsr4Update.value())
         return;
@@ -435,7 +421,7 @@ inline void InitFSR4Update()
     // For FSR4 Upgrade
     moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
     if (moduleAmdxc64 == nullptr)
-        moduleAmdxc64 = KernelBaseProxy::LoadLibraryExW_()(L"amdxc64.dll", NULL, 0);
+        moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
 
     if (moduleAmdxc64 != nullptr)
     {
@@ -456,4 +442,49 @@ inline void InitFSR4Update()
     {
         LOG_INFO("Failed to load amdxc64.dll");
     }
+}
+
+HMODULE GetFSR4Module() { return fsr4Module; }
+
+HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
+{
+    CheckForGPU();
+
+    if (!Config::Instance()->Fsr4Update.value_or_default() && o_AmdExtD3DCreateInterface != nullptr)
+        return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
+
+    // Proton bleeding edge ships amdxc64 that is missing some required functions
+    else if (riid == __uuidof(IAmdExtFfxQuery) && State::Instance().isRunningOnLinux)
+    {
+        // Required for the custom AmdExtFfxApi, lack of it triggers visual glitches
+        if (amdExtFfxQuery == nullptr)
+            amdExtFfxQuery = new AmdExtFfxQuery();
+
+        *ppvObject = amdExtFfxQuery;
+
+        LOG_INFO("IAmdExtFfxQuery queried, returning custom AmdExtFfxQuery");
+
+        if (o_AmdExtD3DCreateInterface != nullptr && o_amdExtFfxQuery == nullptr)
+            o_AmdExtD3DCreateInterface(pOuter, riid, (void**) &o_amdExtFfxQuery);
+
+        return S_OK;
+    }
+
+    else if (riid == __uuidof(IAmdExtFfxApi))
+    {
+        if (amdExtFfxApi == nullptr)
+            amdExtFfxApi = new AmdExtFfxApi();
+
+        // Return custom one
+        *ppvObject = amdExtFfxApi;
+
+        LOG_INFO("IAmdExtFfxApi queried, returning custom AmdExtFfxApi");
+
+        return S_OK;
+    }
+
+    else if (o_AmdExtD3DCreateInterface != nullptr)
+        return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
+
+    return E_NOINTERFACE;
 }

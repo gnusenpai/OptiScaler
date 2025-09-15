@@ -28,6 +28,8 @@
 #include <hooks/Gdi32_Hooks.h>
 #include <hooks/Streamline_Hooks.h>
 
+#include <fsr4/FSR4ModelSelection.h>
+
 #include <cwctype>
 
 #pragma intrinsic(_ReturnAddress)
