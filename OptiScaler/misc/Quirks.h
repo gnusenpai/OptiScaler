@@ -159,7 +159,8 @@ static const QuirkEntry quirkTable[] = {
 
     // HITMAN World of Assassination
     // SL spoof enough to unlock everything DLSS
-    QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::HitmanReflexHacks),
+    QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::HitmanReflexHacks,
+                GameQuirk::DisableFSR2Inputs),
 
     // Marvel's Guardians of the Galaxy
     // no spoof needed for DLSS inputs
