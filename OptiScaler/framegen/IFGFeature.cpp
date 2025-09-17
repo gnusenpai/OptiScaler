@@ -50,12 +50,12 @@ bool IFGFeature::WaitingExecution(int index)
 
     return _waitingExecute[index];
 }
-void IFGFeature::SetExecuted(int index) 
-{ 
+void IFGFeature::SetExecuted(int index)
+{
     if (index < 0)
         index = GetIndex();
 
-    _waitingExecute[index] = false; 
+    _waitingExecute[index] = false;
 }
 
 bool IFGFeature::IsUsingUI() { return !_noUi[GetIndex()]; }

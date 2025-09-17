@@ -25,11 +25,11 @@ const UINT fgContext = 0x1337;
 // Swapchain create
 typedef FFX_API
     Fsr3::FfxErrorCode (*PFN_ffxReplaceSwapchainForFrameinterpolationDX12)(Fsr3::FfxCommandQueue gameQueue,
-                                                                               Fsr3::FfxSwapchain& gameSwapChain);
+                                                                           Fsr3::FfxSwapchain& gameSwapChain);
 
 typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxCreateFrameinterpolationSwapchainDX12)(
     DXGI_SWAP_CHAIN_DESC* desc, ID3D12CommandQueue* queue, IDXGIFactory* dxgiFactory,
-                                                                           Fsr3::FfxSwapchain& outGameSwapChain);
+    Fsr3::FfxSwapchain& outGameSwapChain);
 
 typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxCreateFrameinterpolationSwapchainForHwndDX12)(
     HWND hWnd, DXGI_SWAP_CHAIN_DESC1* desc1, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullscreenDesc, ID3D12CommandQueue* queue,
@@ -38,11 +38,11 @@ typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxCreateFrameinterpolationSwapchainFor
 typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxWaitForPresents)(Fsr3::FfxSwapchain gameSwapChain);
 
 typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxRegisterFrameinterpolationUiResourceDX12)(Fsr3::FfxSwapchain gameSwapChain,
-                                                                              Fsr3::FfxResource uiResource);
+                                                                                      Fsr3::FfxResource uiResource);
 
 typedef FFX_API
     Fsr3::FfxErrorCode (*PFN_ffxGetFrameinterpolationCommandlistDX12)(Fsr3::FfxSwapchain gameSwapChain,
-                                                                          Fsr3::FfxCommandList& gameCommandlist);
+                                                                      Fsr3::FfxCommandList& gameCommandlist);
 
 typedef FFX_API Fsr3::FfxResource (*PFN_ffxGetFrameinterpolationTextureDX12)(Fsr3::FfxSwapchain gameSwapChain);
 
@@ -52,12 +52,12 @@ typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationContextCreate)(
 
 typedef FFX_API
     Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationDispatch)(FfxFrameInterpolationContext* context,
-                                                                FfxFrameInterpolationDispatchDescription* params);
+                                                            FfxFrameInterpolationDispatchDescription* params);
 
 typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationContextDestroy)(FfxFrameInterpolationContext* context);
 
 typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxFsr3ConfigureFrameGeneration)(void* context,
-                                                                  Fsr3::FfxFrameGenerationConfig* config);
+                                                                          Fsr3::FfxFrameGenerationConfig* config);
 
 typedef FFX_API
     Fsr3::FfxErrorCode (*PFN_ffxSetFrameGenerationConfigToSwapchainDX12)(Fsr3::FfxFrameGenerationConfig const* config);
@@ -492,7 +492,7 @@ static Fsr3::FfxResource hkffxGetFrameinterpolationTextureDX12(Fsr3::FfxSwapchai
 
     auto fIndex = fg->GetIndex();
     if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_COMMON, &_interpolation[fIndex]))
-        _interpolation[fIndex]->SetName(std::format(L"_hudless[{}]", fIndex).c_str());
+        _interpolation[fIndex]->SetName(std::format(L"_interpolation[{}]", fIndex).c_str());
 
     return ffxGetResourceDX12Local(_interpolation[fIndex], GetFfxResourceDescriptionDX12Local(_interpolation[fIndex]),
                                    Fsr3::FFX_RESOURCE_STATE_COMMON);
@@ -749,7 +749,7 @@ static Fsr3::FfxErrorCode hkffxFsr3ConfigureFrameGeneration(void* context, Fsr3:
 }
 
 static Fsr3::FfxErrorCode hkffxSetFrameGenerationConfigToSwapchainDX12(Fsr3::FfxFrameGenerationConfig* config)
-        {
+{
     if (config == nullptr)
         return Fsr3::FFX_ERROR_INVALID_ARGUMENT;
 
@@ -759,7 +759,7 @@ static Fsr3::FfxErrorCode hkffxSetFrameGenerationConfigToSwapchainDX12(Fsr3::Ffx
     {
         LOG_ERROR("No FG Feature!");
         return Fsr3::FFX_ERROR_NULL_DEVICE;
-        }
+    }
 
     if (fg->FrameGenerationContext() != nullptr)
     {
