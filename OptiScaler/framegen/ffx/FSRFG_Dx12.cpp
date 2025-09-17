@@ -810,31 +810,14 @@ void FSRFG_Dx12::ReleaseObjects()
 
 bool FSRFG_Dx12::ExecuteCommandList(int index)
 {
-    LOG_DEBUG();
-
-    std::vector<ID3D12CommandList*> lists;
-
-    if (_uiCommandListResetted[index])
-    {
-        LOG_DEBUG("Executing UI cmdList: {:X}", (size_t) _uiCommandList[index]);
-        lists.push_back(_uiCommandList[index]);
-        _uiCommandListResetted[index] = false;
-    }
-
-    if (WaitingExecution(index))
+    if (_waitingExecute[index])
     {
         LOG_DEBUG("Executing FG cmdList: {:X}", (size_t) _fgCommandList[index]);
-        lists.push_back(_fgCommandList[index]);
-        SetExecuted();
+        _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_fgCommandList[index]);
+        SetExecuted(index);
     }
 
-    if (lists.size() > 0)
-    {
-        _gameCommandQueue->ExecuteCommandLists(lists.size(), lists.data());
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 void FSRFG_Dx12::SetResource(Dx12Resource* inputResource)
@@ -945,6 +928,22 @@ ID3D12GraphicsCommandList* FSRFG_Dx12::GetUICommandList(int index)
             return nullptr;
     }
 
+    for (size_t i = 0; i < BUFFER_COUNT; i++)
+    {
+        if (i != index && _uiCommandListResetted[i])
+        {
+            LOG_DEBUG("Executing _uiCommandList[{}]: {:X}", i, (size_t) _uiCommandList[i]);
+            auto closeResult = _uiCommandList[i]->Close();
+
+            if (closeResult == S_OK)
+                _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[i]);
+            else
+                LOG_ERROR("_uiCommandList[{}]->Close() error: {:X}", i, (UINT) closeResult);
+
+            _uiCommandListResetted[i] = false;
+        }
+    }
+
     if (!_uiCommandListResetted[index])
     {
         _uiCommandListResetted[index] = true;
@@ -962,6 +961,8 @@ ID3D12GraphicsCommandList* FSRFG_Dx12::GetUICommandList(int index)
         {
             LOG_ERROR("_uiCommandAllocator[{}]->Reset() error: {:X}", index, (UINT) result);
         }
+
+        LOG_DEBUG("_uiCommandList[{}]->Reset()", index);
     }
 
     return _uiCommandList[index];
@@ -1075,24 +1076,20 @@ bool FSRFG_Dx12::Present()
     auto fIndex = GetIndex();
     if (_uiCommandListResetted[fIndex])
     {
-
         LOG_DEBUG("Executing _uiCommandList[fIndex][{}]: {:X}", fIndex, (size_t) _uiCommandList[fIndex]);
         auto closeResult = _uiCommandList[fIndex]->Close();
 
         if (closeResult == S_OK)
             _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[fIndex]);
         else
-            LOG_ERROR("_uiCommandList[{}]->Close() error", fIndex, (UINT) closeResult);
+            LOG_ERROR("_uiCommandList[{}]->Close() error: {:X}", fIndex, (UINT) closeResult);
 
         _uiCommandListResetted[fIndex] = false;
     }
 
     auto result = false;
-
     if (!IsPaused() && !IsDispatched())
-    {
         result = Dispatch();
-    }
 
     return result;
 }
