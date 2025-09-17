@@ -150,7 +150,7 @@ static const QuirkEntry quirkTable[] = {
 
     // Death Stranding and Directors Cut
     // no spoof needed for DLSS inputs
-    QUIRK_ENTRY("ds.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("ds.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
     // The Callisto Protocol
     // FSR2 only, no spoof needed
