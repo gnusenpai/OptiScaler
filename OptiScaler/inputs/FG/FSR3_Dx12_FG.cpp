@@ -940,6 +940,12 @@ void FSR3FG::SetUpscalerInputs(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_P
     if (State::Instance().activeFgInput != FGInput::FSRFG30 || fg == nullptr || _device == nullptr)
         return;
 
+    {
+        std::lock_guard<std::mutex> lock(_newFrameMutex);
+        fg->StartNewFrame();
+        _uiRes[fg->GetIndex()] = {};
+    }
+
     fg->EvaluateState(_device, _fgConst);
 
     // FSR Camera values
