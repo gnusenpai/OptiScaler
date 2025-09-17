@@ -839,20 +839,26 @@ void FSR3FG::HookFSR3FGInputs(HMODULE module) {}
 
 void FSR3FG::ffxPresentCallback()
 {
+    LOG_DEBUG("");
+
     if (_presentCallback == nullptr)
         return;
 
-    LOG_DEBUG("");
+    auto fg = State::Instance().currentFG;
+
+    if (fg == nullptr)
+        return;
+
+    auto fIndex = fg->GetIndex();
+    auto cmdList = fg->GetUICommandList(fIndex);
+    ID3D12Resource* currentBuffer = nullptr;
 
     Fsr3::FfxPresentCallbackDescription cdfgp {};
     cdfgp.device = _device;
-    cdfgp.isInterpolatedFrame = true;
+    cdfgp.isInterpolatedFrame = false;
 
-    auto fg = State::Instance().currentFG;
-    if (fg != nullptr)
+    if (_presentCallback != nullptr)
     {
-        auto fIndex = fg->GetIndex();
-
         IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
         auto scIndex = sc->GetCurrentBackBufferIndex();
 
@@ -864,19 +870,19 @@ void FSR3FG::ffxPresentCallback()
             return;
         }
 
-        currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
         if (currentBuffer == nullptr)
         {
             LOG_ERROR("currentBuffer is nullptr!");
             return;
         }
 
-        if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &_hudless[fIndex]))
+        currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
+
+        if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_COMMON, &_hudless[fIndex]))
             _hudless[fIndex]->SetName(std::format(L"_hudless[{}]", fIndex).c_str());
         else
             return;
 
-        auto cmdList = fg->GetUICommandList(fIndex);
         cdfgp.commandList = cmdList;
 
         ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -886,23 +892,24 @@ void FSR3FG::ffxPresentCallback()
         cmdList->CopyResource(_hudless[fIndex], currentBuffer);
 
         ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PRESENT);
-        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COPY_DEST,
-                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
 
+        cdfgp.currentBackBuffer = ffxGetResourceDX12Local(
+            _hudless[fIndex], GetFfxResourceDescriptionDX12Local(_hudless[fIndex]), Fsr3::FFX_RESOURCE_STATE_PRESENT);
         cdfgp.outputSwapChainBuffer = ffxGetResourceDX12Local(
             currentBuffer, GetFfxResourceDescriptionDX12Local(currentBuffer), Fsr3::FFX_RESOURCE_STATE_PRESENT);
-        cdfgp.currentBackBuffer =
-            ffxGetResourceDX12Local(_hudless[fIndex], GetFfxResourceDescriptionDX12Local(_hudless[fIndex]),
-                                    Fsr3::FFX_RESOURCE_STATE_PIXEL_READ);
 
         if (_uiRes[fIndex].resource != nullptr)
             cdfgp.currentUI = ffxGetResourceDX12Local(_uiRes[fIndex].resource,
                                                       GetFfxResourceDescriptionDX12Local(_uiRes[fIndex].resource),
-                                                      GetFfxApiState(_uiRes[fIndex].state));
+                                                      Fsr3::FFX_RESOURCE_STATE_PRESENT);
 
         auto result = _presentCallback(&cdfgp);
 
-        if (result == Fsr3::FFX_OK)
+        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COMMON,
+                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+        if (result == FFX_API_RETURN_OK)
         {
             if (fg->GetResource(FG_ResourceType::HudlessColor, fIndex) == nullptr)
             {
@@ -913,28 +920,16 @@ void FSR3FG::ffxPresentCallback()
                 hudless.resource = _hudless[fIndex];
                 hudless.state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
                 hudless.type = FG_ResourceType::HudlessColor;
-                hudless.validity = FG_ResourceValidity::JustTrackCmdlist;
+                hudless.validity = FG_ResourceValidity::ValidNow;
                 hudless.width = hDesc.Width;
                 fg->SetResource(&hudless);
             }
-        }
-
-        hr = cmdList->Close();
-        if (hr == S_OK)
-        {
-            ID3D12CommandList* cmdLists[1] = { cmdList };
-            fg->GetCommandQueue()->ExecuteCommandLists(1, cmdLists);
-        }
-        else
-        {
-            LOG_ERROR("cmdList->Close() error: {:X}", (UINT) hr);
         }
 
         currentBuffer->Release();
     }
 
     _presentCallback = nullptr;
-    _presentCallbackUserContext = nullptr;
 }
 
 void FSR3FG::SetUpscalerInputs(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_Parameter* InParameters,
