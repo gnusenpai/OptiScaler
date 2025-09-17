@@ -609,6 +609,40 @@ static Fsr3::FfxErrorCode hkffxFrameInterpolationDispatch(FfxFrameInterpolationC
         hudless.left = left;
         fg->SetResource(&hudless);
     }
+
+    if (_presentCallback != nullptr && params->currentBackBuffer.resource != nullptr &&
+        fg->GetResource(FG_ResourceType::HudlessColor) == nullptr)
+    {
+        UINT width = params->interpolationRect.width;
+        UINT height = params->interpolationRect.height;
+        UINT left = params->interpolationRect.left;
+        UINT top = params->interpolationRect.top;
+
+        if (width == 0)
+        {
+            DXGI_SWAP_CHAIN_DESC scDesc {};
+            State::Instance().currentFGSwapchain->GetDesc(&scDesc);
+
+            width = scDesc.BufferDesc.Width;
+            height = scDesc.BufferDesc.Height;
+            top = 0;
+            left = 0;
+        }
+
+        Dx12Resource hudless {};
+        hudless.cmdList = (ID3D12GraphicsCommandList*) params->commandList;
+        hudless.height = height;
+        hudless.resource = (ID3D12Resource*) params->currentBackBuffer.resource;
+        hudless.state = GetD3D12State((Fsr3::FfxResourceStates) params->currentBackBuffer.state);
+        hudless.type = FG_ResourceType::HudlessColor;
+        hudless.validity = FG_ResourceValidity::ValidNow;
+        hudless.width = width;
+        hudless.top = top;
+        hudless.left = left;
+        fg->SetResource(&hudless);
+    }
+
+    return Fsr3::FFX_OK;
 }
 
 static Fsr3::FfxErrorCode hkffxFrameInterpolationContextDestroy(FfxFrameInterpolationContext* context)
