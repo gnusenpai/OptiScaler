@@ -41,6 +41,9 @@ static double _lastFrameTime = 0.0;
 static double _lastFGFrameTime = 0.0;
 static bool _fgPresentCalled = false;
 UINT _lastSwapChainFlags = 0;
+UINT _lastPresentFlags = 0;
+bool _skipPresent1 = false;
+bool _skipResize1 = false;
 
 #pragma endregion
 
@@ -396,15 +399,6 @@ static HRESULT hkGetFullscreenState(IDXGISwapChain* This, BOOL* pFullscreen, IDX
 static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat,
                                UINT SwapChainFlags)
 {
-    // Forcing screen size buffers does not help
-    // if (State::Instance().SCExclusiveFullscreen)
-    //{
-    //    auto info = Util::GetMonitorInfoForWindow(_hwnd);
-    //    LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
-    //    Width = info.width;
-    //    Height = info.height;
-    //}
-
     LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}", BufferCount, Width, Height,
               (UINT) NewFormat, SwapChainFlags);
 
@@ -434,7 +428,11 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
     _lastSwapChainFlags = SwapChainFlags;
 
+    _skipResize1 = true;
+    State::Instance().skipSpoofing = true;
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+    State::Instance().skipSpoofing = false;
+    _skipResize1 = false;
     LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
 
     if (result == S_OK)
@@ -494,17 +492,16 @@ static HRESULT hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTargetPa
 static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
                                 UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
-    // Forcing screen size buffers does not help
-    // if (State::Instance().SCExclusiveFullscreen)
-    //{
-    //    auto info = Util::GetMonitorInfoForWindow(_hwnd);
-    //    LOG_DEBUG("Overriding buffer size: {}x{} to {}x{}", Width, Height, info.width, info.height);
-    //    Width = info.width;
-    //    Height = info.height;
-    //}
+    // Skip XeFG's internal call
+    if (_skipResize1)
+    {
+        LOG_DEBUG("XeFG call skipping");
+        return o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
+                                    ppPresentQueue);
+    }
 
-    LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}", BufferCount, Width, Height,
-              (UINT) Format, SwapChainFlags);
+    LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}, Caller: {}", BufferCount,
+              Width, Height, (UINT) Format, SwapChainFlags, Util::WhoIsTheCaller(_ReturnAddress()));
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG && !State::Instance().SCExclusiveFullscreen)
     {
@@ -532,8 +529,10 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
     _lastSwapChainFlags = SwapChainFlags;
 
+    State::Instance().skipSpoofing = true;
     auto result = o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
                                        ppPresentQueue);
+    State::Instance().skipSpoofing = false;
 
     LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
 
@@ -569,6 +568,8 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
 
 static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
+    _lastPresentFlags = Flags;
+
     if (State::Instance().isShuttingDown)
     {
         if (pPresentParameters == nullptr)
@@ -737,14 +738,19 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
 static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 {
     LOG_DEBUG("SyncInterval: {}, Flags: {:X}", SyncInterval, Flags);
-    return FGPresent(This, SyncInterval, Flags, nullptr);
+
+    _skipPresent1 = true;
+    auto result = FGPresent(This, SyncInterval, Flags, nullptr);
+    _skipPresent1 = false;
+
+    return result;
 }
 
 static HRESULT hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
                             const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
     // Skip XeFG's internal call
-    if (XeFGProxy::Module() == Util::GetCallerModule(_ReturnAddress()))
+    if (_skipPresent1)
     {
         LOG_DEBUG("XeFG call skipping");
         return o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
