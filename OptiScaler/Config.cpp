@@ -173,15 +173,19 @@ bool Config::Reload(std::filesystem::path iniPath)
             if (auto setting = readInt("FSR", "Fsr4Model"); setting.has_value() && setting >= 0 && setting <= 5)
                 Fsr4Model.set_from_config(setting);
 
+            FsrNonLinearColorSpace.set_from_config(readBool("FSR", "FsrNonLinearColorSpace"));
             FsrNonLinearPQ.set_from_config(readBool("FSR", "FsrNonLinearPQ"));
             FsrNonLinearSRGB.set_from_config(readBool("FSR", "FsrNonLinearSRGB"));
             FsrAgilitySDKUpgrade.set_from_config(readBool("FSR", "FsrAgilitySDKUpgrade"));
 
             // Only sRGB or PQ should be enabled
             if (FsrNonLinearPQ.has_value() && FsrNonLinearPQ.value())
-                FsrNonLinearSRGB = false;
+                FsrNonLinearSRGB.reset();
             else if (FsrNonLinearSRGB.has_value() && FsrNonLinearSRGB.value())
-                FsrNonLinearPQ = false;
+                FsrNonLinearPQ.reset();
+
+            if (FsrNonLinearPQ.has_value() || FsrNonLinearPQ.has_value())
+                FsrNonLinearColorSpace.set_volatile_value(true);
         }
 
         // XeSS
@@ -752,6 +756,8 @@ bool Config::SaveIni()
                      GetFloatValue(Instance()->DlssReactiveMaskBias.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4Update", GetBoolValue(Instance()->Fsr4Update.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
+        ini.SetValue("FSR", "FsrNonLinearColorSpace",
+                     GetBoolValue(Instance()->FsrNonLinearColorSpace.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearPQ", GetBoolValue(Instance()->FsrNonLinearPQ.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearSRGB", GetBoolValue(Instance()->FsrNonLinearSRGB.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrAgilitySDKUpgrade",

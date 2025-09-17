@@ -679,8 +679,7 @@ bool FSR31FeatureDx12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
     if (!LowResMV())
         _contextDesc.flags |= FFX_UPSCALE_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS;
 
-    if (Config::Instance()->FsrNonLinearPQ.value_or_default() ||
-        Config::Instance()->FsrNonLinearSRGB.value_or_default())
+    if (Config::Instance()->FsrNonLinearColorSpace.value_or_default())
     {
         _contextDesc.flags |= FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE;
         LOG_INFO("contextDesc.initFlags (NonLinearColorSpace) {0:b}", _contextDesc.flags);

@@ -2288,8 +2288,25 @@ bool MenuCommon::RenderMenu()
                             {
                                 ImGui::Spacing();
 
+                                ImGui::BeginDisabled(Config::Instance()->FsrNonLinearSRGB.value_or_default() ||
+                                                     Config::Instance()->FsrNonLinearPQ.value_or_default());
+
+                                if (bool nlCS = Config::Instance()->FsrNonLinearColorSpace.value_or_default();
+                                    ImGui::Checkbox("Non-Linear Color Space", &nlCS))
+                                {
+                                    Config::Instance()->FsrNonLinearColorSpace = nlCS;
+                                    State::Instance().newBackend = currentBackend;
+                                    MARK_ALL_BACKENDS_CHANGED();
+                                }
+
+                                ImGui::EndDisabled();
+
+                                ShowHelpMarker("Indicates input color resource uses non-linear color space\n"
+                                               "Might improve upscaling quality of FSR4");
+
                                 if (ImGui::BeginTable("nonLinear", 2, ImGuiTableFlags_SizingStretchProp))
                                 {
+
                                     ImGui::TableNextColumn();
 
                                     if (bool nlSRGB = Config::Instance()->FsrNonLinearSRGB.value_or_default();
@@ -2298,7 +2315,25 @@ bool MenuCommon::RenderMenu()
                                         Config::Instance()->FsrNonLinearSRGB = nlSRGB;
 
                                         if (nlSRGB)
+                                        {
                                             Config::Instance()->FsrNonLinearPQ = false;
+                                            Config::Instance()->FsrNonLinearColorSpace.set_volatile_value(true);
+                                        }
+                                        else
+                                        {
+                                            // If has config value revert back to it othervise reset
+                                            if (Config::Instance()
+                                                    ->FsrNonLinearColorSpace.value_for_config()
+                                                    .has_value())
+                                            {
+                                                Config::Instance()->FsrNonLinearColorSpace =
+                                                    Config::Instance()->FsrNonLinearColorSpace.value_for_config();
+                                            }
+                                            else
+                                            {
+                                                Config::Instance()->FsrNonLinearColorSpace.reset();
+                                            }
+                                        }
 
                                         State::Instance().newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
@@ -2314,7 +2349,25 @@ bool MenuCommon::RenderMenu()
                                         Config::Instance()->FsrNonLinearPQ = nlPQ;
 
                                         if (nlPQ)
+                                        {
                                             Config::Instance()->FsrNonLinearSRGB = false;
+                                            Config::Instance()->FsrNonLinearColorSpace.set_volatile_value(true);
+                                        }
+                                        else
+                                        {
+                                            // If has config value revert back to it othervise reset
+                                            if (Config::Instance()
+                                                    ->FsrNonLinearColorSpace.value_for_config()
+                                                    .has_value())
+                                            {
+                                                Config::Instance()->FsrNonLinearColorSpace =
+                                                    Config::Instance()->FsrNonLinearColorSpace.value_for_config();
+                                            }
+                                            else
+                                            {
+                                                Config::Instance()->FsrNonLinearColorSpace.reset();
+                                            }
+                                        }
 
                                         State::Instance().newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
