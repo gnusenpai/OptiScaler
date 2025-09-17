@@ -1015,6 +1015,9 @@ void ffxPresentCallback()
 
         auto result = _presentCallback(&cdfgp, _presentCallbackUserContext);
 
+        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COMMON,
+                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
         if (result == FFX_API_RETURN_OK)
         {
             if (fg->GetResource(FG_ResourceType::HudlessColor, fIndex) == nullptr)
