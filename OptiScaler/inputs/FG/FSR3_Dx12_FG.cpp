@@ -83,6 +83,7 @@ static UINT64 _presentCallbackFrameId = 0;
 static std::mutex _newFrameMutex;
 
 static ID3D12Resource* _hudless[BUFFER_COUNT] = {};
+static ID3D12Resource* _interpolation[BUFFER_COUNT] = {};
 static Dx12Resource _uiRes[BUFFER_COUNT] = {};
 
 static DS_Dx12* DepthScale = nullptr;
@@ -457,8 +458,39 @@ static Fsr3::FfxErrorCode hkffxGetFrameinterpolationCommandlistDX12(Fsr3::FfxSwa
 
 static Fsr3::FfxResource hkffxGetFrameinterpolationTextureDX12(Fsr3::FfxSwapchain gameSwapChain)
 {
-    LOG_WARN("");
-    return (Fsr3::FfxResource) nullptr;
+    LOG_DEBUG();
+
+    auto fg = State::Instance().currentFG;
+
+    if (fg == nullptr)
+        return {};
+
+    IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
+    auto scIndex = sc->GetCurrentBackBufferIndex();
+
+    ID3D12Resource* currentBuffer = nullptr;
+    auto hr = sc->GetBuffer(scIndex, IID_PPV_ARGS(&currentBuffer));
+    if (hr != S_OK)
+    {
+        LOG_ERROR("sc->GetBuffer error: {:X}", (UINT) hr);
+        return {};
+    }
+
+    if (currentBuffer == nullptr)
+    {
+        LOG_ERROR("currentBuffer is nullptr!");
+        return {};
+    }
+
+    currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
+    currentBuffer->Release();
+
+    auto fIndex = fg->GetIndex();
+    if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_COMMON, &_interpolation[fIndex]))
+        _interpolation[fIndex]->SetName(std::format(L"_hudless[{}]", fIndex).c_str());
+
+    return ffxGetResourceDX12Local(_interpolation[fIndex], GetFfxResourceDescriptionDX12Local(_interpolation[fIndex]),
+                                   Fsr3::FFX_RESOURCE_STATE_COMMON);
 }
 
 static Fsr3::FfxErrorCode
