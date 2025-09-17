@@ -114,7 +114,7 @@ class IFGFeature
     bool IsUsingHudless();
     bool IsUsingHudlessAny();
 
-    void SetExecuted();
+    void SetExecuted(int index = -1);
     bool WaitingExecution(int index = -1);
 
     bool IsActive();
