@@ -23,39 +23,44 @@
 const UINT fgContext = 0x1337;
 
 // Swapchain create
-typedef Fsr3::FfxErrorCode (*PFN_ffxReplaceSwapchainForFrameinterpolationDX12)(Fsr3::FfxCommandQueue gameQueue,
+typedef FFX_API
+    Fsr3::FfxErrorCode (*PFN_ffxReplaceSwapchainForFrameinterpolationDX12)(Fsr3::FfxCommandQueue gameQueue,
                                                                                Fsr3::FfxSwapchain& gameSwapChain);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxCreateFrameinterpolationSwapchainDX12)(DXGI_SWAP_CHAIN_DESC* desc,
-                                                                           ID3D12CommandQueue* queue,
-                                                                           IDXGIFactory* dxgiFactory,
+typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxCreateFrameinterpolationSwapchainDX12)(
+    DXGI_SWAP_CHAIN_DESC* desc, ID3D12CommandQueue* queue, IDXGIFactory* dxgiFactory,
                                                                            Fsr3::FfxSwapchain& outGameSwapChain);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxCreateFrameinterpolationSwapchainForHwndDX12)(
+typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxCreateFrameinterpolationSwapchainForHwndDX12)(
     HWND hWnd, DXGI_SWAP_CHAIN_DESC1* desc1, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullscreenDesc, ID3D12CommandQueue* queue,
     IDXGIFactory* dxgiFactory, Fsr3::FfxSwapchain& outGameSwapChain);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxWaitForPresents)(Fsr3::FfxSwapchain gameSwapChain);
+typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxWaitForPresents)(Fsr3::FfxSwapchain gameSwapChain);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxRegisterFrameinterpolationUiResourceDX12)(Fsr3::FfxSwapchain gameSwapChain,
+typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxRegisterFrameinterpolationUiResourceDX12)(Fsr3::FfxSwapchain gameSwapChain,
                                                                               Fsr3::FfxResource uiResource);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxGetFrameinterpolationCommandlistDX12)(Fsr3::FfxSwapchain gameSwapChain,
+typedef FFX_API
+    Fsr3::FfxErrorCode (*PFN_ffxGetFrameinterpolationCommandlistDX12)(Fsr3::FfxSwapchain gameSwapChain,
                                                                           Fsr3::FfxCommandList& gameCommandlist);
 
-typedef Fsr3::FfxResource (*PFN_ffxGetFrameinterpolationTextureDX12)(Fsr3::FfxSwapchain gameSwapChain);
+typedef FFX_API Fsr3::FfxResource (*PFN_ffxGetFrameinterpolationTextureDX12)(Fsr3::FfxSwapchain gameSwapChain);
 
 // Context
-typedef Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationContextCreate)(
+typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationContextCreate)(
     FfxFrameInterpolationContext* context, FfxFrameInterpolationContextDescription* contextDescription);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationDispatch)(FfxFrameInterpolationContext* context,
+typedef FFX_API
+    Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationDispatch)(FfxFrameInterpolationContext* context,
                                                                 FfxFrameInterpolationDispatchDescription* params);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationContextDestroy)(FfxFrameInterpolationContext* context);
+typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxFrameInterpolationContextDestroy)(FfxFrameInterpolationContext* context);
 
-typedef Fsr3::FfxErrorCode (*PFN_ffxFsr3ConfigureFrameGeneration)(void* context,
+typedef FFX_API Fsr3::FfxErrorCode (*PFN_ffxFsr3ConfigureFrameGeneration)(void* context,
                                                                   Fsr3::FfxFrameGenerationConfig* config);
+
+typedef FFX_API
+    Fsr3::FfxErrorCode (*PFN_ffxSetFrameGenerationConfigToSwapchainDX12)(Fsr3::FfxFrameGenerationConfig const* config);
 
 // Swapchain
 static PFN_ffxReplaceSwapchainForFrameinterpolationDX12 o_ffxReplaceSwapchainForFrameinterpolationDX12 = nullptr;
@@ -65,6 +70,7 @@ static PFN_ffxWaitForPresents o_ffxWaitForPresents = nullptr;
 static PFN_ffxRegisterFrameinterpolationUiResourceDX12 o_ffxRegisterFrameinterpolationUiResourceDX12 = nullptr;
 static PFN_ffxGetFrameinterpolationCommandlistDX12 o_ffxGetFrameinterpolationCommandlistDX12 = nullptr;
 static PFN_ffxGetFrameinterpolationTextureDX12 o_ffxGetFrameinterpolationTextureDX12 = nullptr;
+static PFN_ffxSetFrameGenerationConfigToSwapchainDX12 o_ffxSetFrameGenerationConfigToSwapchainDX12 = nullptr;
 
 // Context
 static PFN_ffxFrameInterpolationContextCreate o_ffxFrameInterpolationContextCreate = nullptr;
@@ -77,7 +83,6 @@ static FG_Constants _fgConst {};
 static UINT64 _currentFrameId = 0;
 
 static Fsr3::FfxPresentCallbackFunc _presentCallback = nullptr;
-static void* _presentCallbackUserContext = nullptr;
 static UINT64 _presentCallbackFrameId = 0;
 
 static std::mutex _newFrameMutex;
@@ -676,13 +681,89 @@ static Fsr3::FfxErrorCode hkffxFsr3ConfigureFrameGeneration(void* context, Fsr3:
 
     if (fg->FrameGenerationContext() != nullptr)
     {
+        LOG_DEBUG("frameGenerationEnabled: {} ", config->frameGenerationEnabled);
+
+        State::Instance().FSRFGInputActive = config->frameGenerationEnabled;
+
+        if (config->frameGenerationEnabled && !fg->IsActive() && Config::Instance()->FGEnabled.value_or_default())
         {
-            std::lock_guard<std::mutex> lock(_newFrameMutex);
-            fg->StartNewFrame();
-            _uiRes[fg->GetIndex()] = {};
+            fg->Activate();
+            fg->ResetCounters();
+        }
+        else if (!config->frameGenerationEnabled && fg->IsActive())
+        {
+            fg->Deactivate();
+            fg->ResetCounters();
         }
 
-        LOG_DEBUG("hkffxFsr3ConfigureFrameGeneration enabled: {} ", config->frameGenerationEnabled);
+        UINT width = 0;
+        UINT height = 0;
+        UINT left = 0;
+        UINT top = 0;
+
+        fg->GetInterpolationPos(left, top);
+        fg->GetInterpolationRect(width, height);
+
+        if (width == 0)
+        {
+            DXGI_SWAP_CHAIN_DESC scDesc {};
+            State::Instance().currentFGSwapchain->GetDesc(&scDesc);
+
+            width = scDesc.BufferDesc.Width;
+            height = scDesc.BufferDesc.Height;
+            top = 0;
+            left = 0;
+        }
+
+        if (config->HUDLessColor.resource != nullptr)
+        {
+            Dx12Resource ui {};
+            ui.cmdList = nullptr; // Not sure about this
+            ui.height = height;
+            ui.resource = (ID3D12Resource*) config->HUDLessColor.resource;
+            ui.state = GetD3D12State((Fsr3::FfxResourceStates) config->HUDLessColor.state);
+            ui.type = FG_ResourceType::HudlessColor;
+            ui.validity = FG_ResourceValidity::UntilPresent;
+            ui.width = width;
+            ui.left = left;
+            ui.top = top;
+
+            _uiRes[fg->GetIndex()] = ui;
+
+            fg->SetResource(&ui);
+        }
+
+        if (config->frameGenerationCallback != nullptr)
+        {
+            LOG_DEBUG("frameGenerationCallback exist");
+        }
+
+        if (config->presentCallback != nullptr)
+        {
+            LOG_DEBUG("presentCallback exist");
+            _presentCallback = config->presentCallback;
+        }
+    }
+
+    return Fsr3::FFX_OK;
+}
+
+static Fsr3::FfxErrorCode hkffxSetFrameGenerationConfigToSwapchainDX12(Fsr3::FfxFrameGenerationConfig* config)
+        {
+    if (config == nullptr)
+        return Fsr3::FFX_ERROR_INVALID_ARGUMENT;
+
+    auto fg = State::Instance().currentFG;
+
+    if (fg == nullptr)
+    {
+        LOG_ERROR("No FG Feature!");
+        return Fsr3::FFX_ERROR_NULL_DEVICE;
+        }
+
+    if (fg->FrameGenerationContext() != nullptr)
+    {
+        LOG_DEBUG("frameGenerationEnabled: {} ", config->frameGenerationEnabled);
 
         State::Instance().FSRFGInputActive = config->frameGenerationEnabled;
 
@@ -776,6 +857,9 @@ void FSR3FG::HookFSR3FGExeInputs()
     o_ffxGetFrameinterpolationTextureDX12 =
         (PFN_ffxGetFrameinterpolationTextureDX12) KernelBaseProxy::GetProcAddress_()(
             exeModule, "ffxGetFrameinterpolationTextureDX12");
+    o_ffxSetFrameGenerationConfigToSwapchainDX12 =
+        (PFN_ffxSetFrameGenerationConfigToSwapchainDX12) KernelBaseProxy::GetProcAddress_()(
+            exeModule, "ffxSetFrameGenerationConfigToSwapchainDX12");
 
     // Context
     o_ffxFrameInterpolationContextCreate = (PFN_ffxFrameInterpolationContextCreate) KernelBaseProxy::GetProcAddress_()(
@@ -831,6 +915,9 @@ void FSR3FG::HookFSR3FGExeInputs()
         DetourAttach(&(PVOID&) o_ffxFrameInterpolationContextDestroy, hkffxFrameInterpolationContextDestroy);
     if (o_ffxFsr3ConfigureFrameGeneration != nullptr)
         DetourAttach(&(PVOID&) o_ffxFsr3ConfigureFrameGeneration, hkffxFsr3ConfigureFrameGeneration);
+    if (o_ffxSetFrameGenerationConfigToSwapchainDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxSetFrameGenerationConfigToSwapchainDX12,
+                     hkffxSetFrameGenerationConfigToSwapchainDX12);
 
     DetourTransactionCommit();
 }
