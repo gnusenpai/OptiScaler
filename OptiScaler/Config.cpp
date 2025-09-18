@@ -46,6 +46,7 @@ bool Config::Reload(std::filesystem::path iniPath)
     if (ini.LoadFile(iniPath.c_str()) == SI_OK)
     {
         State::Instance().nvngxIniDetected = exists(iniPath.parent_path() / "nvngx.ini");
+        _log.clear();
 
         // Upscalers
         {
@@ -1189,6 +1190,8 @@ void Config::CheckUpscalerFiles()
     }
 }
 
+std::vector<std::string> Config::GetConfigLog() { return _log; }
+
 std::optional<std::string> Config::readString(std::string section, std::string key, bool lowercase)
 {
     std::string value = ini.GetValue(section.c_str(), key.c_str(), "auto");
@@ -1198,6 +1201,8 @@ std::optional<std::string> Config::readString(std::string section, std::string k
 
     if (lower == "auto")
         return std::nullopt;
+
+    _log.push_back(std::format("{}.{}: {}", section, key, value));
 
     return lowercase ? lower : value;
 }
@@ -1211,6 +1216,8 @@ std::optional<std::wstring> Config::readWString(std::string section, std::string
 
     if (lower == "auto")
         return std::nullopt;
+
+    _log.push_back(std::format("{}.{}: {}", section, key, value));
 
     return lowercase ? string_to_wstring(lower) : string_to_wstring(value);
 }
@@ -1330,13 +1337,9 @@ std::optional<bool> Config::readBool(std::string section, std::string key)
 {
     auto value = readString(section, key, true);
     if (value == "true")
-    {
         return true;
-    }
     else if (value == "false")
-    {
         return false;
-    }
 
     return std::nullopt;
 }

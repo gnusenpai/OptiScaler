@@ -466,10 +466,13 @@ class Config
 
     void CheckUpscalerFiles();
 
+    std::vector<std::string> GetConfigLog();
+
     static Config* Instance();
 
   private:
     inline static Config* _config;
+    inline static std::vector<std::string> _log;
 
     CSimpleIniA ini;
     CSimpleIniA fakenvapiIni;

@@ -1157,6 +1157,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
         spdlog::info("");
 
+        spdlog::info("Config parameters:");
+        for (const std::string& l : Config::Instance()->GetConfigLog())
+            spdlog::info(l);
+
         // Init Kernel proxies
         NtdllProxy::Init();
         KernelBaseProxy::Init();
