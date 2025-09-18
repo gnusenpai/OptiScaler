@@ -10,7 +10,7 @@
 
 #include <inputs/FG/DLSSG_Mod.h>
 
-#include <framegen/ffx/FSRFG_Dx12.h>
+#include <fsr4/FSR4Upgrade.h>
 
 #include <nvapi/fakenvapi.h>
 #include <nvapi/ReflexHooks.h>
@@ -28,6 +28,7 @@ static bool _hdrTonemapApplied = false;
 static ImVec4 SdrColors[ImGuiCol_COUNT];
 static bool receivingWmInputs = false;
 static bool inputMenu = false;
+static bool inputFG = false;
 static bool inputFps = false;
 static bool inputFpsCycle = false;
 static bool hasGamepad = false;
@@ -683,6 +684,9 @@ LRESULT MenuCommon::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (!inputFps)
                 inputFps = rawData.data.keyboard.VKey == Config::Instance()->FpsShortcutKey.value_or_default();
 
+            if (!inputFG)
+                inputFG = rawData.data.keyboard.VKey == Config::Instance()->FGShortcutKey.value_or_default();
+
             if (!inputFpsCycle)
                 inputFpsCycle =
                     rawData.data.keyboard.VKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
@@ -697,6 +701,9 @@ LRESULT MenuCommon::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     if (!inputFps)
         inputFps = msg == WM_KEYUP && wParam == Config::Instance()->FpsShortcutKey.value_or_default();
+
+    if (!inputFG)
+        inputFG = msg == WM_KEYUP && wParam == Config::Instance()->FGShortcutKey.value_or_default();
 
     if (!inputFpsCycle)
         inputFpsCycle = msg == WM_KEYUP && wParam == Config::Instance()->FpsCycleShortcutKey.value_or_default();
@@ -855,6 +862,7 @@ void KeyUp(UINT vKey)
 {
     inputMenu = vKey == Config::Instance()->ShortcutKey.value_or_default();
     inputFps = vKey == Config::Instance()->FpsShortcutKey.value_or_default();
+    inputFG = vKey == Config::Instance()->FGShortcutKey.value_or_default();
     inputFpsCycle = vKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
 }
 
@@ -1350,6 +1358,21 @@ bool MenuCommon::RenderMenu()
 
     // Handle Inputs
     {
+        if (inputFG)
+        {
+            inputFG = false;
+
+            if (State::Instance().activeFgInput != FGInput::NoFG &&
+                State::Instance().activeFgOutput != FGOutput::NoFG &&
+                (State::Instance().api != API::Vulkan || State::Instance().activeFgInput == FGInput::Nukems))
+            {
+                Config::Instance()->FGEnabled = !Config::Instance()->FGEnabled.value_or_default();
+
+                if (Config::Instance()->FGEnabled.value_or_default())
+                    State::Instance().FGchanged = true;
+            }
+        }
+
         if (inputFps)
         {
             inputFps = false;
@@ -1852,6 +1875,9 @@ bool MenuCommon::RenderMenu()
 
     if (!_isVisible)
         return false;
+
+    // Check for gpu support
+    CheckForGPU();
 
     {
         // Overlay font
@@ -3024,11 +3050,9 @@ bool MenuCommon::RenderMenu()
                                 ImGui::TreePop();
                             }
 
-                            FSRFG_Dx12* fsrFG = nullptr;
-                            if (State::Instance().currentFG != nullptr)
-                                fsrFG = reinterpret_cast<FSRFG_Dx12*>(State::Instance().currentFG);
-
-                            if (fsrFG != nullptr && FfxApiProxy::VersionDx12() >= feature_version { 3, 1, 3 })
+                            auto fg = State::Instance().currentFG;
+                            if (fg != nullptr && strcmp(fg->Name(), "FSR-FG") == 0 &&
+                                FfxApiProxy::VersionDx12() >= feature_version { 3, 1, 3 })
                             {
                                 ImGui::Spacing();
                                 if (ImGui::TreeNode("Frame Pacing Tuning"))
@@ -4743,10 +4767,12 @@ bool MenuCommon::RenderMenu()
                     static auto menu = Keybind("Menu", 10);
                     static auto fpsOverlay = Keybind("FPS Overlay", 11);
                     static auto fpsOverlayCycle = Keybind("FPS Overlay Cycle", 12);
+                    static auto fgEnable = Keybind("Frame Generation", 13);
 
                     menu.Render(Config::Instance()->ShortcutKey);
                     fpsOverlay.Render(Config::Instance()->FpsShortcutKey);
                     fpsOverlayCycle.Render(Config::Instance()->FpsCycleShortcutKey);
+                    fgEnable.Render(Config::Instance()->FGShortcutKey);
                 }
 
                 ImGui::EndTable();

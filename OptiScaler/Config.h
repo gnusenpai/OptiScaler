@@ -243,6 +243,7 @@ class Config
     CustomOptional<bool> UseHQFont { true };
     CustomOptional<bool> DisableSplash { false };
     CustomOptional<std::wstring, NoDefault> TTFFontPath;
+    CustomOptional<int> FGShortcutKey { VK_END };
 
     // Hooks
     CustomOptional<bool> HookOriginalNvngxOnly { false };

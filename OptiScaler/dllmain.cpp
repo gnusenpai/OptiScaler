@@ -677,8 +677,6 @@ static void CheckWorkingMode()
                 {
                     LOG_DEBUG("dxgi.dll already in memory");
 
-                    CheckForGPU();
-
                     DxgiProxy::Init(dxgiModule);
 
                     if (Config::Instance()->DxgiSpoofing.value_or_default())
@@ -691,8 +689,6 @@ static void CheckWorkingMode()
             else
             {
                 LOG_DEBUG("dxgi.dll already in memory");
-
-                CheckForGPU();
 
                 if (Config::Instance()->DxgiSpoofing.value_or_default())
                     HookDxgiForSpoofing();

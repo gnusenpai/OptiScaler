@@ -333,6 +333,8 @@ bool Config::Reload(std::filesystem::path iniPath)
                 FpsScale.set_from_config(std::clamp(setting.value(), 0.5f, 2.0f));
 
             TTFFontPath.set_from_config(readWString("Menu", "TTFFontPath"));
+
+            FGShortcutKey.set_from_config(readInt("Menu", "FGShortcutKey"));
         }
 
         // Hooks
@@ -835,6 +837,10 @@ bool Config::SaveIni()
         ini.SetValue("Menu", "ShowFps", GetBoolValue(Instance()->ShowFps.value_for_config()).c_str());
         ini.SetValue("Menu", "UseHQFont", GetBoolValue(Instance()->UseHQFont.value_for_config()).c_str());
         ini.SetValue("Menu", "DisableSplash", GetBoolValue(Instance()->DisableSplash.value_for_config()).c_str());
+
+        setting = Instance()->FGShortcutKey.value_for_config();
+        ini.SetValue("Menu", "FGShortcutKey",
+                     GetIntValue(Instance()->FGShortcutKey.value_for_config(), setting > 0).c_str());
 
         setting = Instance()->FpsShortcutKey.value_for_config();
         ini.SetValue("Menu", "FpsShortcutKey",
