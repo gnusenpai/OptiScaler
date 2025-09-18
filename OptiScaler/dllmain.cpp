@@ -1161,6 +1161,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         for (const std::string& l : Config::Instance()->GetConfigLog())
             spdlog::info(l);
 
+        // Initial state of FG
+        State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
+        State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
+
         // Init Kernel proxies
         NtdllProxy::Init();
         KernelBaseProxy::Init();
@@ -1207,10 +1211,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
         if (Config::Instance()->DisableOverlays.value_or_default())
             SetEnvironmentVariable(L"SteamNoOverlayUIDrawing", L"1");
-
-        // Initial state of FG
-        State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
-        State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
 
         // Hook FSR4 stuff as early as possible
         spdlog::info("");
