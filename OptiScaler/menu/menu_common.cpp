@@ -1647,35 +1647,39 @@ bool MenuCommon::RenderMenu()
             std::string secondLine = "";
             std::string thirdLine = "";
 
+            auto fg = State::Instance().currentFG;
+            auto fgText = (fg != nullptr && fg->IsActive() && !fg->IsPaused()) ? std::format("({})", fg->Name()) : "";
+
             // Prepare Line 1
             if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_JustFPS)
             {
-                firstLine = std::format("{} | FPS: {:5.1f}", api.c_str(), frameRate);
+                firstLine = std::format("{} | FPS: {:5.1f} {}", api.c_str(), frameRate, fgText);
             }
             else if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_Simple)
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                     firstLine =
-                        std::format("{} | FPS: {:5.1f}, {:6.2f} ms | {} -> {} {}.{}.{}", api.c_str(), frameRate,
-                                    frameTime, State::Instance().currentInputApiName.c_str(),
+                        std::format("{} | FPS: {:5.1f}, {:6.2f} ms {} | {} -> {} {}.{}.{}", api.c_str(), frameRate,
+                                    frameTime, fgText, State::Instance().currentInputApiName.c_str(),
                                     currentFeature->Name().c_str(), State::Instance().currentFeature->Version().major,
                                     State::Instance().currentFeature->Version().minor,
                                     State::Instance().currentFeature->Version().patch);
                 else
-                    firstLine = std::format("{} | FPS: {:5.1f}, {:6.2f} ms", api.c_str(), frameRate, frameTime);
+                    firstLine =
+                        std::format("{} | FPS: {:5.1f}, {:6.2f} ms {}", api.c_str(), frameRate, frameTime, fgText);
             }
             else
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                     firstLine =
-                        std::format("{} | FPS: {:5.1f}, Avg: {:5.1f} | {} -> {} {}.{}.{}", api.c_str(), frameRate,
-                                    1000.0f / averageFrameTime, State::Instance().currentInputApiName.c_str(),
+                        std::format("{} | FPS: {:5.1f}, Avg: {:5.1f} {} | {} -> {} {}.{}.{}", api.c_str(), frameRate,
+                                    1000.0f / averageFrameTime, fgText, State::Instance().currentInputApiName.c_str(),
                                     currentFeature->Name().c_str(), State::Instance().currentFeature->Version().major,
                                     State::Instance().currentFeature->Version().minor,
                                     State::Instance().currentFeature->Version().patch);
                 else
-                    firstLine = std::format("{} | FPS: {:5.1f}, Avg: {:5.1f}", api.c_str(), frameRate,
-                                            1000.0f / averageFrameTime);
+                    firstLine = std::format("{} | FPS: {:5.1f}, Avg: {:5.1f} {}", api.c_str(), frameRate,
+                                            1000.0f / averageFrameTime, fgText);
             }
 
             // Prepare Line 2
