@@ -778,6 +778,14 @@ bool XeFG_Dx12::Present()
         _uiCommandListResetted[fIndex] = false;
     }
 
+    if (_lastDispatchedFrame == _frameCount)
+    {
+        State::Instance().FGchanged = true;
+        Deactivate();
+        UpdateTarget();
+        return false;
+    }
+
     return Dispatch();
 }
 

@@ -1087,6 +1087,14 @@ bool FSRFG_Dx12::Present()
         _uiCommandListResetted[fIndex] = false;
     }
 
+    if (_lastDispatchedFrame == _frameCount)
+    {
+        State::Instance().FGchanged = true;
+        Deactivate();
+        UpdateTarget();
+        return false;
+    }
+
     auto result = false;
     if (!IsPaused() && !IsDispatched())
         result = Dispatch();
