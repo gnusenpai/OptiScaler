@@ -478,20 +478,15 @@ static HRESULT hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTargetPa
         return S_OK;
     }
 
-    auto result = o_FGSCResizeTarget(This, pNewTargetParameters);
-
-    if (result == S_OK)
+    auto fg = State::Instance().currentFG;
+    if (fg != nullptr && fg->IsActive())
     {
-        auto fg = State::Instance().currentFG;
-        if (fg != nullptr)
-        {
-            State::Instance().FGchanged = true;
-            fg->Deactivate();
-            fg->UpdateTarget();
-        }
+        State::Instance().FGchanged = true;
+        fg->UpdateTarget();
+        fg->Deactivate();
     }
 
-    return result;
+    return o_FGSCResizeTarget(This, pNewTargetParameters);
 }
 
 static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
@@ -1481,6 +1476,7 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
                     DetourUpdateThread(GetCurrentThread());
 
                     DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+                    DetourAttach(&(PVOID&) o_FGSCResizeTarget, hkResizeTarget);
                     DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
                     DetourAttach(&(PVOID&) o_FGSCSetFullscreenState, hkSetFullscreenState);
 
@@ -1493,7 +1489,6 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
                     if (State::Instance().activeFgOutput == FGOutput::XeFG)
                     {
                         DetourAttach(&(PVOID&) o_FGSCGetFullscreenState, hkGetFullscreenState);
-                        DetourAttach(&(PVOID&) o_FGSCResizeTarget, hkResizeTarget);
 
                         if (o_FGSCGetFullscreenDesc != nullptr)
                             DetourAttach(&(PVOID&) o_FGSCGetFullscreenDesc, hkGetFullscreenDesc);
@@ -1860,6 +1855,7 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
                     DetourUpdateThread(GetCurrentThread());
 
                     DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+                    DetourAttach(&(PVOID&) o_FGSCResizeTarget, hkResizeTarget);
                     DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
                     DetourAttach(&(PVOID&) o_FGSCSetFullscreenState, hkSetFullscreenState);
 
