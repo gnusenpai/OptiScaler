@@ -66,7 +66,8 @@ class FfxApiProxy
 
         if (_dllDx12 == nullptr)
         {
-            std::vector<std::wstring> dllNames = { L"amd_fidelityfx_dx12.dll", L"amd_fidelityfx_loader_dx12.dll" };
+            // Try new api first
+            std::vector<std::wstring> dllNames = { L"amd_fidelityfx_loader_dx12.dll", L"amd_fidelityfx_dx12.dll" };
 
             for (size_t i = 0; i < dllNames.size(); i++)
             {
