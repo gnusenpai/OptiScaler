@@ -772,20 +772,24 @@ class NtdllHooks
         LOG_TRACE("{}", wstring_to_string(name.data()));
 #endif
 
-        auto moduleHandle = LoadLibraryCheckW(name.data(), name.data());
-
-        // skip loading of dll
-        if (moduleHandle == (HMODULE) 1337)
+        // Do not interfere with original modules calls
+        if (originalModule != Util::GetCallerModule(_ReturnAddress()))
         {
-            return STATUS_DLL_NOT_FOUND;
-        }
+            auto moduleHandle = LoadLibraryCheckW(name.data(), name.data());
 
-        if (moduleHandle != nullptr)
-        {
+            // skip loading of dll
+            if (moduleHandle == (HMODULE) 1337)
+            {
+                return STATUS_DLL_NOT_FOUND;
+            }
 
-            LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
-            *ModuleHandle = (HANDLE) moduleHandle;
-            return (NTSTATUS) 0x00000000L;
+            if (moduleHandle != nullptr)
+            {
+
+                LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+                *ModuleHandle = (HANDLE) moduleHandle;
+                return (NTSTATUS) 0x00000000L;
+            }
         }
 
         return o_LdrLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
@@ -827,19 +831,23 @@ class NtdllHooks
         LOG_TRACE("{}", wstring_to_string(name.data()));
 #endif
 
-        auto moduleHandle = LoadLibraryCheckW(name.data(), path.data());
-
-        // skip loading of dll
-        if (moduleHandle == (HMODULE) 1337)
+        // Do not interfere with original modules calls
+        if (originalModule != Util::GetCallerModule(_ReturnAddress()))
         {
-            return STATUS_DLL_NOT_FOUND;
-        }
+            auto moduleHandle = LoadLibraryCheckW(name.data(), path.data());
 
-        if (moduleHandle != nullptr)
-        {
-            LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
-            *ModuleHandle = (HANDLE) moduleHandle;
-            return (NTSTATUS) 0x00000000L;
+            // skip loading of dll
+            if (moduleHandle == (HMODULE) 1337)
+            {
+                return STATUS_DLL_NOT_FOUND;
+            }
+
+            if (moduleHandle != nullptr)
+            {
+                LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+                *ModuleHandle = (HANDLE) moduleHandle;
+                return (NTSTATUS) 0x00000000L;
+            }
         }
 
         return o_NtLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);

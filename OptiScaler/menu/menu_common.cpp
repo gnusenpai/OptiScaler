@@ -1363,7 +1363,7 @@ bool MenuCommon::RenderMenu()
             inputFG = false;
 
             if (State::Instance().activeFgInput != FGInput::NoFG &&
-                State::Instance().activeFgOutput != FGOutput::NoFG &&
+                State::Instance().activeFgOutput != FGOutput::NoFG && State::Instance().api != API::DX11 &&
                 (State::Instance().api != API::Vulkan || State::Instance().activeFgInput == FGInput::Nukems))
             {
                 Config::Instance()->FGEnabled = !Config::Instance()->FGEnabled.value_or_default();
