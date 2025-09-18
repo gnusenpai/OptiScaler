@@ -11,6 +11,7 @@
 
 #include "shaders/depth_scale/DS_Dx12.h"
 
+#include <proxies/Ntdll_Proxy.h>
 #include <proxies/KernelBase_Proxy.h>
 
 #include <scanner/scanner.h>
@@ -83,6 +84,7 @@ static FG_Constants _fgConst {};
 static UINT64 _currentFrameId = 0;
 
 static Fsr3::FfxPresentCallbackFunc _presentCallback = nullptr;
+static Fsr3::FfxFrameGenerationDispatchFunc _fgCallback = nullptr;
 static UINT64 _presentCallbackFrameId = 0;
 
 static std::mutex _newFrameMutex;
@@ -736,6 +738,7 @@ static Fsr3::FfxErrorCode hkffxFsr3ConfigureFrameGeneration(void* context, Fsr3:
         if (config->frameGenerationCallback != nullptr)
         {
             LOG_DEBUG("frameGenerationCallback exist");
+            _fgCallback = config->frameGenerationCallback;
         }
 
         if (config->presentCallback != nullptr)
@@ -797,7 +800,7 @@ static Fsr3::FfxErrorCode hkffxSetFrameGenerationConfigToSwapchainDX12(Fsr3::Ffx
             left = 0;
         }
 
-        if (config->HUDLessColor.resource != nullptr)
+        if (config->HUDLessColor.resource != nullptr && fg->GetResource(FG_ResourceType::HudlessColor) == nullptr)
         {
             Dx12Resource ui {};
             ui.cmdList = nullptr; // Not sure about this
@@ -835,7 +838,7 @@ void FSR3FG::HookFSR3FGExeInputs()
     if (o_ffxReplaceSwapchainForFrameinterpolationDX12 != nullptr)
         return;
 
-    LOG_INFO("Trying to hook FSR3 methods");
+    LOG_INFO("Trying to hook FSR3-FG exe methods");
 
     // Swapchain
     o_ffxReplaceSwapchainForFrameinterpolationDX12 =
@@ -922,13 +925,117 @@ void FSR3FG::HookFSR3FGExeInputs()
     DetourTransactionCommit();
 }
 
-void FSR3FG::HookFSR3FGInputs(HMODULE module) {}
+void FSR3FG::HookFSR3FGInputs()
+{
+    if (o_ffxReplaceSwapchainForFrameinterpolationDX12 != nullptr)
+        return;
+
+    LOG_INFO("Trying to hook FSR3-FG dll methods");
+
+    auto backend = KernelBaseProxy::GetModuleHandleW_()(L"ffx_backend_dx12_x64.dll");
+    if (backend == nullptr)
+        backend = NtdllProxy::LoadLibraryExW_Ldr(L"ffx_backend_dx12_x64.dll", NULL, 0);
+
+    auto fg = KernelBaseProxy::GetModuleHandleW_()(L"ffx_frameinterpolation_x64.dll");
+    if (fg == nullptr)
+        fg = NtdllProxy::LoadLibraryExW_Ldr(L"ffx_frameinterpolation_x64.dll", NULL, 0);
+
+    if (backend == nullptr || fg == nullptr)
+    {
+        LOG_DEBUG("Exitting backend: {:X}, fg: {:X}", (size_t) backend, (size_t) fg);
+        return;
+    }
+
+    // Swapchain
+    o_ffxReplaceSwapchainForFrameinterpolationDX12 =
+        (PFN_ffxReplaceSwapchainForFrameinterpolationDX12) KernelBaseProxy::GetProcAddress_()(
+            backend, "ffxReplaceSwapchainForFrameinterpolationDX12");
+    o_ffxCreateFrameinterpolationSwapchainDX12 =
+        (PFN_ffxCreateFrameinterpolationSwapchainDX12) KernelBaseProxy::GetProcAddress_()(
+            backend, "ffxCreateFrameinterpolationSwapchainDX12");
+    o_ffxCreateFrameinterpolationSwapchainForHwndDX12 =
+        (PFN_ffxCreateFrameinterpolationSwapchainForHwndDX12) KernelBaseProxy::GetProcAddress_()(
+            backend, "ffxCreateFrameinterpolationSwapchainForHwndDX12");
+    o_ffxWaitForPresents = (PFN_ffxWaitForPresents) KernelBaseProxy::GetProcAddress_()(backend, "ffxWaitForPresents");
+    o_ffxRegisterFrameinterpolationUiResourceDX12 =
+        (PFN_ffxRegisterFrameinterpolationUiResourceDX12) KernelBaseProxy::GetProcAddress_()(
+            backend, "ffxRegisterFrameinterpolationUiResourceDX12");
+    o_ffxGetFrameinterpolationCommandlistDX12 =
+        (PFN_ffxGetFrameinterpolationCommandlistDX12) KernelBaseProxy::GetProcAddress_()(
+            backend, "ffxGetFrameinterpolationCommandlistDX12");
+    o_ffxGetFrameinterpolationTextureDX12 =
+        (PFN_ffxGetFrameinterpolationTextureDX12) KernelBaseProxy::GetProcAddress_()(
+            backend, "ffxGetFrameinterpolationTextureDX12");
+    o_ffxSetFrameGenerationConfigToSwapchainDX12 =
+        (PFN_ffxSetFrameGenerationConfigToSwapchainDX12) KernelBaseProxy::GetProcAddress_()(
+            backend, "ffxSetFrameGenerationConfigToSwapchainDX12");
+
+    // Context
+    o_ffxFrameInterpolationContextCreate = (PFN_ffxFrameInterpolationContextCreate) KernelBaseProxy::GetProcAddress_()(
+        fg, "ffxFrameInterpolationContextCreate");
+    o_ffxFrameInterpolationDispatch =
+        (PFN_ffxFrameInterpolationDispatch) KernelBaseProxy::GetProcAddress_()(fg, "ffxFrameInterpolationDispatch");
+    o_ffxFrameInterpolationContextDestroy =
+        (PFN_ffxFrameInterpolationContextDestroy) KernelBaseProxy::GetProcAddress_()(
+            fg, "ffxFrameInterpolationContextDestroy");
+    o_ffxFsr3ConfigureFrameGeneration =
+        (PFN_ffxFsr3ConfigureFrameGeneration) KernelBaseProxy::GetProcAddress_()(fg, "ffxFsr3ConfigureFrameGeneration");
+
+    LOG_DEBUG("ffxReplaceSwapchainForFrameinterpolationDX12: {:X}",
+              (size_t) o_ffxReplaceSwapchainForFrameinterpolationDX12);
+    LOG_DEBUG("ffxCreateFrameinterpolationSwapchainDX12: {:X}", (size_t) o_ffxCreateFrameinterpolationSwapchainDX12);
+    LOG_DEBUG("ffxCreateFrameinterpolationSwapchainForHwndDX12: {:X}",
+              (size_t) o_ffxCreateFrameinterpolationSwapchainForHwndDX12);
+    LOG_DEBUG("ffxWaitForPresents: {:X}", (size_t) o_ffxWaitForPresents);
+    LOG_DEBUG("ffxRegisterFrameinterpolationUiResourceDX12: {:X}",
+              (size_t) o_ffxRegisterFrameinterpolationUiResourceDX12);
+    LOG_DEBUG("ffxGetFrameinterpolationCommandlistDX12: {:X}", (size_t) o_ffxGetFrameinterpolationCommandlistDX12);
+    LOG_DEBUG("ffxGetFrameinterpolationTextureDX12: {:X}", (size_t) o_ffxGetFrameinterpolationTextureDX12);
+    LOG_DEBUG("ffxFrameInterpolationContextCreate: {:X}", (size_t) o_ffxFrameInterpolationContextCreate);
+    LOG_DEBUG("ffxFrameInterpolationDispatch: {:X}", (size_t) o_ffxFrameInterpolationDispatch);
+    LOG_DEBUG("ffxFrameInterpolationContextDestroy: {:X}", (size_t) o_ffxFrameInterpolationContextDestroy);
+    LOG_DEBUG("ffxFsr3ConfigureFrameGeneration: {:X}", (size_t) o_ffxFsr3ConfigureFrameGeneration);
+
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+
+    if (o_ffxReplaceSwapchainForFrameinterpolationDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxReplaceSwapchainForFrameinterpolationDX12,
+                     hkffxReplaceSwapchainForFrameinterpolationDX12);
+    if (o_ffxCreateFrameinterpolationSwapchainDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxCreateFrameinterpolationSwapchainDX12, hkffxCreateFrameinterpolationSwapchainDX12);
+    if (o_ffxCreateFrameinterpolationSwapchainForHwndDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxCreateFrameinterpolationSwapchainForHwndDX12,
+                     hkffxCreateFrameinterpolationSwapchainForHwndDX12);
+    if (o_ffxWaitForPresents != nullptr)
+        DetourAttach(&(PVOID&) o_ffxWaitForPresents, hkffxWaitForPresents);
+    if (o_ffxRegisterFrameinterpolationUiResourceDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxRegisterFrameinterpolationUiResourceDX12,
+                     hkffxRegisterFrameinterpolationUiResourceDX12);
+    if (o_ffxGetFrameinterpolationCommandlistDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxGetFrameinterpolationCommandlistDX12, hkffxGetFrameinterpolationCommandlistDX12);
+    if (o_ffxGetFrameinterpolationTextureDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxGetFrameinterpolationTextureDX12, hkffxGetFrameinterpolationTextureDX12);
+    if (o_ffxFrameInterpolationContextCreate != nullptr)
+        DetourAttach(&(PVOID&) o_ffxFrameInterpolationContextCreate, hkffxFrameInterpolationContextCreate);
+    if (o_ffxFrameInterpolationDispatch != nullptr)
+        DetourAttach(&(PVOID&) o_ffxFrameInterpolationDispatch, hkffxFrameInterpolationDispatch);
+    if (o_ffxFrameInterpolationContextDestroy != nullptr)
+        DetourAttach(&(PVOID&) o_ffxFrameInterpolationContextDestroy, hkffxFrameInterpolationContextDestroy);
+    if (o_ffxFsr3ConfigureFrameGeneration != nullptr)
+        DetourAttach(&(PVOID&) o_ffxFsr3ConfigureFrameGeneration, hkffxFsr3ConfigureFrameGeneration);
+    if (o_ffxSetFrameGenerationConfigToSwapchainDX12 != nullptr)
+        DetourAttach(&(PVOID&) o_ffxSetFrameGenerationConfigToSwapchainDX12,
+                     hkffxSetFrameGenerationConfigToSwapchainDX12);
+
+    DetourTransactionCommit();
+}
 
 void FSR3FG::ffxPresentCallback()
 {
     LOG_DEBUG("");
 
-    if (_presentCallback == nullptr)
+    if (_presentCallback == nullptr && _fgCallback == nullptr)
         return;
 
     auto fg = State::Instance().currentFG;
@@ -1014,9 +1121,88 @@ void FSR3FG::ffxPresentCallback()
         }
 
         currentBuffer->Release();
+        _presentCallback = nullptr;
     }
 
-    _presentCallback = nullptr;
+    if (_fgCallback != nullptr)
+    {
+        Fsr3::FfxFrameGenerationDispatchDescription ddfg {};
+
+        if (currentBuffer == nullptr)
+        {
+            IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
+            auto scIndex = sc->GetCurrentBackBufferIndex();
+
+            auto hr = sc->GetBuffer(scIndex, IID_PPV_ARGS(&currentBuffer));
+            if (hr != S_OK)
+            {
+                LOG_ERROR("sc->GetBuffer error: {:X}", (UINT) hr);
+                return;
+            }
+
+            currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
+            if (currentBuffer == nullptr)
+            {
+                LOG_ERROR("currentBuffer is nullptr!");
+                return;
+            }
+        }
+
+        if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &_hudless[fIndex]))
+            _hudless[fIndex]->SetName(std::format(L"_hudless[{}]", fIndex).c_str());
+        else
+            return;
+
+        ddfg.commandList = cmdList;
+
+        ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                        D3D12_RESOURCE_STATE_COPY_DEST);
+
+        cmdList->CopyResource(_hudless[fIndex], currentBuffer);
+
+        ResourceBarrier(cmdList, currentBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        ResourceBarrier(cmdList, _hudless[fIndex], D3D12_RESOURCE_STATE_COPY_DEST,
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+        ddfg.outputs[0] = ffxGetResourceDX12Local(currentBuffer, GetFfxResourceDescriptionDX12Local(currentBuffer),
+                                                  Fsr3::FFX_RESOURCE_STATE_GENERIC_READ);
+        ddfg.presentColor =
+            ffxGetResourceDX12Local(_hudless[fIndex], GetFfxResourceDescriptionDX12Local(_hudless[fIndex]),
+                                    Fsr3::FFX_RESOURCE_STATE_GENERIC_READ);
+        ddfg.reset = false;
+
+        auto result = _fgCallback(&ddfg);
+
+        ResourceBarrier(cmdList, currentBuffer,
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+                        D3D12_RESOURCE_STATE_PRESENT);
+        ResourceBarrier(cmdList, _hudless[fIndex],
+                        D3D12_RESOURCE_STATE_COPY_SOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+        if (result == FFX_API_RETURN_OK)
+        {
+            if (fg->GetResource(FG_ResourceType::HudlessColor, fIndex) == nullptr)
+            {
+                auto hDesc = _hudless[fIndex]->GetDesc();
+                Dx12Resource hudless {};
+                hudless.cmdList = cmdList;
+                hudless.height = hDesc.Height;
+                hudless.resource = _hudless[fIndex];
+                hudless.state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+                hudless.type = FG_ResourceType::HudlessColor;
+                hudless.validity = FG_ResourceValidity::ValidNow;
+                hudless.width = hDesc.Width;
+                fg->SetResource(&hudless);
+            }
+        }
+
+        currentBuffer->Release();
+
+        _fgCallback = nullptr;
+    }
 }
 
 void FSR3FG::SetUpscalerInputs(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_Parameter* InParameters,
@@ -1110,13 +1296,13 @@ void FSR3FG::SetUpscalerInputs(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_P
         Config::Instance()->FGEnabled.value_or_default() && !fg->IsPaused() &&
         State::Instance().currentSwapchain != nullptr)
     {
-        // Wait for present
-        if (fg->Mutex.getOwner() == 2)
-        {
-            LOG_TRACE("Waiting for present!");
-            fg->Mutex.lock(4);
-            fg->Mutex.unlockThis(4);
-        }
+        //// Wait for present
+        // if (fg->Mutex.getOwner() == 2)
+        //{
+        //     LOG_TRACE("Waiting for present!");
+        //     fg->Mutex.lock(4);
+        //     fg->Mutex.unlockThis(4);
+        // }
 
         bool allocatorReset = false;
         frameIndex = fg->GetIndex();

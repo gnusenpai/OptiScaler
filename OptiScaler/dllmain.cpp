@@ -1281,7 +1281,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         // HookFfxExeInputs();
 
         if (State::Instance().activeFgInput == FGInput::FSRFG30)
+        {
+            FSR3FG::HookFSR3FGInputs();
             FSR3FG::HookFSR3FGExeInputs();
+        }
 
         for (size_t i = 0; i < 300; i++)
         {
