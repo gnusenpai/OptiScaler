@@ -425,6 +425,14 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
     _lastSwapChainFlags = SwapChainFlags;
 
+    auto fg = State::Instance().currentFG;
+    if (fg != nullptr && fg->IsActive())
+    {
+        State::Instance().FGchanged = true;
+        fg->UpdateTarget();
+        fg->Deactivate();
+    }
+
     _skipResize1 = true;
     State::Instance().skipSpoofing = true;
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
@@ -525,6 +533,14 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
 
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
     _lastSwapChainFlags = SwapChainFlags;
+
+    auto fg = State::Instance().currentFG;
+    if (fg != nullptr && fg->IsActive())
+    {
+        State::Instance().FGchanged = true;
+        fg->UpdateTarget();
+        fg->Deactivate();
+    }
 
     State::Instance().skipSpoofing = true;
     auto result = o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
@@ -1465,19 +1481,19 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
                     DetourUpdateThread(GetCurrentThread());
 
                     DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+                    DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
                     DetourAttach(&(PVOID&) o_FGSCSetFullscreenState, hkSetFullscreenState);
 
                     if (o_FGSCPresent1 != nullptr)
                         DetourAttach(&(PVOID&) o_FGSCPresent1, hkFGPresent1);
 
+                    if (o_FGSCResizeBuffers1 != nullptr)
+                        DetourAttach(&(PVOID&) o_FGSCResizeBuffers1, hkResizeBuffers1);
+
                     if (State::Instance().activeFgOutput == FGOutput::XeFG)
                     {
                         DetourAttach(&(PVOID&) o_FGSCGetFullscreenState, hkGetFullscreenState);
-                        DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
                         DetourAttach(&(PVOID&) o_FGSCResizeTarget, hkResizeTarget);
-
-                        if (o_FGSCResizeBuffers1 != nullptr)
-                            DetourAttach(&(PVOID&) o_FGSCResizeBuffers1, hkResizeBuffers1);
 
                         if (o_FGSCGetFullscreenDesc != nullptr)
                             DetourAttach(&(PVOID&) o_FGSCGetFullscreenDesc, hkGetFullscreenDesc);
@@ -1844,18 +1860,18 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
                     DetourUpdateThread(GetCurrentThread());
 
                     DetourAttach(&(PVOID&) o_FGSCPresent, hkFGPresent);
+                    DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
                     DetourAttach(&(PVOID&) o_FGSCSetFullscreenState, hkSetFullscreenState);
 
                     if (o_FGSCPresent1 != nullptr)
                         DetourAttach(&(PVOID&) o_FGSCPresent1, hkFGPresent1);
 
+                    if (o_FGSCResizeBuffers1 != nullptr)
+                        DetourAttach(&(PVOID&) o_FGSCResizeBuffers1, hkResizeBuffers1);
+
                     if (State::Instance().activeFgOutput == FGOutput::XeFG)
                     {
                         DetourAttach(&(PVOID&) o_FGSCGetFullscreenState, hkGetFullscreenState);
-                        DetourAttach(&(PVOID&) o_FGSCResizeBuffers, hkResizeBuffers);
-
-                        if (o_FGSCResizeBuffers1 != nullptr)
-                            DetourAttach(&(PVOID&) o_FGSCResizeBuffers1, hkResizeBuffers1);
 
                         if (o_FGSCGetFullscreenDesc != nullptr)
                             DetourAttach(&(PVOID&) o_FGSCGetFullscreenDesc, hkGetFullscreenDesc);
