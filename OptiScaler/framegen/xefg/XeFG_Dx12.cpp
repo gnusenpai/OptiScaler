@@ -463,6 +463,9 @@ bool XeFG_Dx12::Dispatch()
     if (fIndex < 0)
         return false;
 
+    if (!IsActive() || IsPaused())
+        return false;
+
     LOG_DEBUG("_frameCount: {}, _willDispatchFrame: {}, fIndex: {}", _frameCount, _willDispatchFrame, fIndex);
 
     if (!_resourceReady[fIndex].contains(FG_ResourceType::Depth) ||
@@ -780,6 +783,7 @@ bool XeFG_Dx12::Present()
 
     if (_lastDispatchedFrame == _frameCount)
     {
+        LOG_DEBUG("Pausing FG");
         State::Instance().FGchanged = true;
         Deactivate();
         UpdateTarget();

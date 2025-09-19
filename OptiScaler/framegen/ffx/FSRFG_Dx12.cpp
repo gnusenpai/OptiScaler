@@ -79,6 +79,9 @@ bool FSRFG_Dx12::Dispatch()
     if (fIndex < 0)
         return false;
 
+    if (!IsActive() || IsPaused())
+        return false;
+
     if (State::Instance().FSRFGFTPchanged)
         ConfigureFramePaceTuning();
 
@@ -1089,15 +1092,12 @@ bool FSRFG_Dx12::Present()
 
     if (_lastDispatchedFrame == _frameCount)
     {
+        LOG_DEBUG("Pausing FG");
         State::Instance().FGchanged = true;
         Deactivate();
         UpdateTarget();
         return false;
     }
 
-    auto result = false;
-    if (!IsPaused() && !IsDispatched())
-        result = Dispatch();
-
-    return result;
+    return Dispatch();
 }
