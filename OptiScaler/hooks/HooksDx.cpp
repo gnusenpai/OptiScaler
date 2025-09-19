@@ -42,8 +42,8 @@ static double _lastFGFrameTime = 0.0;
 static bool _fgPresentCalled = false;
 UINT _lastSwapChainFlags = 0;
 UINT _lastPresentFlags = 0;
-bool _skipPresent1 = false;
-bool _skipResize1 = false;
+bool _skipPresent = false;
+bool _skipResize = false;
 
 #pragma endregion
 
@@ -396,6 +396,13 @@ static HRESULT hkGetFullscreenState(IDXGISwapChain* This, BOOL* pFullscreen, IDX
 static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat,
                                UINT SwapChainFlags)
 {
+    // Skip XeFG's internal call
+    if (_skipResize)
+    {
+        LOG_DEBUG("XeFG call skipping");
+        return o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+    }
+
     LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}", BufferCount, Width, Height,
               (UINT) NewFormat, SwapChainFlags);
 
@@ -433,11 +440,11 @@ static HRESULT hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Widt
         fg->Deactivate();
     }
 
-    _skipResize1 = true;
+    _skipResize = true;
     State::Instance().skipSpoofing = true;
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
     State::Instance().skipSpoofing = false;
-    _skipResize1 = false;
+    _skipResize = false;
     LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
 
     if (result == S_OK)
@@ -493,7 +500,7 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
                                 UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
     // Skip XeFG's internal call
-    if (_skipResize1)
+    if (_skipResize)
     {
         LOG_DEBUG("XeFG call skipping");
         return o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
@@ -538,8 +545,12 @@ static HRESULT hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Wid
     }
 
     State::Instance().skipSpoofing = true;
+    _skipResize = true;
+
     auto result = o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
                                        ppPresentQueue);
+
+    _skipResize = false;
     State::Instance().skipSpoofing = false;
 
     LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
@@ -745,11 +756,18 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
 
 static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 {
+    // Skip XeFG's internal call
+    if (_skipPresent)
+    {
+        LOG_DEBUG("XeFG call skipping");
+        return o_FGSCPresent(This, SyncInterval, Flags);
+    }
+
     LOG_DEBUG("SyncInterval: {}, Flags: {:X}", SyncInterval, Flags);
 
-    _skipPresent1 = true;
+    _skipPresent = true;
     auto result = FGPresent(This, SyncInterval, Flags, nullptr);
-    _skipPresent1 = false;
+    _skipPresent = false;
 
     return result;
 }
@@ -758,14 +776,18 @@ static HRESULT hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
                             const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
     // Skip XeFG's internal call
-    if (_skipPresent1)
+    if (_skipPresent)
     {
         LOG_DEBUG("XeFG call skipping");
         return o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
     }
 
     LOG_DEBUG("SyncInterval: {}, Flags: {:X}", SyncInterval, Flags);
-    return FGPresent(This, SyncInterval, Flags, pPresentParameters);
+    _skipPresent = true;
+    auto result = FGPresent(This, SyncInterval, Flags, pPresentParameters);
+    _skipPresent = false;
+
+    return result;
 }
 
 static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags,
@@ -1062,6 +1084,8 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         presentResult = pSwapChain->Present(SyncInterval, Flags);
     else
         presentResult = ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+
+    LOG_DEBUG("Original present result: {:X}", (UINT) presentResult);
 
     // release used objects
     if (cq != nullptr)
