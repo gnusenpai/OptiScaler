@@ -545,6 +545,14 @@ void MenuOverlayDx::CleanupRenderTarget(bool clearQueue, HWND hWnd)
 {
     LOG_FUNC();
 
+    auto fg = State::Instance().currentFG;
+    if (fg->IsActive())
+    {
+        State::Instance().FGchanged = true;
+        fg->UpdateTarget();
+        fg->Deactivate();
+    }
+
     if (_dx11Device)
         CleanupRenderTargetDx11(false);
     else
