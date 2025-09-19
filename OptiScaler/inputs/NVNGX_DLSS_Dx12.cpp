@@ -945,8 +945,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         contextRendering = true;
     }
 
-    UpscalerInputsDx12::UpscaleStart(InCmdList, InParameters, deviceContext->feature.get());
-    FSR3FG::SetUpscalerInputs(InCmdList, InParameters, deviceContext->feature.get());
+    if (State::Instance().activeFgInput == FGInput::Upscaler)
+        UpscalerInputsDx12::UpscaleStart(InCmdList, InParameters, deviceContext->feature.get());
+    else if (State::Instance().activeFgInput == FGInput::FSRFG30)
+        FSR3FG::SetUpscalerInputs(InCmdList, InParameters, deviceContext->feature.get());
 
     // Record the first timestamp
     if (!State::Instance().isWorkingAsNvngx && HooksDx::queryHeap != nullptr)
