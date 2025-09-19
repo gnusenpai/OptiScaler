@@ -41,6 +41,21 @@ class NtdllHooks
 
     inline static bool _overlayMethodsCalled = false;
 
+    static void CheckInterposer()
+    {
+        if (StreamlineHooks::interposerHooked())
+            return;
+
+        // hook streamline right away if it's already loaded
+        HMODULE slModule = nullptr;
+        slModule = GetDllNameWModule(&slInterposerNamesW);
+        if (slModule != nullptr)
+        {
+            LOG_DEBUG("sl.interposer.dll already in memory");
+            StreamlineHooks::hookInterposer(slModule);
+        }
+    }
+
     static HMODULE LoadLibraryCheckW(std::wstring lcaseLibName, LPCWSTR lpLibFullPath)
     {
         auto lcaseLibNameA = wstring_to_string(lcaseLibName);
@@ -468,6 +483,8 @@ class NtdllHooks
             return module;
         }
 
+        CheckInterposer();
+
         return nullptr;
     }
 
@@ -748,10 +765,17 @@ class NtdllHooks
         if (ModuleHandle == nullptr)
             return STATUS_INVALID_PARAMETER;
 
-        if (ModuleFileName == nullptr || ModuleFileName->Length == 0 || State::Instance().isShuttingDown)
+        if (ModuleFileName == nullptr || ModuleFileName->Length == 0)
             return o_LdrLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
 
         std::wstring_view name(ModuleFileName->Buffer, ModuleFileName->Length / sizeof(wchar_t));
+
+#ifdef _DEBUG
+        LOG_DEBUG("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+#endif
+
+        if (State::Instance().isShuttingDown)
+            return o_LdrLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
 
         if (IsApiSetName(name))
             return o_LdrLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
@@ -768,12 +792,8 @@ class NtdllHooks
             }
         }
 
-#ifdef _DEBUG
-        LOG_TRACE("{}", wstring_to_string(name.data()));
-#endif
-
         // Do not interfere with original modules calls
-        if (originalModule != Util::GetCallerModule(_ReturnAddress()))
+        // if (originalModule != Util::GetCallerModule(_ReturnAddress()))
         {
             auto moduleHandle = LoadLibraryCheckW(name.data(), name.data());
 
@@ -801,10 +821,17 @@ class NtdllHooks
         if (ModuleHandle == nullptr)
             return STATUS_INVALID_PARAMETER;
 
-        if (ModuleFileName == nullptr || ModuleFileName->Length == 0 || State::Instance().isShuttingDown)
+        if (ModuleFileName == nullptr || ModuleFileName->Length == 0)
             return o_NtLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
 
         std::wstring_view name(ModuleFileName->Buffer, ModuleFileName->Length / sizeof(wchar_t));
+
+#ifdef _DEBUG
+        LOG_DEBUG("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+#endif
+
+        if (State::Instance().isShuttingDown)
+            return o_NtLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
 
         if (IsApiSetName(name))
             return o_NtLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
@@ -826,10 +853,6 @@ class NtdllHooks
                 return o_NtLoadDll(PathToFile, Flags, ModuleFileName, ModuleHandle);
             }
         }
-
-#ifdef _DEBUG
-        LOG_TRACE("{}", wstring_to_string(name.data()));
-#endif
 
         // Do not interfere with original modules calls
         if (originalModule != Util::GetCallerModule(_ReturnAddress()))
@@ -938,6 +961,8 @@ class NtdllHooks
   public:
     static void Hook()
     {
+        LOG_DEBUG();
+
         if (o_LdrLoadDll != nullptr)
             return;
 

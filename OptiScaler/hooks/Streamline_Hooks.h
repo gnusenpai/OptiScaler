@@ -83,6 +83,8 @@ class StreamlineHooks
     static void unhookCommon();
     static void hookCommon(HMODULE slCommon);
 
+    static bool interposerHooked();
+
   private:
     static sl::RenderAPI renderApi;
     static std::mutex setConstantsMutex;

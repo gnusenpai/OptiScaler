@@ -1217,3 +1217,5 @@ void StreamlineHooks::hookCommon(HMODULE slCommon)
         DetourTransactionCommit();
     }
 }
+
+bool StreamlineHooks::interposerHooked() { return o_slInit != nullptr || o_slInit_sl1 != nullptr; }
