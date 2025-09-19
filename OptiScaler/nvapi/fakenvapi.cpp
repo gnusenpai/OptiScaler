@@ -48,23 +48,36 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
 
     if (fg_state)
     {
-        // Starting with FSR 3.1.1 we can provide an AntiLag 2 context to FSR FG
-        // and it will call SetFrameGenFrameType for us
-        auto static ffxApiVersion = FfxApiProxy::VersionDx12();
-        constexpr feature_version requiredVersion = { 3, 1, 1 };
-        if (ffxApiVersion >= requiredVersion && updateModeAndContext())
+        if (State::Instance().activeFgOutput == FGOutput::FSRFG)
         {
-            antilag2_data.enabled = _lowLatencyContext != nullptr && _lowLatencyMode == Mode::AntiLag2;
-            antilag2_data.context = antilag2_data.enabled ? _lowLatencyContext : nullptr;
+            // Starting with FSR 3.1.1 we can provide an AntiLag 2 context to FSR FG
+            // and it will call SetFrameGenFrameType for us
+            auto static ffxApiVersion = FfxApiProxy::VersionDx12();
+            constexpr feature_version requiredVersion = { 3, 1, 1 };
+            if (ffxApiVersion >= requiredVersion && updateModeAndContext())
+            {
+                antilag2_data.enabled = _lowLatencyContext != nullptr && _lowLatencyMode == Mode::AntiLag2;
+                antilag2_data.context = antilag2_data.enabled ? _lowLatencyContext : nullptr;
 
-            pSwapChain->SetPrivateData(IID_IFfxAntiLag2Data, sizeof(antilag2_data), &antilag2_data);
+                pSwapChain->SetPrivateData(IID_IFfxAntiLag2Data, sizeof(antilag2_data), &antilag2_data);
+            }
+            else
+            {
+                // Tell fakenvapi to call SetFrameGenFrameType by itself
+                // Reflex frame id might get used in the future
+                LOG_TRACE("Fake_InformPresentFG: {}", frame_interpolated);
+                Fake_InformPresentFG(frame_interpolated, 0);
+            }
         }
-        else
+        else if (State::Instance().activeFgOutput == FGOutput::XeFG)
         {
-            // Tell fakenvapi to call SetFrameGenFrameType by itself
-            // Reflex frame id might get used in the future
-            LOG_TRACE("Fake_InformPresentFG: {}", frame_interpolated);
-            Fake_InformPresentFG(frame_interpolated, 0);
+            if (updateModeAndContext())
+            {
+                // Tell fakenvapi to call SetFrameGenFrameType by itself
+                // Reflex frame id might get used in the future
+                LOG_TRACE("Fake_InformPresentFG: {}", frame_interpolated);
+                Fake_InformPresentFG(frame_interpolated, 0);
+            }
         }
     }
     else
