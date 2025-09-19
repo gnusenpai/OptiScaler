@@ -1042,6 +1042,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         // Draw overlay
         MenuOverlayDx::Present(pSwapChain, SyncInterval, Flags, pPresentParameters, pDevice, hWnd, isUWP);
 
+        LOG_DEBUG("Calling fakenvapi");
         if (State::Instance().activeFgOutput == FGOutput::FSRFG)
         {
             fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
@@ -1053,6 +1054,8 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
 
         _frameCounter++;
     }
+
+    LOG_DEBUG("Calling original present");
 
     // swapchain present
     if (pPresentParameters == nullptr)
@@ -1458,19 +1461,25 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
                 void** pFactoryVTable = *reinterpret_cast<void***>(*ppSwapChain);
 
                 o_FGSCPresent = (PFN_Present) pFactoryVTable[8];
-                o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
-
-                // Borderless hooks
                 o_FGSCSetFullscreenState = (PFN_SetFullscreenState) pFactoryVTable[10];
                 o_FGSCGetFullscreenState = (PFN_GetFullscreenState) pFactoryVTable[11];
                 o_FGSCResizeBuffers = (PFN_ResizeBuffers) pFactoryVTable[13];
                 o_FGSCResizeTarget = (PFN_ResizeTarget) pFactoryVTable[14];
                 o_FGSCGetFullscreenDesc = (PFN_GetFullscreenDesc) pFactoryVTable[19];
+                o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
                 o_FGSCResizeBuffers1 = (PFN_ResizeBuffers1) pFactoryVTable[39];
 
                 if (o_FGSCPresent != nullptr)
                 {
                     LOG_INFO("Hooking FG SwapChain present");
+                    LOG_TRACE("FGSCPresent: {:X}", (size_t) o_FGSCPresent);
+                    LOG_TRACE("FGSCSetFullscreenState: {:X}", (size_t) o_FGSCSetFullscreenState);
+                    LOG_TRACE("FGSCGetFullscreenState: {:X}", (size_t) o_FGSCGetFullscreenState);
+                    LOG_TRACE("FGSCResizeBuffers: {:X}", (size_t) o_FGSCResizeBuffers);
+                    LOG_TRACE("FGSCResizeTarget: {:X}", (size_t) o_FGSCResizeTarget);
+                    LOG_TRACE("FGSCGetFullscreenDesc: {:X}", (size_t) o_FGSCGetFullscreenDesc);
+                    LOG_TRACE("FGSCPresent1: {:X}", (size_t) o_FGSCPresent1);
+                    LOG_TRACE("FGSCResizeBuffers1: {:X}", (size_t) o_FGSCResizeBuffers1);
 
                     DetourTransactionBegin();
                     DetourUpdateThread(GetCurrentThread());
@@ -1712,7 +1721,7 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
     }
 
     LOG_DEBUG("Width: {}, Height: {}, Format: {:X}, Count: {}, Flags: {:X}, Hwnd: {:X}, SkipWrapping: {}", pDesc->Width,
-              pDesc->Height, (UINT) pDesc->Format, pDesc->BufferCount, pDesc->Flags, (UINT) hWnd,
+              pDesc->Height, (UINT) pDesc->Format, pDesc->BufferCount, pDesc->Flags, (size_t) hWnd,
               _skipFGSwapChainCreation);
 
     if (Config::Instance()->ForceHDR.value_or_default() && !_skipFGSwapChainCreation)
@@ -1838,18 +1847,25 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
                 void** pFactoryVTable = *reinterpret_cast<void***>(*ppSwapChain);
 
                 o_FGSCPresent = (PFN_Present) pFactoryVTable[8];
-                o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
-
-                // Borderless hooks
                 o_FGSCSetFullscreenState = (PFN_SetFullscreenState) pFactoryVTable[10];
                 o_FGSCGetFullscreenState = (PFN_GetFullscreenState) pFactoryVTable[11];
                 o_FGSCResizeBuffers = (PFN_ResizeBuffers) pFactoryVTable[13];
+                o_FGSCResizeTarget = (PFN_ResizeTarget) pFactoryVTable[14];
                 o_FGSCGetFullscreenDesc = (PFN_GetFullscreenDesc) pFactoryVTable[19];
+                o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
                 o_FGSCResizeBuffers1 = (PFN_ResizeBuffers1) pFactoryVTable[39];
 
                 if (o_FGSCPresent != nullptr)
                 {
                     LOG_INFO("Hooking FG SwapChain present");
+                    LOG_TRACE("FGSCPresent: {:X}", (size_t) o_FGSCPresent);
+                    LOG_TRACE("FGSCSetFullscreenState: {:X}", (size_t) o_FGSCSetFullscreenState);
+                    LOG_TRACE("FGSCGetFullscreenState: {:X}", (size_t) o_FGSCGetFullscreenState);
+                    LOG_TRACE("FGSCResizeBuffers: {:X}", (size_t) o_FGSCResizeBuffers);
+                    LOG_TRACE("FGSCResizeTarget: {:X}", (size_t) o_FGSCResizeTarget);
+                    LOG_TRACE("FGSCGetFullscreenDesc: {:X}", (size_t) o_FGSCGetFullscreenDesc);
+                    LOG_TRACE("FGSCPresent1: {:X}", (size_t) o_FGSCPresent1);
+                    LOG_TRACE("FGSCResizeBuffers1: {:X}", (size_t) o_FGSCResizeBuffers1);
 
                     DetourTransactionBegin();
                     DetourUpdateThread(GetCurrentThread());
