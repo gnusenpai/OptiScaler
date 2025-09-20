@@ -44,6 +44,7 @@ UINT _lastSwapChainFlags = 0;
 UINT _lastPresentFlags = 0;
 bool _skipPresent = false;
 bool _skipResize = false;
+bool _skipDx11Create = false;
 
 #pragma endregion
 
@@ -2456,22 +2457,18 @@ static HRESULT hkD3D11CreateDevice(IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE Drive
                                    ID3D11Device** ppDevice, D3D_FEATURE_LEVEL* pFeatureLevel,
                                    ID3D11DeviceContext** ppImmediateContext)
 {
+    if (_skipDx11Create)
+    {
+        LOG_DEBUG("Skip");
+        return o_D3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
+                                   ppDevice, pFeatureLevel, ppImmediateContext);
+    }
+
     LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
 
 #ifdef ENABLE_DEBUG_LAYER_DX11
     Flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
-
-    static const D3D_FEATURE_LEVEL levels[] = {
-        D3D_FEATURE_LEVEL_11_1,
-    };
-
-    D3D_FEATURE_LEVEL maxLevel = D3D_FEATURE_LEVEL_1_0_CORE;
-
-    for (UINT i = 0; i < FeatureLevels; ++i)
-    {
-        maxLevel = std::max(maxLevel, pFeatureLevels[i]);
-    }
 
     DXGI_ADAPTER_DESC desc {};
     std::wstring szName;
@@ -2482,20 +2479,51 @@ static HRESULT hkD3D11CreateDevice(IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE Drive
         {
             szName = desc.Description;
             LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
+
+            if (desc.VendorId == VendorId::Microsoft)
+            {
+                State::Instance().skipSpoofing = false;
+
+                _skipDx11Create = true;
+                auto result = o_D3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
+                                                  SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+                _skipDx11Create = false;
+
+                return result;
+            }
         }
+
         State::Instance().skipSpoofing = false;
     }
 
-    if (maxLevel == D3D_FEATURE_LEVEL_11_0)
+    if (!(State::Instance().gameQuirks & GameQuirk::SkipD3D11FeatureLevelElevation))
     {
-        LOG_INFO(
-            "Overriding D3D_FEATURE_LEVEL, Game requested D3D_FEATURE_LEVEL_11_0, we need D3D_FEATURE_LEVEL_11_1!");
-        pFeatureLevels = levels;
-        FeatureLevels = ARRAYSIZE(levels);
+        static const D3D_FEATURE_LEVEL levels[] = {
+            D3D_FEATURE_LEVEL_11_1,
+        };
+
+        D3D_FEATURE_LEVEL maxLevel = D3D_FEATURE_LEVEL_1_0_CORE;
+
+        for (UINT i = 0; i < FeatureLevels; ++i)
+        {
+            maxLevel = std::max(maxLevel, pFeatureLevels[i]);
+        }
+
+        if (maxLevel == D3D_FEATURE_LEVEL_11_0)
+        {
+            LOG_INFO("Overriding D3D_FEATURE_LEVEL, "
+                     "Game requested D3D_FEATURE_LEVEL_11_0, "
+                     "we need D3D_FEATURE_LEVEL_11_1!");
+
+            pFeatureLevels = levels;
+            FeatureLevels = ARRAYSIZE(levels);
+        }
     }
 
+    _skipDx11Create = true;
     auto result = o_D3D11CreateDevice(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
                                       ppDevice, pFeatureLevel, ppImmediateContext);
+    _skipDx11Create = false;
 
     if (result == S_OK && *ppDevice != nullptr && !_d3d12Captured)
     {
@@ -2523,37 +2551,82 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
                                                D3D_FEATURE_LEVEL* pFeatureLevel,
                                                ID3D11DeviceContext** ppImmediateContext)
 {
+    if (_skipDx11Create)
+    {
+
+        LOG_DEBUG("Skip");
+        return o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
+                                               SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel,
+                                               ppImmediateContext);
+    }
+
     LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
 
 #ifdef ENABLE_DEBUG_LAYER_DX11
     Flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-    static const D3D_FEATURE_LEVEL levels[] = {
-        D3D_FEATURE_LEVEL_11_1,
-    };
-
-    D3D_FEATURE_LEVEL maxLevel = D3D_FEATURE_LEVEL_1_0_CORE;
-
-    for (UINT i = 0; i < FeatureLevels; ++i)
+    DXGI_ADAPTER_DESC desc {};
+    std::wstring szName;
+    if (pAdapter != nullptr)
     {
-        maxLevel = std::max(maxLevel, pFeatureLevels[i]);
+        State::Instance().skipSpoofing = true;
+        if (pAdapter->GetDesc(&desc) == S_OK)
+        {
+            szName = desc.Description;
+            LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
+
+            if (desc.VendorId == VendorId::Microsoft)
+            {
+                State::Instance().skipSpoofing = false;
+
+                _skipDx11Create = true;
+                auto result = o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels,
+                                                              FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain,
+                                                              ppDevice, pFeatureLevel, ppImmediateContext);
+                _skipDx11Create = true;
+
+                return result;
+            }
+        }
+
+        State::Instance().skipSpoofing = false;
     }
 
-    if (maxLevel == D3D_FEATURE_LEVEL_11_0)
+    if (!(State::Instance().gameQuirks & GameQuirk::SkipD3D11FeatureLevelElevation))
     {
-        LOG_INFO(
-            "Overriding D3D_FEATURE_LEVEL, Game requested D3D_FEATURE_LEVEL_11_0, we need D3D_FEATURE_LEVEL_11_1!");
-        pFeatureLevels = levels;
-        FeatureLevels = ARRAYSIZE(levels);
+        static const D3D_FEATURE_LEVEL levels[] = {
+            D3D_FEATURE_LEVEL_11_1,
+        };
+
+        D3D_FEATURE_LEVEL maxLevel = D3D_FEATURE_LEVEL_1_0_CORE;
+
+        for (UINT i = 0; i < FeatureLevels; ++i)
+        {
+            maxLevel = std::max(maxLevel, pFeatureLevels[i]);
+        }
+
+        if (maxLevel == D3D_FEATURE_LEVEL_11_0)
+        {
+            LOG_INFO("Overriding D3D_FEATURE_LEVEL, "
+                     "Game requested D3D_FEATURE_LEVEL_11_0, "
+                     "we need D3D_FEATURE_LEVEL_11_1!");
+
+            pFeatureLevels = levels;
+            FeatureLevels = ARRAYSIZE(levels);
+        }
     }
 
     if (pSwapChainDesc != nullptr && pSwapChainDesc->BufferDesc.Height == 2 && pSwapChainDesc->BufferDesc.Width == 2)
     {
         LOG_WARN("Overlay call!");
+
+        _skipDx11Create = true;
         auto result = o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels,
                                                       FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice,
                                                       pFeatureLevel, ppImmediateContext);
+        _skipDx11Create = false;
+
         return result;
     }
 
@@ -2597,9 +2670,11 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
         }
     }
 
+    _skipDx11Create = true;
     auto result = o_D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
                                                   SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel,
                                                   ppImmediateContext);
+    _skipDx11Create = false;
 
     if (result == S_OK && *ppDevice != nullptr && !_d3d12Captured)
     {

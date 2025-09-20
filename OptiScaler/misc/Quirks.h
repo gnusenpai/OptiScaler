@@ -36,6 +36,7 @@ enum class GameQuirk : uint64_t
     NoFSRFGFirstSwapchain,
     FixSlSimulationMarkers,
     HitmanReflexHacks,
+    SkipD3D11FeatureLevelElevation,
     // Don't forget to add the new entry to printQuirks
     _
 };
@@ -205,6 +206,9 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing),
 
+    // Final Fantasy XIV
+    QUIRK_ENTRY("graphadapterdesc.exe", GameQuirk::SkipD3D11FeatureLevelElevation),
+
     // Self-explanatory
     QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
@@ -298,6 +302,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Don't use V-Sync overrides");
     if (quirks & GameQuirk::HitmanReflexHacks)
         spdlog::info("Quirk: Hack for broken Hitman reflex");
+    if (quirks & GameQuirk::SkipD3D11FeatureLevelElevation)
+        spdlog::info("Quirk: Skipping D3D11 feature level elevation, native FSR3.1 will be disabled!");
 
     return;
 }
