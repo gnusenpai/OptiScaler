@@ -200,6 +200,11 @@ static const QuirkEntry quirkTable[] = {
     // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("darktide.exe", GameQuirk::DisableDxgiSpoofing),
 
+    // Dying Light 2 Stay Human, Dying Light: The Beast
+    // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("dyinglightgame_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("dyinglightgame_thebeast_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing),
+
     // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::DisableHudfix,
                 GameQuirk::DisableDxgiSpoofing),
