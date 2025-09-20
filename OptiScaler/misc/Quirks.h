@@ -202,6 +202,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("gwt.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("hogwartslegacy.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("observersystemredux.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("sackboy-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
 
     // VULKAN
     // ------
