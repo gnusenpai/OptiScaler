@@ -83,7 +83,12 @@ class StreamlineHooks
     static void unhookCommon();
     static void hookCommon(HMODULE slCommon);
 
-    static bool interposerHooked();
+    static bool isInterposerHooked();
+    static bool isDlssHooked();
+    static bool isDlssgHooked();
+    static bool isCommonHooked();
+    static bool isPclHooked();
+    static bool isReflexHooked();
 
   private:
     static sl::RenderAPI renderApi;

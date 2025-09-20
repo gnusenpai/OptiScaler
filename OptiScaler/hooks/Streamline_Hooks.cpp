@@ -1218,4 +1218,14 @@ void StreamlineHooks::hookCommon(HMODULE slCommon)
     }
 }
 
-bool StreamlineHooks::interposerHooked() { return o_slInit != nullptr || o_slInit_sl1 != nullptr; }
+bool StreamlineHooks::isInterposerHooked() { return o_slInit != nullptr || o_slInit_sl1 != nullptr; }
+
+bool StreamlineHooks::isDlssHooked() { return o_dlss_slGetPluginFunction != nullptr; }
+
+bool StreamlineHooks::isDlssgHooked() { return o_dlssg_slGetPluginFunction != nullptr; }
+
+bool StreamlineHooks::isCommonHooked() { return o_common_slGetPluginFunction != nullptr; }
+
+bool StreamlineHooks::isPclHooked() { return o_pcl_slGetPluginFunction != nullptr; }
+
+bool StreamlineHooks::isReflexHooked() { return o_reflex_slGetPluginFunction != nullptr; }

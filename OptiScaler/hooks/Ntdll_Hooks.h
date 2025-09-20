@@ -41,18 +41,120 @@ class NtdllHooks
 
     inline static bool _overlayMethodsCalled = false;
 
-    static void CheckInterposer()
+    static void CheckModulesInMemory()
     {
-        if (StreamlineHooks::interposerHooked())
-            return;
-
-        // hook streamline right away if it's already loaded
-        HMODULE slModule = nullptr;
-        slModule = GetDllNameWModule(&slInterposerNamesW);
-        if (slModule != nullptr)
+        if (!StreamlineHooks::isInterposerHooked())
         {
-            LOG_DEBUG("sl.interposer.dll already in memory");
-            StreamlineHooks::hookInterposer(slModule);
+            // hook streamline right away if it's already loaded
+            HMODULE slModule = nullptr;
+            slModule = GetDllNameWModule(&slInterposerNamesW);
+            if (slModule != nullptr)
+            {
+                LOG_DEBUG("sl.interposer.dll already in memory");
+                StreamlineHooks::hookInterposer(slModule);
+            }
+        }
+
+        if (!StreamlineHooks::isDlssHooked())
+        {
+            HMODULE slDlss = nullptr;
+            slDlss = GetDllNameWModule(&slDlssNamesW);
+            if (slDlss != nullptr)
+            {
+                LOG_DEBUG("sl.dlss.dll already in memory");
+                StreamlineHooks::hookDlss(slDlss);
+            }
+        }
+
+        if (!StreamlineHooks::isDlssgHooked())
+        {
+            HMODULE slDlssg = nullptr;
+            slDlssg = GetDllNameWModule(&slDlssgNamesW);
+            if (slDlssg != nullptr)
+            {
+                LOG_DEBUG("sl.dlss_g.dll already in memory");
+                StreamlineHooks::hookDlssg(slDlssg);
+            }
+        }
+
+        if (!StreamlineHooks::isReflexHooked())
+        {
+            HMODULE slReflex = nullptr;
+            slReflex = GetDllNameWModule(&slReflexNamesW);
+            if (slReflex != nullptr)
+            {
+                LOG_DEBUG("sl.reflex.dll already in memory");
+                StreamlineHooks::hookReflex(slReflex);
+            }
+        }
+
+        if (!StreamlineHooks::isPclHooked())
+        {
+            HMODULE slPcl = nullptr;
+            slPcl = GetDllNameWModule(&slPclNamesW);
+            if (slPcl != nullptr)
+            {
+                LOG_DEBUG("sl.pcl.dll already in memory");
+                StreamlineHooks::hookPcl(slPcl);
+            }
+        }
+
+        if (!StreamlineHooks::isCommonHooked())
+        {
+            HMODULE slCommon = nullptr;
+            slCommon = GetDllNameWModule(&slCommonNamesW);
+            if (slCommon != nullptr)
+            {
+                LOG_DEBUG("sl.common.dll already in memory");
+                StreamlineHooks::hookCommon(slCommon);
+            }
+        }
+
+        // XeSS
+        if (XeSSProxy::Module() == nullptr)
+        {
+            HMODULE xessModule = nullptr;
+            xessModule = GetDllNameWModule(&xessNamesW);
+            if (xessModule != nullptr)
+            {
+                LOG_DEBUG("libxess.dll already in memory");
+                XeSSProxy::HookXeSS(xessModule);
+            }
+        }
+
+        if (XeSSProxy::ModuleDx11() == nullptr)
+        {
+            HMODULE xessDx11Module = nullptr;
+            xessDx11Module = GetDllNameWModule(&xessDx11NamesW);
+            if (xessDx11Module != nullptr)
+            {
+                LOG_DEBUG("libxess_dx11.dll already in memory");
+                XeSSProxy::HookXeSSDx11(xessDx11Module);
+            }
+        }
+
+        // FFX Dx12
+        if (FfxApiProxy::Dx12Module() == nullptr)
+        {
+            HMODULE ffxDx12Module = nullptr;
+            ffxDx12Module = GetDllNameWModule(&ffxDx12NamesW);
+            if (ffxDx12Module != nullptr)
+            {
+                LOG_DEBUG("amd_fidelityfx_dx12.dll already in memory");
+                FfxApiProxy::InitFfxDx12(ffxDx12Module);
+            }
+        }
+
+        // FFX Vulkan
+        if (FfxApiProxy::VkModule() == nullptr)
+        {
+            HMODULE ffxVkModule = nullptr;
+            ffxVkModule = GetDllNameWModule(&ffxVkNamesW);
+            if (ffxVkModule != nullptr)
+            {
+                LOG_DEBUG("amd_fidelityfx_vk.dll already in memory");
+                FfxApiProxy::InitFfxVk(ffxVkModule);
+            }
         }
     }
 
@@ -483,7 +585,7 @@ class NtdllHooks
             return module;
         }
 
-        CheckInterposer();
+        CheckModulesInMemory();
 
         return nullptr;
     }
