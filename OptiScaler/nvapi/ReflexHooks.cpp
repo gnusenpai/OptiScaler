@@ -112,10 +112,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
             pDev->QueryInterface(IID_PPV_ARGS(&device12));
 
         if (device12)
-        {
             State::Instance().slFGInputs.evaluateState(device12);
-            State::Instance().DLSSGInputActive = false;
-        }
     }
 
     if (pSetLatencyMarkerParams->markerType == PRESENT_START && State::Instance().activeFgInput == FGInput::DLSSG)

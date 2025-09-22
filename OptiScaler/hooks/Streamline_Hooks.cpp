@@ -173,7 +173,6 @@ sl::Result StreamlineHooks::hkslSetTag(sl::ViewportHandle& viewport, sl::Resourc
              tags[i].type == sl::kBufferTypeMotionVectors || tags[i].type == sl::kBufferTypeUIColorAndAlpha ||
              tags[i].type == sl::kBufferTypeBidirectionalDistortionField))
         {
-            State::Instance().DLSSGInputActive = true;
             State::Instance().slFGInputs.reportResource(tags[i], (ID3D12GraphicsCommandList*) cmdBuffer, 0);
         }
     }
@@ -215,7 +214,6 @@ sl::Result StreamlineHooks::hkslSetTagForFrame(const sl::FrameToken& frame, cons
              resources[i].type == sl::kBufferTypeMotionVectors || resources[i].type == sl::kBufferTypeUIColorAndAlpha ||
              resources[i].type == sl::kBufferTypeBidirectionalDistortionField))
         {
-            State::Instance().DLSSGInputActive = true;
             State::Instance().slFGInputs.reportResource(resources[i], (ID3D12GraphicsCommandList*) cmdBuffer,
                                                         (uint32_t) frame);
         }

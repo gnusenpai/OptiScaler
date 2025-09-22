@@ -75,12 +75,15 @@ class State
     // Reseting on creation of new feature
     std::optional<bool> AutoExposure;
 
+    // FG
+    UINT64 FGLastFrame = 0;
+
     // DLSSG
     bool NukemsFilesAvailable = false;
     bool DLSSGDebugView = false;
     bool DLSSGInterpolatedOnly = false;
     uint32_t delayMenuRenderBy = 0;
-    bool DLSSGInputActive = false;
+    UINT64 DLSSGLastFrame = 0;
 
     // FSR Common
     float lastFsrCameraNear = 0.0f;

@@ -602,6 +602,8 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
 
     if (willPresent)
     {
+        State::Instance().FGLastFrame++;
+
         _fgPresentCalled = true;
 
         double ftDelta = 0.0f;

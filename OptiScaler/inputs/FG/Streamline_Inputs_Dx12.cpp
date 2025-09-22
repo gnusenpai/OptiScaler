@@ -1,6 +1,9 @@
 #include "Streamline_Inputs_Dx12.h"
+
 #include <Config.h>
+
 #include <resource_tracking/ResTrack_dx12.h>
+
 #include <magic_enum.hpp>
 
 std::optional<sl::Constants>* Sl_Inputs_Dx12::getFrameData(IFGFeature_Dx12* fgOutput)
@@ -152,6 +155,8 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
 {
     std::scoped_lock lock(reportResourceMutex);
 
+    State::Instance().DLSSGLastFrame = State::Instance().FGLastFrame;
+
     if (!cmdBuffer)
         LOG_TRACE("cmdBuffer is null");
 
@@ -164,7 +169,6 @@ bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCo
     if (dispatched)
     {
         fgOutput->StartNewFrame();
-
         dispatched = false;
 
         indexToFrameIdMapping[fgOutput->GetIndex()] = frameId;

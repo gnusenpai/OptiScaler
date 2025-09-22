@@ -3603,7 +3603,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Current Streamline FG state:");
                         ImGui::SameLine();
-                        if (State::Instance().DLSSGInputActive)
+                        if ((State::Instance().FGLastFrame - State::Instance().DLSSGLastFrame) < 3)
                         {
                             if (fgOutput->IsActive())
                                 ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
