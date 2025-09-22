@@ -686,10 +686,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature1(VkDevice InDevice
         std::string upscalerChoice = "fsr22"; // Default XeSS
 
         // If original NVNGX available use DLSS as base upscaler
-        if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::IsDx12Inited())
+        if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::IsVulkanInited())
             upscalerChoice = "dlss";
 
-        if (Config::Instance()->Dx12Upscaler.has_value())
+        if (Config::Instance()->VulkanUpscaler.has_value())
             upscalerChoice = Config::Instance()->VulkanUpscaler.value();
 
         LOG_INFO("Creating new {} upscaler", upscalerChoice);
