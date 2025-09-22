@@ -397,7 +397,7 @@ void* FSRFG_Dx12::SwapchainContext()
 
 void FSRFG_Dx12::DestroyFGContext()
 {
-    _frameCount = 0;
+    _frameCount = 1;
     _lastDispatchedFrame = 0;
     _willDispatchFrame = 0;
 
@@ -691,6 +691,8 @@ void FSRFG_Dx12::Deactivate()
 
         if (result == FFX_API_RETURN_OK)
             _isActive = false;
+
+        _lastDispatchedFrame = 0;
 
         LOG_INFO("D3D12_Configure Enabled: false, result: {} ({})", magic_enum::enum_name((FfxApiReturnCodes) result),
                  (UINT) result);

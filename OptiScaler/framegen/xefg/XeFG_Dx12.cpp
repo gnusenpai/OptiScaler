@@ -425,6 +425,8 @@ void XeFG_Dx12::Deactivate()
         if (result == XEFG_SWAPCHAIN_RESULT_SUCCESS)
             _isActive = false;
 
+        _lastDispatchedFrame = 0;
+
         LOG_INFO("SetEnabled: false, result: {} ({})", magic_enum::enum_name(result), (UINT) result);
     }
 }

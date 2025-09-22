@@ -68,8 +68,8 @@ class IFGFeature
     std::optional<UINT> _interpolationTop[BUFFER_COUNT];
     UINT _reset[BUFFER_COUNT] = {};
 
-    UINT64 _frameCount = 0;
-    UINT64 _lastDispatchedFrame = -1;
+    UINT64 _frameCount = 1;
+    UINT64 _lastDispatchedFrame = 0;
     UINT64 _willDispatchFrame = 0;
 
     bool _isActive = false;

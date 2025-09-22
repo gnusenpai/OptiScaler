@@ -546,7 +546,7 @@ void MenuOverlayDx::CleanupRenderTarget(bool clearQueue, HWND hWnd)
     LOG_FUNC();
 
     auto fg = State::Instance().currentFG;
-    if (fg->IsActive())
+    if (fg != nullptr && fg->IsActive())
     {
         State::Instance().FGchanged = true;
         fg->UpdateTarget();

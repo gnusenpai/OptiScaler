@@ -80,6 +80,7 @@ class State
     bool DLSSGDebugView = false;
     bool DLSSGInterpolatedOnly = false;
     uint32_t delayMenuRenderBy = 0;
+    bool DLSSGInputActive = false;
 
     // FSR Common
     float lastFsrCameraNear = 0.0f;
