@@ -267,6 +267,7 @@ class Config
     CustomOptional<float> QualityRatio_UltraPerformance { 3.0f };
 
     // Hotfixes
+    CustomOptional<bool> CheckForUpdate { true };
     CustomOptional<bool> DisableOverlays { false };
 
     CustomOptional<float, NoDefault> MipmapBiasOverride; // disabled by default
