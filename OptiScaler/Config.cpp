@@ -415,8 +415,6 @@ bool Config::Reload(std::filesystem::path iniPath)
 
             if (AnisotropyOverride.has_value() && (AnisotropyOverride.value() > 16 || AnisotropyOverride.value() < 1))
                 AnisotropyOverride.reset();
-            CheckForUpdate.set_from_config(readBool("Hotfix", "CheckForUpdate"));
-            DisableOverlays.set_from_config(readBool("Hotfix", "DisableOverlays"));
 
             AnisotropySkipPointFilter.set_from_config(readBool("Anisotropy", "SkipPointFilter"));
             AnisotropyModifyComp.set_from_config(readBool("Anisotropy", "AFModifyComparison"));
@@ -442,6 +440,7 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // Hotfixes
         {
+            CheckForUpdate.set_from_config(readBool("Hotfix", "CheckForUpdate"));
             DisableOverlays.set_from_config(readBool("Hotfix", "DisableOverlays"));
 
             RoundInternalResolution.set_from_config(readInt("Hotfix", "RoundInternalResolution"));
@@ -935,12 +934,6 @@ bool Config::SaveIni()
         ini.SetValue("Anisotropy", "SkipPointFilter",
                      GetBoolValue(Instance()->AnisotropySkipPointFilter.value_for_config()).c_str());
     }
-        ini.SetValue("Hotfix", "CheckForUpdate",
-                     Instance()->CheckForUpdate.has_value() ? (Instance()->CheckForUpdate.value() ? "true" : "false")
-                                                            : "auto");
-        ini.SetValue("Hotfix", "DisableOverlays",
-                     Instance()->DisableOverlays.has_value() ? (Instance()->DisableOverlays.value() ? "true" : "false")
-                                                             : "auto");
 
     // Mipmap
     {
@@ -956,6 +949,9 @@ bool Config::SaveIni()
 
     // Hotfixes
     {
+        ini.SetValue("Hotfix", "CheckForUpdate",
+                     Instance()->CheckForUpdate.has_value() ? (Instance()->CheckForUpdate.value() ? "true" : "false")
+                                                            : "auto");
         ini.SetValue("Hotfix", "DisableOverlays",
                      Instance()->DisableOverlays.has_value() ? (Instance()->DisableOverlays.value() ? "true" : "false")
                                                              : "auto");

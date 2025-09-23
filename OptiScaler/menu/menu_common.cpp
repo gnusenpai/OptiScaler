@@ -1435,6 +1435,7 @@ bool MenuCommon::RenderMenu()
         inputFpsCycle = false;
     }
 
+    // Version check
     bool frameTimesCalculated = false;
     const double splashTime = 7000.0;
     const double fadeTime = 1000.0;
@@ -1475,32 +1476,40 @@ bool MenuCommon::RenderMenu()
         }
     }
 
-    if (!_isUWP)
+    if (splashLimit < 1.0f)
     {
-        ImGui_ImplWin32_NewFrame();
-    }
-    else if (!newFrame)
-    {
-        ImVec2 displaySize { State::Instance().screenWidth, State::Instance().screenHeight };
-        ImGui_ImplUwp_NewFrame(displaySize);
+        splashStart = now + 100.0;
+        splashLimit = splashStart + splashTime;
+
+        std::srand(static_cast<unsigned>(std::time(nullptr)));
+        splashMessage = splashText[std::rand() % splashText.size()];
     }
 
-    MenuHdrCheck(io);
-    MenuSizeCheck(io);
-    ImGui::NewFrame();
+    // New frame check
+    if ((!Config::Instance()->DisableSplash.value_or_default() && now > splashStart && now < splashLimit) ||
+        (updateNoticeVisible && now < updateNoticeLimit) || Config::Instance()->ShowFps.value_or_default() ||
+        _isVisible)
+    {
+        if (!_isUWP)
+        {
+            ImGui_ImplWin32_NewFrame();
+        }
+        else
+        {
+            ImVec2 displaySize { State::Instance().screenWidth, State::Instance().screenHeight };
+            ImGui_ImplUwp_NewFrame(displaySize);
+        }
+
+        MenuHdrCheck(io);
+        MenuSizeCheck(io);
+        ImGui::NewFrame();
+
+        newFrame = true;
+    }
 
     // Splash screen
     if (!Config::Instance()->DisableSplash.value_or_default())
     {
-        if (splashLimit < 1.0f)
-        {
-            splashStart = now + 100.0;
-            splashLimit = splashStart + splashTime;
-
-            std::srand(static_cast<unsigned>(std::time(nullptr)));
-            splashMessage = splashText[std::rand() % splashText.size()];
-        }
-
         if (now > splashStart && now < splashLimit)
         {
 
@@ -1535,7 +1544,9 @@ bool MenuCommon::RenderMenu()
                 else
                     ImGui::SetWindowFontScale(splashScale);
 
-                ImGui::Text("OptiScaler");
+                ImGui::Text(
+                    "OptiScaler - %s for menu",
+                    Keybind::KeyNameFromVirtualKeyCode(Config::Instance()->ShortcutKey.value_or_default()).c_str());
                 ImGui::TextColored(toneMapColor(ImVec4(1.0, 1.0, 1.0, 0.7)), splashMessage.c_str());
 
                 splashSize = ImGui::GetWindowSize();
@@ -1965,13 +1976,11 @@ bool MenuCommon::RenderMenu()
         }
     }
 
-    if (!_isVisible)
-        return false;
-
-    // Check for gpu support
-    CheckForGPU();
-
+    if (_isVisible)
     {
+        // Check for gpu support
+        CheckForGPU();
+
         // Overlay font
         if (Config::Instance()->UseHQFont.value_or_default())
             ImGui::PushFontSize(std::round(Config::Instance()->MenuScale.value_or_default() * fontSize));
@@ -5228,11 +5237,12 @@ bool MenuCommon::RenderMenu()
 
         if (Config::Instance()->UseHQFont.value_or_default())
             ImGui::PopFontSize();
+    }
 
+    if (newFrame)
         ImGui::EndFrame();
 
-        return true;
-    }
+    return newFrame;
 }
 
 void MenuCommon::Init(HWND InHwnd, bool isUWP)

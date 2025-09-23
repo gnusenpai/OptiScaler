@@ -1160,15 +1160,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         spdlog::info("Config parameters:");
         for (const std::string& l : Config::Instance()->GetConfigLog())
             spdlog::info(l);
+
 #ifdef VER_PRE_RELEASE
         spdlog::info("Pre-release build, disabling update checks");
         Config::Instance()->CheckForUpdate.set_volatile_value(false);
 #endif
-
-        // OptiFG & Overlay Checks
-        if (Config::Instance()->FGType.value_or_default() == FGType::OptiFG &&
-            !Config::Instance()->DisableOverlays.has_value())
-            Config::Instance()->DisableOverlays.set_volatile_value(true);
 
         // Initial state of FG
         State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
