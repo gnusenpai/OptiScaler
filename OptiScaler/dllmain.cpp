@@ -935,7 +935,8 @@ static void CheckWorkingMode()
                     LOG_ERROR("Failed to load igdext64.dll");
             }
 
-            VersionCheck::Start();
+            if (Config::Instance()->CheckForUpdate.value_or_default())
+                VersionCheck::Start();
         }
 
         return;
@@ -1123,8 +1124,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         spdlog::warn("Nexus  : https://www.nexusmods.com/site/mods/986");
         spdlog::warn("If you paid for these files, you've been scammed!");
         spdlog::warn("DO NOT USE IN MULTIPLAYER GAMES");
-        spdlog::warn("");
-        spdlog::warn("LogLevel: {0}", Config::Instance()->LogLevel.value_or_default());
+        spdlog::info("");
+        spdlog::info("LogLevel: {0}", Config::Instance()->LogLevel.value_or_default());
 
         spdlog::info("");
         if (Util::GetRealWindowsVersion(winVer))
@@ -1135,6 +1136,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
         spdlog::info("");
         CheckQuirks();
+
+#ifdef VER_PRE_RELEASE
+        spdlog::info("Pre-release build, disabling update checks");
+        Config::Instance()->CheckForUpdate.set_volatile_value(false);
+#endif
 
         // OptiFG & Overlay Checks
         if (Config::Instance()->FGType.value_or_default() == FGType::OptiFG &&
