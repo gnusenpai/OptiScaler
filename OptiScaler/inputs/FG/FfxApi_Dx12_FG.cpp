@@ -24,6 +24,7 @@ static FfxApiRect2D _callbackRect = {};
 static std::mutex _newFrameMutex;
 
 static ID3D12Resource* _hudless[BUFFER_COUNT] = {};
+static ID3D12Resource* _interpolation[BUFFER_COUNT] = {};
 static Dx12Resource _uiRes[BUFFER_COUNT] = {};
 
 // #define PASSTHRU
@@ -758,9 +759,30 @@ ffxReturnCode_t ffxQuery_Dx12FG(ffxContext* context, ffxQueryDescHeader* desc)
             auto cDesc = (ffxQueryDescFrameGenerationSwapChainInterpolationTextureDX12*) desc;
             auto fIndex = fg->GetIndex();
 
-            if (_uiRes[fIndex].resource != nullptr)
-                *cDesc->pOutTexture =
-                    ffxApiGetResourceDX12(_uiRes[fIndex].resource, GetFfxApiState(_uiRes[fIndex].state));
+            IDXGISwapChain3* sc = (IDXGISwapChain3*) State::Instance().currentFGSwapchain;
+            auto scIndex = sc->GetCurrentBackBufferIndex();
+
+            ID3D12Resource* currentBuffer = nullptr;
+            auto hr = sc->GetBuffer(scIndex, IID_PPV_ARGS(&currentBuffer));
+            if (hr != S_OK)
+            {
+                LOG_ERROR("sc->GetBuffer error: {:X}", (UINT) hr);
+                return {};
+            }
+
+            if (currentBuffer == nullptr)
+            {
+                LOG_ERROR("currentBuffer is nullptr!");
+                return {};
+            }
+
+            currentBuffer->SetName(std::format(L"currentBuffer[{}]", scIndex).c_str());
+            currentBuffer->Release();
+
+            if (CreateBufferResource(_device, currentBuffer, D3D12_RESOURCE_STATE_COMMON, &_interpolation[fIndex]))
+                _interpolation[fIndex]->SetName(std::format(L"_interpolation[{}]", fIndex).c_str());
+
+            *cDesc->pOutTexture = ffxApiGetResourceDX12(_interpolation[fIndex], FFX_API_RESOURCE_STATE_COMMON);
         }
 
         return FFX_API_RETURN_OK;
@@ -854,6 +876,9 @@ ffxReturnCode_t ffxDispatch_Dx12FG(ffxContext* context, ffxDispatchDescHeader* d
 
         auto device = _device == nullptr ? State::Instance().currentD3D12Device : _device;
         fg->EvaluateState(device, _fgConst);
+
+        if (!fg->IsActive() || fg->IsPaused())
+            return FFX_API_RETURN_OK;
 
         //  Camera Data
         bool cameraDataFound = false;
