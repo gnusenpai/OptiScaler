@@ -38,6 +38,59 @@ bool IFGFeature_Dx12::GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATE
 
 ID3D12CommandQueue* IFGFeature_Dx12::GetCommandQueue() { return _gameCommandQueue; }
 
+ID3D12GraphicsCommandList* IFGFeature_Dx12::GetUICommandList(int index)
+{
+    if (index < 0)
+        index = GetIndex();
+
+    LOG_DEBUG("index: {}", index);
+
+    if (_uiCommandAllocator[0] == nullptr)
+    {
+        if (_device != nullptr)
+            CreateObjects(_device);
+        else if (State::Instance().currentD3D12Device != nullptr)
+            CreateObjects(State::Instance().currentD3D12Device);
+        else
+            return nullptr;
+    }
+
+    for (size_t i = 0; i < BUFFER_COUNT; i++)
+    {
+        if (i != index && _uiCommandListResetted[i])
+        {
+            LOG_DEBUG("Executing _uiCommandList[{}]: {:X}", i, (size_t) _uiCommandList[i]);
+            auto closeResult = _uiCommandList[i]->Close();
+
+            if (closeResult != S_OK)
+                LOG_ERROR("_uiCommandList[{}]->Close() error: {:X}", i, (UINT) closeResult);
+
+            _uiCommandListResetted[i] = false;
+        }
+    }
+
+    if (!_uiCommandListResetted[index])
+    {
+        auto result = _uiCommandAllocator[index]->Reset();
+
+        if (result == S_OK)
+        {
+            result = _uiCommandList[index]->Reset(_uiCommandAllocator[index], nullptr);
+
+            if (result == S_OK)
+                _uiCommandListResetted[index] = true;
+            else
+                LOG_ERROR("_uiCommandList[{}]->Reset() error: {:X}", index, (UINT) result);
+        }
+        else
+        {
+            LOG_ERROR("_uiCommandAllocator[{}]->Reset() error: {:X}", index, (UINT) result);
+        }
+    }
+
+    return _uiCommandList[index];
+}
+
 Dx12Resource* IFGFeature_Dx12::GetResource(FG_ResourceType type, int index)
 {
     std::lock_guard<std::mutex> lock(_frMutex);

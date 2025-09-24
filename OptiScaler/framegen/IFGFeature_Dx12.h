@@ -90,7 +90,8 @@ class IFGFeature_Dx12 : public virtual IFGFeature
 
     virtual void SetResource(Dx12Resource* inputResource) = 0;
     virtual void SetCommandQueue(FG_ResourceType type, ID3D12CommandQueue* queue) = 0;
-    virtual ID3D12GraphicsCommandList* GetUICommandList(int index = -1) = 0;
+    
+    ID3D12GraphicsCommandList* GetUICommandList(int index = -1);
 
     Dx12Resource* GetResource(FG_ResourceType type, int index = -1);
     bool GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATES bufferState, ID3D12Resource* output);
