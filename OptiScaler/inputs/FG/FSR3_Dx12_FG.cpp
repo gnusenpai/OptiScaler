@@ -1284,7 +1284,7 @@ void FSR3FG::SetUpscalerInputs(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_P
 
     auto aspectRatio = (float) feature->DisplayWidth() / (float) feature->DisplayHeight();
     fg->SetCameraValues(cameraNear, cameraFar, cameraVFov, aspectRatio, meterFactor);
-    fg->SetFrameTimeDelta(State::Instance().lastFrameTime);
+    fg->SetFrameTimeDelta(State::Instance().lastFGFrameTime);
     fg->SetMVScale(mvScaleX, mvScaleY);
     fg->SetJitter(jitterX, jitterY);
     fg->SetReset(reset);

@@ -119,7 +119,7 @@ void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSD
 
     auto aspectRatio = (float) feature->DisplayWidth() / (float) feature->DisplayHeight();
     fg->SetCameraValues(cameraNear, cameraFar, cameraVFov, aspectRatio, meterFactor);
-    fg->SetFrameTimeDelta(State::Instance().lastFrameTime);
+    fg->SetFrameTimeDelta(State::Instance().lastFGFrameTime);
     fg->SetMVScale(mvScaleX, mvScaleY);
     fg->SetJitter(jitterX, jitterY);
     fg->SetReset(reset);
@@ -248,7 +248,7 @@ void UpscalerInputsDx12::UpscaleEnd(ID3D12GraphicsCommandList* InCmdList, NVSDK_
         if (Config::Instance()->FGHUDFix.value_or_default())
         {
             // For signal after mv & depth copies
-            Hudfix_Dx12::UpscaleEnd(feature->FrameCount(), State::Instance().lastFrameTime);
+            Hudfix_Dx12::UpscaleEnd(feature->FrameCount(), State::Instance().lastFGFrameTime);
 
             ID3D12Resource* output = nullptr;
             if (InParameters->Get(NVSDK_NGX_Parameter_Output, &output) != NVSDK_NGX_Result_Success)

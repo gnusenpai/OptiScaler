@@ -488,7 +488,7 @@ bool Sl_Inputs_Dx12::dispatchFG()
 
     fgOutput->SetReset(slConstsRef.reset == sl::Boolean::eTrue);
 
-    fgOutput->SetFrameTimeDelta(State::Instance().lastFrameTime);
+    fgOutput->SetFrameTimeDelta(State::Instance().lastFGFrameTime);
 
     fgOutput->SetInterpolationRect(interpolationWidth, interpolationHeight);
     interpolationWidth = 0;

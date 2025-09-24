@@ -538,9 +538,9 @@ bool XeFG_Dx12::Dispatch()
     constData.motionVectorScaleX = _mvScaleX[fIndex];
     constData.motionVectorScaleY = _mvScaleY[fIndex];
     constData.resetHistory = _reset[fIndex];
-    constData.frameRenderTime = _ftDelta[fIndex];
+    constData.frameRenderTime = State::Instance().lastFGFrameTime;
 
-    LOG_DEBUG("Reset: {}, FTDelta: {}", _reset[fIndex], _ftDelta[fIndex]);
+    LOG_DEBUG("Reset: {}, FTDelta: {}", _reset[fIndex], constData.frameRenderTime);
 
     auto result = XeFGProxy::TagFrameConstants()(_swapChainContext, _willDispatchFrame, &constData);
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)

@@ -614,7 +614,7 @@ static HRESULT FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_P
             ftDelta = now - _lastFGFrameTime;
 
         _lastFGFrameTime = now;
-        State::Instance().lastFrameTime = ftDelta;
+        State::Instance().lastFGFrameTime = ftDelta;
 
         LOG_DEBUG("_frameCounter: {}, flags: {:X}, Frametime: {}", _frameCounter, Flags, ftDelta);
     }
@@ -823,7 +823,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         State::Instance().presentFrameTime = ftDelta;
 
         if (o_FGSCPresent == nullptr)
-            State::Instance().lastFrameTime = ftDelta;
+            State::Instance().lastFGFrameTime = ftDelta;
 
         LOG_DEBUG("SyncInterval: {}, Flags: {:X}, Frametime: {:0.3f} ms", SyncInterval, Flags, ftDelta);
     }

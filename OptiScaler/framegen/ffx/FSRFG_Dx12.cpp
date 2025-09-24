@@ -306,7 +306,7 @@ bool FSRFG_Dx12::Dispatch()
         dfgPrepare.cameraFar = _cameraFar[fIndex];
         dfgPrepare.cameraNear = _cameraNear[fIndex];
         dfgPrepare.cameraFovAngleVertical = _cameraVFov[fIndex];
-        dfgPrepare.frameTimeDelta = _ftDelta[fIndex];
+        dfgPrepare.frameTimeDelta = State::Instance().lastFGFrameTime; // _ftDelta[fIndex];
         dfgPrepare.viewSpaceToMetersFactor = _meterFactor[fIndex];
 
         retCode = FfxApiProxy::D3D12_Dispatch()(&_fgContext, &dfgPrepare.header);

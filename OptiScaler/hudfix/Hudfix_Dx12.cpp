@@ -388,12 +388,12 @@ void Hudfix_Dx12::UpscaleStart()
     }
 }
 
-void Hudfix_Dx12::UpscaleEnd(UINT64 frameId, float lastFrameTime)
+void Hudfix_Dx12::UpscaleEnd(UINT64 frameId, float lastFGFrameTime)
 {
 
     // Update counter after upscaling so _upscaleCounter == _fgCounter check at IsResourceCheckActive will work
     _upscaleCounter++; // = frameId;
-    _frameTime = lastFrameTime;
+    _frameTime = lastFGFrameTime;
 
     // Get new index and clear resources
     auto index = GetIndex();
