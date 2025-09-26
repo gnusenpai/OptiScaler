@@ -204,15 +204,16 @@ void LoadAsiPlugins()
                 if (init != nullptr)
                     init();
 
-                if (!State::Instance().isRunningOnNvidia && patchResult != nullptr)
+                if (patchResult != nullptr)
                 {
                     auto pr = patchResult();
 
                     if (pr)
                     {
+                        LOG_INFO("Game patching is successful");
                         State::Instance().isOptiPatcherSucceed = true;
 
-                        LOG_INFO("Game patching is successful, disabling spoofing");
+                        LOG_INFO("Disabling spoofing");
 
                         if (!Config::Instance()->DxgiSpoofing.has_value())
                             Config::Instance()->DxgiSpoofing.set_volatile_value(false);
