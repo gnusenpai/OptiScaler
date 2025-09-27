@@ -226,6 +226,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("sackboy-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
     QUIRK_ENTRY("hellbladegame-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("pumpkinjack-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("metroexodus.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
 
     // VULKAN
     // ------
