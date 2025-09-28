@@ -704,13 +704,13 @@ static void CheckWorkingMode()
                 {
                     LOG_DEBUG("d3d12.dll already in memory");
                     D3d12Proxy::Init(d3d12Module);
-                    D3D1x_Hooks::HookDx12();
+                    D3D1XHooks::HookDx12();
                 }
             }
             else
             {
                 LOG_DEBUG("d3d12.dll already in memory");
-                D3D1x_Hooks::HookDx12();
+                D3D1XHooks::HookDx12();
             }
 
             if (D3d12Proxy::Module() == nullptr && State::Instance().gameQuirks & GameQuirk::LoadD3D12Manually)
@@ -724,7 +724,7 @@ static void CheckWorkingMode()
             if (Config::Instance()->OverlayMenu.value() && d3d11Module != nullptr)
             {
                 LOG_DEBUG("d3d11.dll already in memory");
-                D3D1x_Hooks::HookDx11(d3d11Module);
+                D3D1XHooks::HookDx11(d3d11Module);
             }
 
             // Vulkan

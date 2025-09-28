@@ -2,8 +2,6 @@
 
 #include "font/Hack_Compressed.h"
 
-#include <hooks/HooksDx.h>
-
 #include <proxies/XeSS_Proxy.h>
 #include <proxies/XeFG_Proxy.h>
 #include <proxies/FfxApi_Proxy.h>

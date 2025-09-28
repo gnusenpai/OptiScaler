@@ -1063,7 +1063,7 @@ static HRESULT hkCreateSamplerState(ID3D11Device* This, const D3D11_SAMPLER_DESC
 
 #pragma region Public hook methods
 
-void D3D1x_Hooks::HookDx12()
+void D3D1XHooks::HookDx12()
 {
     if (o_D3D12CreateDevice != nullptr)
         return;
@@ -1076,7 +1076,7 @@ void D3D1x_Hooks::HookDx12()
         D3d12Proxy::Hook_D3D12SerializeVersionedRootSignature(hkD3D12SerializeVersionedRootSignature);
 }
 
-void D3D1x_Hooks::HookDx11(HMODULE dx11Module)
+void D3D1XHooks::HookDx11(HMODULE dx11Module)
 {
     if (o_D3D11CreateDevice != nullptr)
         return;
@@ -1110,7 +1110,7 @@ void D3D1x_Hooks::HookDx11(HMODULE dx11Module)
     }
 }
 
-void D3D1x_Hooks::ReleaseDx12SwapChain(HWND hwnd)
+void D3D1XHooks::ReleaseDx12SwapChain(HWND hwnd)
 {
     State::Instance().currentSwapchain = nullptr;
 
@@ -1126,7 +1126,7 @@ void D3D1x_Hooks::ReleaseDx12SwapChain(HWND hwnd)
         fg->ReleaseSwapchain(hwnd);
 }
 
-void D3D1x_Hooks::UnHookDx()
+void D3D1XHooks::UnHookDx()
 {
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());

@@ -2,15 +2,11 @@
 
 #include <State.h>
 
-#include <hooks/HooksDx.h>
-#include <upscalers/IFeature.h>
 #include <hudfix/Hudfix_Dx12.h>
-#include <resource_tracking/ResTrack_dx12.h>
 #include <menu/menu_overlay_dx.h>
+#include <resource_tracking/ResTrack_dx12.h>
 
 #include <magic_enum.hpp>
-
-#include <future>
 
 typedef struct FfxSwapchainFramePacingTuning
 {
