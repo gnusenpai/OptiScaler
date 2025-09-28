@@ -9,15 +9,14 @@
 
 #define USE_LOCAL_MUTEX
 
-typedef HRESULT (*PFN_SC_Present)(IDXGISwapChain*, UINT, UINT, const DXGI_PRESENT_PARAMETERS*, IUnknown*, HWND, bool);
 typedef void (*PFN_SC_Clean)(bool, HWND);
 typedef void (*PFN_SC_Release)(HWND);
 
-struct DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapChain4 final : public IDXGISwapChain4
+class DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapChain4 final : public IDXGISwapChain4
 {
-    WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd, UINT flags, PFN_SC_Present renderTrig,
-                           PFN_SC_Clean clearTrig, PFN_SC_Release releaseTrig, bool isUWP);
-    ~WrappedIDXGISwapChain4();
+  public:
+    WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd, UINT flags, bool isUWP);
+    virtual ~WrappedIDXGISwapChain4();
 
     // implement IUnknown
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override;
@@ -81,6 +80,7 @@ struct DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapCha
     // implement IDXGISwapChain4
     HRESULT STDMETHODCALLTYPE SetHDRMetaData(DXGI_HDR_METADATA_TYPE Type, UINT Size, void* pMetaData) override;
 
+  private:
     IDXGISwapChain* m_pReal = nullptr;
     LONG m_iRefcount;
     UINT _lastFlags = 0;
@@ -93,7 +93,6 @@ struct DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapCha
     IDXGISwapChain3* m_pReal3 = nullptr;
     IDXGISwapChain4* m_pReal4 = nullptr;
 
-    PFN_SC_Present RenderTrig = nullptr;
     PFN_SC_Clean ClearTrig = nullptr;
     PFN_SC_Release ReleaseTrig = nullptr;
     HWND Handle = nullptr;

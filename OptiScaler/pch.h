@@ -40,6 +40,19 @@
 // Enables LOG_DEBUG_ONLY logs
 // #define DETAILED_DEBUG_LOGS
 
+// Enable D3D12 Debug Layers
+// #define ENABLE_DEBUG_LAYER_DX12
+
+// Enable D3D11 Debug Layers
+// #define ENABLE_DEBUG_LAYER_DX11
+
+#ifdef ENABLE_DEBUG_LAYER_DX12
+// Enable GPUValidation
+// #define ENABLE_GPU_VALIDATION
+
+#include <d3d12sdklayers.h>
+#endif
+
 inline HMODULE dllModule = nullptr;
 inline HMODULE exeModule = nullptr;
 inline HMODULE originalModule = nullptr;

@@ -21,7 +21,8 @@
 #include <spoofing/Dxgi_Spoofing.h>
 #include <spoofing/Vulkan_Spoofing.h>
 
-#include <hooks/HooksDx.h>
+#include <hooks/Dxgi_Hooks.h>
+#include <hooks/D3D1x_Hooks.h>
 #include <hooks/HooksVk.h>
 #include <hooks/Gdi32_Hooks.h>
 #include <hooks/Streamline_Hooks.h>
@@ -442,7 +443,7 @@ class NtdllHooks
             auto module = NtdllProxy::LoadLibraryExW_Ldr(lcaseLibName.c_str(), NULL, 0);
 
             if (module != nullptr)
-                HooksDx::HookDx11(module);
+                D3D1x_Hooks::HookDx11(module);
 
             return module;
         }
@@ -454,7 +455,7 @@ class NtdllHooks
             if (module != nullptr)
             {
                 D3d12Proxy::Init(module);
-                HooksDx::HookDx12();
+                D3D1x_Hooks::HookDx12();
             }
 
             return module;
@@ -483,12 +484,7 @@ class NtdllHooks
             if (module != nullptr)
             {
                 DxgiProxy::Init(module);
-
-                if (Config::Instance()->DxgiSpoofing.value_or_default())
-                    HookDxgiForSpoofing();
-
-                if (Config::Instance()->OverlayMenu.value_or_default())
-                    HooksDx::HookDxgi();
+                DxgiHooks::Hook();
             }
         }
 

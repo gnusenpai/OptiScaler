@@ -158,6 +158,7 @@ class State
     bool skipSpoofing = false;
     // For DXVK, it calls DXGI which cause softlock
     bool skipDxgiLoadChecks = false;
+    bool skipParentWrapping = false;
 
     // FSR3.x
     std::vector<const char*> fsr3xVersionNames {};

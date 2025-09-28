@@ -2,9 +2,18 @@
 
 #include <Util.h>
 #include <Config.h>
-#include "HooksDx.h"
+
+#include <nvapi/fakenvapi.h>
+#include <nvapi/ReflexHooks.h>
+
+#include <menu/menu_overlay_dx.h>
 
 #include <misc/FrameLimit.h>
+#include <upscaler_time/UpscalerTime_Dx11.h>
+#include <upscaler_time/UpscalerTime_Dx12.h>
+
+#include <d3d11.h>
+#include <d3d12.h>
 
 #pragma intrinsic(_ReturnAddress)
 
@@ -12,12 +21,266 @@
 // https://github.com/baldurk/renderdoc/blob/v1.x/renderdoc/driver/dxgi/dxgi_wrapped.cpp
 
 static int scCount = 0;
+static int _frameCounter = 0;
+static double _lastFrameTime = 0;
+static bool _dx11Device = false;
+static bool _dx12Device = false;
+
+static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags,
+                            const DXGI_PRESENT_PARAMETERS* pPresentParameters, IUnknown* pDevice, HWND hWnd, bool isUWP)
+{
+    if (State::Instance().isShuttingDown)
+    {
+        if (pPresentParameters == nullptr)
+            return pSwapChain->Present(SyncInterval, Flags);
+        else
+            return ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+    }
+
+    LOG_DEBUG("{}", _frameCounter);
+
+    HRESULT presentResult;
+
+    auto willPresent = (Flags & DXGI_PRESENT_TEST) == 0;
+
+    if (willPresent)
+    {
+        double ftDelta = 0.0f;
+
+        auto now = Util::MillisecondsNow();
+
+        if (_lastFrameTime != 0)
+            ftDelta = now - _lastFrameTime;
+
+        _lastFrameTime = now;
+        State::Instance().presentFrameTime = ftDelta;
+
+        if (State::Instance().currentFG != nullptr)
+            State::Instance().lastFGFrameTime = ftDelta;
+
+        LOG_DEBUG("SyncInterval: {}, Flags: {:X}, Frametime: {:0.3f} ms", SyncInterval, Flags, ftDelta);
+    }
+
+    ID3D11Device* device = nullptr;
+    ID3D12Device* device12 = nullptr;
+    ID3D12CommandQueue* cq = nullptr;
+
+    // try to obtain directx objects and find the path
+    if (pDevice->QueryInterface(IID_PPV_ARGS(&device)) == S_OK)
+    {
+        if (!_dx11Device)
+            LOG_DEBUG("D3D11Device captured");
+
+        _dx11Device = true;
+        State::Instance().swapchainApi = DX11;
+        State::Instance().currentD3D11Device == device;
+
+        if (!State::Instance().DeviceAdapterNames.contains(device))
+        {
+            IDXGIDevice* dxgiDevice = nullptr;
+            auto qResult = device->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
+
+            if (qResult == S_OK)
+            {
+                IDXGIAdapter* dxgiAdapter = nullptr;
+                qResult = dxgiDevice->GetAdapter(&dxgiAdapter);
+
+                if (qResult == S_OK)
+                {
+                    State::Instance().skipSpoofing = true;
+
+                    std::wstring szName;
+                    DXGI_ADAPTER_DESC desc {};
+
+                    if (dxgiAdapter->GetDesc(&desc) == S_OK)
+                    {
+                        szName = desc.Description;
+                        auto adapterDesc = wstring_to_string(szName);
+                        LOG_INFO("Adapter Desc: {}", adapterDesc);
+                        State::Instance().DeviceAdapterNames[device] = adapterDesc;
+                    }
+                    else
+                    {
+                        LOG_ERROR("GetDesc: {:X}", (UINT) qResult);
+                    }
+
+                    State::Instance().skipSpoofing = false;
+                }
+                else
+                {
+                    LOG_ERROR("GetAdapter: {:X}", (UINT) qResult);
+                }
+
+                if (dxgiAdapter != nullptr)
+                    dxgiAdapter->Release();
+            }
+            else
+            {
+                LOG_ERROR("QueryInterface: {:X}", (UINT) qResult);
+            }
+
+            if (dxgiDevice != nullptr)
+                dxgiDevice->Release();
+        }
+    }
+    else if (pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
+    {
+        if (!_dx12Device)
+            LOG_DEBUG("D3D12CommandQueue captured");
+
+        ID3D12CommandQueue* realQueue = nullptr;
+        if (Util::CheckForRealObject(__FUNCTION__, cq, (IUnknown**) &realQueue))
+            cq = realQueue;
+
+        State::Instance().swapchainApi = DX12;
+
+        if (State::Instance().currentCommandQueue == nullptr)
+            State::Instance().currentCommandQueue = cq;
+
+        if (cq->GetDevice(IID_PPV_ARGS(&device12)) == S_OK)
+        {
+            if (!_dx12Device)
+                LOG_DEBUG("D3D12Device captured");
+
+            _dx12Device = true;
+            State::Instance().currentD3D12Device = device12;
+        }
+    }
+
+    auto fg = State::Instance().currentFG;
+    if (willPresent && fg != nullptr)
+        ReflexHooks::update(fg->IsActive(), false);
+    else
+        ReflexHooks::update(false, false);
+
+    // Upscaler GPU time computation
+    if (willPresent && State::Instance().currentFG == nullptr)
+    {
+        if (cq != nullptr)
+        {
+            UpscalerTimeDx12::ReadUpscalingTime(cq);
+        }
+        else if (device != nullptr)
+        {
+            ID3D11DeviceContext* context = nullptr;
+            device->GetImmediateContext(&context);
+            UpscalerTimeDx11::ReadUpscalingTime(context);
+            context->Release();
+        }
+    }
+
+    // Fallback when FGPresent is not hooked for V-sync
+    if (willPresent && Config::Instance()->ForceVsync.has_value())
+    {
+        LOG_DEBUG("ForceVsync: {}, VsyncInterval: {}, SCAllowTearing: {}, SCExclusiveFullscreen: {}",
+                  Config::Instance()->ForceVsync.value(), Config::Instance()->VsyncInterval.value_or_default(),
+                  State::Instance().SCAllowTearing, State::Instance().SCExclusiveFullscreen);
+
+        if (!Config::Instance()->ForceVsync.value())
+        {
+            SyncInterval = 0;
+
+            if (State::Instance().SCAllowTearing && !State::Instance().SCExclusiveFullscreen)
+            {
+                LOG_DEBUG("Adding DXGI_PRESENT_ALLOW_TEARING");
+                Flags |= DXGI_PRESENT_ALLOW_TEARING;
+            }
+        }
+        else
+        {
+            // Remove allow tearing
+            SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
+
+            if (SyncInterval < 1)
+                SyncInterval = 1;
+
+            LOG_DEBUG("Removing DXGI_PRESENT_ALLOW_TEARING");
+            Flags &= ~DXGI_PRESENT_ALLOW_TEARING;
+        }
+
+        LOG_DEBUG("Final SyncInterval: {}", SyncInterval);
+    }
+
+    // DXVK check, it's here because of upscaler time calculations
+    if (State::Instance().isRunningOnDXVK)
+    {
+        if (cq != nullptr)
+            cq->Release();
+
+        if (device != nullptr)
+            device->Release();
+
+        if (device12 != nullptr)
+            device12->Release();
+
+        if (pPresentParameters == nullptr)
+            presentResult = pSwapChain->Present(SyncInterval, Flags);
+        else
+            presentResult = ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+
+        if (presentResult == S_OK)
+            LOG_TRACE("3 {}", (UINT) presentResult);
+        else
+            LOG_ERROR("3 {:X}", (UINT) presentResult);
+
+        return presentResult;
+    }
+
+    if (willPresent)
+    {
+        // Tick feature to let it know if it's frozen
+        if (auto currentFeature = State::Instance().currentFeature; currentFeature != nullptr)
+            currentFeature->TickFrozenCheck();
+
+        // Draw overlay
+        MenuOverlayDx::Present(pSwapChain, SyncInterval, Flags, pPresentParameters, pDevice, hWnd, isUWP);
+
+        LOG_DEBUG("Calling fakenvapi");
+        if (State::Instance().activeFgOutput == FGOutput::FSRFG)
+        {
+            fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
+        }
+        else if (State::Instance().activeFgOutput == FGOutput::XeFG)
+        {
+            fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
+        }
+
+        _frameCounter++;
+    }
+
+    LOG_DEBUG("Calling original present");
+
+    // swapchain present
+    if (pPresentParameters == nullptr)
+        presentResult = pSwapChain->Present(SyncInterval, Flags);
+    else
+        presentResult = ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+
+    LOG_DEBUG("Original present result: {:X}", (UINT) presentResult);
+
+    // release used objects
+    if (cq != nullptr)
+        cq->Release();
+
+    if (device != nullptr)
+        device->Release();
+
+    if (device12 != nullptr)
+        device12->Release();
+
+    if (presentResult == S_OK)
+        LOG_TRACE("4 {}, Present result: {:X}", _frameCounter, (UINT) presentResult);
+    else
+        LOG_ERROR("4 {:X}", (UINT) presentResult);
+
+    LOG_DEBUG("Done");
+
+    return presentResult;
+}
 
 WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd, UINT flags,
-                                               PFN_SC_Present renderTrig, PFN_SC_Clean clearTrig,
-                                               PFN_SC_Release releaseTrig, bool isUWP)
-    : m_pReal(real), Device(pDevice), Handle(hWnd), RenderTrig(renderTrig), ClearTrig(clearTrig),
-      ReleaseTrig(releaseTrig), m_iRefcount(1), UWP(isUWP)
+                                               bool isUWP)
+    : m_pReal(real), Device(pDevice), Handle(hWnd), m_iRefcount(1), UWP(isUWP)
 {
     id = ++scCount;
     _lastFlags = flags;
@@ -161,11 +424,14 @@ ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
         OwnedLockGuard lock(_localMutex, 999);
 #endif
 
-        if (ClearTrig != nullptr)
-            ClearTrig(true, Handle);
+        MenuOverlayDx::CleanupRenderTarget(true, Handle);
 
-        if (ReleaseTrig != nullptr)
-            ReleaseTrig(Handle);
+        if (State::Instance().currentSwapchain == this)
+            State::Instance().currentSwapchain = nullptr;
+
+        auto fg = State::Instance().currentFG;
+        if (fg != nullptr && fg->Mutex.getOwner() != 1 && fg->SwapchainContext() != nullptr)
+            fg->ReleaseSwapchain(Handle);
 
         auto refCount = m_pReal->Release();
 
@@ -214,9 +480,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UIN
 
     HRESULT result;
 
-    if ((Flags & DXGI_PRESENT_TEST) == 0 && RenderTrig != nullptr)
+    if ((Flags & DXGI_PRESENT_TEST) == 0)
     {
-        result = RenderTrig(m_pReal, SyncInterval, Flags, nullptr, Device, Handle, UWP);
+        result = LocalPresent(m_pReal, SyncInterval, Flags, nullptr, Device, Handle, UWP);
 
         // When Reflex can't be used to limit, sleep in present
         if (!State::Instance().reflexLimitsFps && State::Instance().activeFgOutput == FGOutput::NoFG)
@@ -328,8 +594,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
         State::Instance().FGchanged = true;
     }
 
-    if (ClearTrig != nullptr)
-        ClearTrig(true, Handle);
+    MenuOverlayDx::CleanupRenderTarget(true, Handle);
 
     State::Instance().SCchanged = true;
 
@@ -496,9 +761,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UI
 
     HRESULT result;
 
-    if ((Flags & DXGI_PRESENT_TEST) == 0 && RenderTrig != nullptr)
+    if ((Flags & DXGI_PRESENT_TEST) == 0)
     {
-        result = RenderTrig(m_pReal1, SyncInterval, Flags, pPresentParameters, Device, Handle, UWP);
+        result = LocalPresent(m_pReal1, SyncInterval, Flags, pPresentParameters, Device, Handle, UWP);
 
         // When Reflex can't be used to limit, sleep in present
         if (!State::Instance().reflexLimitsFps && State::Instance().activeFgOutput == FGOutput::NoFG)
@@ -634,8 +899,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
         State::Instance().FGchanged = true;
     }
 
-    if (ClearTrig != nullptr)
-        ClearTrig(true, Handle);
+    MenuOverlayDx::CleanupRenderTarget(true, Handle);
 
     State::Instance().SCchanged = true;
 
