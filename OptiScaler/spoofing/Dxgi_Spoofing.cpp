@@ -283,6 +283,7 @@ void DxgiSpoofing::AttachToAdapter(IUnknown* unkAdapter)
     {
         LOG_DEBUG("Attach to GetDesc3");
         o_GetDesc3 = (PFN_GetDesc3) pVTable[18];
+        DetourAttach(&(PVOID&) o_GetDesc3, hkGetDesc3);
     }
 
     if (adapter4 != nullptr)
