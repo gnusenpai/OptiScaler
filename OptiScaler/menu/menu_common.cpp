@@ -35,6 +35,7 @@ static bool inputFps = false;
 static bool inputFpsCycle = false;
 static bool hasGamepad = false;
 static bool fsr31InitTried = false;
+static bool xefgInitTried = false;
 static std::string windowTitle;
 static std::string selectedUpscalerName = "";
 static std::string currentBackend = "";
@@ -2794,12 +2795,21 @@ bool MenuCommon::RenderMenu()
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
                 }
-                else if ((fsr31InitTried && FfxApiProxy::Dx12Module() == nullptr) ||
-                         (!fsr31InitTried && !FfxApiProxy::InitFfxDx12()))
+                else if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
+                         ((fsr31InitTried && FfxApiProxy::Dx12Module() == nullptr) ||
+                          (!fsr31InitTried && !FfxApiProxy::InitFfxDx12())))
                 {
                     fsr31InitTried = true;
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "amd_fidelityfx_dx12.dll is missing";
+                }
+                else if (State::Instance().activeFgOutput == FGOutput::XeFG &&
+                         ((xefgInitTried && XeFGProxy::Module() == nullptr) ||
+                          (!xefgInitTried && !XeFGProxy::InitXeFG())))
+                {
+                    xefgInitTried = true;
+                    disabledMaskInput[optiFgIndex] = true;
+                    fgInputDesc[optiFgIndex] = "libxess_fg.dll is missing";
                 }
 
                 // DLSSG inputs requirements
@@ -2807,7 +2817,9 @@ bool MenuCommon::RenderMenu()
                 if (State::Instance().streamlineVersion.major < 2)
                 {
                     disabledMaskInput[dlssgInputIndex] = true;
-                    fgInputDesc[dlssgInputIndex] = "Unsupported Streamline version";
+                    fgInputDesc[dlssgInputIndex] = std::format(
+                        "Unsupported Streamline version: {}.{}.{}", State::Instance().streamlineVersion.major,
+                        State::Instance().streamlineVersion.minor, State::Instance().streamlineVersion.patch);
 
                     if (Config::Instance()->FGInput.value_or_default() == FGInput::DLSSG)
                         Config::Instance()->FGInput.reset();
