@@ -15,8 +15,8 @@ static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
 
     if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
-        LOG_DEBUG("Delaying 500ms");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        LOG_DEBUG("Delaying 50ms");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     State::DisableChecks(97, "dxgi");
@@ -46,8 +46,8 @@ static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
 
     if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
-        LOG_DEBUG("Delaying 500ms");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        LOG_DEBUG("Delaying 50ms");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     State::DisableChecks(98, "dxgi");
@@ -77,8 +77,8 @@ static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppF
 
     if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
-        LOG_DEBUG("Delaying 500ms");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        LOG_DEBUG("Delaying 50ms");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     State::DisableChecks(99, "dxgi");

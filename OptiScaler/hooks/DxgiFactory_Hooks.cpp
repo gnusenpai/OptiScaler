@@ -43,7 +43,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChain(IDXGIFactory* realFactory, WrappedIDXG
         LOG_WARN("Vulkan is creating swapchain!");
 
         if (pDesc != nullptr)
-            LOG_DEBUG("Width: {}, Height: {}, Format: {:X}, Count: {}, Hwnd: {:X}, Windowed: {}, SkipWrapping: {}",
+            LOG_DEBUG("Width: {}, Height: {}, Format: {}, Count: {}, Hwnd: {:X}, Windowed: {}, SkipWrapping: {}",
                       pDesc->BufferDesc.Width, pDesc->BufferDesc.Height, (UINT) pDesc->BufferDesc.Format,
                       pDesc->BufferCount, (UINT) pDesc->OutputWindow, pDesc->Windowed, _skipFGSwapChainCreation);
 
@@ -82,7 +82,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChain(IDXGIFactory* realFactory, WrappedIDXG
         return res;
     }
 
-    LOG_DEBUG("Width: {}, Height: {}, Format: {:X}, Count: {}, Flags: {:X}, Hwnd: {:X}, Windowed: {}, SkipWrapping: {}",
+    LOG_DEBUG("Width: {}, Height: {}, Format: {}, Count: {}, Flags: {:X}, Hwnd: {:X}, Windowed: {}, SkipWrapping: {}",
               pDesc->BufferDesc.Width, pDesc->BufferDesc.Height, (UINT) pDesc->BufferDesc.Format, pDesc->BufferCount,
               pDesc->Flags, (UINT) pDesc->OutputWindow, pDesc->Windowed, _skipFGSwapChainCreation);
 
@@ -247,7 +247,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForHwnd(IDXGIFactory2* realFactory, Wra
         State::Instance().skipParentWrapping = false;
     }
 
-    LOG_DEBUG("Width: {}, Height: {}, Format: {:X}, Count: {}, Flags: {:X}, Hwnd: {:X}, SkipWrapping: {}", pDesc->Width,
+    LOG_DEBUG("Width: {}, Height: {}, Format: {}, Count: {}, Flags: {:X}, Hwnd: {:X}, SkipWrapping: {}", pDesc->Width,
               pDesc->Height, (UINT) pDesc->Format, pDesc->BufferCount, pDesc->Flags, (size_t) hWnd,
               _skipFGSwapChainCreation);
 
@@ -387,7 +387,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForCoreWindow(IDXGIFactory2* realFactor
         LOG_WARN("Vulkan is creating swapchain!");
 
         if (pDesc != nullptr)
-            LOG_DEBUG("Width: {}, Height: {}, Format: {:X}, Flags: {:X}, Count: {}, SkipWrapping: {}", pDesc->Width,
+            LOG_DEBUG("Width: {}, Height: {}, Format: {}, Flags: {:X}, Count: {}, SkipWrapping: {}", pDesc->Width,
                       pDesc->Height, (UINT) pDesc->Format, pDesc->Flags, pDesc->BufferCount, _skipFGSwapChainCreation);
 
         State::Instance().skipDxgiLoadChecks = true;
@@ -414,7 +414,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForCoreWindow(IDXGIFactory2* realFactor
         return res;
     }
 
-    LOG_DEBUG("Width: {}, Height: {}, Format: {:X}, Count: {}, SkipWrapping: {}", pDesc->Width, pDesc->Height,
+    LOG_DEBUG("Width: {}, Height: {}, Format: {}, Count: {}, SkipWrapping: {}", pDesc->Width, pDesc->Height,
               (UINT) pDesc->Format, pDesc->BufferCount, _skipFGSwapChainCreation);
 
     // For vsync override
