@@ -30,7 +30,8 @@
 #include "spoofing/Vulkan_Spoofing.h"
 
 #include <hooks/Dxgi_Hooks.h>
-#include <hooks/D3D1x_Hooks.h>
+#include <hooks/D3D11_Hooks.h>
+#include <hooks/D3D12_Hooks.h>
 #include <hooks/HooksVk.h>
 #include <hooks/Ntdll_Hooks.h>
 #include <hooks/Kernel_Hooks.h>
@@ -704,13 +705,13 @@ static void CheckWorkingMode()
                 {
                     LOG_DEBUG("d3d12.dll already in memory");
                     D3d12Proxy::Init(d3d12Module);
-                    D3D1XHooks::HookDx12();
+                    D3D12Hooks::Hook();
                 }
             }
             else
             {
                 LOG_DEBUG("d3d12.dll already in memory");
-                D3D1XHooks::HookDx12();
+                D3D12Hooks::Hook();
             }
 
             if (D3d12Proxy::Module() == nullptr && State::Instance().gameQuirks & GameQuirk::LoadD3D12Manually)
@@ -724,7 +725,7 @@ static void CheckWorkingMode()
             if (Config::Instance()->OverlayMenu.value() && d3d11Module != nullptr)
             {
                 LOG_DEBUG("d3d11.dll already in memory");
-                D3D1XHooks::HookDx11(d3d11Module);
+                D3D11Hooks::Hook(d3d11Module);
             }
 
             // Vulkan

@@ -377,7 +377,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
 
     // Unhooking and cleaning stuff causing issues during shutdown.
     // Disabled for now to check if it cause any issues
-    // HooksDx::UnHookDx();
+    // HooksDx::UnHook();
 
     // Disabled to prevent crash
     if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)

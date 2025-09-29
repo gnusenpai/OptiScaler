@@ -307,6 +307,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="framegen\IFGFeature.h" />
     <ClInclude Include="framegen\IFGFeature_Dx12.h" />
     <ClInclude Include="fsr4\FSR4ModelSelection.h" />
+    <ClInclude Include="hooks\D3D12_Hooks.h" />
     <ClInclude Include="hooks\DxgiFactory_Hooks.h" />
     <ClInclude Include="hooks\Dxgi_Hooks.h" />
     <ClInclude Include="hooks\FG_Hooks.h" />
@@ -399,7 +400,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="include\imgui\misc\freetype\imgui_freetype.h" />
     <ClInclude Include="nvapi\fakenvapi.h" />
     <ClInclude Include="proxies\FfxApi_Proxy.h" />
-    <ClInclude Include="hooks\D3D1x_Hooks.h" />
+    <ClInclude Include="hooks\D3D11_Hooks.h" />
     <ClInclude Include="hooks\HooksVk.h" />
     <ClInclude Include="nvapi\NvApiHooks.h" />
     <ClInclude Include="nvapi\NvApiTypes.h" />
@@ -486,6 +487,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="framegen\IFGFeature_Dx12.cpp" />
     <ClCompile Include="fsr4\FSR4ModelSelection.cpp" />
     <ClCompile Include="fsr4\FSR4Upgrade.cpp" />
+    <ClCompile Include="hooks\D3D12_Hooks.cpp" />
     <ClCompile Include="hooks\DxgiFactory_Hooks.cpp" />
     <ClCompile Include="hooks\Dxgi_Hooks.cpp" />
     <ClCompile Include="hooks\FG_Hooks.cpp" />
@@ -556,7 +558,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="inputs\FfxApi_Dx12.cpp" />
     <ClCompile Include="inputs\FSR2_Dx12.cpp" />
     <ClCompile Include="inputs\FSR3_Dx12.cpp" />
-    <ClCompile Include="hooks\D3D1x_Hooks.cpp" />
+    <ClCompile Include="hooks\D3D11_Hooks.cpp" />
     <ClCompile Include="hooks\HooksVk.cpp" />
     <ClCompile Include="menu\menu_common.cpp" />
     <ClCompile Include="menu\menu_dx_base.cpp" />

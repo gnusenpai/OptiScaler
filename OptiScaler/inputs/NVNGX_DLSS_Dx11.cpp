@@ -210,7 +210,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Shutdown()
 
     // Unhooking and cleaning stuff causing issues during shutdown.
     // Disabled for now to check if it cause any issues
-    // HooksDx::UnHookDx();
+    // HooksDx::UnHook();
 
     shutdown = false;
     State::Instance().NvngxDx11Inited = false;

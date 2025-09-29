@@ -22,7 +22,8 @@
 #include <spoofing/Vulkan_Spoofing.h>
 
 #include <hooks/Dxgi_Hooks.h>
-#include <hooks/D3D1x_Hooks.h>
+#include <hooks/D3D11_Hooks.h>
+#include <hooks/D3D12_Hooks.h>
 #include <hooks/HooksVk.h>
 #include <hooks/Gdi32_Hooks.h>
 #include <hooks/Streamline_Hooks.h>
@@ -443,7 +444,7 @@ class NtdllHooks
             auto module = NtdllProxy::LoadLibraryExW_Ldr(lcaseLibName.c_str(), NULL, 0);
 
             if (module != nullptr)
-                D3D1XHooks::HookDx11(module);
+                D3D11Hooks::Hook(module);
 
             return module;
         }
@@ -455,7 +456,7 @@ class NtdllHooks
             if (module != nullptr)
             {
                 D3d12Proxy::Init(module);
-                D3D1XHooks::HookDx12();
+                D3D12Hooks::Hook();
             }
 
             return module;

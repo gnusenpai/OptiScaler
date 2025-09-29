@@ -566,9 +566,6 @@ bool XeFG_Dx12::Dispatch()
         DXGI_SWAP_CHAIN_DESC scDesc1 {};
         if (State::Instance().currentSwapchain->GetDesc(&scDesc1) == S_OK)
         {
-            LOG_DEBUG("SwapChain Res: {}x{}, Interpolation Res: {}x{}", scDesc1.BufferDesc.Width,
-                      scDesc1.BufferDesc.Height, _interpolationWidth[fIndex], _interpolationHeight[fIndex]);
-
             if (_interpolationWidth[fIndex] == 0 && _interpolationHeight[fIndex] == 0)
             {
                 LOG_WARN("Interpolation size is 0, using swapchain size");
@@ -585,6 +582,9 @@ bool XeFG_Dx12::Dispatch()
                 if (calculatedTop > 0)
                     top = Config::Instance()->FGRectTop.value_or(_interpolationTop[fIndex].value_or(calculatedTop));
             }
+
+            LOG_DEBUG("SwapChain Res: {}x{}, Interpolation Res: {}x{}", scDesc1.BufferDesc.Width,
+                      scDesc1.BufferDesc.Height, _interpolationWidth[fIndex], _interpolationHeight[fIndex]);
         }
         else
         {
