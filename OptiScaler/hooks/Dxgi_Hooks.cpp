@@ -13,6 +13,12 @@ static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
 {
     LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
 
+    if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
+    {
+        LOG_DEBUG("Delaying 500ms");
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
     State::DisableChecks(97, "dxgi");
 #ifndef ENABLE_DEBUG_LAYER_DX12
     auto result = o_CreateDXGIFactory(riid, ppFactory);
@@ -38,6 +44,12 @@ static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
 {
     LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
 
+    if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
+    {
+        LOG_DEBUG("Delaying 500ms");
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
     State::DisableChecks(98, "dxgi");
 #ifndef ENABLE_DEBUG_LAYER_DX12
     auto result = o_CreateDXGIFactory1(riid, ppFactory);
@@ -62,6 +74,12 @@ static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
 static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppFactory)
 {
     LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
+
+    if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
+    {
+        LOG_DEBUG("Delaying 500ms");
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
 
     State::DisableChecks(99, "dxgi");
 #ifndef ENABLE_DEBUG_LAYER_DX12

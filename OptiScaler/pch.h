@@ -60,6 +60,7 @@ inline HMODULE skModule = nullptr;
 inline HMODULE reshadeModule = nullptr;
 inline HMODULE vulkanModule = nullptr;
 inline HMODULE d3d11Module = nullptr;
+inline HMODULE slInterposerModule = nullptr;
 inline DWORD processId;
 
 #define LOG_TRACE(msg, ...) spdlog::trace(__FUNCTION__ " " msg, ##__VA_ARGS__)

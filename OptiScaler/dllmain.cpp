@@ -776,6 +776,7 @@ static void CheckWorkingMode()
             {
                 LOG_DEBUG("sl.interposer.dll already in memory");
                 StreamlineHooks::hookInterposer(slModule);
+                slInterposerModule = slModule;
             }
 
             HMODULE slDlss = nullptr;

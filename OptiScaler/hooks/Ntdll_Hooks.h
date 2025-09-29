@@ -54,6 +54,7 @@ class NtdllHooks
             {
                 LOG_DEBUG("sl.interposer.dll already in memory");
                 StreamlineHooks::hookInterposer(slModule);
+                slInterposerModule = slModule;
             }
         }
 
@@ -282,6 +283,7 @@ class NtdllHooks
             if (streamlineModule != nullptr)
             {
                 StreamlineHooks::hookInterposer(streamlineModule);
+                slInterposerModule = streamlineModule;
             }
             else
             {
@@ -870,7 +872,7 @@ class NtdllHooks
         std::wstring_view name(ModuleFileName->Buffer, ModuleFileName->Length / sizeof(wchar_t));
 
 #ifdef _DEBUG
-        LOG_DEBUG("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+        // LOG_DEBUG("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
 #endif
 
         if (State::Instance().isShuttingDown)
@@ -926,7 +928,7 @@ class NtdllHooks
         std::wstring_view name(ModuleFileName->Buffer, ModuleFileName->Length / sizeof(wchar_t));
 
 #ifdef _DEBUG
-        LOG_DEBUG("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+        // LOG_DEBUG("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
 #endif
 
         if (State::Instance().isShuttingDown)
@@ -981,7 +983,7 @@ class NtdllHooks
             return STATUS_INVALID_PARAMETER;
 
 #ifdef _DEBUG
-        LOG_TRACE("{:X}", (size_t) lpLibrary);
+        // LOG_TRACE("{:X}", (size_t) lpLibrary);
 #endif
 
         if (!State::Instance().isShuttingDown)
