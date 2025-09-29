@@ -313,6 +313,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="hooks\FG_Hooks.h" />
     <ClInclude Include="upscaler_time\UpscalerTime_Dx11.h" />
     <ClInclude Include="upscaler_time\UpscalerTime_Dx12.h" />
+    <ClInclude Include="upscaler_time\UpscalerTime_Vk.h" />
     <ClInclude Include="wrapped\wrapped_factory.h" />
     <ClInclude Include="include\spdlog_sink\debug_sink.h" />
     <ClInclude Include="inputs\FG\FSR3_Dx12_FG.h" />
@@ -401,7 +402,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="nvapi\fakenvapi.h" />
     <ClInclude Include="proxies\FfxApi_Proxy.h" />
     <ClInclude Include="hooks\D3D11_Hooks.h" />
-    <ClInclude Include="hooks\HooksVk.h" />
+    <ClInclude Include="hooks\Vulkan_Hooks.h" />
     <ClInclude Include="nvapi\NvApiHooks.h" />
     <ClInclude Include="nvapi\NvApiTypes.h" />
     <ClInclude Include="nvapi\external\nvapi.h" />
@@ -494,6 +495,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="spoofing\Dxgi_Spoofing.cpp" />
     <ClCompile Include="upscaler_time\UpscalerTime_Dx11.cpp" />
     <ClCompile Include="upscaler_time\UpscalerTime_Dx12.cpp" />
+    <ClCompile Include="upscaler_time\UpscalerTime_Vk.cpp" />
     <ClCompile Include="wrapped\wrapped_factory.cpp" />
     <ClCompile Include="inputs\FG\FSR3_Dx12_FG.cpp" />
     <ClCompile Include="inputs\FG\Streamline_Inputs_Dx12.cpp" />
@@ -559,7 +561,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="inputs\FSR2_Dx12.cpp" />
     <ClCompile Include="inputs\FSR3_Dx12.cpp" />
     <ClCompile Include="hooks\D3D11_Hooks.cpp" />
-    <ClCompile Include="hooks\HooksVk.cpp" />
+    <ClCompile Include="hooks\Vulkan_Hooks.cpp" />
     <ClCompile Include="menu\menu_common.cpp" />
     <ClCompile Include="menu\menu_dx_base.cpp" />
     <ClCompile Include="menu\menu_dx11.cpp" />

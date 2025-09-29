@@ -32,7 +32,7 @@
 #include <hooks/Dxgi_Hooks.h>
 #include <hooks/D3D11_Hooks.h>
 #include <hooks/D3D12_Hooks.h>
-#include <hooks/HooksVk.h>
+#include <hooks/Vulkan_Hooks.h>
 #include <hooks/Ntdll_Hooks.h>
 #include <hooks/Kernel_Hooks.h>
 #include <nvapi/NvApiHooks.h>
@@ -741,7 +741,7 @@ static void CheckWorkingMode()
                 HookForVulkanExtensionSpoofing(vulkanModule);
                 HookForVulkanVRAMSpoofing(vulkanModule);
 
-                HooksVk::HookVk(vulkanModule);
+                VulkanHooks::Hook(vulkanModule);
             }
 
             // NVAPI

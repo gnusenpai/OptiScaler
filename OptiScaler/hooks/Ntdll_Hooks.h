@@ -24,7 +24,7 @@
 #include <hooks/Dxgi_Hooks.h>
 #include <hooks/D3D11_Hooks.h>
 #include <hooks/D3D12_Hooks.h>
-#include <hooks/HooksVk.h>
+#include <hooks/Vulkan_Hooks.h>
 #include <hooks/Gdi32_Hooks.h>
 #include <hooks/Streamline_Hooks.h>
 
@@ -472,7 +472,7 @@ class NtdllHooks
                 HookForVulkanExtensionSpoofing(module);
                 HookForVulkanVRAMSpoofing(module);
 
-                HooksVk::HookVk(module);
+                VulkanHooks::Hook(module);
             }
 
             return module;

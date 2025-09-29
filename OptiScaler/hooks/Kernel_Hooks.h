@@ -23,8 +23,7 @@
 #include <spoofing/Dxgi_Spoofing.h>
 #include <spoofing/Vulkan_Spoofing.h>
 
-// #include <hooks/HooksDx.h>
-#include <hooks/HooksVk.h>
+// #include <hooks/Vulkan_Hooks.h>
 #include <hooks/Gdi32_Hooks.h>
 #include <hooks/Streamline_Hooks.h>
 

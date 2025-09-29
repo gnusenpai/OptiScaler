@@ -1,15 +1,18 @@
-#include "HooksVk.h"
+#include "Vulkan_Hooks.h"
 
 #include <Util.h>
 #include <Config.h>
 
 #include <menu/menu_overlay_vk.h>
-
 #include <proxies/KernelBase_Proxy.h>
+#include <upscaler_time/UpscalerTime_Vk.h>
 
-#include <detours/detours.h>
 #include <misc/FrameLimit.h>
 #include <nvapi/ReflexHooks.h>
+
+#include <vulkan/vulkan.hpp>
+
+#include <detours/detours.h>
 
 // for menu rendering
 static VkDevice _device = VK_NULL_HANDLE;
@@ -220,26 +223,7 @@ static VkResult hkvkQueuePresentKHR(VkQueue queue, VkPresentInfoKHR* pPresentInf
     LOG_FUNC();
 
     // get upscaler time
-    if (HooksVk::vkUpscaleTrig && HooksVk::queryPool != VK_NULL_HANDLE)
-    {
-        // Retrieve timestamps
-        uint64_t timestamps[2];
-        vkGetQueryPoolResults(_device, HooksVk::queryPool, 0, 2, sizeof(timestamps), timestamps, sizeof(uint64_t),
-                              VK_QUERY_RESULT_64_BIT);
-
-        // Calculate elapsed time in milliseconds
-        double elapsedTimeMs = (timestamps[1] - timestamps[0]) * HooksVk::timeStampPeriod / 1e6;
-
-        if (elapsedTimeMs > 0.0 && elapsedTimeMs < 5000.0)
-        {
-            State::Instance().frameTimeMutex.lock();
-            State::Instance().upscaleTimes.push_back(elapsedTimeMs);
-            State::Instance().upscaleTimes.pop_front();
-            State::Instance().frameTimeMutex.unlock();
-        }
-
-        HooksVk::vkUpscaleTrig = false;
-    }
+    UpscalerTimeVk::ReadUpscalingTime(_device);
 
     State::Instance().swapchainApi = Vulkan;
 
@@ -297,7 +281,7 @@ static VkResult hkvkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateI
     return result;
 }
 
-void HooksVk::HookVk(HMODULE vulkan1)
+void VulkanHooks::Hook(HMODULE vulkan1)
 {
     if (o_vkCreateDevice != nullptr)
         return;
@@ -331,7 +315,7 @@ void HooksVk::HookVk(HMODULE vulkan1)
     }
 }
 
-void HooksVk::UnHookVk()
+void VulkanHooks::Unhook()
 {
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
