@@ -159,7 +159,7 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
 
 void FGHooks::HookFGSwapchain(IDXGISwapChain* pSwapChain)
 {
-    if (o_FGSCPresent != nullptr && pSwapChain == nullptr)
+    if (o_FGSCPresent != nullptr || pSwapChain == nullptr)
         return;
 
     void** pFactoryVTable = *reinterpret_cast<void***>(pSwapChain);
