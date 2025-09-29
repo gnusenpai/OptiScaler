@@ -9,9 +9,6 @@
 
 #define USE_LOCAL_MUTEX
 
-typedef void (*PFN_SC_Clean)(bool, HWND);
-typedef void (*PFN_SC_Release)(HWND);
-
 class DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapChain4 final : public IDXGISwapChain4
 {
   public:
@@ -81,28 +78,23 @@ class DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapChai
     HRESULT STDMETHODCALLTYPE SetHDRMetaData(DXGI_HDR_METADATA_TYPE Type, UINT Size, void* pMetaData) override;
 
   private:
-    IDXGISwapChain* m_pReal = nullptr;
-    LONG m_iRefcount;
+    IDXGISwapChain* _real = nullptr;
+    IDXGISwapChain1* _real1 = nullptr;
+    IDXGISwapChain2* _real2 = nullptr;
+    IDXGISwapChain3* _real3 = nullptr;
+    IDXGISwapChain4* _real4 = nullptr;
+
+    int _id = 0;
+    bool _uwp = false;
+    LONG _refcount;
     UINT _lastFlags = 0;
 
-    IUnknown* Device = nullptr;
-    IUnknown* Device2 = nullptr;
+    IUnknown* _device = nullptr;
+    IUnknown* _device2 = nullptr;
 
-    IDXGISwapChain1* m_pReal1 = nullptr;
-    IDXGISwapChain2* m_pReal2 = nullptr;
-    IDXGISwapChain3* m_pReal3 = nullptr;
-    IDXGISwapChain4* m_pReal4 = nullptr;
-
-    PFN_SC_Clean ClearTrig = nullptr;
-    PFN_SC_Release ReleaseTrig = nullptr;
-    HWND Handle = nullptr;
-
-    OwnedMutex _refMutex;
+    HWND _handle = nullptr;
 
 #ifdef USE_LOCAL_MUTEX
     OwnedMutex _localMutex;
 #endif
-
-    int id = 0;
-    bool UWP = false;
 };
