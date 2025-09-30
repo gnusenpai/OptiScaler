@@ -136,9 +136,12 @@ class KernelHooks
         }
 
         // FSR 4 Init in case of missing amdxc64.dll
-        // 2nd check is amdxcffx64.dll trying to queue amdxc64 but amdxc64 not being loaded
+        // 2nd check is amdxcffx64.dll trying to queue amdxc64 but amdxc64 not being loaded.
+        // Also skip the internal call of amdxc64
         if (lpProcName != nullptr && (hModule == amdxc64Mark || hModule == nullptr) &&
-            lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 && Config::Instance()->Fsr4Update.value_or_default())
+            lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 &&
+            Config::Instance()->Fsr4Update.value_or_default() &&
+            Util::GetCallerModule(_ReturnAddress()) != KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll"))
         {
             return (FARPROC) &hkAmdExtD3DCreateInterface;
         }
