@@ -91,13 +91,22 @@ static std::vector<std::string> splashText = { "Cope smarter, not harder",
                                                "Such an aggressive upscaling? A bold move",
                                                "I almost don't feel the input lag",
                                                "And that's how you get to 60 FPS",
-                                               "<Your funny text goes here>",
                                                "Together We Upscale",
                                                "For upscalers, by upscalers",
                                                "Opti Sports, it's in the sampling",
                                                "Render in your world. Upscale in ours",
                                                "All your pixels are belong to us",
-                                               "Upscaling for the masses, not the classes" };
+                                               "Upscaling for the masses, not the classes",
+                                               "Generating discord since 2023",
+                                               "[Reducted] never looked better",
+                                               "Free and always free",
+                                               "Getting unshackled from green chains in progress...",
+                                               "Who's Nukem anyway?",
+                                               "Compiling shaders... ETA: 05h:49m",
+                                               "Did you really just pay 70€ for this game?!",
+                                               "Guess who forgot about a nullptr check again",
+                                               "AI can't outslop this",
+                                               "<Your funny text goes here>" };
 
 static ImVec2 updateNoticePosition(-1000.0f, -1000.0f);
 static ImVec2 updateNoticeSize(0.0f, 0.0f);
