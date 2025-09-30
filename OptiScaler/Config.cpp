@@ -765,7 +765,8 @@ bool Config::SaveIni()
                      GetBoolValue(Instance()->FsrUseMaskForTransparency.value_for_config()).c_str());
         ini.SetValue("FSR", "DlssReactiveMaskBias",
                      GetFloatValue(Instance()->DlssReactiveMaskBias.value_for_config()).c_str());
-        ini.SetValue("FSR", "Fsr4Update", GetBoolValue(Instance()->Fsr4Update.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4Update",
+                     GetBoolValue(Instance()->Fsr4Update.value_for_config_ignore_default()).c_str());
         ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearColorSpace",
                      GetBoolValue(Instance()->FsrNonLinearColorSpace.value_for_config()).c_str());

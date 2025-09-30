@@ -121,6 +121,18 @@ template <class T, HasDefaultValue defaultState = WithDefault> class CustomOptio
         return this->value();
     }
 
+    constexpr std::optional<T> value_for_config_ignore_default()
+        requires(defaultState == WithDefault)
+    {
+        if (_volatile)
+            return _configIni;
+
+        if (this->has_value())
+            return this->value();
+
+        return std::nullopt;
+    }
+
     constexpr std::optional<T> value_for_config()
         requires(defaultState != WithDefault)
     {
