@@ -419,7 +419,7 @@ HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID ri
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
 
     // Proton bleeding edge ships amdxc64 that is missing some required functions
-    else if (riid == __uuidof(IAmdExtFfxQuery) /*&& State::Instance().isRunningOnLinux*/)
+    else if (riid == __uuidof(IAmdExtFfxQuery) && State::Instance().isRunningOnLinux)
     {
         // Required for the custom AmdExtFfxApi, lack of it triggers visual glitches
         if (amdExtFfxQuery == nullptr)
