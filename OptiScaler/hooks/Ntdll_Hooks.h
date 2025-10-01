@@ -411,7 +411,7 @@ class NtdllHooks
 
             if (module != nullptr)
             {
-                if (/*!_overlayMethodsCalled && */ DxgiProxy::Module() != nullptr)
+                if (!Config::Instance()->DxgiFactoryWrapping.value_or_default() && DxgiProxy::Module() != nullptr)
                 {
                     LOG_INFO("Calling CreateDxgiFactory methods for overlay!");
                     IDXGIFactory* factory = nullptr;

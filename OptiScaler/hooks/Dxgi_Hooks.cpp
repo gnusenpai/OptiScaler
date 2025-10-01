@@ -13,18 +13,18 @@ static DxgiProxy::PFN_CreateDxgiFactory2 o_CreateDXGIFactory2 = nullptr;
 
 #pragma intrinsic(_ReturnAddress)
 
-static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
+inline static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
 {
     auto caller = Util::WhoIsTheCaller(_ReturnAddress());
     LOG_DEBUG("Caller: {}", caller);
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() && CheckDllName(&caller, &skipDxgiWrappingNames))
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default() && CheckDllName(&caller, &skipDxgiWrappingNames))
     {
         LOG_INFO("Skipping wrapping for: {}", caller);
         return o_CreateDXGIFactory(riid, ppFactory);
     }
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() &&
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default() &&
         Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
         LOG_DEBUG("Delaying 50ms");
@@ -48,7 +48,7 @@ static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
 
     real = (IDXGIFactory*) (*ppFactory);
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config())
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default())
         *ppFactory = (IDXGIFactory*) (new WrappedIDXGIFactory7(real));
     else
         DxgiFactoryHooks::HookToFactory(real);
@@ -56,18 +56,18 @@ static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
     return result;
 }
 
-static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
+inline static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
 {
     auto caller = Util::WhoIsTheCaller(_ReturnAddress());
     LOG_DEBUG("Caller: {}", caller);
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() && CheckDllName(&caller, &skipDxgiWrappingNames))
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default() && CheckDllName(&caller, &skipDxgiWrappingNames))
     {
         LOG_INFO("Skipping wrapping for: {}", caller);
         return o_CreateDXGIFactory1(riid, ppFactory);
     }
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() &&
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default() &&
         Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
         LOG_DEBUG("Delaying 50ms");
@@ -91,7 +91,7 @@ static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
 
     real = (IDXGIFactory1*) (*ppFactory);
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config())
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default())
         *ppFactory = (IDXGIFactory1*) (new WrappedIDXGIFactory7(real));
     else
         DxgiFactoryHooks::HookToFactory(real);
@@ -99,12 +99,12 @@ static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
     return result;
 }
 
-static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppFactory)
+inline static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppFactory)
 {
     auto caller = Util::WhoIsTheCaller(_ReturnAddress());
     LOG_DEBUG("Caller: {}", caller);
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() && CheckDllName(&caller, &skipDxgiWrappingNames))
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default() && CheckDllName(&caller, &skipDxgiWrappingNames))
     {
         LOG_INFO("Skipping wrapping for: {}", caller);
         return o_CreateDXGIFactory2(Flags, riid, ppFactory);
@@ -112,7 +112,7 @@ static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppF
 
     LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() &&
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default() &&
         Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
         LOG_DEBUG("Delaying 50ms");
@@ -136,7 +136,7 @@ static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppF
 
     real = (IDXGIFactory2*) (*ppFactory);
 
-    if (Config::Instance()->DxgiFactoryWrapping.value_for_config())
+    if (Config::Instance()->DxgiFactoryWrapping.value_or_default())
         *ppFactory = (IDXGIFactory2*) (new WrappedIDXGIFactory7(real));
     else
         DxgiFactoryHooks::HookToFactory(real);
