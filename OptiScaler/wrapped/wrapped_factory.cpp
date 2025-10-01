@@ -1,6 +1,6 @@
 #include "wrapped_factory.h"
 
-#include <hooks/DxgiFactory_Hooks.h>
+#include <hooks/DxgiFactory_WrappedCalls.h>
 
 #include <detours/detours.h>
 
@@ -214,7 +214,7 @@ HRESULT __stdcall WrappedIDXGIFactory7::GetParent(REFIID riid, void** ppParent)
 
 HRESULT __stdcall WrappedIDXGIFactory7::EnumAdapters(UINT Adapter, IDXGIAdapter** ppAdapter)
 {
-    auto result = DxgiFactoryHooks::EnumAdapters(_real, Adapter, ppAdapter);
+    auto result = DxgiFactoryWrappedCalls::EnumAdapters(_real, Adapter, ppAdapter);
 
     if (result == S_OK)
         AttachToAdapter((IDXGIAdapter*) *ppAdapter);
@@ -235,7 +235,7 @@ HRESULT __stdcall WrappedIDXGIFactory7::GetWindowAssociation(HWND* pWindowHandle
 HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory7::CreateSwapChain(IUnknown* pDevice, DXGI_SWAP_CHAIN_DESC* pDesc,
                                                                 IDXGISwapChain** ppSwapChain)
 {
-    auto result = DxgiFactoryHooks::CreateSwapChain(_real, this, pDevice, pDesc, ppSwapChain);
+    auto result = DxgiFactoryWrappedCalls::CreateSwapChain(_real, this, pDevice, pDesc, ppSwapChain);
 
     if (result == S_OK)
         return result;
@@ -253,7 +253,7 @@ HRESULT __stdcall WrappedIDXGIFactory7::EnumAdapters1(UINT Adapter, IDXGIAdapter
     if (_real1 == nullptr)
         return E_NOTIMPL;
 
-    auto result = DxgiFactoryHooks::EnumAdapters1(_real1, Adapter, ppAdapter);
+    auto result = DxgiFactoryWrappedCalls::EnumAdapters1(_real1, Adapter, ppAdapter);
 
     if (result == S_OK)
         AttachToAdapter((IDXGIAdapter*) *ppAdapter);
@@ -292,13 +292,13 @@ WrappedIDXGIFactory7::CreateSwapChainForHwnd(IUnknown* pDevice, HWND hWnd, const
     {
         DXGI_SWAP_CHAIN_FULLSCREEN_DESC localFSDesc = *pFullscreenDesc;
 
-        result = DxgiFactoryHooks::CreateSwapChainForHwnd(_real2, this, pDevice, hWnd, &localDesc, &localFSDesc,
-                                                          pRestrictToOutput, ppSwapChain);
+        result = DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(_real2, this, pDevice, hWnd, &localDesc, &localFSDesc,
+                                                                 pRestrictToOutput, ppSwapChain);
     }
     else
     {
-        result = DxgiFactoryHooks::CreateSwapChainForHwnd(_real2, this, pDevice, hWnd, &localDesc, nullptr,
-                                                          pRestrictToOutput, ppSwapChain);
+        result = DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(_real2, this, pDevice, hWnd, &localDesc, nullptr,
+                                                                 pRestrictToOutput, ppSwapChain);
     }
 
     if (result == S_OK)
@@ -317,8 +317,8 @@ HRESULT __stdcall WrappedIDXGIFactory7::CreateSwapChainForCoreWindow(IUnknown* p
 
     DXGI_SWAP_CHAIN_DESC1 localDesc = *pDesc;
 
-    auto result = DxgiFactoryHooks::CreateSwapChainForCoreWindow(_real2, pDevice, pWindow, &localDesc,
-                                                                 pRestrictToOutput, ppSwapChain);
+    auto result = DxgiFactoryWrappedCalls::CreateSwapChainForCoreWindow(_real2, pDevice, pWindow, &localDesc,
+                                                                        pRestrictToOutput, ppSwapChain);
 
     return _real2->CreateSwapChainForCoreWindow(pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
 }
@@ -403,7 +403,7 @@ HRESULT __stdcall WrappedIDXGIFactory7::EnumAdapterByLuid(LUID AdapterLuid, REFI
     if (_real4 == nullptr)
         return E_NOTIMPL;
 
-    return DxgiFactoryHooks::EnumAdapterByLuid(_real4, AdapterLuid, riid, ppvAdapter);
+    return DxgiFactoryWrappedCalls::EnumAdapterByLuid(_real4, AdapterLuid, riid, ppvAdapter);
 }
 
 HRESULT __stdcall WrappedIDXGIFactory7::EnumWarpAdapter(REFIID riid, void** ppvAdapter)
@@ -434,7 +434,7 @@ HRESULT __stdcall WrappedIDXGIFactory7::EnumAdapterByGpuPreference(UINT Adapter,
     if (_real6 == nullptr)
         return E_NOTIMPL;
 
-    auto result = DxgiFactoryHooks::EnumAdapterByGpuPreference(_real6, Adapter, GpuPreference, riid, ppvAdapter);
+    auto result = DxgiFactoryWrappedCalls::EnumAdapterByGpuPreference(_real6, Adapter, GpuPreference, riid, ppvAdapter);
 
     if (result == S_OK)
         AttachToAdapter((IDXGIAdapter*) *ppvAdapter);

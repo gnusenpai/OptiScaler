@@ -475,6 +475,7 @@ bool Config::Reload(std::filesystem::path iniPath)
         // Spoofing
         {
             DxgiSpoofing.set_from_config(readBool("Spoofing", "Dxgi"));
+            DxgiFactoryWrapping.set_from_config(readBool("Spoofing", "DxgiFactoryWrapping"));
             DxgiBlacklist.set_from_config(readString("Spoofing", "DxgiBlacklist"));
             DxgiVRAM.set_from_config(readInt("Spoofing", "DxgiVRAM"));
             VulkanSpoofing.set_from_config(readBool("Spoofing", "Vulkan"));
@@ -1027,6 +1028,8 @@ bool Config::SaveIni()
     // Spoofing
     {
         ini.SetValue("Spoofing", "Dxgi", GetBoolValue(Instance()->DxgiSpoofing.value_for_config()).c_str());
+        ini.SetValue("Spoofing", "DxgiFactoryWrapping",
+                     GetBoolValue(Instance()->DxgiFactoryWrapping.value_for_config()).c_str());
         ini.SetValue("Spoofing", "DxgiBlacklist", Instance()->DxgiBlacklist.value_for_config_or("auto").c_str());
         ini.SetValue("Spoofing", "Vulkan", GetBoolValue(Instance()->VulkanSpoofing.value_for_config()).c_str());
         ini.SetValue("Spoofing", "VulkanExtensionSpoofing",

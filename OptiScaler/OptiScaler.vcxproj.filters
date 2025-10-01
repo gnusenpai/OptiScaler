@@ -587,9 +587,6 @@
     <ClInclude Include="wrapped\wrapped_factory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hooks\DxgiFactory_Hooks.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hooks\FG_Hooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -609,6 +606,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="upscaler_time\UpscalerTime_Vk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\DxgiFactory_WrappedCalls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\DxgiFactory_Hooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -938,9 +941,6 @@
     <ClCompile Include="wrapped\wrapped_factory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\DxgiFactory_Hooks.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="hooks\FG_Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -963,6 +963,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="upscaler_time\UpscalerTime_Vk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\DxgiFactory_WrappedCalls.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\DxgiFactory_Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

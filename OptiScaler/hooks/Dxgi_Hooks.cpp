@@ -1,7 +1,11 @@
 #include "Dxgi_Hooks.h"
 
+#include "DxgiFactory_Hooks.h"
+
 #include <proxies/Dxgi_Proxy.h>
 #include <wrapped/wrapped_factory.h>
+
+#include <DllNames.h>
 
 static DxgiProxy::PFN_CreateDxgiFactory o_CreateDXGIFactory = nullptr;
 static DxgiProxy::PFN_CreateDxgiFactory1 o_CreateDXGIFactory1 = nullptr;
@@ -11,12 +15,20 @@ static DxgiProxy::PFN_CreateDxgiFactory2 o_CreateDXGIFactory2 = nullptr;
 
 static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
 {
-    LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
+    auto caller = Util::WhoIsTheCaller(_ReturnAddress());
+    LOG_DEBUG("Caller: {}", caller);
 
-    if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() && CheckDllName(&caller, &skipDxgiWrappingNames))
+    {
+        LOG_INFO("Skipping wrapping for: {}", caller);
+        return o_CreateDXGIFactory(riid, ppFactory);
+    }
+
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() &&
+        Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
         LOG_DEBUG("Delaying 50ms");
-        // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     State::DisableChecks(97, "dxgi");
@@ -35,19 +47,31 @@ static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
         *ppFactory = real;
 
     real = (IDXGIFactory*) (*ppFactory);
-    *ppFactory = (IDXGIFactory*) (new WrappedIDXGIFactory7(real));
+
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config())
+        *ppFactory = (IDXGIFactory*) (new WrappedIDXGIFactory7(real));
+    else
+        DxgiFactoryHooks::HookToFactory(real);
 
     return result;
 }
 
 static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
 {
-    LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
+    auto caller = Util::WhoIsTheCaller(_ReturnAddress());
+    LOG_DEBUG("Caller: {}", caller);
 
-    if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() && CheckDllName(&caller, &skipDxgiWrappingNames))
+    {
+        LOG_INFO("Skipping wrapping for: {}", caller);
+        return o_CreateDXGIFactory1(riid, ppFactory);
+    }
+
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() &&
+        Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
         LOG_DEBUG("Delaying 50ms");
-        // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     State::DisableChecks(98, "dxgi");
@@ -66,19 +90,33 @@ static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
         *ppFactory = real;
 
     real = (IDXGIFactory1*) (*ppFactory);
-    *ppFactory = (IDXGIFactory1*) (new WrappedIDXGIFactory7(real));
+
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config())
+        *ppFactory = (IDXGIFactory1*) (new WrappedIDXGIFactory7(real));
+    else
+        DxgiFactoryHooks::HookToFactory(real);
 
     return result;
 }
 
 static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppFactory)
 {
+    auto caller = Util::WhoIsTheCaller(_ReturnAddress());
+    LOG_DEBUG("Caller: {}", caller);
+
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() && CheckDllName(&caller, &skipDxgiWrappingNames))
+    {
+        LOG_INFO("Skipping wrapping for: {}", caller);
+        return o_CreateDXGIFactory2(Flags, riid, ppFactory);
+    }
+
     LOG_DEBUG("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
 
-    if (Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config() &&
+        Util::GetCallerModule(_ReturnAddress()) == slInterposerModule)
     {
         LOG_DEBUG("Delaying 50ms");
-        // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     State::DisableChecks(99, "dxgi");
@@ -97,7 +135,11 @@ static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppF
         *ppFactory = real;
 
     real = (IDXGIFactory2*) (*ppFactory);
-    *ppFactory = (IDXGIFactory2*) (new WrappedIDXGIFactory7(real));
+
+    if (Config::Instance()->DxgiFactoryWrapping.value_for_config())
+        *ppFactory = (IDXGIFactory2*) (new WrappedIDXGIFactory7(real));
+    else
+        DxgiFactoryHooks::HookToFactory(real);
 
     return result;
 }

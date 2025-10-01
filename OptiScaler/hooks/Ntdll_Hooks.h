@@ -864,6 +864,7 @@ class NtdllHooks
     {
         if (suffix.size() > text.size())
             return false;
+
         if (suffix.empty())
             return true;
 
@@ -880,9 +881,24 @@ class NtdllHooks
             std::wstring_view { text.Buffer, static_cast<size_t>(text.Length) / sizeof(wchar_t) }, suffix);
     }
 
+    static inline bool StartsWithInsensitive(std::wstring_view str, std::wstring_view prefix)
+    {
+        if (str.size() < prefix.size())
+            return false;
+
+        for (size_t i = 0; i < prefix.size(); ++i)
+        {
+            if (std::towlower(str[i]) != std::towlower(prefix[i]))
+                return false;
+        }
+
+        return true;
+    }
+
     static inline bool IsApiSetName(const std::wstring_view& n)
     {
-        return n.rfind(L"api-ms-win-", 0) == 0 || n.rfind(L"ext-ms-", 0) == 0 || n.rfind(L"api-ms-onecore-", 0) == 0;
+        return StartsWithInsensitive(n, L"api-ms-win-") || StartsWithInsensitive(n, L"ext-ms-") ||
+               StartsWithInsensitive(n, L"api-ms-onecore-");
     }
 
     static NTSTATUS NTAPI hkLdrLoadDll(PWSTR PathToFile, PULONG Flags, PUNICODE_STRING ModuleFileName,
