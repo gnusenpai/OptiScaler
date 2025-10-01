@@ -3278,6 +3278,7 @@ bool MenuCommon::RenderMenu()
                              Config::Instance()->FGXeFGJitteredMV.value_or_default() != fgOutput->IsJitteredMVs() ||
                              Config::Instance()->FGXeFGHighResMV.value_or_default() == fgOutput->IsLowResMV());
 
+                        bool cantActivate = false;
                         if (restartNeeded)
                         {
                             ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
@@ -3290,13 +3291,40 @@ bool MenuCommon::RenderMenu()
                                                    "Requires disabling dilated motion vectors");
 
                             if (State::Instance().realExclusiveFullscreen)
+                            {
+                                cantActivate = true;
                                 ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Borderless display mode required");
+                            }
 
                             if (State::Instance().isHdrActive)
-                                ImGui::TextColored(ImVec4(1.0f, 0.647f, 0.0f, 1.f), "XeFG only supports HDR10");
+                            {
+                                DXGI_SWAP_CHAIN_DESC scDesc {};
+                                if (State::Instance().currentSwapchain->GetDesc(&scDesc) == S_OK)
+                                {
+                                    // DXGI_FORMAT_R32G32B32A32_TYPELESS = 1
+                                    // DXGI_FORMAT_R32G32B32A32_FLOAT
+                                    // DXGI_FORMAT_R32G32B32A32_UINT
+                                    // DXGI_FORMAT_R32G32B32A32_SINT
+                                    // DXGI_FORMAT_R32G32B32_TYPELESS
+                                    // DXGI_FORMAT_R32G32B32_FLOAT
+                                    // DXGI_FORMAT_R32G32B32_UINT
+                                    // DXGI_FORMAT_R32G32B32_SINT
+                                    // DXGI_FORMAT_R16G16B16A16_TYPELESS
+                                    // DXGI_FORMAT_R16G16B16A16_FLOAT
+                                    // DXGI_FORMAT_R16G16B16A16_UNORM
+                                    // DXGI_FORMAT_R16G16B16A16_UINT
+                                    // DXGI_FORMAT_R16G16B16A16_SNORM
+                                    // DXGI_FORMAT_R16G16B16A16_SINT = 14
+                                    if (scDesc.BufferDesc.Format > 0 && scDesc.BufferDesc.Format < 15)
+                                    {
+                                        cantActivate = true;
+                                        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.f), "XeFG only supports HDR10");
+                                    }
+                                }
+                            }
                         }
 
-                        ImGui::BeginDisabled(!correctMVs || State::Instance().realExclusiveFullscreen);
+                        ImGui::BeginDisabled(!correctMVs || cantActivate);
 
                         bool fgActive = Config::Instance()->FGEnabled.value_or_default();
                         if (ImGui::Checkbox("Active##3", &fgActive))
