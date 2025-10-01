@@ -433,9 +433,10 @@ class FfxApiProxy
             }
         }
 
-        _versionDx12 = VersionDx12_SR();
+        if (_versionDx12.major == 0 && _D3D12_Query_SR != nullptr)
+            _versionDx12 = VersionDx12_SR();
 
-        if (_versionDx12.major == 0)
+        if (_versionDx12.major == 0 && _D3D12_Query_FG != nullptr)
             _versionDx12 = VersionDx12_FG();
 
         return _versionDx12;
