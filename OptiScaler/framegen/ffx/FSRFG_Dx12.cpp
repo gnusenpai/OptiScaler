@@ -41,16 +41,19 @@ void FSRFG_Dx12::ConfigureFramePaceTuning()
         cfgDesc.key = 2; // FfxSwapchainFramePacingTuning
         cfgDesc.ptr = &fpt;
 
-        auto result = FfxApiProxy::D3D12_Configure()(&_swapChainContext, &cfgDesc.header);
+        auto result = FfxApiProxy::D3D12_Configure(&_swapChainContext, &cfgDesc.header);
         LOG_DEBUG("HybridSpin D3D12_Configure result: {}", FfxApiProxy::ReturnCodeToString(result));
     }
 }
 
 feature_version FSRFG_Dx12::Version()
 {
-    if (FfxApiProxy::InitFfxDx12())
+    if (FfxApiProxy::Dx12Module_FG() == nullptr)
+        FfxApiProxy::InitFfxDx12();
+
+    if (FfxApiProxy::Dx12Module_FG() != nullptr)
     {
-        auto ver = FfxApiProxy::VersionDx12();
+        auto ver = FfxApiProxy::VersionDx12_FG();
         return ver;
     }
 
@@ -141,7 +144,7 @@ bool FSRFG_Dx12::Dispatch()
         fgConfig.HUDLessColor = FfxApiResource({});
     }
 
-    FfxApiProxy::D3D12_Configure()(&_swapChainContext, &uiDesc.header);
+    FfxApiProxy::D3D12_Configure(&_swapChainContext, &uiDesc.header);
 
     if (fgConfig.HUDLessColor.resource != nullptr)
     {
@@ -217,7 +220,7 @@ bool FSRFG_Dx12::Dispatch()
     fgConfig.frameID = _willDispatchFrame;
     fgConfig.swapChain = _swapChain;
 
-    ffxReturnCode_t retCode = FfxApiProxy::D3D12_Configure()(&_fgContext, &fgConfig.header);
+    ffxReturnCode_t retCode = FfxApiProxy::D3D12_Configure(&_fgContext, &fgConfig.header);
     LOG_DEBUG("D3D12_Configure result: {0:X}, frame: {1}, fIndex: {2}", retCode, _willDispatchFrame, fIndex);
 
     bool dispatchResult = false;
@@ -305,7 +308,7 @@ bool FSRFG_Dx12::Dispatch()
         dfgPrepare.frameTimeDelta = State::Instance().lastFGFrameTime; // _ftDelta[fIndex];
         dfgPrepare.viewSpaceToMetersFactor = _meterFactor[fIndex];
 
-        retCode = FfxApiProxy::D3D12_Dispatch()(&_fgContext, &dfgPrepare.header);
+        retCode = FfxApiProxy::D3D12_Dispatch(&_fgContext, &dfgPrepare.header);
         LOG_DEBUG("D3D12_Dispatch result: {0}, frame: {1}, fIndex: {2}, commandList: {3:X}", retCode,
                   _willDispatchFrame, fIndex, (size_t) dfgPrepare.commandList);
 
@@ -369,7 +372,7 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
         State::Instance().SCchanged = true;
     }
 
-    auto dispatchResult = FfxApiProxy::D3D12_Dispatch()(&_fgContext, &params->header);
+    auto dispatchResult = FfxApiProxy::D3D12_Dispatch(&_fgContext, &params->header);
     LOG_DEBUG("D3D12_Dispatch result: {}, fIndex: {}", (UINT) dispatchResult, fIndex);
 
     _lastFrameId = params->frameID;
@@ -403,7 +406,7 @@ void FSRFG_Dx12::DestroyFGContext()
 
     if (_fgContext != nullptr)
     {
-        auto result = FfxApiProxy::D3D12_DestroyContext()(&_fgContext, nullptr);
+        auto result = FfxApiProxy::D3D12_DestroyContext(&_fgContext, nullptr);
 
         if (!(State::Instance().isShuttingDown))
             LOG_INFO("D3D12_DestroyContext result: {0:X}", result);
@@ -446,7 +449,7 @@ bool FSRFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     createSwapChainDesc.desc = desc;
     createSwapChainDesc.swapchain = (IDXGISwapChain4**) swapChain;
 
-    auto result = FfxApiProxy::D3D12_CreateContext()(&_swapChainContext, &createSwapChainDesc.header, nullptr);
+    auto result = FfxApiProxy::D3D12_CreateContext(&_swapChainContext, &createSwapChainDesc.header, nullptr);
 
     if (result == FFX_API_RETURN_OK)
     {
@@ -484,7 +487,7 @@ bool FSRFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
     createSwapChainDesc.desc = desc;
     createSwapChainDesc.swapchain = (IDXGISwapChain4**) swapChain;
 
-    auto result = FfxApiProxy::D3D12_CreateContext()(&_swapChainContext, &createSwapChainDesc.header, nullptr);
+    auto result = FfxApiProxy::D3D12_CreateContext(&_swapChainContext, &createSwapChainDesc.header, nullptr);
 
     if (result == FFX_API_RETURN_OK)
     {
@@ -521,7 +524,7 @@ bool FSRFG_Dx12::ReleaseSwapchain(HWND hwnd)
 
     if (_swapChainContext != nullptr)
     {
-        auto result = FfxApiProxy::D3D12_DestroyContext()(&_swapChainContext, nullptr);
+        auto result = FfxApiProxy::D3D12_DestroyContext(&_swapChainContext, nullptr);
         LOG_INFO("Destroy Ffx Swapchain Result: {}({})", result, FfxApiProxy::ReturnCodeToString(result));
 
         _swapChainContext = nullptr;
@@ -547,7 +550,7 @@ void FSRFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
     // Changing the format of the hudless resource requires a new context
     if (_fgContext != nullptr && (_lastHudlessFormat != _usingHudlessFormat))
     {
-        auto result = FfxApiProxy::D3D12_DestroyContext()(&_fgContext, nullptr);
+        auto result = FfxApiProxy::D3D12_DestroyContext(&_fgContext, nullptr);
         _fgContext = nullptr;
     }
 
@@ -560,7 +563,7 @@ void FSRFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
         m_FrameGenerationConfig.presentCallback = nullptr;
         m_FrameGenerationConfig.HUDLessColor = FfxApiResource({});
 
-        auto result = FfxApiProxy::D3D12_Configure()(&_fgContext, &m_FrameGenerationConfig.header);
+        auto result = FfxApiProxy::D3D12_Configure(&_fgContext, &m_FrameGenerationConfig.header);
 
         _isActive = (result == FFX_API_RETURN_OK);
 
@@ -640,7 +643,7 @@ void FSRFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
     State::Instance().skipSpoofing = true;
     State::Instance().skipHeapCapture = true;
 
-    ffxReturnCode_t retCode = FfxApiProxy::D3D12_CreateContext()(&_fgContext, &createFg.header, nullptr);
+    ffxReturnCode_t retCode = FfxApiProxy::D3D12_CreateContext(&_fgContext, &createFg.header, nullptr);
 
     State::Instance().skipHeapCapture = false;
     State::Instance().skipSpoofing = false;
@@ -662,7 +665,7 @@ void FSRFG_Dx12::Activate()
         fgConfig.presentCallback = nullptr;
         fgConfig.HUDLessColor = FfxApiResource({});
 
-        auto result = FfxApiProxy::D3D12_Configure()(&_fgContext, &fgConfig.header);
+        auto result = FfxApiProxy::D3D12_Configure(&_fgContext, &fgConfig.header);
 
         if (result == FFX_API_RETURN_OK)
             _isActive = true;
@@ -683,7 +686,7 @@ void FSRFG_Dx12::Deactivate()
         fgConfig.presentCallback = nullptr;
         fgConfig.HUDLessColor = FfxApiResource({});
 
-        auto result = FfxApiProxy::D3D12_Configure()(&_fgContext, &fgConfig.header);
+        auto result = FfxApiProxy::D3D12_Configure(&_fgContext, &fgConfig.header);
 
         if (result == FFX_API_RETURN_OK)
             _isActive = false;
@@ -701,8 +704,11 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 
     _constants = fgConstants;
 
+    if (FfxApiProxy::Dx12Module_FG() == nullptr)
+        FfxApiProxy::InitFfxDx12();
+
     // If needed hooks are missing or XeFG proxy is not inited or FG swapchain is not created
-    if (!Config::Instance()->OverlayMenu.value_or_default() || !FfxApiProxy::InitFfxDx12() ||
+    if (!Config::Instance()->OverlayMenu.value_or_default() || FfxApiProxy::Dx12Module_FG() == nullptr ||
         State::Instance().currentFGSwapchain == nullptr)
         return;
 

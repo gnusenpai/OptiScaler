@@ -25,10 +25,14 @@ bool CheckForFGStatus()
         return false;
 
     // Disable FG if amd dll is not found
-    if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::InitFfxDx12())
+    if (State::Instance().activeFgOutput == FGOutput::FSRFG)
     {
-        Config::Instance()->FGOutput.set_volatile_value(FGOutput::NoFG);
-        State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
+        FfxApiProxy::InitFfxDx12();
+        if (FfxApiProxy::Dx12Module_FG() == nullptr)
+        {
+            Config::Instance()->FGOutput.set_volatile_value(FGOutput::NoFG);
+            State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
+        }
     }
     else if (State::Instance().activeFgOutput == FGOutput::XeFG && !XeFGProxy::InitXeFG())
     {

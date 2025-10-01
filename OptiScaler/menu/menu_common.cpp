@@ -2796,7 +2796,8 @@ bool MenuCommon::RenderMenu()
                     fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
                 }
                 else if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
-                         ((fsr31InitTried && FfxApiProxy::Dx12Module() == nullptr) ||
+                         ((fsr31InitTried && FfxApiProxy::Dx12Module() == nullptr &&
+                           FfxApiProxy::Dx12Module_FG() == nullptr) ||
                           (!fsr31InitTried && !FfxApiProxy::InitFfxDx12())))
                 {
                     fsr31InitTried = true;

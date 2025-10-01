@@ -365,9 +365,9 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
 
         State::Instance().currentRealSwapchain = realSC;
 
-        IUnknown* readDevice = nullptr;
-        if (!Util::CheckForRealObject(__FUNCTION__, *ppDevice, (IUnknown**) &readDevice))
-            readDevice = *ppDevice;
+        IUnknown* realDevice = nullptr;
+        if (!Util::CheckForRealObject(__FUNCTION__, *ppDevice, (IUnknown**) &realDevice))
+            realDevice = *ppDevice;
 
         if (Util::GetProcessWindow() == pSwapChainDesc->OutputWindow)
         {
@@ -379,7 +379,7 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
                   (UINT64) pSwapChainDesc->OutputWindow);
 
         *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, pSwapChainDesc->OutputWindow, pSwapChainDesc->Flags, false);
+            new WrappedIDXGISwapChain4(realSC, realDevice, pSwapChainDesc->OutputWindow, pSwapChainDesc->Flags, false);
 
         State::Instance().currentSwapchain = *ppSwapChain;
         State::Instance().currentWrappedSwapchain = *ppSwapChain;

@@ -467,23 +467,23 @@ Util::MonitorInfo Util::GetMonitorInfoForOutput(IDXGIOutput* pOutput)
 bool Util::CheckForRealObject(std::string functionName, IUnknown* pObject, IUnknown** ppRealObject)
 {
     // Need to check if this is necessary
-    //
-    // if (streamlineRiid.Data1 == 0)
-    //{
-    //    auto iidResult = IIDFromString(L"{ADEC44E2-61F0-45C3-AD9F-1B37379284FF}", &streamlineRiid);
 
-    //    if (iidResult != S_OK)
-    //        return false;
-    //}
+    if (streamlineRiid.Data1 == 0)
+    {
+        auto iidResult = IIDFromString(L"{ADEC44E2-61F0-45C3-AD9F-1B37379284FF}", &streamlineRiid);
 
-    // auto qResult = pObject->QueryInterface(streamlineRiid, (void**) ppRealObject);
+        if (iidResult != S_OK)
+            return false;
+    }
 
-    // if (qResult == S_OK && *ppRealObject != nullptr)
-    //{
-    //     LOG_INFO("{} Streamline proxy found!", functionName);
-    //     (*ppRealObject)->Release();
-    //     return true;
-    // }
+    auto qResult = pObject->QueryInterface(streamlineRiid, (void**) ppRealObject);
+
+    if (qResult == S_OK && *ppRealObject != nullptr)
+    {
+        LOG_INFO("{} Streamline proxy found!", functionName);
+        (*ppRealObject)->Release();
+        return true;
+    }
 
     return false;
 }

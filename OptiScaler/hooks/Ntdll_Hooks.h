@@ -247,7 +247,7 @@ class NtdllHooks
         {
             if (Config::Instance()->OverrideNvapiDll.value_or_default())
             {
-                LOG_INFO("{0} call!", lcaseLibNameA);
+                LOG_INFO("Overrided {} call!", lcaseLibNameA);
 
                 auto nvapi = LoadNvApi();
 
@@ -257,9 +257,13 @@ class NtdllHooks
                     NvApiHooks::Hook(nvapi);
                     return nvapi;
                 }
+
+                LOG_DEBUG("Not loaded");
             }
             else
             {
+                LOG_INFO("{} call!", lcaseLibNameA);
+
                 auto nvapi = GetModuleHandleW(lcaseLibName.c_str());
 
                 // Try to load nvapi only from system32, like the original call would
@@ -571,6 +575,19 @@ class NtdllHooks
 
             FSR4ModelSelection::Hook(module);
 
+            if (module != nullptr)
+                FfxApiProxy::InitFfxDx12_SR(module);
+
+            return module;
+        }
+
+        if (CheckDllNameW(&lcaseLibName, &ffxDx12FGNamesW))
+        {
+            auto module = NtdllProxy::LoadLibraryExW_Ldr(lcaseLibName.c_str(), NULL, 0);
+
+            if (module != nullptr)
+                FfxApiProxy::InitFfxDx12_FG(module);
+
             return module;
         }
 
@@ -591,10 +608,14 @@ class NtdllHooks
 
     static HMODULE LoadNvApi()
     {
+        LOG_DEBUG();
+
         HMODULE nvapi = nullptr;
 
         if (Config::Instance()->NvapiDllPath.has_value())
         {
+            LOG_DEBUG("Load NvapiDllPath");
+
             nvapi = NtdllProxy::LoadLibraryExW_Ldr(Config::Instance()->NvapiDllPath->c_str(), NULL, 0);
 
             if (nvapi != nullptr)
@@ -606,6 +627,8 @@ class NtdllHooks
 
         if (nvapi == nullptr)
         {
+            LOG_DEBUG("Load nvapi64.dll");
+
             auto localPath = Util::DllPath().parent_path() / L"nvapi64.dll";
             nvapi = NtdllProxy::LoadLibraryExW_Ldr(localPath.wstring().c_str(), NULL, 0);
 
@@ -618,6 +641,8 @@ class NtdllHooks
 
         if (nvapi == nullptr)
         {
+            LOG_DEBUG("Load nvapi64.dll 2");
+
             nvapi = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, 0);
 
             if (nvapi != nullptr)

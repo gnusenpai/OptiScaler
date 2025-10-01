@@ -854,6 +854,22 @@ static void CheckWorkingMode()
                 FfxApiProxy::InitFfxDx12(ffxDx12Module);
             }
 
+            HMODULE ffxDx12SRModule = nullptr;
+            ffxDx12SRModule = GetDllNameWModule(&ffxDx12UpscalerNamesW);
+            if (ffxDx12SRModule != nullptr)
+            {
+                LOG_DEBUG("amd_fidelityfx_upscaler_dx12.dll already in memory");
+                FfxApiProxy::InitFfxDx12_SR(ffxDx12SRModule);
+            }
+
+            HMODULE ffxDx12FGModule = nullptr;
+            ffxDx12FGModule = GetDllNameWModule(&ffxDx12FGNamesW);
+            if (ffxDx12FGModule != nullptr)
+            {
+                LOG_DEBUG("amd_fidelityfx_framegeneration_dx12.dll already in memory");
+                FfxApiProxy::InitFfxDx12_FG(ffxDx12FGModule);
+            }
+
             // FFX Vulkan
             HMODULE ffxVkModule = nullptr;
             ffxVkModule = GetDllNameWModule(&ffxVkNamesW);
