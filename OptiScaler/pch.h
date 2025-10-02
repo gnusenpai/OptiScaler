@@ -132,19 +132,34 @@ enum Value : uint32_t
 
 inline static std::string wstring_to_string(const std::wstring& wide_str)
 {
-    std::string str(wide_str.length(), 0);
-    std::transform(wide_str.begin(), wide_str.end(), str.begin(), [](wchar_t c) { return (char) c; });
-    return str;
+    if (wide_str.empty())
+        return std::string();
+
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), static_cast<int>(wide_str.length()), nullptr, 0,
+                                          nullptr, nullptr);
+    if (size_needed <= 0)
+        return std::string();
+
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), static_cast<int>(wide_str.length()), &result[0], size_needed,
+                        nullptr, nullptr);
+
+    return result;
 }
 
 inline static std::wstring string_to_wstring(const std::string& str)
 {
-    int len;
-    int slength = static_cast<int>(str.length()) + 1;
-    len = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), slength, 0, 0);
-    std::wstring wstr(len, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), slength, &wstr[0], len);
-    return wstr;
+    if (str.empty())
+        return std::wstring();
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), nullptr, 0);
+    if (size_needed <= 0)
+        return std::wstring();
+
+    std::wstring result(size_needed, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), &result[0], size_needed);
+
+    return result;
 }
 
 inline static void to_lower_in_place(std::string& string)

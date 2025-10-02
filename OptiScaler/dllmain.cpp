@@ -19,6 +19,7 @@
 #include "proxies/KernelBase_Proxy.h"
 #include "proxies/Ntdll_Proxy.h"
 #include <proxies/IGDExt_Proxy.h>
+#include <proxies/FfxApi_Proxy.h>
 
 #include "inputs/FSR2_Dx12.h"
 #include "inputs/FSR3_Dx12.h"
@@ -737,9 +738,9 @@ static void CheckWorkingMode()
             {
                 LOG_DEBUG("vulkan-1.dll already in memory");
 
-                HookForVulkanSpoofing(vulkanModule);
-                HookForVulkanExtensionSpoofing(vulkanModule);
-                HookForVulkanVRAMSpoofing(vulkanModule);
+                VulkanSpoofing::HookForVulkanSpoofing(vulkanModule);
+                VulkanSpoofing::HookForVulkanExtensionSpoofing(vulkanModule);
+                VulkanSpoofing::HookForVulkanVRAMSpoofing(vulkanModule);
 
                 VulkanHooks::Hook(vulkanModule);
             }

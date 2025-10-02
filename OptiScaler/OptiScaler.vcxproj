@@ -99,16 +99,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(SolutionDir)external\simpleini;$(SolutionDir)\external\nvngx_dlss_sdk;$(SolutionDir)external\unordered_dense\include;$(VULKAN_SDK)\include;$(XESS_SDK)\inc\xess;$(IncludePath)</IncludePath>
-    <LibraryPath>$(XESS_SDK)\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)external\simpleini;$(SolutionDir)\external\nvngx_dlss_sdk;$(SolutionDir)external\unordered_dense\include;$(SolutionDir)\external\vulkan\include;$(SolutionDir)\external\xess\inc\xess;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\external\xess\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(SolutionDir)external\simpleini;$(SolutionDir)\external\nvngx_dlss_sdk;$(SolutionDir)external\unordered_dense\include;$(VULKAN_SDK)\include;$(XESS_SDK)\inc\xess;$(IncludePath)</IncludePath>
-    <LibraryPath>$(XESS_SDK)\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)external\simpleini;$(SolutionDir)\external\nvngx_dlss_sdk;$(SolutionDir)external\unordered_dense\include;$(SolutionDir)\external\vulkan\include;$(SolutionDir)\external\xess\inc\xess;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\external\xess\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|Win32'">
-    <IncludePath>$(SolutionDir)external\simpleini;$(SolutionDir)\external\nvngx_dlss_sdk;$(SolutionDir)external\unordered_dense\include;$(VULKAN_SDK)\include;$(XESS_SDK)\inc\xess;$(IncludePath)</IncludePath>
-    <LibraryPath>$(XESS_SDK)\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)external\simpleini;$(SolutionDir)\external\nvngx_dlss_sdk;$(SolutionDir)external\unordered_dense\include;$(SolutionDir)\external\vulkan\include;$(SolutionDir)\external\xess\inc\xess;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\external\xess\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(ProjectDir);$(ProjectDir)include\;$(SolutionDir)external\vulkan\include;$(SolutionDir)external\nvngx_dlss_sdk;$(SolutionDir)external\xess\inc\xess;$(SolutionDir)external\xess\inc\xell;$(SolutionDir)external\xess\inc\xess_fg;$(SolutionDir)external\FidelityFX-SDK\ffx-api\include\ffx_api;$(SolutionDir)external\simpleini;$(SolutionDir)external\unordered_dense\include;$(SolutionDir)external\spdlog\include;$(SolutionDir)external\freetype;$(SolutionDir)external\streamline;$(SolutionDir)external\streamline1;$(SolutionDir)external\nvapi;$(SolutionDir)external\nlohmann;$(SolutionDir)external\fakenvapi;$(SolutionDir)external\magic_enum\include\magic_enum;$(IncludePath)</IncludePath>
@@ -312,6 +312,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="hooks\DxgiFactory_WrappedCalls.h" />
     <ClInclude Include="hooks\Dxgi_Hooks.h" />
     <ClInclude Include="hooks\FG_Hooks.h" />
+    <ClInclude Include="hooks\LibraryLoad_Hooks.h" />
     <ClInclude Include="upscaler_time\UpscalerTime_Dx11.h" />
     <ClInclude Include="upscaler_time\UpscalerTime_Dx12.h" />
     <ClInclude Include="upscaler_time\UpscalerTime_Vk.h" />
@@ -494,7 +495,9 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="hooks\DxgiFactory_WrappedCalls.cpp" />
     <ClCompile Include="hooks\Dxgi_Hooks.cpp" />
     <ClCompile Include="hooks\FG_Hooks.cpp" />
+    <ClCompile Include="hooks\LibraryLoad_Hooks.cpp" />
     <ClCompile Include="spoofing\Dxgi_Spoofing.cpp" />
+    <ClCompile Include="spoofing\Vulkan_Spoofing.cpp" />
     <ClCompile Include="upscaler_time\UpscalerTime_Dx11.cpp" />
     <ClCompile Include="upscaler_time\UpscalerTime_Dx12.cpp" />
     <ClCompile Include="upscaler_time\UpscalerTime_Vk.cpp" />
