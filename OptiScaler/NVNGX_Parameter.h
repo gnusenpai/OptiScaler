@@ -474,11 +474,18 @@ inline static void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
     if (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG)
     {
         InParams->Set("FrameGeneration.Available", 1);
+        InParams->Set("FrameGeneration.NeedsUpdatedDriver", 0);
+        InParams->Set("FrameGeneration.FeatureInitResult", 1);
+        InParams->Set("FrameGeneration.MinDriverVersionMajor", 0);
         InParams->Set("FrameInterpolation.Available", 1);
         InParams->Set(NVSDK_NGX_Parameter_FrameInterpolation_NeedsUpdatedDriver, 0);
         InParams->Set(NVSDK_NGX_Parameter_FrameInterpolation_FeatureInitResult, 1);
         InParams->Set(NVSDK_NGX_Parameter_FrameInterpolation_MinDriverVersionMajor, 0);
     }
+
+    // Multi Fake Frames not supported by Nukems
+    if (State::Instance().activeFgInput == FGInput::Nukems)
+        InParams->Set("DLSSG.MultiFrameCountMax", 1);
 }
 
 struct Parameter
