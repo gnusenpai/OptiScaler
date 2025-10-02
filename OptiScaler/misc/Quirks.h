@@ -75,10 +75,6 @@ static const QuirkEntry quirkTable[] = {
                 GameQuirk::RestoreComputeSigOnNvidia),
     QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNvidia), // Seems to fix real DLSS
 
-    // Crysis 3 Remastered
-    // no spoof needed for DLSS inputs
-    QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing),
-
     // Dead Rising Deluxe Remaster (including the demo)
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
 
@@ -86,20 +82,15 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("dd2ccs.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("dd2.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
 
-    // Red Dead Redemption 2
-    QUIRK_ENTRY("rdr2.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-    QUIRK_ENTRY("playrdr2.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Forgive Me Father 2
-    QUIRK_ENTRY("fmf2-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    // Cyberpunk 2077
+    // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::DisableHudfix,
+                GameQuirk::DisableDxgiSpoofing),
 
     // Forza Horizon 5
     // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("forzahorizon5.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs,
                 GameQuirk::DisableDxgiSpoofing),
-
-    // Revenge of the Savage Planet
-    QUIRK_ENTRY("towers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
     // Avatar: Frontiers of Pandora
     QUIRK_ENTRY("afop.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs, GameQuirk::DisableDxgiSpoofing),
@@ -110,45 +101,6 @@ static const QuirkEntry quirkTable[] = {
     // MS Store
     QUIRK_ENTRY("forza_gaming.desktop.x64_release_final.exe", GameQuirk::DisableFSR2Inputs,
                 GameQuirk::DisableFSR3Inputs),
-
-    // F1 22
-    QUIRK_ENTRY("f1_22.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Metal Eden
-    QUIRK_ENTRY("metaleden-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Until Dawn
-    QUIRK_ENTRY("bates-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Bloom and Rage
-    QUIRK_ENTRY("bloom&rage.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // 171
-    QUIRK_ENTRY("bcg-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Microsoft Flight Simulator (2020), MSFS2020
-    QUIRK_ENTRY("flightsimulator.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Star Wars: Outlaws
-    QUIRK_ENTRY("outlaws.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-    QUIRK_ENTRY("outlaws_plus.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Banishers
-    QUIRK_ENTRY("banishers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Tiny Tina's Wonderlands
-    // FSR2 only, no spoof needed
-    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
-
-    // Dead Island 2
-    // FSR2 only, no spoof needed
-    QUIRK_ENTRY("deadisland-win64-shipping.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
-
-    // Rune Factory Guardians of Azuma
-    QUIRK_ENTRY("game-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // STAR WARS Jedi: Survivor
-    QUIRK_ENTRY("jedisurvivor.exe", GameQuirk::ForceAutoExposure),
 
     // Death Stranding and Directors Cut
     // no spoof needed for DLSS inputs
@@ -164,10 +116,6 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::HitmanReflexHacks,
                 GameQuirk::DisableFSR2Inputs),
 
-    // Marvel's Guardians of the Galaxy
-    // no spoof needed for DLSS inputs
-    QUIRK_ENTRY("gotg.exe", GameQuirk::DisableDxgiSpoofing),
-
     // ELDEN RING NIGHTREIGN
     // no spoof needed for DLSS inputs
     QUIRK_ENTRY("nightreign.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableOptiXessPipelineCreation),
@@ -181,41 +129,66 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("project_plague-deck-shipping.exe", GameQuirk::SkipFirst10Frames),
     QUIRK_ENTRY("project_plague-win64-shipping.exe", GameQuirk::SkipFirst10Frames),
 
-    // UNCHARTED: Legacy of Thieves Collection
-    // no spoof needed for DLSS inputs
+    // Final Fantasy XIV
+    QUIRK_ENTRY("ffxiv_dx11.exe", GameQuirk::DisableVsyncOverride),
+    QUIRK_ENTRY("graphadapterdesc.exe", GameQuirk::SkipD3D11FeatureLevelElevation),
+
+    // SL spoof enough to unlock everything DLSS/No spoof needed for DLSS inputs
+    //
+    // The Witcher 3, Alan Wake 2, Crysis 3 Remastered, Marvel's Guardians of the Galaxy, UNCHARTED: Legacy of Thieves
+    // Collection, Warhammer 40,000: Darktide, Dying Light 2 Stay Human, Dying Light: The Beast, Observer: System Redux,
+    // Sackboy: A Big Adventure, Hellblade: Senua's Sacrifice, Pumpkin Jack, Metro Exodus Enhanced Edition, Rise of the
+    // Ronin
+    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("gotg.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("u4-l.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
-
-    // Nioh 2 – The Complete Edition
-    QUIRK_ENTRY("nioh2.exe", GameQuirk::ForceAutoExposure),
-
-    // Supraworld
-    QUIRK_ENTRY("supraworld-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
-
-    // Final Fantasy XIV
-    QUIRK_ENTRY("ffxiv_dx11.exe", GameQuirk::DisableVsyncOverride),
-
-    // Warhammer 40,000: Darktide
-    // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("darktide.exe", GameQuirk::DisableDxgiSpoofing),
-
-    // Dying Light 2 Stay Human, Dying Light: The Beast
-    // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("dyinglightgame_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("dyinglightgame_thebeast_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("observersystemredux.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("sackboy-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("hellbladegame-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("pumpkinjack-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("metroexodus.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("ronin.exe", GameQuirk::DisableDxgiSpoofing),
 
-    // SL spoof enough to unlock everything DLSS
-    QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::DisableHudfix,
-                GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing),
+    // FSR2 only, no spoof needed
+    //
+    // Tiny Tina's Wonderlands, Dead Island 2
+    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("deadisland-win64-shipping.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
 
-    // Final Fantasy XIV
-    QUIRK_ENTRY("graphadapterdesc.exe", GameQuirk::SkipD3D11FeatureLevelElevation),
+    // Disable FSR2/3 inputs due to crashing/custom implementations
+    //
+    // Red Dead Redemption 2, Forgive Me Father 2, Revenge of the Savage Planet, F1 22, Metal Eden, Until Dawn, Bloom
+    // and Rage, 171, Microsoft Flight Simulator (2020) - MSFS2020, Star Wars: Outlaws, Banishers: Ghosts of New Eden,
+    // Rune Factory Guardians of Azuma, Supraworld
+    QUIRK_ENTRY("rdr2.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("playrdr2.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("fmf2-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("towers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs,
+                GameQuirk::DisableFSR3Inputs), // Revenge of the Savage Planet
+    QUIRK_ENTRY("f1_22.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("metaleden-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("bates-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("bloom&rage.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("bcg-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs), // 171
+    QUIRK_ENTRY("flightsimulator.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("outlaws.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("outlaws_plus.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("banishers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("game-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs), // Rune
+    QUIRK_ENTRY("supraworld-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
     // Self-explanatory
+    //
+    // The Persistence, Split Fiction, Minecraft Bedrock, Prey 2017, Ghostwire: Tokyo, RoadCraft, STAR WARS Jedi:
+    // Survivor, Nioh 2 – The Complete Edition
     QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
@@ -223,11 +196,8 @@ static const QuirkEntry quirkTable[] = {
                 GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("gwt.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("roadcraft - retail.exe", GameQuirk::FixSlSimulationMarkers),
-    QUIRK_ENTRY("observersystemredux.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
-    QUIRK_ENTRY("sackboy-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
-    QUIRK_ENTRY("hellbladegame-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("pumpkinjack-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
-    QUIRK_ENTRY("metroexodus.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("jedisurvivor.exe", GameQuirk::ForceAutoExposure),
+    QUIRK_ENTRY("nioh2.exe", GameQuirk::ForceAutoExposure),
 
     // VULKAN
     // ------
