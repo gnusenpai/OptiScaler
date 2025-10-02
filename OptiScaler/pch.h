@@ -24,6 +24,7 @@
 
 #define SPDLOG_USE_STD_FORMAT
 #define SPDLOG_WCHAR_FILENAMES
+#define SPDLOG_WCHAR_TO_UTF8_SUPPORT
 #include "spdlog/spdlog.h"
 
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -118,9 +119,16 @@ enum Value : uint32_t
 
 inline static std::string wstring_to_string(const std::wstring& wide_str)
 {
-    std::string str(wide_str.length(), 0);
-    std::transform(wide_str.begin(), wide_str.end(), str.begin(), [](wchar_t c) { return (char) c; });
-    return str;
+    if (wide_str.empty())
+        return {};
+
+    int size_needed =
+        WideCharToMultiByte(CP_UTF8, 0, wide_str.data(), (int) wide_str.size(), nullptr, 0, nullptr, nullptr);
+
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wide_str.data(), (int) wide_str.size(), result.data(), size_needed, nullptr,
+                        nullptr);
+    return result;
 }
 
 inline static std::wstring string_to_wstring(const std::string& str)

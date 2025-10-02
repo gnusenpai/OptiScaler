@@ -164,7 +164,7 @@ class NtdllHooks
         LOG_TRACE("{}", lcaseLibNameA);
 
         // C:\\Path\\like\\this.dll
-        auto normalizedPath = std::filesystem::path(lcaseLibName).lexically_normal().string();
+        auto normalizedPath = std::filesystem::path(lcaseLibName).lexically_normal().wstring();
 
         // If Opti is not loading as nvngx.dll
         if (!State::Instance().isWorkingAsNvngx)
@@ -224,14 +224,14 @@ class NtdllHooks
         {
             auto loadedBin = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 
-            if (loadedBin && normalizedPath.contains("\\versions\\"))
+            if (loadedBin && normalizedPath.contains(L"\\versions\\"))
             {
-                if (normalizedPath.contains("\\dlss\\"))
+                if (normalizedPath.contains(L"\\dlss\\"))
                 {
                     State::Instance().NGX_OTA_Dlss = wstring_to_string(lpLibFullPath);
                 }
 
-                if (normalizedPath.contains("\\dlssd\\"))
+                if (normalizedPath.contains(L"\\dlssd\\"))
                 {
                     State::Instance().NGX_OTA_Dlssd = wstring_to_string(lpLibFullPath);
                 }
@@ -293,7 +293,7 @@ class NtdllHooks
         // Try to catch something like this:
         // C:\ProgramData/NVIDIA/NGX/models/sl_dlss_0/versions/133120/files/190_E658703.dll
         if (CheckDllNameW(&lcaseLibName, &slDlssNamesW) ||
-            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_dlss_0")))
+            (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_dlss_0")))
         {
             auto dlssModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 
@@ -311,7 +311,7 @@ class NtdllHooks
 
         // sl.dlss_g.dll
         if (CheckDllNameW(&lcaseLibName, &slDlssgNamesW) ||
-            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_dlss_g_")))
+            (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_dlss_g_")))
         {
             auto dlssgModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 
@@ -329,7 +329,7 @@ class NtdllHooks
 
         // sl.reflex.dll
         if (CheckDllNameW(&lcaseLibName, &slReflexNamesW) ||
-            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_reflex_")))
+            (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_reflex_")))
         {
             auto reflexModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 
@@ -347,7 +347,7 @@ class NtdllHooks
 
         // sl.pcl.dll
         if (CheckDllNameW(&lcaseLibName, &slPclNamesW) ||
-            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_pcl_")))
+            (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_pcl_")))
         {
             auto pclModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 
@@ -365,7 +365,7 @@ class NtdllHooks
 
         // sl.common.dll
         if (CheckDllNameW(&lcaseLibName, &slCommonNamesW) ||
-            (normalizedPath.contains("\\versions\\") && normalizedPath.contains("\\sl_common_")))
+            (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_common_")))
         {
             auto commonModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 

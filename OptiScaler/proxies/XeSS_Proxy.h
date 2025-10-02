@@ -253,7 +253,7 @@ class XeSSProxy
         if (Config::Instance()->XeSSLibrary.has_value())
         {
             std::filesystem::path cfgPath(Config::Instance()->XeSSLibrary.value().c_str());
-            LOG_INFO("Trying to load libxess.dll from ini path: {}", cfgPath.string());
+            LOG_INFO(L"Trying to load libxess.dll from ini path: {}", cfgPath.wstring());
 
             cfgPath = cfgPath / libraryName;
             mainModule = NtdllProxy::LoadLibraryExW_Ldr(cfgPath.c_str(), NULL, 0);
@@ -262,7 +262,7 @@ class XeSSProxy
         if (mainModule == nullptr)
         {
             std::filesystem::path libXessPath = dllPath.parent_path() / libraryName;
-            LOG_INFO("Trying to load libxess.dll from dll path: {}", libXessPath.string());
+            LOG_INFO(L"Trying to load libxess.dll from dll path: {}", libXessPath.wstring());
             mainModule = NtdllProxy::LoadLibraryExW_Ldr(libXessPath.c_str(), NULL, 0);
         }
 
@@ -296,7 +296,7 @@ class XeSSProxy
             if (Config::Instance()->XeSSLibrary.has_value())
             {
                 std::filesystem::path cfgPath(Config::Instance()->XeSSLibrary.value().c_str());
-                LOG_INFO("Trying to load libxess.dll from ini path: {}", cfgPath.string());
+                LOG_INFO(L"Trying to load libxess.dll from ini path: {}", cfgPath.wstring());
 
                 auto dx11Path = cfgPath.parent_path() / libraryName;
                 dx11Module = NtdllProxy::LoadLibraryExW_Ldr(dx11Path.c_str(), NULL, 0);
@@ -305,7 +305,7 @@ class XeSSProxy
             if (dx11Module == nullptr)
             {
                 std::filesystem::path libXessDx11Path = dllPath.parent_path() / libraryName;
-                LOG_INFO("Trying to load libxess.dll from dll path: {}", libXessDx11Path.string());
+                LOG_INFO(L"Trying to load libxess.dll from dll path: {}", libXessDx11Path.wstring());
                 dx11Module = NtdllProxy::LoadLibraryExW_Ldr(libXessDx11Path.c_str(), NULL, 0);
             }
         } while (false);

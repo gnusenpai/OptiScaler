@@ -18,7 +18,6 @@ typedef BOOL (*PFN_VerQueryValueW)(LPCVOID pBlock, LPCWSTR lpSubBlock, LPVOID* l
 /// <returns>Caller module filename</returns>
 std::string Util::WhoIsTheCaller(void* returnAddress)
 {
-
     char callerPath[MAX_PATH] = { 0 };
 
     // Get the return address from the current function call.
@@ -31,7 +30,7 @@ std::string Util::WhoIsTheCaller(void* returnAddress)
         GetModuleFileNameA(hModule, callerPath, sizeof(callerPath));
         auto path = std::filesystem::path(callerPath);
 
-        return path.filename().string();
+        return wstring_to_string(path.filename().wstring());
     }
 
     return "";
@@ -199,7 +198,7 @@ std::optional<std::filesystem::path> Util::NvngxPath()
         if (ls == ERROR_SUCCESS)
         {
             auto path = std::filesystem::path(regNGXCorePath);
-            LOG_INFO("nvngx registry path: {0}", path.string());
+            LOG_INFO(L"nvngx registry path: {0}", path.wstring());
             return path;
         }
     }
@@ -368,7 +367,7 @@ std::optional<std::filesystem::path> Util::FindFilePath(const std::filesystem::p
     std::filesystem::path candidate = startDir / fileName;
     if (std::filesystem::exists(candidate) && std::filesystem::is_regular_file(candidate))
     {
-        LOG_INFO("{} found at {}", fileName.string(), candidate.parent_path().string());
+        LOG_INFO(L"{} found at {}", fileName.wstring(), candidate.parent_path().wstring());
         return candidate;
     }
 
@@ -378,7 +377,7 @@ std::optional<std::filesystem::path> Util::FindFilePath(const std::filesystem::p
     {
         if (!entry.is_directory() && entry.path().filename() == fileName)
         {
-            LOG_INFO("{} found at {}", fileName.string(), entry.path().parent_path().string());
+            LOG_INFO(L"{} found at {}", fileName.wstring(), entry.path().parent_path().wstring());
             return entry.path();
         }
     }
@@ -396,7 +395,7 @@ std::optional<std::filesystem::path> Util::FindFilePath(const std::filesystem::p
             {
                 if (!entry.is_directory() && entry.path().filename() == fileName)
                 {
-                    LOG_INFO("{} found at {}", fileName.string(), entry.path().parent_path().string());
+                    LOG_INFO(L"{} found at {}", fileName.wstring(), entry.path().parent_path().wstring());
                     return entry.path();
                 }
             }
