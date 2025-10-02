@@ -24,6 +24,7 @@ enum class GameQuirk : uint64_t
     DontUseUnrealBarriers,
     SkipFirst10Frames,
     DisableVsyncOverride,
+    UseNtDllHooks,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessStateOverride,
@@ -103,7 +104,8 @@ static const QuirkEntry quirkTable[] = {
 
     // Death Stranding and Directors Cut
     // no spoof needed for DLSS inputs
-    QUIRK_ENTRY("ds.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("ds.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs,
+                GameQuirk::UseNtDllHooks),
 
     // The Callisto Protocol
     // FSR2 only, no spoof needed
@@ -287,6 +289,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Hack for broken Hitman reflex");
     if (quirks & GameQuirk::SkipD3D11FeatureLevelElevation)
         spdlog::info("Quirk: Skipping D3D11 feature level elevation, native FSR3.1 will be disabled!");
+    if (quirks & GameQuirk::UseNtDllHooks)
+        spdlog::info("Quirk: Using NTdll hooks instead of kernel ones");
 
     return;
 }

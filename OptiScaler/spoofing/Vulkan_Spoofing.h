@@ -2,7 +2,6 @@
 
 #include <pch.h>
 
-
 class VulkanSpoofing
 {
   public:
@@ -10,4 +9,3 @@ class VulkanSpoofing
     static void HookForVulkanExtensionSpoofing(HMODULE vulkanModule);
     static void HookForVulkanVRAMSpoofing(HMODULE vulkanModule);
 };
-

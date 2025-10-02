@@ -1049,6 +1049,9 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DisableVsyncOverride && !Config::Instance()->OverrideVsync.has_value())
         Config::Instance()->OverrideVsync.set_volatile_value(false);
 
+    if (quirks & GameQuirk::UseNtDllHooks && !Config::Instance()->UseNtdllHooks.has_value())
+        Config::Instance()->UseNtdllHooks.set_volatile_value(true);
+
     State::Instance().gameQuirks = quirks;
 }
 
