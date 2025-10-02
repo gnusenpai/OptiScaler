@@ -968,7 +968,7 @@ static void CheckWorkingMode()
 
 static void CheckQuirks()
 {
-    auto exePathFilename = Util::ExePath().filename().string();
+    auto exePathFilename = wstring_to_string(Util::ExePath().filename().wstring()); // .string() can crash
 
     State::Instance().GameExe = exePathFilename;
     State::Instance().GameName = wstring_to_string(Util::GetExeProductName());
