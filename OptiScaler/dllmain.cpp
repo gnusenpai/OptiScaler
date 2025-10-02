@@ -179,7 +179,7 @@ void LoadAsiPlugins()
     std::filesystem::path pluginPath(Config::Instance()->PluginPath.value_or_default());
     auto folderPath = pluginPath.wstring();
 
-    LOG_DEBUG("Checking {} for *.asi", pluginPath.string());
+    LOG_DEBUG(L"Checking {} for *.asi", folderPath);
 
     if (!std::filesystem::exists(pluginPath))
         return;
@@ -198,7 +198,7 @@ void LoadAsiPlugins()
 
             if (hMod != nullptr)
             {
-                LOG_INFO("Loaded: {}", entry.path().string());
+                LOG_INFO(L"Loaded: {}", entry.path().wstring());
                 _asiHandles.push_back(hMod);
 
                 auto init = (PFN_InitializeASI) KernelBaseProxy::GetProcAddress_()(hMod, "InitializeASI");
@@ -232,7 +232,7 @@ void LoadAsiPlugins()
             else
             {
                 DWORD err = GetLastError();
-                LOG_ERROR("Failed to load: {}, error {:X}", entry.path().string(), err);
+                LOG_ERROR(L"Failed to load: {}, error {:X}", entry.path().wstring(), err);
             }
         }
     }
@@ -243,7 +243,7 @@ static void CheckWorkingMode()
     LOG_FUNC();
 
     bool modeFound = false;
-    std::string filename = Util::DllPath().filename().string();
+    std::string filename = wstring_to_string(Util::DllPath().filename().wstring()); // .string() can crash
     std::string lCaseFilename(filename);
     wchar_t sysFolder[MAX_PATH];
     GetSystemDirectory(sysFolder, MAX_PATH);
@@ -940,7 +940,7 @@ static void CheckWorkingMode()
 
                         if (igdext != nullptr)
                         {
-                            LOG_INFO("igdext64.dll loaded from {}", dllPath.string());
+                            LOG_INFO(L"igdext64.dll loaded from {}", dllPath.wstring());
                             break;
                         }
                     }

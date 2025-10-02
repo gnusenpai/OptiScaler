@@ -24,6 +24,7 @@
 
 #define SPDLOG_USE_STD_FORMAT
 #define SPDLOG_WCHAR_FILENAMES
+#define SPDLOG_WCHAR_TO_UTF8_SUPPORT
 #include "spdlog/spdlog.h"
 
 #define VK_USE_PLATFORM_WIN32_KHR

@@ -197,7 +197,7 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
 
                         if (fsr4Module != nullptr)
                         {
-                            LOG_INFO("amdxcffx64 loaded from {}", dllPath.string());
+                            LOG_INFO(L"amdxcffx64 loaded from {}", dllPath.wstring());
                             break;
                         }
                     }

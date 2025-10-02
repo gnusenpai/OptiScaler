@@ -185,7 +185,7 @@ void DLSSFeature::ReadVersion()
     {
         std::filesystem::path dlssPath(Config::Instance()->NVNGX_DLSS_Library.value());
         if (dlssPath.has_filename())
-            possibleDlls.push_back(dlssPath.filename().string());
+            possibleDlls.push_back(wstring_to_string(dlssPath.filename().wstring()));
     }
 
     possibleDlls.push_back("nvngx_dlss.dll");

@@ -161,7 +161,7 @@ class XeLLProxy
             // if (Config::Instance()->XeSSLibrary.has_value())
             //{
             //    std::filesystem::path cfgPath(Config::Instance()->XeSSLibrary.value().c_str());
-            //    LOG_INFO("Trying to load libxell.dll from ini path: {}", cfgPath.string());
+            //    LOG_INFO(L"Trying to load libxell.dll from ini path: {}", cfgPath.wstring());
 
             //    cfgPath = cfgPath / libraryName;
             //    mainModule = KernelBaseProxy::LoadLibraryExW_()(cfgPath.c_str(), NULL, 0);
@@ -170,7 +170,7 @@ class XeLLProxy
             if (mainModule == nullptr)
             {
                 std::filesystem::path libXeLLPath = dllPath.parent_path() / libraryName;
-                LOG_INFO("Trying to load libxell.dll from dll path: {}", libXeLLPath.string());
+                LOG_INFO(L"Trying to load libxell.dll from dll path: {}", libXeLLPath.wstring());
                 mainModule = NtdllProxy::LoadLibraryExW_Ldr(libXeLLPath.c_str(), NULL, 0);
             }
 

@@ -35,7 +35,7 @@ template <typename Mutex> class debug_sink : public base_sink<Mutex>
         auto kernelModule = GetModuleHandle(L"kernel32.dll");
 
 #if defined(SPDLOG_WCHAR_TO_UTF8_SUPPORT)
-        o_OutputDebugStringA = (PFN_OutputDebugStringW) GetProcAddress(kernelModule, "OutputDebugStringW");
+        o_OutputDebugStringW = (PFN_OutputDebugStringW) GetProcAddress(kernelModule, "OutputDebugStringW");
 #else
         o_OutputDebugStringA = (PFN_OutputDebugStringA) GetProcAddress(kernelModule, "OutputDebugStringA");
 #endif
