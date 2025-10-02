@@ -236,7 +236,8 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("nms.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
 
     // RTX Remix
-    QUIRK_ENTRY("nvremixbridge.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
+    QUIRK_ENTRY("nvremixbridge.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing,
+                GameQuirk::VulkanDLSSBarrierFixup),
 
     // Enshrouded
     QUIRK_ENTRY("enshrouded.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
