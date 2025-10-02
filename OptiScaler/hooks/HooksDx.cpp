@@ -1068,14 +1068,8 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         MenuOverlayDx::Present(pSwapChain, SyncInterval, Flags, pPresentParameters, pDevice, hWnd, isUWP);
 
         LOG_DEBUG("Calling fakenvapi");
-        if (State::Instance().activeFgOutput == FGOutput::FSRFG)
-        {
+        if (State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG)
             fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
-        }
-        else if (State::Instance().activeFgOutput == FGOutput::XeFG)
-        {
-            fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
-        }
 
         _frameCounter++;
     }
