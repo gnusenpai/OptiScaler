@@ -324,13 +324,14 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
     if (_skipResize)
     {
         LOG_DEBUG("XeFG call skipping");
+        _skipResize = false;
         return o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
     }
 
     LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}", BufferCount, Width, Height,
               (UINT) NewFormat, SwapChainFlags);
 
-    if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen)
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !State::Instance().SCExclusiveFullscreen)
     {
         DXGI_SWAP_CHAIN_DESC desc {};
         if (This->GetDesc(&desc) == S_OK)
@@ -364,13 +365,13 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         fg->Deactivate();
     }
 
-    _skipResize = true;
+    _skipResize1 = true;
     State::Instance().skipSpoofing = true;
 
     auto result = o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
 
     State::Instance().skipSpoofing = false;
-    _skipResize = false;
+    _skipResize1 = false;
 
     LOG_DEBUG("Result: {:X}, Caller: {}", (UINT) result, Util::WhoIsTheCaller(_ReturnAddress()));
 
@@ -427,9 +428,10 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
                                   UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
     // Skip XeFG's internal call
-    if (_skipResize)
+    if (_skipResize1)
     {
         LOG_DEBUG("XeFG call skipping");
+        _skipResize1 = false;
         return o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
                                     ppPresentQueue);
     }
@@ -518,14 +520,15 @@ HRESULT FGHooks::hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     if (_skipPresent)
     {
         LOG_DEBUG("XeFG call skipping");
+        _skipPresent = false;
         return o_FGSCPresent(This, SyncInterval, Flags);
     }
 
     LOG_DEBUG("SyncInterval: {}, Flags: {:X}", SyncInterval, Flags);
 
-    _skipPresent = true;
+    _skipPresent1 = true;
     auto result = FGPresent(This, SyncInterval, Flags, nullptr);
-    _skipPresent = false;
+    _skipPresent1 = false;
 
     return result;
 }
@@ -534,9 +537,10 @@ HRESULT FGHooks::hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
                               const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
     // Skip XeFG's internal call
-    if (_skipPresent)
+    if (_skipPresent1)
     {
         LOG_DEBUG("XeFG call skipping");
+        _skipPresent1 = false;
         return o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
     }
 
