@@ -69,16 +69,15 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("pathofexile_x64steam.exe", GameQuirk::LoadD3D12Manually),
 
     // Crapcom Games, DLSS without dxgi spoofing needs restore compute in those
+    //
+    // Kunitsu-Gami: Path of the Goddess, Monster Hunter Wilds, MONSTER HUNTER RISE, Dead Rising Deluxe Remaster
+    // (including the demo), Dragon's Dogma 2
     QUIRK_ENTRY("kunitsugami.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("kunitsugamidemo.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
                 GameQuirk::RestoreComputeSigOnNvidia),
     QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNvidia), // Seems to fix real DLSS
-
-    // Dead Rising Deluxe Remaster (including the demo)
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
-
-    // Dragon's Dogma 2
     QUIRK_ENTRY("dd2ccs.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("dd2.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
 
@@ -132,6 +131,11 @@ static const QuirkEntry quirkTable[] = {
     // Final Fantasy XIV
     QUIRK_ENTRY("ffxiv_dx11.exe", GameQuirk::DisableVsyncOverride),
     QUIRK_ENTRY("graphadapterdesc.exe", GameQuirk::SkipD3D11FeatureLevelElevation),
+
+    // Prey 2017
+    // Requires Prey Luma Remastered mod for upscalers
+    QUIRK_ENTRY("prey.exe", GameQuirk::DontUseNTShared, GameQuirk::DisableOptiXessPipelineCreation,
+                GameQuirk::DisableDxgiSpoofing),
 
     // SL spoof enough to unlock everything DLSS/No spoof needed for DLSS inputs
     //
@@ -187,13 +191,11 @@ static const QuirkEntry quirkTable[] = {
 
     // Self-explanatory
     //
-    // The Persistence, Split Fiction, Minecraft Bedrock, Prey 2017, Ghostwire: Tokyo, RoadCraft, STAR WARS Jedi:
+    // The Persistence, Split Fiction, Minecraft Bedrock, Ghostwire: Tokyo, RoadCraft, STAR WARS Jedi:
     // Survivor, Nioh 2 – The Complete Edition
     QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
-    QUIRK_ENTRY("prey.exe", GameQuirk::DontUseNTShared, GameQuirk::DisableOptiXessPipelineCreation,
-                GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("gwt.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("roadcraft - retail.exe", GameQuirk::FixSlSimulationMarkers),
     QUIRK_ENTRY("jedisurvivor.exe", GameQuirk::ForceAutoExposure),
