@@ -2568,18 +2568,28 @@ bool MenuCommon::RenderMenu()
                                 ImGui::Spacing();
                             }
 
-                            if (majorFsrVersion == 3)
+                            if (majorFsrVersion == 3 ||
+                                (majorFsrVersion > 3 && Config::Instance()->Fsr4EnableDebugView.value_or_default()))
                             {
                                 if (bool dView = Config::Instance()->FsrDebugView.value_or_default();
                                     ImGui::Checkbox("FSR Upscaling Debug View", &dView))
                                     Config::Instance()->FsrDebugView = dView;
-                                ShowHelpMarker("Top left: Dilated Motion Vectors\n"
-                                               "Top middle: Protected Areas\n"
-                                               "Top right: Dilated Depth\n"
-                                               "Middle: Upscaled frame\n"
-                                               "Bottom left: Disocclusion mask\n"
-                                               "Bottom middle: Reactiveness\n"
-                                               "Bottom right: Detail Protection Takedown");
+
+                                if (majorFsrVersion > 3)
+                                {
+                                    ShowHelpMarker("Top left: Dilated Motion Vectors\n"
+                                                   "Top right: Predicted Blend Factor");
+                                }
+                                else
+                                {
+                                    ShowHelpMarker("Top left: Dilated Motion Vectors\n"
+                                                   "Top middle: Protected Areas\n"
+                                                   "Top right: Dilated Depth\n"
+                                                   "Middle: Upscaled frame\n"
+                                                   "Bottom left: Disocclusion mask\n"
+                                                   "Bottom middle: Reactiveness\n"
+                                                   "Bottom right: Detail Protection Takedown");
+                                }
                             }
 
                             ImGui::Spacing();

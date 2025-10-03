@@ -1232,6 +1232,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         if (Config::Instance()->DisableOverlays.value_or_default())
             SetEnvironmentVariable(L"SteamNoOverlayUIDrawing", L"1");
 
+        if (Config::Instance()->Fsr4EnableWatermark.value_or_default())
+        {
+            SetEnvironmentVariable(L"MLSR-WATERMARK", L"1");
+
+            if (!Config::Instance()->FpsOverlayPos.has_value())
+                Config::Instance()->FpsOverlayPos = 1; // Top right
+        }
+
         // Hook FSR4 stuff as early as possible
         spdlog::info("");
         InitFSR4Update();

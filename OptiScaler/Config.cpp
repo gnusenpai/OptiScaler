@@ -173,6 +173,8 @@ bool Config::Reload(std::filesystem::path iniPath)
             FsrUseMaskForTransparency.set_from_config(readBool("FSR", "UseReactiveMaskForTransparency"));
             DlssReactiveMaskBias.set_from_config(readFloat("FSR", "DlssReactiveMaskBias"));
             Fsr4Update.set_from_config(readBool("FSR", "Fsr4Update"));
+            Fsr4EnableDebugView.set_from_config(readBool("FSR", "Fsr4EnableDebugView"));
+            Fsr4EnableWatermark.set_from_config(readBool("FSR", "Fsr4EnableWatermark"));
 
             if (auto setting = readInt("FSR", "Fsr4Model"); setting.has_value() && setting >= 0 && setting <= 5)
                 Fsr4Model.set_from_config(setting);
@@ -769,6 +771,10 @@ bool Config::SaveIni()
         ini.SetValue("FSR", "Fsr4Update",
                      GetBoolValue(Instance()->Fsr4Update.value_for_config_ignore_default()).c_str());
         ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4EnableDebugView",
+                     GetIntValue(Instance()->Fsr4EnableDebugView.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4EnableWatermark",
+                     GetIntValue(Instance()->Fsr4EnableWatermark.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearColorSpace",
                      GetBoolValue(Instance()->FsrNonLinearColorSpace.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearPQ", GetBoolValue(Instance()->FsrNonLinearPQ.value_for_config()).c_str());

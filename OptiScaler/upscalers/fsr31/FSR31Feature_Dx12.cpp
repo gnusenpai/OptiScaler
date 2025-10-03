@@ -685,6 +685,9 @@ bool FSR31FeatureDx12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
         LOG_INFO("contextDesc.initFlags (NonLinearColorSpace) {0:b}", _contextDesc.flags);
     }
 
+    if (Config::Instance()->Fsr4EnableDebugView.value_or_default())
+        _contextDesc.flags |= 512; // FFX_UPSCALE_ENABLE_DEBUG_VISUALIZATION
+
     if (Config::Instance()->OutputScalingEnabled.value_or_default() && LowResMV())
     {
         float ssMulti = Config::Instance()->OutputScalingMultiplier.value_or_default();

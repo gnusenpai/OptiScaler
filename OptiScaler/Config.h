@@ -330,6 +330,8 @@ class Config
     CustomOptional<bool> FsrUseMaskForTransparency { true };
     CustomOptional<bool> Fsr4Update { false };
     CustomOptional<uint32_t, NoDefault> Fsr4Model;
+    CustomOptional<bool> Fsr4EnableDebugView { false };
+    CustomOptional<bool> Fsr4EnableWatermark { false };
     CustomOptional<bool> FsrNonLinearColorSpace { false };
     CustomOptional<bool> FsrNonLinearSRGB { false };
     CustomOptional<bool> FsrNonLinearPQ { false };
