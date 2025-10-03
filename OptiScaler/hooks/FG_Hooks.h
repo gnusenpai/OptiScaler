@@ -39,6 +39,7 @@ class FGHooks
     inline static PFN_Present1 o_FGSCPresent1 = nullptr;
     inline static HWND _hwnd = nullptr;
     inline static bool _skipResize = false;
+    inline static bool _skipResize1 = false;
     inline static bool _skipPresent = false;
     inline static UINT _lastPresentFlags = 0;
     inline static double _lastFGFrameTime = 0.0;
