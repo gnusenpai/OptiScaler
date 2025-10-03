@@ -176,11 +176,8 @@ class FfxApiProxy
             }
         }
 
-        if (_D3D12_CreateContext == nullptr)
-        {
-            InitFfxDx12_SR();
-            InitFfxDx12_FG();
-        }
+        InitFfxDx12_SR();
+        InitFfxDx12_FG();
 
         bool loadResult = _D3D12_CreateContext != nullptr;
 
@@ -545,6 +542,11 @@ class FfxApiProxy
     {
         auto isFg = IsFGType(desc->type);
 
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_CreateContext_FG(context, desc, memCb);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_CreateContext_SR(context, desc, memCb);
+
         if (_dllDx12 != nullptr && !(isFg && _skipFGCreateCalls) && !(!isFg && _skipSRCreateCalls))
         {
             if (isFg)
@@ -561,11 +563,6 @@ class FfxApiProxy
 
             return result;
         }
-
-        if (isFg && _dllDx12_FG != nullptr)
-            return _D3D12_CreateContext_FG(context, desc, memCb);
-        else if (!isFg && _dllDx12_SR != nullptr)
-            return _D3D12_CreateContext_SR(context, desc, memCb);
 
         return FFX_API_RETURN_NO_PROVIDER;
     }
@@ -603,6 +600,11 @@ class FfxApiProxy
     {
         auto isFg = IsFGType(desc->type);
 
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_Configure_FG(context, desc);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_Configure_SR(context, desc);
+
         if (_dllDx12 != nullptr && !(isFg && _skipFGConfigureCalls) && !(!isFg && _skipSRConfigureCalls))
         {
             if (isFg)
@@ -620,17 +622,17 @@ class FfxApiProxy
             return result;
         }
 
-        if (isFg && _dllDx12_FG != nullptr)
-            return _D3D12_Configure_FG(context, desc);
-        else if (!isFg && _dllDx12_SR != nullptr)
-            return _D3D12_Configure_SR(context, desc);
-
         return FFX_API_RETURN_NO_PROVIDER;
     }
 
     static ffxReturnCode_t D3D12_Query(ffxContext* context, ffxQueryDescHeader* desc)
     {
         auto isFg = IsFGType(desc->type);
+
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_Query_FG(context, desc);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_Query_SR(context, desc);
 
         if (_dllDx12 != nullptr && !(isFg && _skipFGQueryCalls) && !(!isFg && _skipSRQueryCalls))
         {
@@ -649,17 +651,17 @@ class FfxApiProxy
             return result;
         }
 
-        if (isFg && _dllDx12_FG != nullptr)
-            return _D3D12_Query_FG(context, desc);
-        else if (!isFg && _dllDx12_SR != nullptr)
-            return _D3D12_Query_SR(context, desc);
-
         return FFX_API_RETURN_NO_PROVIDER;
     }
 
     static ffxReturnCode_t D3D12_Dispatch(ffxContext* context, const ffxDispatchDescHeader* desc)
     {
         auto isFg = IsFGType(desc->type);
+
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_Dispatch_FG(context, desc);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_Dispatch_SR(context, desc);
 
         if (_dllDx12 != nullptr && !(isFg && _skipFGDispatchCalls) && !(!isFg && _skipSRDispatchCalls))
         {
@@ -677,11 +679,6 @@ class FfxApiProxy
 
             return result;
         }
-
-        if (isFg && _dllDx12_FG != nullptr)
-            return _D3D12_Dispatch_FG(context, desc);
-        else if (!isFg && _dllDx12_SR != nullptr)
-            return _D3D12_Dispatch_SR(context, desc);
 
         return FFX_API_RETURN_NO_PROVIDER;
     }

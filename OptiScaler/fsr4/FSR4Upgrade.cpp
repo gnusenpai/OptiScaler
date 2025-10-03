@@ -171,6 +171,25 @@ void CheckForGPU()
     LOG_INFO("Fsr4Update: {}", Config::Instance()->Fsr4Update.value_or_default());
 }
 
+struct ffxProviderInterface
+{
+    uint64_t versionId;
+    const char* versionName;
+    PVOID canProvide;
+    PVOID createContext;
+    PVOID destroyContext;
+    PVOID configure;
+    PVOID query;
+    PVOID dispatch;
+};
+
+struct ExternalProviderData
+{
+    uint32_t structVersion = 2;
+    uint64_t descType;
+    ffxProviderInterface provider;
+};
+
 struct AmdExtFfxApi : public IAmdExtFfxApi
 {
     PFN_UpdateFfxApiProvider o_UpdateFfxApiProvider = nullptr;
@@ -178,6 +197,15 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
     HRESULT STDMETHODCALLTYPE UpdateFfxApiProvider(void* pData, uint32_t dataSizeInBytes) override
     {
         LOG_INFO("UpdateFfxApiProvider called");
+
+        // To prevent crashes with amd_fidelityfx_dx12.dll & amd_fidelityfx_framegeneration_dx12.dll combo added this
+        // check after ML FG update this should be disabled!
+        auto providerData = reinterpret_cast<ExternalProviderData*>(pData);
+        if (providerData->descType >= 0x00020001u && providerData->descType <= 0x00030009u)
+        {
+            LOG_ERROR("Skip update for FG");
+            return E_INVALIDARG;
+        }
 
         if (o_UpdateFfxApiProvider == nullptr)
         {
@@ -235,7 +263,9 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
         if (o_UpdateFfxApiProvider != nullptr)
         {
             State::DisableChecks(1);
+
             auto result = o_UpdateFfxApiProvider(pData, dataSizeInBytes);
+
             LOG_INFO("UpdateFfxApiProvider called, result: {} ({:X})", result == S_OK ? "Ok" : "Error", (UINT) result);
             State::EnableChecks(1);
             return result;
