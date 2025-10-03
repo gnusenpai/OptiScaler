@@ -16,7 +16,7 @@ FSR31FeatureDx12::FSR31FeatureDx12(unsigned int InHandleId, NVSDK_NGX_Parameter*
     : FSR31Feature(InHandleId, InParameters), IFeature_Dx12(InHandleId, InParameters),
       IFeature(InHandleId, SetParameters(InParameters))
 {
-    _moduleLoaded = FfxApiProxy::InitFfxDx12();
+    _moduleLoaded = FfxApiProxy::IsSRReady();
 
     if (_moduleLoaded)
         LOG_INFO("amd_fidelityfx_dx12.dll methods loaded!");

@@ -48,10 +48,10 @@ void FSRFG_Dx12::ConfigureFramePaceTuning()
 
 feature_version FSRFG_Dx12::Version()
 {
-    if (FfxApiProxy::Dx12Module_FG() == nullptr)
+    if (!FfxApiProxy::IsFGReady())
         FfxApiProxy::InitFfxDx12();
 
-    if (FfxApiProxy::Dx12Module_FG() != nullptr)
+    if (FfxApiProxy::IsFGReady())
     {
         auto ver = FfxApiProxy::VersionDx12_FG();
         return ver;
@@ -704,11 +704,11 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 
     _constants = fgConstants;
 
-    if (FfxApiProxy::Dx12Module_FG() == nullptr)
+    if (!FfxApiProxy::IsFGReady())
         FfxApiProxy::InitFfxDx12();
 
     // If needed hooks are missing or XeFG proxy is not inited or FG swapchain is not created
-    if (!Config::Instance()->OverlayMenu.value_or_default() || FfxApiProxy::Dx12Module_FG() == nullptr ||
+    if (!Config::Instance()->OverlayMenu.value_or_default() || !FfxApiProxy::IsFGReady() ||
         State::Instance().currentFGSwapchain == nullptr)
         return;
 

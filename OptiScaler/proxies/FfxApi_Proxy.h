@@ -84,6 +84,9 @@ class FfxApiProxy
     static HMODULE Dx12Module_SR() { return _dllDx12_SR; }
     static HMODULE Dx12Module_FG() { return _dllDx12_FG; }
 
+    static bool IsFGReady() { return (_dllDx12 && !_dx12Loader) || _dllDx12_FG != nullptr; }
+    static bool IsSRReady() { return (_dllDx12 && !_dx12Loader) || _dllDx12_SR != nullptr; }
+
     static bool InitFfxDx12(HMODULE module = nullptr)
     {
         // if dll already loaded

@@ -28,7 +28,7 @@ bool CheckForFGStatus()
     if (State::Instance().activeFgOutput == FGOutput::FSRFG)
     {
         FfxApiProxy::InitFfxDx12();
-        if (FfxApiProxy::Dx12Module() == nullptr && FfxApiProxy::Dx12Module_FG() == nullptr)
+        if (FfxApiProxy::IsFGReady())
         {
             Config::Instance()->FGOutput.set_volatile_value(FGOutput::NoFG);
             State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
