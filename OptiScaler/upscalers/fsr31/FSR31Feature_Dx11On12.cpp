@@ -16,6 +16,8 @@ FSR31FeatureDx11on12::FSR31FeatureDx11on12(unsigned int InHandleId, NVSDK_NGX_Pa
     : FSR31Feature(InHandleId, InParameters), IFeature_Dx11wDx12(InHandleId, InParameters),
       IFeature_Dx11(InHandleId, InParameters), IFeature(InHandleId, SetParameters(InParameters))
 {
+    FfxApiProxy::InitFfxDx12();
+
     _moduleLoaded = FfxApiProxy::IsSRReady();
 
     if (_moduleLoaded)
