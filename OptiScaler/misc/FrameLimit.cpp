@@ -1,7 +1,7 @@
 #include "FrameLimit.h"
 
 #include "Config.h"
-#include "hooks/HooksDx.h"
+// #include "hooks/D3D11Hooks.h"
 
 inline uint64_t FrameLimit::get_timestamp()
 {

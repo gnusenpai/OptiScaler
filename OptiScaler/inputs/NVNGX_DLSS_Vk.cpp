@@ -10,7 +10,7 @@
 
 #include "upscalers/FeatureProvider_Vk.h"
 
-#include "hooks/HooksVk.h"
+#include <upscaler_time/UpscalerTime_Vk.h>
 
 #include <vulkan/vulkan.hpp>
 #include <ankerl/unordered_dense.h>
@@ -137,16 +137,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext2(
     State::Instance().api = Vulkan;
     State::Instance().currentVkDevice = InDevice;
 
-    VkQueryPoolCreateInfo queryPoolInfo = {};
-    queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-    queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
-    queryPoolInfo.queryCount = 2; // Start and End timestamps
-
-    vkCreateQueryPool(InDevice, &queryPoolInfo, nullptr, &HooksVk::queryPool);
-
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(InPD, &deviceProperties);
-    HooksVk::timeStampPeriod = deviceProperties.limits.timestampPeriod;
+    UpscalerTimeVk::Init(InDevice, InPD);
 
     State::Instance().NvngxVkInited = true;
 
@@ -906,14 +897,11 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
         return NVSDK_NGX_Result_Success;
     }
 
-    // Record the first timestamp (before FSR2)
-    vkCmdWriteTimestamp(InCmdList, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, HooksVk::queryPool, 0);
+    UpscalerTimeVk::UpscaleStart(InCmdList);
 
     auto upscaleResult = deviceContext->Evaluate(InCmdList, InParameters);
 
-    // Record the second timestamp (after FSR2)
-    vkCmdWriteTimestamp(InCmdList, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, HooksVk::queryPool, 1);
-    HooksVk::vkUpscaleTrig = true;
+    UpscalerTimeVk::UpscaleEnd(InCmdList);
 
     return upscaleResult ? NVSDK_NGX_Result_Success : NVSDK_NGX_Result_Fail;
 }

@@ -5,28 +5,10 @@
 #include <Util.h>
 #include <State.h>
 #include <Config.h>
-#include <DllNames.h>
 
-#include <proxies/Ntdll_Proxy.h>
-#include <proxies/Kernel32_Proxy.h>
-#include <proxies/KernelBase_Proxy.h>
-#include <proxies/NVNGX_Proxy.h>
-#include <proxies/XeSS_Proxy.h>
-#include <proxies/FfxApi_Proxy.h>
-#include <proxies/Dxgi_Proxy.h>
-#include <proxies/D3D12_Proxy.h>
-
-#include <inputs/FSR2_Dx12.h>
-#include <inputs/FSR3_Dx12.h>
-#include <inputs/FfxApiExe_Dx12.h>
-
-#include <spoofing/Dxgi_Spoofing.h>
-#include <spoofing/Vulkan_Spoofing.h>
-
-#include <hooks/HooksDx.h>
-#include <hooks/HooksVk.h>
-#include <hooks/Gdi32_Hooks.h>
-#include <hooks/Streamline_Hooks.h>
+#include "Gdi32_Hooks.h"
+#include "Streamline_Hooks.h"
+#include "LibraryLoad_Hooks.h"
 
 #include <fsr4/FSR4ModelSelection.h>
 
@@ -66,47 +48,6 @@ class KernelHooks
     inline static KernelBaseProxy::PFN_LoadLibraryExA o_KB_LoadLibraryExA = nullptr;
     inline static KernelBaseProxy::PFN_LoadLibraryExW o_KB_LoadLibraryExW = nullptr;
     inline static KernelBaseProxy::PFN_GetProcAddress o_KB_GetProcAddress = nullptr;
-
-    static HMODULE LoadNvApi()
-    {
-        HMODULE nvapi = nullptr;
-
-        if (Config::Instance()->OverrideNvapiDll.value_or_default() && Config::Instance()->NvapiDllPath.has_value())
-        {
-            nvapi = NtdllProxy::LoadLibraryExW_Ldr(Config::Instance()->NvapiDllPath->c_str(), NULL, 0);
-
-            if (nvapi != nullptr)
-            {
-                LOG_INFO("nvapi64.dll loaded from {0}", wstring_to_string(Config::Instance()->NvapiDllPath.value()));
-                return nvapi;
-            }
-        }
-
-        if (Config::Instance()->OverrideNvapiDll.value_or_default() && nvapi == nullptr)
-        {
-            auto localPath = Util::DllPath().parent_path() / L"nvapi64.dll";
-            nvapi = NtdllProxy::LoadLibraryExW_Ldr(localPath.wstring().c_str(), NULL, 0);
-
-            if (nvapi != nullptr)
-            {
-                LOG_INFO("nvapi64.dll loaded from {0}", wstring_to_string(localPath.wstring()));
-                return nvapi;
-            }
-        }
-
-        if (nvapi == nullptr)
-        {
-            nvapi = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, 0);
-
-            if (nvapi != nullptr)
-            {
-                LOG_INFO("nvapi64.dll loaded from system!");
-                return nvapi;
-            }
-        }
-
-        return nullptr;
-    }
 
     static constexpr HMODULE amdxc64Mark = HMODULE(0xFFFFFFFF13372137);
 
@@ -197,7 +138,7 @@ class KernelHooks
             phModule)
         {
             LOG_TRACE("Suspected SpecialK call for nvapi64");
-            *phModule = LoadNvApi();
+            *phModule = LibraryLoadHooks::LoadNvApi();
             return true;
         }
 
@@ -306,6 +247,159 @@ class KernelHooks
                                  dwFlagsAndAttributes, hTemplateFile);
     }
 
+    // Load Library checks
+    static HMODULE CheckLoad(const std::wstring& name)
+    {
+        do
+        {
+            if (State::Instance().isShuttingDown || LibraryLoadHooks::IsApiSetName(name))
+                break;
+
+            if (State::SkipDllChecks())
+            {
+                const std::wstring skip = string_to_wstring(State::SkipDllName());
+
+                if (skip.empty() || LibraryLoadHooks::EndsWithInsensitive(name, std::wstring_view(skip)) ||
+                    LibraryLoadHooks::EndsWithInsensitive(name, std::wstring(skip + L".dll")))
+                {
+                    LOG_TRACE("Skip checks for: {}", wstring_to_string(name.data()));
+                    break;
+                }
+            }
+
+            auto moduleHandle = LibraryLoadHooks::LoadLibraryCheckW(name.data(), name.data());
+
+            // skip loading of dll
+            if (moduleHandle == (HMODULE) 1337)
+                break;
+
+            if (moduleHandle != nullptr)
+            {
+                LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+                return moduleHandle;
+            }
+        } while (false);
+
+        return nullptr;
+    }
+
+    static HMODULE hk_K32_LoadLibraryW(LPCWSTR lpLibFileName)
+    {
+        if (lpLibFileName == nullptr)
+            return NULL;
+
+        std::wstring name(lpLibFileName);
+
+#ifdef _DEBUG
+        // LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+#endif
+
+        auto result = CheckLoad(name);
+
+        if (result != nullptr)
+            return result;
+
+        return o_K32_LoadLibraryW(lpLibFileName);
+    }
+
+    static HMODULE hk_K32_LoadLibraryA(LPCSTR lpLibFileName)
+    {
+        if (lpLibFileName == nullptr)
+            return NULL;
+
+        std::string nameA(lpLibFileName);
+        std::wstring name = string_to_wstring(nameA);
+
+#ifdef _DEBUG
+        // LOG_TRACE("{}, caller: {}", nameA.data(), Util::WhoIsTheCaller(_ReturnAddress()));
+#endif
+
+        auto result = CheckLoad(name);
+
+        if (result != nullptr)
+            return result;
+
+        return o_K32_LoadLibraryA(lpLibFileName);
+    }
+
+    static HMODULE hk_K32_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags)
+    {
+        if (lpLibFileName == nullptr)
+            return NULL;
+
+        std::wstring name(lpLibFileName);
+
+#ifdef _DEBUG
+        // LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+#endif
+
+        auto result = CheckLoad(name);
+
+        if (result != nullptr)
+            return result;
+
+        return o_K32_LoadLibraryExW(lpLibFileName, hFile, dwFlags);
+    }
+
+    static HMODULE hk_K32_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE hFile, DWORD dwFlags)
+    {
+        if (lpLibFileName == nullptr)
+            return NULL;
+
+        std::string nameA(lpLibFileName);
+        std::wstring name = string_to_wstring(nameA);
+
+#ifdef _DEBUG
+        // LOG_TRACE("{}, caller: {}", nameA.data(), Util::WhoIsTheCaller(_ReturnAddress()));
+#endif
+
+        auto result = CheckLoad(name);
+
+        if (result != nullptr)
+            return result;
+
+        return o_K32_LoadLibraryExA(lpLibFileName, hFile, dwFlags);
+    }
+
+    static HMODULE hk_KB_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags)
+    {
+        if (lpLibFileName == nullptr)
+            return NULL;
+
+        std::wstring name(lpLibFileName);
+
+#ifdef _DEBUG
+        // LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
+#endif
+
+        auto result = CheckLoad(name);
+
+        if (result != nullptr)
+            return result;
+
+        return o_KB_LoadLibraryExW(lpLibFileName, hFile, dwFlags);
+    }
+
+    static BOOL hk_K32_FreeLibrary(HMODULE lpLibrary)
+    {
+        if (lpLibrary == nullptr)
+            return STATUS_INVALID_PARAMETER;
+
+#ifdef _DEBUG
+        // LOG_TRACE("{:X}", (size_t) lpLibrary);
+#endif
+
+        if (!State::Instance().isShuttingDown)
+        {
+            auto result = LibraryLoadHooks::FreeLibrary(lpLibrary);
+
+            if (result.has_value())
+                return result.value() == TRUE;
+        }
+
+        return o_K32_FreeLibrary(lpLibrary);
+    }
+
   public:
     static void Hook()
     {
@@ -319,6 +413,15 @@ class KernelHooks
         o_K32_GetModuleHandleExW = Kernel32Proxy::Hook_GetModuleHandleExW(hk_K32_GetModuleHandleExW);
         o_K32_GetFileAttributesW = Kernel32Proxy::Hook_GetFileAttributesW(hk_K32_GetFileAttributesW);
         o_K32_CreateFileW = Kernel32Proxy::Hook_CreateFileW(hk_K32_CreateFileW);
+
+        if (!Config::Instance()->UseNtdllHooks.value_or_default())
+        {
+            o_K32_FreeLibrary = Kernel32Proxy::Hook_FreeLibrary(hk_K32_FreeLibrary);
+            o_K32_LoadLibraryA = Kernel32Proxy::Hook_LoadLibraryA(hk_K32_LoadLibraryA);
+            o_K32_LoadLibraryW = Kernel32Proxy::Hook_LoadLibraryW(hk_K32_LoadLibraryW);
+            o_K32_LoadLibraryExA = Kernel32Proxy::Hook_LoadLibraryExA(hk_K32_LoadLibraryExA);
+            o_K32_LoadLibraryExW = Kernel32Proxy::Hook_LoadLibraryExW(hk_K32_LoadLibraryExW);
+        }
     }
 
     static void HookBase()
@@ -329,5 +432,10 @@ class KernelHooks
         LOG_DEBUG("");
 
         o_KB_GetProcAddress = KernelBaseProxy::Hook_GetProcAddress(hk_KB_GetProcAddress);
+
+        if (!Config::Instance()->UseNtdllHooks.value_or_default())
+        {
+            o_KB_LoadLibraryExW = KernelBaseProxy::Hook_LoadLibraryExW(hk_KB_LoadLibraryExW);
+        }
     }
 };

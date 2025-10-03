@@ -10,7 +10,7 @@
 #include "NVNGX_Parameter.h"
 #include "proxies/NVNGX_Proxy.h"
 
-#include "hooks/HooksDx.h"
+#include <upscaler_time/UpscalerTime_Dx11.h>
 
 #include <ankerl/unordered_dense.h>
 
@@ -81,23 +81,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Init_Ext(unsigned long long InApp
 
     State::Instance().api = DX11;
     State::Instance().currentD3D11Device = InDevice;
-
-    // Create Disjoint Query
-    D3D11_QUERY_DESC disjointQueryDesc = {};
-    disjointQueryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-
-    // Create Timestamp Queries
-    D3D11_QUERY_DESC timestampQueryDesc = {};
-    timestampQueryDesc.Query = D3D11_QUERY_TIMESTAMP;
-
-    for (int i = 0; i < HooksDx::QUERY_BUFFER_COUNT; i++)
-    {
-        InDevice->CreateQuery(&disjointQueryDesc, &HooksDx::disjointQueries[i]);
-        InDevice->CreateQuery(&timestampQueryDesc, &HooksDx::startQueries[i]);
-        InDevice->CreateQuery(&timestampQueryDesc, &HooksDx::endQueries[i]);
-    }
-
     State::Instance().NvngxDx11Inited = true;
+
+    UpscalerTimeDx11::Init(InDevice);
 
     return NVSDK_NGX_Result_Success;
 }
@@ -224,7 +210,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Shutdown()
 
     // Unhooking and cleaning stuff causing issues during shutdown.
     // Disabled for now to check if it cause any issues
-    // HooksDx::UnHookDx();
+    // HooksDx::UnHook();
 
     shutdown = false;
     State::Instance().NvngxDx11Inited = false;
@@ -644,14 +630,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
         return NVSDK_NGX_Result_Success;
     }
 
-    // In the render loop:
-    HooksDx::previousFrameIndex =
-        (HooksDx::currentFrameIndex + HooksDx::QUERY_BUFFER_COUNT - 2) % HooksDx::QUERY_BUFFER_COUNT;
-    int nextFrameIndex = HooksDx::currentFrameIndex;
-
-    // Record the queries in the current frame
-    InDevCtx->Begin(HooksDx::disjointQueries[nextFrameIndex]);
-    InDevCtx->End(HooksDx::startQueries[nextFrameIndex]);
+    UpscalerTimeDx11::UpscaleStart(InDevCtx);
 
     if (!deviceContext->Evaluate(InDevCtx, InParameters) && !deviceContext->IsInited() &&
         (deviceContext->Name() == "XeSS" || deviceContext->Name() == "DLSS" || deviceContext->Name() == "FSR3 w/Dx12"))
@@ -660,10 +639,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
         State::Instance().changeBackend[handleId] = true;
     }
 
-    InDevCtx->End(HooksDx::endQueries[nextFrameIndex]);
-    InDevCtx->End(HooksDx::disjointQueries[nextFrameIndex]);
-
-    HooksDx::dx11UpscaleTrig[nextFrameIndex] = true;
+    UpscalerTimeDx11::UpscaleEnd(InDevCtx);
 
     return NVSDK_NGX_Result_Success;
 }

@@ -19,6 +19,7 @@
 #include "proxies/KernelBase_Proxy.h"
 #include "proxies/Ntdll_Proxy.h"
 #include <proxies/IGDExt_Proxy.h>
+#include <proxies/FfxApi_Proxy.h>
 
 #include "inputs/FSR2_Dx12.h"
 #include "inputs/FSR3_Dx12.h"
@@ -29,8 +30,10 @@
 
 #include "spoofing/Vulkan_Spoofing.h"
 
-#include <hooks/HooksDx.h>
-#include <hooks/HooksVk.h>
+#include <hooks/Dxgi_Hooks.h>
+#include <hooks/D3D11_Hooks.h>
+#include <hooks/D3D12_Hooks.h>
+#include <hooks/Vulkan_Hooks.h>
 #include <hooks/Ntdll_Hooks.h>
 #include <hooks/Kernel_Hooks.h>
 #include <nvapi/NvApiHooks.h>
@@ -680,23 +683,13 @@ static void CheckWorkingMode()
                     LOG_DEBUG("dxgi.dll already in memory");
 
                     DxgiProxy::Init(dxgiModule);
-
-                    if (Config::Instance()->DxgiSpoofing.value_or_default())
-                        HookDxgiForSpoofing();
-
-                    if (Config::Instance()->OverlayMenu.value())
-                        HooksDx::HookDxgi();
+                    DxgiHooks::Hook();
                 }
             }
             else
             {
                 LOG_DEBUG("dxgi.dll already in memory");
-
-                if (Config::Instance()->DxgiSpoofing.value_or_default())
-                    HookDxgiForSpoofing();
-
-                if (Config::Instance()->OverlayMenu.value())
-                    HooksDx::HookDxgi();
+                DxgiHooks::Hook();
             }
 
             // DirectX 12
@@ -713,13 +706,13 @@ static void CheckWorkingMode()
                 {
                     LOG_DEBUG("d3d12.dll already in memory");
                     D3d12Proxy::Init(d3d12Module);
-                    HooksDx::HookDx12();
+                    D3D12Hooks::Hook();
                 }
             }
             else
             {
                 LOG_DEBUG("d3d12.dll already in memory");
-                HooksDx::HookDx12();
+                D3D12Hooks::Hook();
             }
 
             if (D3d12Proxy::Module() == nullptr && State::Instance().gameQuirks & GameQuirk::LoadD3D12Manually)
@@ -733,7 +726,7 @@ static void CheckWorkingMode()
             if (Config::Instance()->OverlayMenu.value() && d3d11Module != nullptr)
             {
                 LOG_DEBUG("d3d11.dll already in memory");
-                HooksDx::HookDx11(d3d11Module);
+                D3D11Hooks::Hook(d3d11Module);
             }
 
             // Vulkan
@@ -745,11 +738,11 @@ static void CheckWorkingMode()
             {
                 LOG_DEBUG("vulkan-1.dll already in memory");
 
-                HookForVulkanSpoofing(vulkanModule);
-                HookForVulkanExtensionSpoofing(vulkanModule);
-                HookForVulkanVRAMSpoofing(vulkanModule);
+                VulkanSpoofing::HookForVulkanSpoofing(vulkanModule);
+                VulkanSpoofing::HookForVulkanExtensionSpoofing(vulkanModule);
+                VulkanSpoofing::HookForVulkanVRAMSpoofing(vulkanModule);
 
-                HooksVk::HookVk(vulkanModule);
+                VulkanHooks::Hook(vulkanModule);
             }
 
             // NVAPI
@@ -784,6 +777,7 @@ static void CheckWorkingMode()
             {
                 LOG_DEBUG("sl.interposer.dll already in memory");
                 StreamlineHooks::hookInterposer(slModule);
+                slInterposerModule = slModule;
             }
 
             HMODULE slDlss = nullptr;
@@ -859,6 +853,22 @@ static void CheckWorkingMode()
             {
                 LOG_DEBUG("amd_fidelityfx_dx12.dll already in memory");
                 FfxApiProxy::InitFfxDx12(ffxDx12Module);
+            }
+
+            HMODULE ffxDx12SRModule = nullptr;
+            ffxDx12SRModule = GetDllNameWModule(&ffxDx12UpscalerNamesW);
+            if (ffxDx12SRModule != nullptr)
+            {
+                LOG_DEBUG("amd_fidelityfx_upscaler_dx12.dll already in memory");
+                FfxApiProxy::InitFfxDx12_SR(ffxDx12SRModule);
+            }
+
+            HMODULE ffxDx12FGModule = nullptr;
+            ffxDx12FGModule = GetDllNameWModule(&ffxDx12FGNamesW);
+            if (ffxDx12FGModule != nullptr)
+            {
+                LOG_DEBUG("amd_fidelityfx_framegeneration_dx12.dll already in memory");
+                FfxApiProxy::InitFfxDx12_FG(ffxDx12FGModule);
             }
 
             // FFX Vulkan
@@ -1039,6 +1049,9 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DisableVsyncOverride && !Config::Instance()->OverrideVsync.has_value())
         Config::Instance()->OverrideVsync.set_volatile_value(false);
 
+    if (quirks & GameQuirk::UseNtDllHooks && !Config::Instance()->UseNtdllHooks.has_value())
+        Config::Instance()->UseNtdllHooks.set_volatile_value(true);
+
     State::Instance().gameQuirks = quirks;
 }
 
@@ -1218,6 +1231,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
         if (Config::Instance()->DisableOverlays.value_or_default())
             SetEnvironmentVariable(L"SteamNoOverlayUIDrawing", L"1");
+
+        if (Config::Instance()->Fsr4EnableWatermark.value_or_default())
+        {
+            SetEnvironmentVariable(L"MLSR-WATERMARK", L"1");
+
+            if (!Config::Instance()->FpsOverlayPos.has_value())
+                Config::Instance()->FpsOverlayPos = 1; // Top right
+        }
 
         // Hook FSR4 stuff as early as possible
         spdlog::info("");

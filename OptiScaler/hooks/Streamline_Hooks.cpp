@@ -66,7 +66,7 @@ char* StreamlineHooks::trimStreamlineLog(const char* msg)
 
     char* result = (char*) malloc(strlen(msg) + 1);
     if (!result)
-        return NULL;
+        return nullptr;
 
     strcpy(result, msg);
 
@@ -81,25 +81,30 @@ char* StreamlineHooks::trimStreamlineLog(const char* msg)
 
 void StreamlineHooks::streamlineLogCallback(sl::LogType type, const char* msg)
 {
+    if (msg == nullptr)
+        return;
+
     char* trimmed_msg = trimStreamlineLog(msg);
-
-    switch (type)
+    if (trimmed_msg != nullptr)
     {
-    case sl::LogType::eWarn:
-        LOG_WARN("{}", trimmed_msg);
-        break;
-    case sl::LogType::eInfo:
-        LOG_INFO("{}", trimmed_msg);
-        break;
-    case sl::LogType::eError:
-        LOG_ERROR("{}", trimmed_msg);
-        break;
-    case sl::LogType::eCount:
-        LOG_ERROR("{}", trimmed_msg);
-        break;
-    }
+        switch (type)
+        {
+        case sl::LogType::eWarn:
+            LOG_WARN("{}", trimmed_msg);
+            break;
+        case sl::LogType::eInfo:
+            LOG_INFO("{}", trimmed_msg);
+            break;
+        case sl::LogType::eError:
+            LOG_ERROR("{}", trimmed_msg);
+            break;
+        case sl::LogType::eCount:
+            LOG_ERROR("{}", trimmed_msg);
+            break;
+        }
 
-    free(trimmed_msg);
+        free(trimmed_msg);
+    }
 
     if (o_logCallback != nullptr)
         o_logCallback(type, msg);

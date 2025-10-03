@@ -158,6 +158,7 @@ class State
     bool skipSpoofing = false;
     // For DXVK, it calls DXGI which cause softlock
     bool skipDxgiLoadChecks = false;
+    bool skipParentWrapping = false;
 
     // FSR3.x
     std::vector<const char*> fsr3xVersionNames {};
@@ -200,6 +201,7 @@ class State
     bool realExclusiveFullscreen = false;
     bool SCExclusiveFullscreen = false;
     bool SCAllowTearing = false;
+    UINT SCLastFlags = 0;
 
     // HDR
     std::vector<IUnknown*> SCbuffers;
@@ -221,7 +223,6 @@ class State
     bool fsrHooks = false;
 
     IFeature* currentFeature = nullptr;
-
     IFGFeature_Dx12* currentFG = nullptr;
     IDXGISwapChain* currentSwapchain = nullptr;
     IDXGISwapChain* currentWrappedSwapchain = nullptr;
@@ -235,8 +236,6 @@ class State
     std::vector<ID3D12Device*> d3d12Devices;
     std::vector<ID3D11Device*> d3d11Devices;
     std::unordered_map<UINT64, std::string> adapterDescs;
-
-    bool mhInited = false;
 
     // Moved checks here to prevent circular includes
     /// <summary>

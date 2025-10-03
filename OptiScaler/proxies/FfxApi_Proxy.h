@@ -18,12 +18,39 @@ class FfxApiProxy
 {
   private:
     inline static HMODULE _dllDx12 = nullptr;
+    inline static HMODULE _dllDx12_SR = nullptr;
+    inline static HMODULE _dllDx12_FG = nullptr;
     inline static feature_version _versionDx12 { 0, 0, 0 };
+    inline static feature_version _versionDx12_SR { 0, 0, 0 };
+    inline static feature_version _versionDx12_FG { 0, 0, 0 };
+    inline static bool _dx12Loader = false;
+    inline static bool _skipSRCreateCalls = false;
+    inline static bool _skipFGCreateCalls = false;
+    inline static bool _skipDestroyCalls = false;
+    inline static bool _skipSRConfigureCalls = false;
+    inline static bool _skipFGConfigureCalls = false;
+    inline static bool _skipSRQueryCalls = false;
+    inline static bool _skipFGQueryCalls = false;
+    inline static bool _skipSRDispatchCalls = false;
+    inline static bool _skipFGDispatchCalls = false;
+
     inline static PfnFfxCreateContext _D3D12_CreateContext = nullptr;
     inline static PfnFfxDestroyContext _D3D12_DestroyContext = nullptr;
     inline static PfnFfxConfigure _D3D12_Configure = nullptr;
     inline static PfnFfxQuery _D3D12_Query = nullptr;
     inline static PfnFfxDispatch _D3D12_Dispatch = nullptr;
+
+    inline static PfnFfxCreateContext _D3D12_CreateContext_SR = nullptr;
+    inline static PfnFfxDestroyContext _D3D12_DestroyContext_SR = nullptr;
+    inline static PfnFfxConfigure _D3D12_Configure_SR = nullptr;
+    inline static PfnFfxQuery _D3D12_Query_SR = nullptr;
+    inline static PfnFfxDispatch _D3D12_Dispatch_SR = nullptr;
+
+    inline static PfnFfxCreateContext _D3D12_CreateContext_FG = nullptr;
+    inline static PfnFfxDestroyContext _D3D12_DestroyContext_FG = nullptr;
+    inline static PfnFfxConfigure _D3D12_Configure_FG = nullptr;
+    inline static PfnFfxQuery _D3D12_Query_FG = nullptr;
+    inline static PfnFfxDispatch _D3D12_Dispatch_FG = nullptr;
 
     inline static HMODULE _dllVk = nullptr;
     inline static feature_version _versionVk { 0, 0, 0 };
@@ -50,9 +77,12 @@ class FfxApiProxy
 
         LOG_WARN("can't parse {0}", version_str);
     }
+    static bool IsFGType(ffxStructType_t type) { return type >= 0x00020001u && type <= 0x00030009u; }
 
   public:
     static HMODULE Dx12Module() { return _dllDx12; }
+    static HMODULE Dx12Module_SR() { return _dllDx12_SR; }
+    static HMODULE Dx12Module_FG() { return _dllDx12_FG; }
 
     static bool InitFfxDx12(HMODULE module = nullptr)
     {
@@ -87,6 +117,9 @@ class FfxApiProxy
                     {
                         LOG_INFO("{} loaded from {}", wstring_to_string(dllNames[i]),
                                  wstring_to_string(Config::Instance()->FfxDx12Path.value()));
+
+                        // hacky but works for now
+                        _dx12Loader = (i == 0);
                         break;
                     }
                 }
@@ -98,6 +131,9 @@ class FfxApiProxy
                     if (_dllDx12 != nullptr)
                     {
                         LOG_INFO("{} loaded from exe folder", wstring_to_string(dllNames[i]));
+
+                        // hacky but works for now
+                        _dx12Loader = (i == 0);
                         break;
                     }
                 }
@@ -140,6 +176,12 @@ class FfxApiProxy
             }
         }
 
+        if (_D3D12_CreateContext == nullptr)
+        {
+            InitFfxDx12_SR();
+            InitFfxDx12_FG();
+        }
+
         bool loadResult = _D3D12_CreateContext != nullptr;
 
         LOG_INFO("LoadResult: {}", loadResult);
@@ -148,6 +190,202 @@ class FfxApiProxy
             VersionDx12();
         else
             _dllDx12 = nullptr;
+
+        return loadResult;
+    }
+
+    static bool InitFfxDx12_SR(HMODULE module = nullptr)
+    {
+        // if dll already loaded
+        if (_dllDx12_SR != nullptr && _D3D12_CreateContext_SR != nullptr)
+            return true;
+
+        spdlog::info("");
+
+        if (module != nullptr)
+            _dllDx12_SR = module;
+
+        if (_dllDx12_SR == nullptr)
+        {
+            // Try new api first
+            std::vector<std::wstring> dllNames = { L"amd_fidelityfx_upscaler_dx12.dll" };
+
+            for (size_t i = 0; i < dllNames.size(); i++)
+            {
+                LOG_DEBUG("Trying to load {}", wstring_to_string(dllNames[i]));
+
+                if (_dllDx12_SR == nullptr && Config::Instance()->FfxDx12Path.has_value())
+                {
+                    std::filesystem::path libPath(Config::Instance()->FfxDx12Path.value().c_str());
+
+                    if (libPath.has_filename())
+                        _dllDx12_SR = NtdllProxy::LoadLibraryExW_Ldr(libPath.c_str(), NULL, 0);
+                    else
+                        _dllDx12_SR = NtdllProxy::LoadLibraryExW_Ldr((libPath / dllNames[i]).c_str(), NULL, 0);
+
+                    if (_dllDx12_SR != nullptr)
+                    {
+                        LOG_INFO("{} loaded from {}", wstring_to_string(dllNames[i]),
+                                 wstring_to_string(Config::Instance()->FfxDx12Path.value()));
+                        break;
+                    }
+                }
+
+                if (_dllDx12_SR == nullptr)
+                {
+                    _dllDx12_SR = NtdllProxy::LoadLibraryExW_Ldr(dllNames[i].c_str(), NULL, 0);
+
+                    if (_dllDx12_SR != nullptr)
+                    {
+                        LOG_INFO("{} loaded from exe folder", wstring_to_string(dllNames[i]));
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (_dllDx12_SR != nullptr && _D3D12_Configure_SR == nullptr)
+        {
+            _D3D12_Configure_SR = (PfnFfxConfigure) KernelBaseProxy::GetProcAddress_()(_dllDx12_SR, "ffxConfigure");
+            _D3D12_CreateContext_SR =
+                (PfnFfxCreateContext) KernelBaseProxy::GetProcAddress_()(_dllDx12_SR, "ffxCreateContext");
+            _D3D12_DestroyContext_SR =
+                (PfnFfxDestroyContext) KernelBaseProxy::GetProcAddress_()(_dllDx12_SR, "ffxDestroyContext");
+            _D3D12_Dispatch_SR = (PfnFfxDispatch) KernelBaseProxy::GetProcAddress_()(_dllDx12_SR, "ffxDispatch");
+            _D3D12_Query_SR = (PfnFfxQuery) KernelBaseProxy::GetProcAddress_()(_dllDx12_SR, "ffxQuery");
+
+            if (Config::Instance()->EnableFfxInputs.value_or_default() && _D3D12_CreateContext_SR != nullptr)
+            {
+                DetourTransactionBegin();
+                DetourUpdateThread(GetCurrentThread());
+
+                if (_D3D12_Configure_SR != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_Configure_SR, ffxConfigure_Dx12);
+
+                if (_D3D12_CreateContext_SR != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_CreateContext_SR, ffxCreateContext_Dx12);
+
+                if (_D3D12_DestroyContext_SR != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_DestroyContext_SR, ffxDestroyContext_Dx12);
+
+                if (_D3D12_Dispatch_SR != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_Dispatch_SR, ffxDispatch_Dx12);
+
+                if (_D3D12_Query_SR != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_Query_SR, ffxQuery_Dx12);
+
+                State::Instance().fsrHooks = true;
+
+                DetourTransactionCommit();
+            }
+        }
+
+        bool loadResult = _D3D12_CreateContext_SR != nullptr;
+
+        LOG_INFO("LoadResult: {}", loadResult);
+
+        if (loadResult)
+            VersionDx12_SR();
+        else
+            _dllDx12_SR = nullptr;
+
+        return loadResult;
+    }
+
+    static bool InitFfxDx12_FG(HMODULE module = nullptr)
+    {
+        // if dll already loaded
+        if (_dllDx12_FG != nullptr && _D3D12_CreateContext_FG != nullptr)
+            return true;
+
+        spdlog::info("");
+
+        if (module != nullptr)
+            _dllDx12_FG = module;
+
+        if (_dllDx12_FG == nullptr)
+        {
+            // Try new api first
+            std::vector<std::wstring> dllNames = { L"amd_fidelityfx_framegeneration_dx12.dll" };
+
+            for (size_t i = 0; i < dllNames.size(); i++)
+            {
+                LOG_DEBUG("Trying to load {}", wstring_to_string(dllNames[i]));
+
+                if (_dllDx12_FG == nullptr && Config::Instance()->FfxDx12Path.has_value())
+                {
+                    std::filesystem::path libPath(Config::Instance()->FfxDx12Path.value().c_str());
+
+                    if (libPath.has_filename())
+                        _dllDx12_FG = NtdllProxy::LoadLibraryExW_Ldr(libPath.c_str(), NULL, 0);
+                    else
+                        _dllDx12_FG = NtdllProxy::LoadLibraryExW_Ldr((libPath / dllNames[i]).c_str(), NULL, 0);
+
+                    if (_dllDx12_FG != nullptr)
+                    {
+                        LOG_INFO("{} loaded from {}", wstring_to_string(dllNames[i]),
+                                 wstring_to_string(Config::Instance()->FfxDx12Path.value()));
+                        break;
+                    }
+                }
+
+                if (_dllDx12_FG == nullptr)
+                {
+                    _dllDx12_FG = NtdllProxy::LoadLibraryExW_Ldr(dllNames[i].c_str(), NULL, 0);
+
+                    if (_dllDx12_FG != nullptr)
+                    {
+                        LOG_INFO("{} loaded from exe folder", wstring_to_string(dllNames[i]));
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (_dllDx12_FG != nullptr && _D3D12_Configure_FG == nullptr)
+        {
+            _D3D12_Configure_FG = (PfnFfxConfigure) KernelBaseProxy::GetProcAddress_()(_dllDx12_FG, "ffxConfigure");
+            _D3D12_CreateContext_FG =
+                (PfnFfxCreateContext) KernelBaseProxy::GetProcAddress_()(_dllDx12_FG, "ffxCreateContext");
+            _D3D12_DestroyContext_FG =
+                (PfnFfxDestroyContext) KernelBaseProxy::GetProcAddress_()(_dllDx12_FG, "ffxDestroyContext");
+            _D3D12_Dispatch_FG = (PfnFfxDispatch) KernelBaseProxy::GetProcAddress_()(_dllDx12_FG, "ffxDispatch");
+            _D3D12_Query_FG = (PfnFfxQuery) KernelBaseProxy::GetProcAddress_()(_dllDx12_FG, "ffxQuery");
+
+            if (Config::Instance()->EnableFfxInputs.value_or_default() && _D3D12_CreateContext_FG != nullptr)
+            {
+                DetourTransactionBegin();
+                DetourUpdateThread(GetCurrentThread());
+
+                if (_D3D12_Configure_FG != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_Configure_FG, ffxConfigure_Dx12);
+
+                if (_D3D12_CreateContext_FG != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_CreateContext_FG, ffxCreateContext_Dx12);
+
+                if (_D3D12_DestroyContext_FG != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_DestroyContext_FG, ffxDestroyContext_Dx12);
+
+                if (_D3D12_Dispatch_FG != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_Dispatch_FG, ffxDispatch_Dx12);
+
+                if (_D3D12_Query_FG != nullptr)
+                    DetourAttach(&(PVOID&) _D3D12_Query_FG, ffxQuery_Dx12);
+
+                State::Instance().fsrHooks = true;
+
+                DetourTransactionCommit();
+            }
+        }
+
+        bool loadResult = _D3D12_CreateContext_FG != nullptr;
+
+        LOG_INFO("LoadResult: {}", loadResult);
+
+        if (loadResult)
+            VersionDx12_FG();
+        else
+            _dllDx12_FG = nullptr;
 
         return loadResult;
     }
@@ -195,14 +433,258 @@ class FfxApiProxy
             }
         }
 
+        if (_versionDx12.major == 0 && _D3D12_Query_SR != nullptr)
+            _versionDx12 = VersionDx12_SR();
+
+        if (_versionDx12.major == 0 && _D3D12_Query_FG != nullptr)
+            _versionDx12 = VersionDx12_FG();
+
         return _versionDx12;
     }
 
-    static PfnFfxCreateContext D3D12_CreateContext() { return _D3D12_CreateContext; }
-    static PfnFfxDestroyContext D3D12_DestroyContext() { return _D3D12_DestroyContext; }
-    static PfnFfxConfigure D3D12_Configure() { return _D3D12_Configure; }
-    static PfnFfxQuery D3D12_Query() { return _D3D12_Query; }
-    static PfnFfxDispatch D3D12_Dispatch() { return _D3D12_Dispatch; }
+    static feature_version VersionDx12_SR()
+    {
+        if (_D3D12_Query_SR == nullptr)
+            return VersionDx12();
+
+        if (_versionDx12_SR.major == 0)
+        {
+            ffxQueryDescGetVersions versionQuery {};
+            versionQuery.header.type = FFX_API_QUERY_DESC_TYPE_GET_VERSIONS;
+            versionQuery.createDescType = 0x00010000u; // FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE
+            uint64_t versionCount = 0;
+            versionQuery.outputCount = &versionCount;
+
+            auto queryResult = _D3D12_Query_SR(nullptr, &versionQuery.header);
+
+            // get number of versions for allocation
+            if (versionCount > 0 && queryResult == FFX_API_RETURN_OK)
+            {
+
+                std::vector<uint64_t> versionIds;
+                std::vector<const char*> versionNames;
+                versionIds.resize(versionCount);
+                versionNames.resize(versionCount);
+                versionQuery.versionIds = versionIds.data();
+                versionQuery.versionNames = versionNames.data();
+
+                // fill version ids and names arrays.
+                queryResult = _D3D12_Query_SR(nullptr, &versionQuery.header);
+
+                if (queryResult == FFX_API_RETURN_OK)
+                {
+                    parse_version(versionNames[0], &_versionDx12_SR);
+                    LOG_INFO("FfxApi Dx12 SR version: {}.{}.{}", _versionDx12_SR.major, _versionDx12_SR.minor,
+                             _versionDx12_SR.patch);
+                }
+                else
+                {
+                    LOG_WARN("_D3D12_Query 2 result: {}", (UINT) queryResult);
+                }
+            }
+            else
+            {
+                LOG_WARN("_D3D12_Query result: {}", (UINT) queryResult);
+            }
+        }
+
+        return _versionDx12_SR;
+    }
+
+    static feature_version VersionDx12_FG()
+    {
+        if (_D3D12_Query_FG == nullptr)
+            return VersionDx12();
+
+        if (_versionDx12_FG.major == 0)
+        {
+            ffxQueryDescGetVersions versionQuery {};
+            versionQuery.header.type = FFX_API_QUERY_DESC_TYPE_GET_VERSIONS;
+            versionQuery.createDescType = 0x00020001u; // FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATION
+            uint64_t versionCount = 0;
+            versionQuery.outputCount = &versionCount;
+
+            auto queryResult = _D3D12_Query_FG(nullptr, &versionQuery.header);
+
+            // get number of versions for allocation
+            if (versionCount > 0 && queryResult == FFX_API_RETURN_OK)
+            {
+
+                std::vector<uint64_t> versionIds;
+                std::vector<const char*> versionNames;
+                versionIds.resize(versionCount);
+                versionNames.resize(versionCount);
+                versionQuery.versionIds = versionIds.data();
+                versionQuery.versionNames = versionNames.data();
+
+                // fill version ids and names arrays.
+                queryResult = _D3D12_Query_FG(nullptr, &versionQuery.header);
+
+                if (queryResult == FFX_API_RETURN_OK)
+                {
+                    parse_version(versionNames[0], &_versionDx12_FG);
+                    LOG_INFO("FfxApi Dx12 FG version: {}.{}.{}", _versionDx12_FG.major, _versionDx12_FG.minor,
+                             _versionDx12_FG.patch);
+                }
+                else
+                {
+                    LOG_WARN("_D3D12_Query 2 result: {}", (UINT) queryResult);
+                }
+            }
+            else
+            {
+                LOG_WARN("_D3D12_Query result: {}", (UINT) queryResult);
+            }
+        }
+
+        return _versionDx12_FG;
+    }
+
+    static ffxReturnCode_t D3D12_CreateContext(ffxContext* context, ffxCreateContextDescHeader* desc,
+                                               const ffxAllocationCallbacks* memCb)
+    {
+        auto isFg = IsFGType(desc->type);
+
+        if (_dllDx12 != nullptr && !(isFg && _skipFGCreateCalls) && !(!isFg && _skipSRCreateCalls))
+        {
+            if (isFg)
+                _skipFGCreateCalls = true;
+            else
+                _skipSRCreateCalls = true;
+
+            auto result = _D3D12_CreateContext(context, desc, memCb);
+
+            if (isFg)
+                _skipFGCreateCalls = false;
+            else
+                _skipSRCreateCalls = false;
+
+            return result;
+        }
+
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_CreateContext_FG(context, desc, memCb);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_CreateContext_SR(context, desc, memCb);
+
+        return FFX_API_RETURN_NO_PROVIDER;
+    }
+
+    static ffxReturnCode_t D3D12_DestroyContext(ffxContext* context, const ffxAllocationCallbacks* memCb)
+    {
+        ffxReturnCode_t result = FFX_API_RETURN_ERROR;
+
+        if (_dllDx12 != nullptr && !_skipDestroyCalls)
+        {
+            _skipDestroyCalls = true;
+            result = _D3D12_DestroyContext(context, memCb);
+            _skipDestroyCalls = false;
+        }
+
+        if (result == FFX_API_RETURN_OK)
+            return result;
+
+        if (_dllDx12_SR != nullptr)
+            result = _D3D12_DestroyContext_SR(context, memCb);
+
+        if (result == FFX_API_RETURN_OK)
+            return result;
+
+        if (_dllDx12_FG != nullptr)
+            result = _D3D12_DestroyContext_FG(context, memCb);
+
+        if (result == FFX_API_RETURN_OK)
+            return result;
+
+        return FFX_API_RETURN_NO_PROVIDER;
+    }
+
+    static ffxReturnCode_t D3D12_Configure(ffxContext* context, const ffxConfigureDescHeader* desc)
+    {
+        auto isFg = IsFGType(desc->type);
+
+        if (_dllDx12 != nullptr && !(isFg && _skipFGConfigureCalls) && !(!isFg && _skipSRConfigureCalls))
+        {
+            if (isFg)
+                _skipFGConfigureCalls = true;
+            else
+                _skipSRConfigureCalls = true;
+
+            auto result = _D3D12_Configure(context, desc);
+
+            if (isFg)
+                _skipFGConfigureCalls = false;
+            else
+                _skipSRConfigureCalls = false;
+
+            return result;
+        }
+
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_Configure_FG(context, desc);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_Configure_SR(context, desc);
+
+        return FFX_API_RETURN_NO_PROVIDER;
+    }
+
+    static ffxReturnCode_t D3D12_Query(ffxContext* context, ffxQueryDescHeader* desc)
+    {
+        auto isFg = IsFGType(desc->type);
+
+        if (_dllDx12 != nullptr && !(isFg && _skipFGQueryCalls) && !(!isFg && _skipSRQueryCalls))
+        {
+            if (isFg)
+                _skipFGQueryCalls = true;
+            else
+                _skipSRQueryCalls = true;
+
+            auto result = _D3D12_Query(context, desc);
+
+            if (isFg)
+                _skipFGQueryCalls = false;
+            else
+                _skipSRQueryCalls = false;
+
+            return result;
+        }
+
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_Query_FG(context, desc);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_Query_SR(context, desc);
+
+        return FFX_API_RETURN_NO_PROVIDER;
+    }
+
+    static ffxReturnCode_t D3D12_Dispatch(ffxContext* context, const ffxDispatchDescHeader* desc)
+    {
+        auto isFg = IsFGType(desc->type);
+
+        if (_dllDx12 != nullptr && !(isFg && _skipFGDispatchCalls) && !(!isFg && _skipSRDispatchCalls))
+        {
+            if (isFg)
+                _skipFGDispatchCalls = true;
+            else
+                _skipSRDispatchCalls = true;
+
+            auto result = _D3D12_Dispatch(context, desc);
+
+            if (isFg)
+                _skipFGDispatchCalls = false;
+            else
+                _skipSRDispatchCalls = false;
+
+            return result;
+        }
+
+        if (isFg && _dllDx12_FG != nullptr)
+            return _D3D12_Dispatch_FG(context, desc);
+        else if (!isFg && _dllDx12_SR != nullptr)
+            return _D3D12_Dispatch_SR(context, desc);
+
+        return FFX_API_RETURN_NO_PROVIDER;
+    }
 
     static HMODULE VkModule() { return _dllVk; }
 

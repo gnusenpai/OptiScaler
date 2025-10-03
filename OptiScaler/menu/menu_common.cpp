@@ -2,8 +2,6 @@
 
 #include "font/Hack_Compressed.h"
 
-#include <hooks/HooksDx.h>
-
 #include <proxies/XeSS_Proxy.h>
 #include <proxies/XeFG_Proxy.h>
 #include <proxies/FfxApi_Proxy.h>
@@ -37,6 +35,7 @@ static bool inputFps = false;
 static bool inputFpsCycle = false;
 static bool hasGamepad = false;
 static bool fsr31InitTried = false;
+static bool xefgInitTried = false;
 static std::string windowTitle;
 static std::string selectedUpscalerName = "";
 static std::string currentBackend = "";
@@ -2569,18 +2568,28 @@ bool MenuCommon::RenderMenu()
                                 ImGui::Spacing();
                             }
 
-                            if (majorFsrVersion == 3)
+                            if (majorFsrVersion == 3 ||
+                                (majorFsrVersion > 3 && Config::Instance()->Fsr4EnableDebugView.value_or_default()))
                             {
                                 if (bool dView = Config::Instance()->FsrDebugView.value_or_default();
                                     ImGui::Checkbox("FSR Upscaling Debug View", &dView))
                                     Config::Instance()->FsrDebugView = dView;
-                                ShowHelpMarker("Top left: Dilated Motion Vectors\n"
-                                               "Top middle: Protected Areas\n"
-                                               "Top right: Dilated Depth\n"
-                                               "Middle: Upscaled frame\n"
-                                               "Bottom left: Disocclusion mask\n"
-                                               "Bottom middle: Reactiveness\n"
-                                               "Bottom right: Detail Protection Takedown");
+
+                                if (majorFsrVersion > 3)
+                                {
+                                    ShowHelpMarker("Top left: Dilated Motion Vectors\n"
+                                                   "Top right: Predicted Blend Factor");
+                                }
+                                else
+                                {
+                                    ShowHelpMarker("Top left: Dilated Motion Vectors\n"
+                                                   "Top middle: Protected Areas\n"
+                                                   "Top right: Dilated Depth\n"
+                                                   "Middle: Upscaled frame\n"
+                                                   "Bottom left: Disocclusion mask\n"
+                                                   "Bottom middle: Reactiveness\n"
+                                                   "Bottom right: Detail Protection Takedown");
+                                }
                             }
 
                             ImGui::Spacing();
@@ -2805,12 +2814,22 @@ bool MenuCommon::RenderMenu()
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
                 }
-                else if ((fsr31InitTried && FfxApiProxy::Dx12Module() == nullptr) ||
-                         (!fsr31InitTried && !FfxApiProxy::InitFfxDx12()))
+                else if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
+                         ((fsr31InitTried && FfxApiProxy::Dx12Module() == nullptr &&
+                           FfxApiProxy::Dx12Module_FG() == nullptr) ||
+                          (!fsr31InitTried && !FfxApiProxy::InitFfxDx12())))
                 {
                     fsr31InitTried = true;
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "amd_fidelityfx_dx12.dll is missing";
+                }
+                else if (State::Instance().activeFgOutput == FGOutput::XeFG &&
+                         ((xefgInitTried && XeFGProxy::Module() == nullptr) ||
+                          (!xefgInitTried && !XeFGProxy::InitXeFG())))
+                {
+                    xefgInitTried = true;
+                    disabledMaskInput[optiFgIndex] = true;
+                    fgInputDesc[optiFgIndex] = "libxess_fg.dll is missing";
                 }
 
                 // DLSSG inputs requirements
@@ -2818,7 +2837,9 @@ bool MenuCommon::RenderMenu()
                 if (State::Instance().streamlineVersion.major < 2)
                 {
                     disabledMaskInput[dlssgInputIndex] = true;
-                    fgInputDesc[dlssgInputIndex] = "Unsupported Streamline version";
+                    fgInputDesc[dlssgInputIndex] = std::format(
+                        "Unsupported Streamline version: {}.{}.{}", State::Instance().streamlineVersion.major,
+                        State::Instance().streamlineVersion.minor, State::Instance().streamlineVersion.patch);
 
                     if (Config::Instance()->FGInput.value_or_default() == FGInput::DLSSG)
                         Config::Instance()->FGInput.reset();
@@ -3267,6 +3288,7 @@ bool MenuCommon::RenderMenu()
                              Config::Instance()->FGXeFGJitteredMV.value_or_default() != fgOutput->IsJitteredMVs() ||
                              Config::Instance()->FGXeFGHighResMV.value_or_default() == fgOutput->IsLowResMV());
 
+                        bool cantActivate = false;
                         if (restartNeeded)
                         {
                             ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
@@ -3279,13 +3301,40 @@ bool MenuCommon::RenderMenu()
                                                    "Requires disabling dilated motion vectors");
 
                             if (State::Instance().realExclusiveFullscreen)
+                            {
+                                cantActivate = true;
                                 ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Borderless display mode required");
+                            }
 
                             if (State::Instance().isHdrActive)
-                                ImGui::TextColored(ImVec4(1.0f, 0.647f, 0.0f, 1.f), "XeFG only supports HDR10");
+                            {
+                                DXGI_SWAP_CHAIN_DESC scDesc {};
+                                if (State::Instance().currentSwapchain->GetDesc(&scDesc) == S_OK)
+                                {
+                                    // DXGI_FORMAT_R32G32B32A32_TYPELESS = 1
+                                    // DXGI_FORMAT_R32G32B32A32_FLOAT
+                                    // DXGI_FORMAT_R32G32B32A32_UINT
+                                    // DXGI_FORMAT_R32G32B32A32_SINT
+                                    // DXGI_FORMAT_R32G32B32_TYPELESS
+                                    // DXGI_FORMAT_R32G32B32_FLOAT
+                                    // DXGI_FORMAT_R32G32B32_UINT
+                                    // DXGI_FORMAT_R32G32B32_SINT
+                                    // DXGI_FORMAT_R16G16B16A16_TYPELESS
+                                    // DXGI_FORMAT_R16G16B16A16_FLOAT
+                                    // DXGI_FORMAT_R16G16B16A16_UNORM
+                                    // DXGI_FORMAT_R16G16B16A16_UINT
+                                    // DXGI_FORMAT_R16G16B16A16_SNORM
+                                    // DXGI_FORMAT_R16G16B16A16_SINT = 14
+                                    if (scDesc.BufferDesc.Format > 0 && scDesc.BufferDesc.Format < 15)
+                                    {
+                                        cantActivate = true;
+                                        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.f), "XeFG only supports HDR10");
+                                    }
+                                }
+                            }
                         }
 
-                        ImGui::BeginDisabled(!correctMVs || State::Instance().realExclusiveFullscreen);
+                        ImGui::BeginDisabled(!correctMVs || cantActivate);
 
                         bool fgActive = Config::Instance()->FGEnabled.value_or_default();
                         if (ImGui::Checkbox("Active##3", &fgActive))

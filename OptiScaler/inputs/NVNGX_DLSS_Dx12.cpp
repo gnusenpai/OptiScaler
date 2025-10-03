@@ -11,7 +11,7 @@
 #include "FG/FSR3_Dx12_FG.h"
 #include "FG/Upscaler_Inputs_Dx12.h"
 
-#include "hooks/HooksDx.h"
+#include <upscaler_time/UpscalerTime_Dx12.h>
 
 #include <dxgi1_4.h>
 #include <shared_mutex>
@@ -192,32 +192,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
     State::Instance().api = DX12;
     State::Instance().currentD3D12Device = InDevice;
 
-    if (!State::Instance().isWorkingAsNvngx && HooksDx::queryHeap == nullptr)
+    if (!State::Instance().isWorkingAsNvngx)
     {
-        // Create query heap for timestamp queries
-        D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
-        queryHeapDesc.Count = 2; // Start and End timestamps
-        queryHeapDesc.NodeMask = 0;
-        queryHeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-        auto result = InDevice->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&HooksDx::queryHeap));
-
-        if (result != S_OK)
-        {
-            LOG_ERROR("CreateQueryHeap error: {:X}", (UINT) result);
-        }
-        else
-        {
-            // Create a readback buffer to retrieve timestamp data
-            D3D12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(2 * sizeof(UINT64));
-            D3D12_HEAP_PROPERTIES heapProps = {};
-            heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-            result = InDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc,
-                                                       D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
-                                                       IID_PPV_ARGS(&HooksDx::readbackBuffer));
-
-            if (result != S_OK)
-                LOG_ERROR("CreateCommittedResource error: {:X}", (UINT) result);
-        }
+        UpscalerTimeDx12::Init(InDevice);
     }
 
     // early hooking for signatures
@@ -400,7 +377,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
 
     // Unhooking and cleaning stuff causing issues during shutdown.
     // Disabled for now to check if it cause any issues
-    // HooksDx::UnHookDx();
+    // HooksDx::UnHook();
 
     // Disabled to prevent crash
     if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
@@ -951,29 +928,25 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         FSR3FG::SetUpscalerInputs(InCmdList, InParameters, deviceContext->feature.get());
 
     // Record the first timestamp
-    if (!State::Instance().isWorkingAsNvngx && HooksDx::queryHeap != nullptr)
-        InCmdList->EndQuery(HooksDx::queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0);
+    if (!State::Instance().isWorkingAsNvngx)
+        UpscalerTimeDx12::UpscaleStart(InCmdList);
 
     // Run upscaler
     auto evalResult = deviceContext->feature->Evaluate(InCmdList, InParameters);
 
     // Record the second timestamp
-    if (!State::Instance().isWorkingAsNvngx && HooksDx::queryHeap != nullptr)
-    {
-        InCmdList->EndQuery(HooksDx::queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 1);
-
-        // Resolve the queries to the readback buffer
-        InCmdList->ResolveQueryData(HooksDx::queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, 2, HooksDx::readbackBuffer, 0);
-    }
 
     NVSDK_NGX_Result methodResult = evalResult ? NVSDK_NGX_Result_Success : NVSDK_NGX_Result_Fail;
 
     if (evalResult)
-        HooksDx::dx12UpscaleTrig = true;
+    {
+        // Upscaler time calc
+        if (!State::Instance().isWorkingAsNvngx)
+            UpscalerTimeDx12::UpscaleEnd(InCmdList);
 
-    // FG Dispatch
-    if (evalResult)
+        // FG Dispatch
         UpscalerInputsDx12::UpscaleEnd(InCmdList, InParameters, deviceContext->feature.get());
+    }
 
     // Root signature restore
     if (deviceContext->feature->Name() != "DLSSD" && (Config::Instance()->RestoreComputeSignature.value_or_default() ||

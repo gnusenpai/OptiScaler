@@ -260,6 +260,7 @@ class Config
     // Hooks
     CustomOptional<bool> HookOriginalNvngxOnly { false };
     CustomOptional<bool> EarlyHooking { false };
+    CustomOptional<bool> UseNtdllHooks { false };
 
     // Upscale Ratio Override
     CustomOptional<bool> UpscaleRatioOverrideEnabled { false };
@@ -329,6 +330,8 @@ class Config
     CustomOptional<bool> FsrUseMaskForTransparency { true };
     CustomOptional<bool> Fsr4Update { false };
     CustomOptional<uint32_t, NoDefault> Fsr4Model;
+    CustomOptional<bool> Fsr4EnableDebugView { false };
+    CustomOptional<bool> Fsr4EnableWatermark { false };
     CustomOptional<bool> FsrNonLinearColorSpace { false };
     CustomOptional<bool> FsrNonLinearSRGB { false };
     CustomOptional<bool> FsrNonLinearPQ { false };
@@ -360,6 +363,7 @@ class Config
 
     // Spoofing
     CustomOptional<bool> DxgiSpoofing { true };
+    CustomOptional<bool> DxgiFactoryWrapping { false };
     CustomOptional<bool> StreamlineSpoofing { true };
     CustomOptional<std::string, NoDefault> DxgiBlacklist; // disabled by default
     CustomOptional<int, NoDefault> DxgiVRAM;              // disabled by default

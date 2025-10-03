@@ -7,9 +7,6 @@
 #include <dx12/ffx_api_dx12.h>
 #include <ffx_framegeneration.h>
 
-#include <magic_enum.hpp>
-#include <magic_enum_utility.hpp>
-
 class FSRFG_Dx12 : public virtual IFGFeature_Dx12
 {
   private:

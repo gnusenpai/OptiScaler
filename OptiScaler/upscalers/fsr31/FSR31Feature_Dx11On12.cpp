@@ -150,13 +150,15 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
     struct ffxDispatchDescUpscale params = { 0 };
     params.header.type = FFX_API_DISPATCH_DESC_TYPE_UPSCALE;
 
+    params.flags = 0;
+
     if (Config::Instance()->FsrDebugView.value_or_default())
-        params.flags = FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW;
+        params.flags |= FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW;
 
     if (Config::Instance()->FsrNonLinearPQ.value_or_default())
-        params.flags = FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_PQ;
+        params.flags |= FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_PQ;
     else if (Config::Instance()->FsrNonLinearSRGB.value_or_default())
-        params.flags = FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_SRGB;
+        params.flags |= FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_SRGB;
 
     InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_X, &params.jitterOffset.x);
     InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_Y, &params.jitterOffset.y);
@@ -340,7 +342,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
             m_upscalerKeyValueConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE;
             m_upscalerKeyValueConfig.key = FFX_API_CONFIGURE_UPSCALE_KEY_FVELOCITYFACTOR;
             m_upscalerKeyValueConfig.ptr = &_velocity;
-            auto result = FfxApiProxy::D3D12_Configure()(&_context, &m_upscalerKeyValueConfig.header);
+            auto result = FfxApiProxy::D3D12_Configure(&_context, &m_upscalerKeyValueConfig.header);
 
             if (result != FFX_API_RETURN_OK)
                 LOG_WARN("Velocity configure result: {}", (UINT) result);
@@ -355,7 +357,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
                 m_upscalerKeyValueConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE;
                 m_upscalerKeyValueConfig.key = FFX_API_CONFIGURE_UPSCALE_KEY_FREACTIVENESSSCALE;
                 m_upscalerKeyValueConfig.ptr = &_reactiveScale;
-                auto result = FfxApiProxy::D3D12_Configure()(&_context, &m_upscalerKeyValueConfig.header);
+                auto result = FfxApiProxy::D3D12_Configure(&_context, &m_upscalerKeyValueConfig.header);
 
                 if (result != FFX_API_RETURN_OK)
                     LOG_WARN("Reactive Scale configure result: {}", (UINT) result);
@@ -368,7 +370,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
                 m_upscalerKeyValueConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE;
                 m_upscalerKeyValueConfig.key = FFX_API_CONFIGURE_UPSCALE_KEY_FSHADINGCHANGESCALE;
                 m_upscalerKeyValueConfig.ptr = &_shadingScale;
-                auto result = FfxApiProxy::D3D12_Configure()(&_context, &m_upscalerKeyValueConfig.header);
+                auto result = FfxApiProxy::D3D12_Configure(&_context, &m_upscalerKeyValueConfig.header);
 
                 if (result != FFX_API_RETURN_OK)
                     LOG_WARN("Shading Scale configure result: {}", (UINT) result);
@@ -381,7 +383,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
                 m_upscalerKeyValueConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE;
                 m_upscalerKeyValueConfig.key = FFX_API_CONFIGURE_UPSCALE_KEY_FACCUMULATIONADDEDPERFRAME;
                 m_upscalerKeyValueConfig.ptr = &_accAddPerFrame;
-                auto result = FfxApiProxy::D3D12_Configure()(&_context, &m_upscalerKeyValueConfig.header);
+                auto result = FfxApiProxy::D3D12_Configure(&_context, &m_upscalerKeyValueConfig.header);
 
                 if (result != FFX_API_RETURN_OK)
                     LOG_WARN("Acc. Add Per Frame configure result: {}", (UINT) result);
@@ -394,7 +396,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
                 m_upscalerKeyValueConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE;
                 m_upscalerKeyValueConfig.key = FFX_API_CONFIGURE_UPSCALE_KEY_FMINDISOCCLUSIONACCUMULATION;
                 m_upscalerKeyValueConfig.ptr = &_minDisOccAcc;
-                auto result = FfxApiProxy::D3D12_Configure()(&_context, &m_upscalerKeyValueConfig.header);
+                auto result = FfxApiProxy::D3D12_Configure(&_context, &m_upscalerKeyValueConfig.header);
 
                 if (result != FFX_API_RETURN_OK)
                     LOG_WARN("Minimum Disocclusion Acc. configure result: {}", (UINT) result);
@@ -410,7 +412,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
             params.upscaleSize.height *= Config::Instance()->OutputScalingMultiplier.value_or_default();
 
         LOG_DEBUG("Dispatch!!");
-        ffxresult = FfxApiProxy::D3D12_Dispatch()(&_context, &params.header);
+        ffxresult = FfxApiProxy::D3D12_Dispatch(&_context, &params.header);
 
         if (ffxresult != FFX_API_RETURN_OK)
         {
@@ -557,22 +559,22 @@ bool FSR31FeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
     uint64_t versionCount = 0;
     versionQuery.outputCount = &versionCount;
     // get number of versions for allocation
-    FfxApiProxy::D3D12_Query()(nullptr, &versionQuery.header);
+    FfxApiProxy::D3D12_Query(nullptr, &versionQuery.header);
 
     State::Instance().fsr3xVersionIds.resize(versionCount);
     State::Instance().fsr3xVersionNames.resize(versionCount);
     versionQuery.versionIds = State::Instance().fsr3xVersionIds.data();
     versionQuery.versionNames = State::Instance().fsr3xVersionNames.data();
     // fill version ids and names arrays.
-    FfxApiProxy::D3D12_Query()(nullptr, &versionQuery.header);
+    FfxApiProxy::D3D12_Query(nullptr, &versionQuery.header);
 
     _contextDesc.flags = 0;
     _contextDesc.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
 
-    _contextDesc.fpMessage = FfxLogCallback;
-
 #ifdef _DEBUG
+    LOG_INFO("Debug checking enabled!");
     _contextDesc.flags |= FFX_UPSCALE_ENABLE_DEBUG_CHECKING;
+    _contextDesc.fpMessage = FfxLogCallback;
 #endif
 
     if (DepthInverted())
@@ -590,8 +592,13 @@ bool FSR31FeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
     if (!LowResMV())
         _contextDesc.flags |= FFX_UPSCALE_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS;
 
-    if (Config::Instance()->FsrNonLinearPQ.value_or_default() ||
-        Config::Instance()->FsrNonLinearSRGB.value_or_default())
+    if (Config::Instance()->Fsr4EnableDebugView.value_or_default())
+    {
+        LOG_INFO("Debug view enabled!");
+        _contextDesc.flags |= 512; // FFX_UPSCALE_ENABLE_DEBUG_VISUALIZATION
+    }
+
+    if (Config::Instance()->FsrNonLinearColorSpace.value_or_default())
     {
         _contextDesc.flags |= FFX_UPSCALE_ENABLE_NON_LINEAR_COLORSPACE;
         LOG_INFO("contextDesc.initFlags (NonLinearColorSpace) {0:b}", _contextDesc.flags);
@@ -670,7 +677,7 @@ bool FSR31FeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
     LOG_DEBUG("_createContext!");
 
     State::Instance().skipHeapCapture = true;
-    auto ret = FfxApiProxy::D3D12_CreateContext()(&_context, &_contextDesc.header, NULL);
+    auto ret = FfxApiProxy::D3D12_CreateContext(&_context, &_contextDesc.header, NULL);
     State::Instance().skipHeapCapture = false;
 
     if (ret != FFX_API_RETURN_OK)

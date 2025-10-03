@@ -278,7 +278,7 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
         auto result = ffxCreateContext_Dx12FG(context, desc, memCb);
 
         if (result == (ffxReturnCode_t) 0xffffffff)
-            return FfxApiProxy::D3D12_CreateContext()(context, desc, memCb);
+            return FfxApiProxy::D3D12_CreateContext(context, desc, memCb);
 
         return result;
     }
@@ -306,7 +306,7 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
 
     if (!upscaleContext || Config::Instance()->EnableHotSwapping.value_or_default())
     {
-        auto ffxApiResult = FfxApiProxy::D3D12_CreateContext()(context, desc, memCb);
+        auto ffxApiResult = FfxApiProxy::D3D12_CreateContext(context, desc, memCb);
 
         LOG_ERROR("D3D12_CreateContext result: {:X} ({}), context: {:X}", (UINT) ffxApiResult,
                   FfxApiProxy::ReturnCodeToString(ffxApiResult), (size_t) *context);
@@ -398,7 +398,7 @@ ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationC
         auto result = ffxDestroyContext_Dx12FG(context, memCb);
 
         if (result == (ffxReturnCode_t) 0xffffffff)
-            return FfxApiProxy::D3D12_DestroyContext()(context, memCb);
+            return FfxApiProxy::D3D12_DestroyContext(context, memCb);
 
         return result;
     }
@@ -423,7 +423,7 @@ ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationC
     if (!State::Instance().isShuttingDown && upscalerContext &&
         Config::Instance()->EnableHotSwapping.value_or_default())
     {
-        auto cdResult = FfxApiProxy::D3D12_DestroyContext()(context, memCb);
+        auto cdResult = FfxApiProxy::D3D12_DestroyContext(context, memCb);
         LOG_INFO("result: {:X}", (UINT) cdResult);
         return FFX_API_RETURN_OK;
     }
@@ -436,7 +436,7 @@ ffxReturnCode_t ffxDestroyContext_Dx12(ffxContext* context, const ffxAllocationC
             return result;
     }
 
-    auto cdResult = FfxApiProxy::D3D12_DestroyContext()(context, memCb);
+    auto cdResult = FfxApiProxy::D3D12_DestroyContext(context, memCb);
     LOG_INFO("result: {:X}", (UINT) cdResult);
     return cdResult;
 }
@@ -453,7 +453,7 @@ ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, ffxConfigureDescHeader* d
         auto result = ffxConfigure_Dx12FG(context, desc);
 
         if (result == (ffxReturnCode_t) 0xffffffff)
-            return FfxApiProxy::D3D12_Configure()(context, desc);
+            return FfxApiProxy::D3D12_Configure(context, desc);
 
         return result;
     }
@@ -470,7 +470,7 @@ ffxReturnCode_t ffxConfigure_Dx12(ffxContext* context, ffxConfigureDescHeader* d
             return FFX_API_RETURN_OK;
     }
 
-    return FfxApiProxy::D3D12_Configure()(context, desc);
+    return FfxApiProxy::D3D12_Configure(context, desc);
 }
 
 ffxReturnCode_t ffxQuery_Dx12(ffxContext* context, ffxQueryDescHeader* desc)
@@ -487,7 +487,7 @@ ffxReturnCode_t ffxQuery_Dx12(ffxContext* context, ffxQueryDescHeader* desc)
         auto result = ffxQuery_Dx12FG(context, desc);
 
         if (result == (ffxReturnCode_t) 0xffffffff)
-            return FfxApiProxy::D3D12_Query()(context, desc);
+            return FfxApiProxy::D3D12_Query(context, desc);
 
         return result;
     }
@@ -536,7 +536,7 @@ ffxReturnCode_t ffxQuery_Dx12(ffxContext* context, ffxQueryDescHeader* desc)
         return FFX_API_RETURN_OK;
     }
 
-    return FfxApiProxy::D3D12_Query()(context, desc);
+    return FfxApiProxy::D3D12_Query(context, desc);
 }
 
 ffxReturnCode_t ffxDispatch_Dx12(ffxContext* context, ffxDispatchDescHeader* desc)
@@ -544,7 +544,7 @@ ffxReturnCode_t ffxDispatch_Dx12(ffxContext* context, ffxDispatchDescHeader* des
     // Skip OptiScaler stuff
     if (Config::Instance()->EnableHotSwapping.value_or_default() &&
         !Config::Instance()->UseFfxInputs.value_or_default())
-        return FfxApiProxy::D3D12_Dispatch()(context, desc);
+        return FfxApiProxy::D3D12_Dispatch(context, desc);
 
     if (desc == nullptr || context == nullptr)
         return FFX_API_RETURN_ERROR_PARAMETER;
@@ -556,7 +556,7 @@ ffxReturnCode_t ffxDispatch_Dx12(ffxContext* context, ffxDispatchDescHeader* des
         auto result = ffxDispatch_Dx12FG(context, desc);
 
         if (result == (ffxReturnCode_t) 0xffffffff)
-            return FfxApiProxy::D3D12_Dispatch()(context, desc);
+            return FfxApiProxy::D3D12_Dispatch(context, desc);
 
         return result;
     }
@@ -564,7 +564,7 @@ ffxReturnCode_t ffxDispatch_Dx12(ffxContext* context, ffxDispatchDescHeader* des
     if (context == nullptr || !_initParams.contains(*context))
     {
         LOG_INFO("Not in _contexts");
-        return FfxApiProxy::D3D12_Dispatch()(context, desc);
+        return FfxApiProxy::D3D12_Dispatch(context, desc);
     }
 
     ffxApiHeader* header = desc;
@@ -586,11 +586,11 @@ ffxReturnCode_t ffxDispatch_Dx12(ffxContext* context, ffxDispatchDescHeader* des
     if (dispatchDesc == nullptr)
     {
         LOG_INFO("dispatchDesc == nullptr, desc type: {:X}", desc->type);
-        return FfxApiProxy::D3D12_Dispatch()(context, desc);
+        return FfxApiProxy::D3D12_Dispatch(context, desc);
     }
 
     if (dispatchDesc->commandList == nullptr)
-        return FfxApiProxy::D3D12_Dispatch()(context, desc);
+        return FfxApiProxy::D3D12_Dispatch(context, desc);
 
     // If not in contexts list create and add context
     auto contextId = (size_t) *context;

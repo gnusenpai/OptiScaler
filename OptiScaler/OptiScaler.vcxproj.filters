@@ -158,13 +158,10 @@
     <ClInclude Include="proxies\FfxApi_Proxy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hooks\HooksDx.h">
+    <ClInclude Include="hooks\Vulkan_Hooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hooks\HooksVk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hooks\wrapped_swapchain.h">
+    <ClInclude Include="wrapped\wrapped_swapchain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="proxies\XeSS_Proxy.h">
@@ -587,6 +584,36 @@
     <ClInclude Include="proxies\Ntdll_Proxy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="wrapped\wrapped_factory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\FG_Hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\Dxgi_Hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="upscaler_time\UpscalerTime_Dx12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="upscaler_time\UpscalerTime_Dx11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\D3D12_Hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\D3D11_Hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="upscaler_time\UpscalerTime_Vk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\DxgiFactory_WrappedCalls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks\DxgiFactory_Hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -716,13 +743,10 @@
     <ClCompile Include="inputs\XeSS_Dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\HooksDx.cpp">
+    <ClCompile Include="hooks\Vulkan_Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\HooksVk.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="hooks\wrapped_swapchain.cpp">
+    <ClCompile Include="wrapped\wrapped_swapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="inputs\FfxApi_Dx12.cpp">
@@ -912,6 +936,39 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="fsr4\FSR4Upgrade.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wrapped\wrapped_factory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\FG_Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\Dxgi_Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spoofing\Dxgi_Spoofing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="upscaler_time\UpscalerTime_Dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="upscaler_time\UpscalerTime_Dx11.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\D3D12_Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\D3D11_Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="upscaler_time\UpscalerTime_Vk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\DxgiFactory_WrappedCalls.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\DxgiFactory_Hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

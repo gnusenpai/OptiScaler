@@ -2,9 +2,18 @@
 
 #include <Util.h>
 #include <Config.h>
-#include "HooksDx.h"
+
+#include <nvapi/fakenvapi.h>
+#include <nvapi/ReflexHooks.h>
+
+#include <menu/menu_overlay_dx.h>
 
 #include <misc/FrameLimit.h>
+#include <upscaler_time/UpscalerTime_Dx11.h>
+#include <upscaler_time/UpscalerTime_Dx12.h>
+
+#include <d3d11.h>
+#include <d3d12.h>
 
 #pragma intrinsic(_ReturnAddress)
 
@@ -12,38 +21,286 @@
 // https://github.com/baldurk/renderdoc/blob/v1.x/renderdoc/driver/dxgi/dxgi_wrapped.cpp
 
 static int scCount = 0;
+static int _frameCounter = 0;
+static double _lastFrameTime = 0;
+static bool _dx11Device = false;
+static bool _dx12Device = false;
+
+static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags,
+                            const DXGI_PRESENT_PARAMETERS* pPresentParameters, IUnknown* pDevice, HWND hWnd, bool isUWP)
+{
+    if (State::Instance().isShuttingDown)
+    {
+        if (pPresentParameters == nullptr)
+            return pSwapChain->Present(SyncInterval, Flags);
+        else
+            return ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+    }
+
+    LOG_DEBUG("{}", _frameCounter);
+
+    HRESULT presentResult;
+
+    auto willPresent = (Flags & DXGI_PRESENT_TEST) == 0;
+
+    if (willPresent)
+    {
+        double ftDelta = 0.0f;
+
+        auto now = Util::MillisecondsNow();
+
+        if (_lastFrameTime != 0)
+            ftDelta = now - _lastFrameTime;
+
+        _lastFrameTime = now;
+        State::Instance().presentFrameTime = ftDelta;
+
+        if (State::Instance().currentFG != nullptr)
+            State::Instance().lastFGFrameTime = ftDelta;
+
+        LOG_DEBUG("SyncInterval: {}, Flags: {:X}, Frametime: {:0.3f} ms", SyncInterval, Flags, ftDelta);
+    }
+
+    ID3D11Device* device = nullptr;
+    ID3D12Device* device12 = nullptr;
+    ID3D12CommandQueue* cq = nullptr;
+
+    // try to obtain directx objects and find the path
+    if (pDevice->QueryInterface(IID_PPV_ARGS(&device)) == S_OK)
+    {
+        if (!_dx11Device)
+            LOG_DEBUG("D3D11Device captured");
+
+        _dx11Device = true;
+        State::Instance().swapchainApi = DX11;
+        State::Instance().currentD3D11Device == device;
+
+        if (!State::Instance().DeviceAdapterNames.contains(device))
+        {
+            IDXGIDevice* dxgiDevice = nullptr;
+            auto qResult = device->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
+
+            if (qResult == S_OK)
+            {
+                IDXGIAdapter* dxgiAdapter = nullptr;
+                qResult = dxgiDevice->GetAdapter(&dxgiAdapter);
+
+                if (qResult == S_OK)
+                {
+                    State::Instance().skipSpoofing = true;
+
+                    std::wstring szName;
+                    DXGI_ADAPTER_DESC desc {};
+
+                    if (dxgiAdapter->GetDesc(&desc) == S_OK)
+                    {
+                        szName = desc.Description;
+                        auto adapterDesc = wstring_to_string(szName);
+                        LOG_INFO("Adapter Desc: {}", adapterDesc);
+                        State::Instance().DeviceAdapterNames[device] = adapterDesc;
+                    }
+                    else
+                    {
+                        LOG_ERROR("GetDesc: {:X}", (UINT) qResult);
+                    }
+
+                    State::Instance().skipSpoofing = false;
+                }
+                else
+                {
+                    LOG_ERROR("GetAdapter: {:X}", (UINT) qResult);
+                }
+
+                if (dxgiAdapter != nullptr)
+                    dxgiAdapter->Release();
+            }
+            else
+            {
+                LOG_ERROR("QueryInterface: {:X}", (UINT) qResult);
+            }
+
+            if (dxgiDevice != nullptr)
+                dxgiDevice->Release();
+        }
+    }
+    else if (pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
+    {
+        if (!_dx12Device)
+            LOG_DEBUG("D3D12CommandQueue captured");
+
+        ID3D12CommandQueue* realQueue = nullptr;
+        if (Util::CheckForRealObject(__FUNCTION__, cq, (IUnknown**) &realQueue))
+            cq = realQueue;
+
+        State::Instance().swapchainApi = DX12;
+
+        if (State::Instance().currentCommandQueue == nullptr)
+            State::Instance().currentCommandQueue = cq;
+
+        if (cq->GetDevice(IID_PPV_ARGS(&device12)) == S_OK)
+        {
+            if (!_dx12Device)
+                LOG_DEBUG("D3D12Device captured");
+
+            _dx12Device = true;
+            State::Instance().currentD3D12Device = device12;
+        }
+    }
+
+    auto fg = State::Instance().currentFG;
+    if (willPresent && fg != nullptr)
+        ReflexHooks::update(fg->IsActive(), false);
+    else
+        ReflexHooks::update(false, false);
+
+    // Upscaler GPU time computation
+    if (willPresent && State::Instance().currentFG == nullptr)
+    {
+        if (cq != nullptr)
+        {
+            UpscalerTimeDx12::ReadUpscalingTime(cq);
+        }
+        else if (device != nullptr)
+        {
+            ID3D11DeviceContext* context = nullptr;
+            device->GetImmediateContext(&context);
+            UpscalerTimeDx11::ReadUpscalingTime(context);
+            context->Release();
+        }
+    }
+
+    // Fallback when FGPresent is not hooked for V-sync
+    if (willPresent && Config::Instance()->ForceVsync.has_value())
+    {
+        LOG_DEBUG("ForceVsync: {}, VsyncInterval: {}, SCAllowTearing: {}, SCExclusiveFullscreen: {}",
+                  Config::Instance()->ForceVsync.value(), Config::Instance()->VsyncInterval.value_or_default(),
+                  State::Instance().SCAllowTearing, State::Instance().SCExclusiveFullscreen);
+
+        if (!Config::Instance()->ForceVsync.value())
+        {
+            SyncInterval = 0;
+
+            if (State::Instance().SCAllowTearing && !State::Instance().SCExclusiveFullscreen)
+            {
+                LOG_DEBUG("Adding DXGI_PRESENT_ALLOW_TEARING");
+                Flags |= DXGI_PRESENT_ALLOW_TEARING;
+            }
+        }
+        else
+        {
+            // Remove allow tearing
+            SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
+
+            if (SyncInterval < 1)
+                SyncInterval = 1;
+
+            LOG_DEBUG("Removing DXGI_PRESENT_ALLOW_TEARING");
+            Flags &= ~DXGI_PRESENT_ALLOW_TEARING;
+        }
+
+        LOG_DEBUG("Final SyncInterval: {}", SyncInterval);
+    }
+
+    // DXVK check, it's here because of upscaler time calculations
+    if (State::Instance().isRunningOnDXVK)
+    {
+        if (cq != nullptr)
+            cq->Release();
+
+        if (device != nullptr)
+            device->Release();
+
+        if (device12 != nullptr)
+            device12->Release();
+
+        if (pPresentParameters == nullptr)
+            presentResult = pSwapChain->Present(SyncInterval, Flags);
+        else
+            presentResult = ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+
+        if (presentResult == S_OK)
+            LOG_TRACE("3 {}", (UINT) presentResult);
+        else
+            LOG_ERROR("3 {:X}", (UINT) presentResult);
+
+        return presentResult;
+    }
+
+    if (willPresent)
+    {
+        // Tick feature to let it know if it's frozen
+        if (auto currentFeature = State::Instance().currentFeature; currentFeature != nullptr)
+            currentFeature->TickFrozenCheck();
+
+        // Draw overlay
+        MenuOverlayDx::Present(pSwapChain, SyncInterval, Flags, pPresentParameters, pDevice, hWnd, isUWP);
+
+        LOG_DEBUG("Calling fakenvapi");
+        if (State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG)
+            fakenvapi::reportFGPresent(pSwapChain, fg != nullptr && fg->IsActive(), _frameCounter % 2);
+
+        _frameCounter++;
+    }
+
+    LOG_DEBUG("Calling original present");
+
+    // swapchain present
+    if (pPresentParameters == nullptr)
+        presentResult = pSwapChain->Present(SyncInterval, Flags);
+    else
+        presentResult = ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+
+    LOG_DEBUG("Original present result: {:X}", (UINT) presentResult);
+
+    // release used objects
+    if (cq != nullptr)
+        cq->Release();
+
+    if (device != nullptr)
+        device->Release();
+
+    if (device12 != nullptr)
+        device12->Release();
+
+    if (presentResult == S_OK)
+        LOG_TRACE("4 {}, Present result: {:X}", _frameCounter, (UINT) presentResult);
+    else
+        LOG_ERROR("4 {:X}", (UINT) presentResult);
+
+    LOG_DEBUG("Done");
+
+    return presentResult;
+}
 
 WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* pDevice, HWND hWnd, UINT flags,
-                                               PFN_SC_Present renderTrig, PFN_SC_Clean clearTrig,
-                                               PFN_SC_Release releaseTrig, bool isUWP)
-    : m_pReal(real), Device(pDevice), Handle(hWnd), RenderTrig(renderTrig), ClearTrig(clearTrig),
-      ReleaseTrig(releaseTrig), m_iRefcount(1), UWP(isUWP)
+                                               bool isUWP)
+    : _real(real), _device(pDevice), _handle(hWnd), _refcount(1), _uwp(isUWP)
 {
-    id = ++scCount;
+    _id = ++scCount;
     _lastFlags = flags;
 
-    m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal1));
-    if (m_pReal1 != nullptr)
-        m_pReal->Release();
+    _real->QueryInterface(IID_PPV_ARGS(&_real1));
+    if (_real1 != nullptr)
+        _real->Release();
 
-    m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal2));
-    if (m_pReal2 != nullptr)
-        m_pReal->Release();
+    _real->QueryInterface(IID_PPV_ARGS(&_real2));
+    if (_real2 != nullptr)
+        _real->Release();
 
-    m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal3));
-    if (m_pReal3 != nullptr)
-        m_pReal->Release();
+    _real->QueryInterface(IID_PPV_ARGS(&_real3));
+    if (_real3 != nullptr)
+        _real->Release();
 
-    m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal4));
-    if (m_pReal4 != nullptr)
-        m_pReal->Release();
+    _real->QueryInterface(IID_PPV_ARGS(&_real4));
+    if (_real4 != nullptr)
+        _real->Release();
 
-    m_pReal->AddRef();
-    auto refCount = m_pReal->Release();
+    _real->AddRef();
+    auto refCount = _real->Release();
 
-    Device2 = Device;
+    _device2 = _device;
 
-    LOG_INFO("{} created, real: {:X}, refCount: {}", id, (UINT64) real, refCount);
+    LOG_INFO("{} created, real: {:X}, refCount: {}", _id, (UINT64) real, refCount);
 }
 
 WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4() {}
@@ -61,7 +318,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
     }
     else if (riid == __uuidof(IDXGISwapChain1))
     {
-        if (m_pReal1)
+        if (_real1)
         {
             AddRef();
             *ppvObject = (IDXGISwapChain1*) this;
@@ -74,7 +331,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
     }
     else if (riid == __uuidof(IDXGISwapChain2))
     {
-        if (m_pReal2)
+        if (_real2)
         {
             AddRef();
             *ppvObject = (IDXGISwapChain2*) this;
@@ -87,7 +344,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
     }
     else if (riid == __uuidof(IDXGISwapChain3))
     {
-        if (m_pReal3)
+        if (_real3)
         {
             AddRef();
             *ppvObject = (IDXGISwapChain3*) this;
@@ -100,7 +357,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
     }
     else if (riid == __uuidof(IDXGISwapChain4))
     {
-        if (m_pReal4)
+        if (_real4)
         {
             AddRef();
             *ppvObject = (IDXGISwapChain4*) this;
@@ -141,19 +398,16 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
 
 ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::AddRef()
 {
-    LOG_TRACE("Waiting mutex, owner: {}", _refMutex.getOwner());
-    OwnedLockGuard lock(_refMutex, 1);
-    m_iRefcount++;
-    LOG_TRACE("Count: {}, caller: {}", m_iRefcount, Util::WhoIsTheCaller(_ReturnAddress()));
-    return m_iRefcount;
+    InterlockedIncrement(&_refcount);
+    LOG_TRACE("Count: {}, caller: {}", _refcount, Util::WhoIsTheCaller(_ReturnAddress()));
+    return _refcount;
 }
 
 ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
 {
-    // LOG_TRACE("Waiting mutex, owner: {}", _refMutex.getOwner());
-    OwnedLockGuard lock(_refMutex, 2);
-    auto ret = --m_iRefcount;
-    // LOG_TRACE("Count: {}, caller: {}", ret, Util::WhoIsTheCaller(_ReturnAddress()));
+    ULONG ret = InterlockedDecrement(&_refcount);
+
+    LOG_TRACE("Count: {}, caller: {}", _refcount, Util::WhoIsTheCaller(_ReturnAddress()));
 
     if (ret == 0)
     {
@@ -161,13 +415,16 @@ ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
         OwnedLockGuard lock(_localMutex, 999);
 #endif
 
-        if (ClearTrig != nullptr)
-            ClearTrig(true, Handle);
+        MenuOverlayDx::CleanupRenderTarget(true, _handle);
 
-        if (ReleaseTrig != nullptr)
-            ReleaseTrig(Handle);
+        if (State::Instance().currentSwapchain == this)
+            State::Instance().currentSwapchain = nullptr;
 
-        auto refCount = m_pReal->Release();
+        auto fg = State::Instance().currentFG;
+        if (fg != nullptr && fg->Mutex.getOwner() != 1 && fg->SwapchainContext() != nullptr)
+            fg->ReleaseSwapchain(_handle);
+
+        auto refCount = _real->Release();
 
         delete this;
     }
@@ -178,34 +435,34 @@ ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
 //
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetPrivateData(REFGUID Name, UINT DataSize, const void* pData)
 {
-    return m_pReal->SetPrivateData(Name, DataSize, pData);
+    return _real->SetPrivateData(Name, DataSize, pData);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetPrivateDataInterface(REFGUID Name, const IUnknown* pUnknown)
 {
-    return m_pReal->SetPrivateDataInterface(Name, pUnknown);
+    return _real->SetPrivateDataInterface(Name, pUnknown);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetPrivateData(REFGUID Name, UINT* pDataSize, void* pData)
 {
-    return m_pReal->GetPrivateData(Name, pDataSize, pData);
+    return _real->GetPrivateData(Name, pDataSize, pData);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetParent(REFIID riid, void** ppParent)
 {
-    return m_pReal->GetParent(riid, ppParent);
+    return _real->GetParent(riid, ppParent);
 }
 
 //
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetDevice(REFIID riid, void** ppDevice)
 {
-    return m_pReal->GetDevice(riid, ppDevice);
+    return _real->GetDevice(riid, ppDevice);
 }
 
 //
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UINT Flags)
 {
-    if (m_pReal == nullptr)
+    if (_real == nullptr)
         return DXGI_ERROR_DEVICE_REMOVED;
 
 #ifdef USE_LOCAL_MUTEX
@@ -214,9 +471,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UIN
 
     HRESULT result;
 
-    if ((Flags & DXGI_PRESENT_TEST) == 0 && RenderTrig != nullptr)
+    if ((Flags & DXGI_PRESENT_TEST) == 0)
     {
-        result = RenderTrig(m_pReal, SyncInterval, Flags, nullptr, Device, Handle, UWP);
+        result = LocalPresent(_real, SyncInterval, Flags, nullptr, _device, _handle, _uwp);
 
         // When Reflex can't be used to limit, sleep in present
         if (!State::Instance().reflexLimitsFps && State::Instance().activeFgOutput == FGOutput::NoFG)
@@ -224,7 +481,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UIN
     }
     else
     {
-        result = m_pReal->Present(SyncInterval, Flags);
+        result = _real->Present(SyncInterval, Flags);
     }
 
     return result;
@@ -232,7 +489,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UIN
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetBuffer(UINT Buffer, REFIID riid, void** ppSurface)
 {
-    auto result = m_pReal->GetBuffer(Buffer, riid, ppSurface);
+    auto result = _real->GetBuffer(Buffer, riid, ppSurface);
     return result;
 }
 
@@ -271,7 +528,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
 
         State::Instance().realExclusiveFullscreen = Fullscreen;
 
-        result = m_pReal->SetFullscreenState(Fullscreen, pTarget);
+        result = _real->SetFullscreenState(Fullscreen, pTarget);
 
         if (result != S_OK)
             LOG_ERROR("result: {:X}", (UINT) result);
@@ -290,13 +547,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetFullscreenState(BOOL* pFullscreen, IDXGIOutput** ppTarget)
 {
-    return m_pReal->GetFullscreenState(pFullscreen, ppTarget);
+    return _real->GetFullscreenState(pFullscreen, ppTarget);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetDesc(DXGI_SWAP_CHAIN_DESC* pDesc)
-{
-    return m_pReal->GetDesc(pDesc);
-}
+HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetDesc(DXGI_SWAP_CHAIN_DESC* pDesc) { return _real->GetDesc(pDesc); }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount, UINT Width, UINT Height,
                                                                 DXGI_FORMAT NewFormat, UINT SwapChainFlags)
@@ -319,7 +573,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
     HRESULT result;
     DXGI_SWAP_CHAIN_DESC desc {};
-    m_pReal->GetDesc(&desc);
+    _real->GetDesc(&desc);
 
     if (Config::Instance()->FGEnabled.value_or_default())
     {
@@ -328,8 +582,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
         State::Instance().FGchanged = true;
     }
 
-    if (ClearTrig != nullptr)
-        ClearTrig(true, Handle);
+    MenuOverlayDx::CleanupRenderTarget(true, _handle);
 
     State::Instance().SCchanged = true;
 
@@ -352,7 +605,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
         State::Instance().skipHeapCapture = true;
 
     _lastFlags = SwapChainFlags;
-    result = m_pReal->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
+    result = _real->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
 
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
         State::Instance().skipHeapCapture = false;
@@ -373,7 +626,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
         do
         {
-            if (m_pReal3 == nullptr)
+            if (_real3 == nullptr)
                 break;
 
             NewFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -389,7 +642,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
             {
                 UINT css = 0;
 
-                result = m_pReal3->CheckColorSpaceSupport(hdrCS, &css);
+                result = _real3->CheckColorSpaceSupport(hdrCS, &css);
 
                 if (result != S_OK)
                 {
@@ -399,7 +652,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
                 if (DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT & css)
                 {
-                    result = m_pReal3->SetColorSpace1(hdrCS);
+                    result = _real3->SetColorSpace1(hdrCS);
 
                     if (result != S_OK)
                     {
@@ -416,11 +669,11 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
     State::Instance().SCbuffers.clear();
     UINT bc = BufferCount;
-    if (bc == 0 && m_pReal1 != nullptr)
+    if (bc == 0 && _real1 != nullptr)
     {
         DXGI_SWAP_CHAIN_DESC1 desc {};
 
-        if (m_pReal1->GetDesc1(&desc) == S_OK)
+        if (_real1->GetDesc1(&desc) == S_OK)
             bc = desc.BufferCount;
     }
 
@@ -428,7 +681,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
     {
         IUnknown* buffer;
 
-        if (m_pReal->GetBuffer(i, IID_PPV_ARGS(&buffer)) == S_OK)
+        if (_real->GetBuffer(i, IID_PPV_ARGS(&buffer)) == S_OK)
         {
             State::Instance().SCbuffers.push_back(buffer);
             buffer->Release();
@@ -448,46 +701,46 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeTarget(const DXGI_MODE_DESC* pNewTargetParameters)
 {
-    return m_pReal->ResizeTarget(pNewTargetParameters);
+    return _real->ResizeTarget(pNewTargetParameters);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetContainingOutput(IDXGIOutput** ppOutput)
 {
-    return m_pReal->GetContainingOutput(ppOutput);
+    return _real->GetContainingOutput(ppOutput);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetFrameStatistics(DXGI_FRAME_STATISTICS* pStats)
 {
-    return m_pReal->GetFrameStatistics(pStats);
+    return _real->GetFrameStatistics(pStats);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetLastPresentCount(UINT* pLastPresentCount)
 {
-    return m_pReal->GetLastPresentCount(pLastPresentCount);
+    return _real->GetLastPresentCount(pLastPresentCount);
 }
 
 //
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetDesc1(DXGI_SWAP_CHAIN_DESC1* pDesc)
 {
-    return m_pReal1->GetDesc1(pDesc);
+    return _real1->GetDesc1(pDesc);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetFullscreenDesc(DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pDesc)
 {
-    return m_pReal1->GetFullscreenDesc(pDesc);
+    return _real1->GetFullscreenDesc(pDesc);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetHwnd(HWND* pHwnd) { return m_pReal1->GetHwnd(pHwnd); }
+HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetHwnd(HWND* pHwnd) { return _real1->GetHwnd(pHwnd); }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetCoreWindow(REFIID refiid, void** ppUnk)
 {
-    return m_pReal1->GetCoreWindow(refiid, ppUnk);
+    return _real1->GetCoreWindow(refiid, ppUnk);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
                                                            const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
-    if (m_pReal1 == nullptr)
+    if (_real1 == nullptr)
         return DXGI_ERROR_DEVICE_REMOVED;
 
 #ifdef USE_LOCAL_MUTEX
@@ -496,9 +749,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UI
 
     HRESULT result;
 
-    if ((Flags & DXGI_PRESENT_TEST) == 0 && RenderTrig != nullptr)
+    if ((Flags & DXGI_PRESENT_TEST) == 0)
     {
-        result = RenderTrig(m_pReal1, SyncInterval, Flags, pPresentParameters, Device, Handle, UWP);
+        result = LocalPresent(_real1, SyncInterval, Flags, pPresentParameters, _device, _handle, _uwp);
 
         // When Reflex can't be used to limit, sleep in present
         if (!State::Instance().reflexLimitsFps && State::Instance().activeFgOutput == FGOutput::NoFG)
@@ -506,7 +759,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UI
     }
     else
     {
-        result = m_pReal1->Present1(SyncInterval, Flags, pPresentParameters);
+        result = _real1->Present1(SyncInterval, Flags, pPresentParameters);
     }
 
     return result;
@@ -514,73 +767,73 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UI
 
 BOOL STDMETHODCALLTYPE WrappedIDXGISwapChain4::IsTemporaryMonoSupported(void)
 {
-    return m_pReal1->IsTemporaryMonoSupported();
+    return _real1->IsTemporaryMonoSupported();
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetRestrictToOutput(IDXGIOutput** ppRestrictToOutput)
 {
-    return m_pReal1->GetRestrictToOutput(ppRestrictToOutput);
+    return _real1->GetRestrictToOutput(ppRestrictToOutput);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetBackgroundColor(const DXGI_RGBA* pColor)
 {
-    return m_pReal1->SetBackgroundColor(pColor);
+    return _real1->SetBackgroundColor(pColor);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetBackgroundColor(DXGI_RGBA* pColor)
 {
-    return m_pReal1->GetBackgroundColor(pColor);
+    return _real1->GetBackgroundColor(pColor);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetRotation(DXGI_MODE_ROTATION Rotation)
 {
-    return m_pReal1->SetRotation(Rotation);
+    return _real1->SetRotation(Rotation);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetRotation(DXGI_MODE_ROTATION* pRotation)
 {
-    return m_pReal1->GetRotation(pRotation);
+    return _real1->GetRotation(pRotation);
 }
 
 //
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetSourceSize(UINT Width, UINT Height)
 {
-    return m_pReal2->SetSourceSize(Width, Height);
+    return _real2->SetSourceSize(Width, Height);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetSourceSize(UINT* pWidth, UINT* pHeight)
 {
-    return m_pReal2->GetSourceSize(pWidth, pHeight);
+    return _real2->GetSourceSize(pWidth, pHeight);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetMaximumFrameLatency(UINT MaxLatency)
 {
-    return m_pReal2->SetMaximumFrameLatency(MaxLatency);
+    return _real2->SetMaximumFrameLatency(MaxLatency);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetMaximumFrameLatency(UINT* pMaxLatency)
 {
-    return m_pReal2->GetMaximumFrameLatency(pMaxLatency);
+    return _real2->GetMaximumFrameLatency(pMaxLatency);
 }
 
 HANDLE STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetFrameLatencyWaitableObject(void)
 {
-    return m_pReal2->GetFrameLatencyWaitableObject();
+    return _real2->GetFrameLatencyWaitableObject();
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetMatrixTransform(const DXGI_MATRIX_3X2_F* pMatrix)
 {
-    return m_pReal2->SetMatrixTransform(pMatrix);
+    return _real2->SetMatrixTransform(pMatrix);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetMatrixTransform(DXGI_MATRIX_3X2_F* pMatrix)
 {
-    return m_pReal2->GetMatrixTransform(pMatrix);
+    return _real2->GetMatrixTransform(pMatrix);
 }
 
 UINT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetCurrentBackBufferIndex(void)
 {
-    auto index = m_pReal3->GetCurrentBackBufferIndex();
+    auto index = _real3->GetCurrentBackBufferIndex();
     // LOG_TRACE("index: {}", index);
     return index;
 }
@@ -588,7 +841,7 @@ UINT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetCurrentBackBufferIndex(void)
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::CheckColorSpaceSupport(DXGI_COLOR_SPACE_TYPE ColorSpace,
                                                                          UINT* pColorSpaceSupport)
 {
-    return m_pReal3->CheckColorSpaceSupport(ColorSpace, pColorSpaceSupport);
+    return _real3->CheckColorSpaceSupport(ColorSpace, pColorSpaceSupport);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetColorSpace1(DXGI_COLOR_SPACE_TYPE ColorSpace)
@@ -598,7 +851,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetColorSpace1(DXGI_COLOR_SPAC
                                     ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P2020 ||
                                     ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
 
-    return m_pReal3->SetColorSpace1(ColorSpace);
+    return _real3->SetColorSpace1(ColorSpace);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCount, UINT Width, UINT Height,
@@ -625,7 +878,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     HRESULT result;
     DXGI_SWAP_CHAIN_DESC desc {};
-    m_pReal->GetDesc(&desc);
+    _real->GetDesc(&desc);
 
     if (Config::Instance()->FGEnabled.value_or_default())
     {
@@ -634,8 +887,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
         State::Instance().FGchanged = true;
     }
 
-    if (ClearTrig != nullptr)
-        ClearTrig(true, Handle);
+    MenuOverlayDx::CleanupRenderTarget(true, _handle);
 
     State::Instance().SCchanged = true;
 
@@ -660,7 +912,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     _lastFlags = SwapChainFlags;
     result =
-        m_pReal3->ResizeBuffers1(BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask, ppPresentQueue);
+        _real3->ResizeBuffers1(BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask, ppPresentQueue);
 
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
         State::Instance().skipHeapCapture = false;
@@ -694,7 +946,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
             {
                 UINT css = 0;
 
-                auto result = m_pReal3->CheckColorSpaceSupport(hdrCS, &css);
+                auto result = _real3->CheckColorSpaceSupport(hdrCS, &css);
 
                 if (result != S_OK)
                 {
@@ -704,7 +956,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
                 if (DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT & css)
                 {
-                    result = m_pReal3->SetColorSpace1(hdrCS);
+                    result = _real3->SetColorSpace1(hdrCS);
 
                     if (result != S_OK)
                     {
@@ -721,11 +973,11 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     State::Instance().SCbuffers.clear();
     UINT bc = BufferCount;
-    if (bc == 0 && m_pReal1 != nullptr)
+    if (bc == 0 && _real1 != nullptr)
     {
         DXGI_SWAP_CHAIN_DESC1 desc {};
 
-        if (m_pReal1->GetDesc1(&desc) == S_OK)
+        if (_real1->GetDesc1(&desc) == S_OK)
             bc = desc.BufferCount;
     }
 
@@ -733,7 +985,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
     {
         IUnknown* buffer;
 
-        if (m_pReal->GetBuffer(i, IID_PPV_ARGS(&buffer)) == S_OK)
+        if (_real->GetBuffer(i, IID_PPV_ARGS(&buffer)) == S_OK)
         {
             State::Instance().SCbuffers.push_back(buffer);
             buffer->Release();
@@ -756,5 +1008,5 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetHDRMetaData(DXGI_HDR_METADATA_TYPE Type, UINT Size,
                                                                  void* pMetaData)
 {
-    return m_pReal4->SetHDRMetaData(Type, Size, pMetaData);
+    return _real4->SetHDRMetaData(Type, Size, pMetaData);
 }

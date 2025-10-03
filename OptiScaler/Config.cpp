@@ -173,6 +173,8 @@ bool Config::Reload(std::filesystem::path iniPath)
             FsrUseMaskForTransparency.set_from_config(readBool("FSR", "UseReactiveMaskForTransparency"));
             DlssReactiveMaskBias.set_from_config(readFloat("FSR", "DlssReactiveMaskBias"));
             Fsr4Update.set_from_config(readBool("FSR", "Fsr4Update"));
+            Fsr4EnableDebugView.set_from_config(readBool("FSR", "Fsr4EnableDebugView"));
+            Fsr4EnableWatermark.set_from_config(readBool("FSR", "Fsr4EnableWatermark"));
 
             if (auto setting = readInt("FSR", "Fsr4Model"); setting.has_value() && setting >= 0 && setting <= 5)
                 Fsr4Model.set_from_config(setting);
@@ -341,6 +343,7 @@ bool Config::Reload(std::filesystem::path iniPath)
         {
             HookOriginalNvngxOnly.set_from_config(readBool("Hooks", "HookOriginalNvngxOnly"));
             EarlyHooking.set_from_config(readBool("Hooks", "EarlyHooking"));
+            UseNtdllHooks.set_from_config(readBool("Hooks", "UseNtdllHooks"));
         }
 
         // RCAS
@@ -475,6 +478,7 @@ bool Config::Reload(std::filesystem::path iniPath)
         // Spoofing
         {
             DxgiSpoofing.set_from_config(readBool("Spoofing", "Dxgi"));
+            DxgiFactoryWrapping.set_from_config(readBool("Spoofing", "DxgiFactoryWrapping"));
             DxgiBlacklist.set_from_config(readString("Spoofing", "DxgiBlacklist"));
             DxgiVRAM.set_from_config(readInt("Spoofing", "DxgiVRAM"));
             VulkanSpoofing.set_from_config(readBool("Spoofing", "Vulkan"));
@@ -767,6 +771,10 @@ bool Config::SaveIni()
         ini.SetValue("FSR", "Fsr4Update",
                      GetBoolValue(Instance()->Fsr4Update.value_for_config_ignore_default()).c_str());
         ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4EnableDebugView",
+                     GetIntValue(Instance()->Fsr4EnableDebugView.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4EnableWatermark",
+                     GetIntValue(Instance()->Fsr4EnableWatermark.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearColorSpace",
                      GetBoolValue(Instance()->FsrNonLinearColorSpace.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearPQ", GetBoolValue(Instance()->FsrNonLinearPQ.value_for_config()).c_str());
@@ -867,6 +875,7 @@ bool Config::SaveIni()
         ini.SetValue("Hooks", "HookOriginalNvngxOnly",
                      GetBoolValue(Instance()->HookOriginalNvngxOnly.value_for_config()).c_str());
         ini.SetValue("Hooks", "EarlyHooking", GetBoolValue(Instance()->EarlyHooking.value_for_config()).c_str());
+        ini.SetValue("Hooks", "UseNtdllHooks", GetBoolValue(Instance()->UseNtdllHooks.value_for_config()).c_str());
     }
 
     // CAS
@@ -1028,6 +1037,8 @@ bool Config::SaveIni()
     // Spoofing
     {
         ini.SetValue("Spoofing", "Dxgi", GetBoolValue(Instance()->DxgiSpoofing.value_for_config()).c_str());
+        ini.SetValue("Spoofing", "DxgiFactoryWrapping",
+                     GetBoolValue(Instance()->DxgiFactoryWrapping.value_for_config()).c_str());
         ini.SetValue("Spoofing", "DxgiBlacklist", Instance()->DxgiBlacklist.value_for_config_or("auto").c_str());
         ini.SetValue("Spoofing", "Vulkan", GetBoolValue(Instance()->VulkanSpoofing.value_for_config()).c_str());
         ini.SetValue("Spoofing", "VulkanExtensionSpoofing",

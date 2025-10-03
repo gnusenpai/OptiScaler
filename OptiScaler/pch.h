@@ -41,6 +41,19 @@
 // Enables LOG_DEBUG_ONLY logs
 // #define DETAILED_DEBUG_LOGS
 
+// Enable D3D12 Debug Layers
+// #define ENABLE_DEBUG_LAYER_DX12
+
+// Enable D3D11 Debug Layers
+// #define ENABLE_DEBUG_LAYER_DX11
+
+#ifdef ENABLE_DEBUG_LAYER_DX12
+// Enable GPUValidation
+// #define ENABLE_GPU_VALIDATION
+
+#include <d3d12sdklayers.h>
+#endif
+
 inline HMODULE dllModule = nullptr;
 inline HMODULE exeModule = nullptr;
 inline HMODULE originalModule = nullptr;
@@ -48,6 +61,7 @@ inline HMODULE skModule = nullptr;
 inline HMODULE reshadeModule = nullptr;
 inline HMODULE vulkanModule = nullptr;
 inline HMODULE d3d11Module = nullptr;
+inline HMODULE slInterposerModule = nullptr;
 inline DWORD processId;
 
 #define LOG_TRACE(msg, ...) spdlog::trace(__FUNCTION__ " " msg, ##__VA_ARGS__)
@@ -120,25 +134,33 @@ enum Value : uint32_t
 inline static std::string wstring_to_string(const std::wstring& wide_str)
 {
     if (wide_str.empty())
-        return {};
+        return std::string();
 
-    int size_needed =
-        WideCharToMultiByte(CP_UTF8, 0, wide_str.data(), (int) wide_str.size(), nullptr, 0, nullptr, nullptr);
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), static_cast<int>(wide_str.length()), nullptr, 0,
+                                          nullptr, nullptr);
+    if (size_needed <= 0)
+        return std::string();
 
     std::string result(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, wide_str.data(), (int) wide_str.size(), result.data(), size_needed, nullptr,
-                        nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, wide_str.c_str(), static_cast<int>(wide_str.length()), &result[0], size_needed,
+                        nullptr, nullptr);
+
     return result;
 }
 
 inline static std::wstring string_to_wstring(const std::string& str)
 {
-    int len;
-    int slength = static_cast<int>(str.length()) + 1;
-    len = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), slength, 0, 0);
-    std::wstring wstr(len, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), slength, &wstr[0], len);
-    return wstr;
+    if (str.empty())
+        return std::wstring();
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), nullptr, 0);
+    if (size_needed <= 0)
+        return std::wstring();
+
+    std::wstring result(size_needed, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), &result[0], size_needed);
+
+    return result;
 }
 
 inline static void to_lower_in_place(std::string& string)
