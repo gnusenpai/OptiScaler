@@ -150,13 +150,15 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
     struct ffxDispatchDescUpscale params = { 0 };
     params.header.type = FFX_API_DISPATCH_DESC_TYPE_UPSCALE;
 
+    params.flags = 0;
+
     if (Config::Instance()->FsrDebugView.value_or_default())
-        params.flags = FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW;
+        params.flags |= FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW;
 
     if (Config::Instance()->FsrNonLinearPQ.value_or_default())
-        params.flags = FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_PQ;
+        params.flags |= FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_PQ;
     else if (Config::Instance()->FsrNonLinearSRGB.value_or_default())
-        params.flags = FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_SRGB;
+        params.flags |= FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_SRGB;
 
     InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_X, &params.jitterOffset.x);
     InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_Y, &params.jitterOffset.y);
@@ -569,10 +571,10 @@ bool FSR31FeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
     _contextDesc.flags = 0;
     _contextDesc.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
 
-    _contextDesc.fpMessage = FfxLogCallback;
-
 #ifdef _DEBUG
+    LOG_INFO("Debug checking enabled!");
     _contextDesc.flags |= FFX_UPSCALE_ENABLE_DEBUG_CHECKING;
+    _contextDesc.fpMessage = FfxLogCallback;
 #endif
 
     if (DepthInverted())
@@ -591,7 +593,10 @@ bool FSR31FeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
         _contextDesc.flags |= FFX_UPSCALE_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS;
 
     if (Config::Instance()->Fsr4EnableDebugView.value_or_default())
+    {
+        LOG_INFO("Debug view enabled!");
         _contextDesc.flags |= 512; // FFX_UPSCALE_ENABLE_DEBUG_VISUALIZATION
+    }
 
     if (Config::Instance()->FsrNonLinearColorSpace.value_or_default())
     {
