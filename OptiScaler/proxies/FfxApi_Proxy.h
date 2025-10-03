@@ -77,7 +77,16 @@ class FfxApiProxy
 
         LOG_WARN("can't parse {0}", version_str);
     }
+
     static bool IsFGType(ffxStructType_t type) { return type >= 0x00020001u && type <= 0x00030009u; }
+
+    static bool IsLoader(const std::wstring& filePath)
+    {
+        auto size = std::filesystem::file_size(filePath);
+
+        // < 1 MB
+        return size < 1048576;
+    }
 
   public:
     static HMODULE Dx12Module() { return _dllDx12; }
@@ -96,7 +105,14 @@ class FfxApiProxy
         spdlog::info("");
 
         if (module != nullptr)
+        {
             _dllDx12 = module;
+
+            wchar_t path[MAX_PATH];
+            DWORD len = GetModuleFileNameW(module, path, MAX_PATH);
+            std::wstring fileName(path);
+            _dx12Loader = IsLoader(fileName);
+        }
 
         if (_dllDx12 == nullptr)
         {
@@ -110,11 +126,14 @@ class FfxApiProxy
                 if (_dllDx12 == nullptr && Config::Instance()->FfxDx12Path.has_value())
                 {
                     std::filesystem::path libPath(Config::Instance()->FfxDx12Path.value().c_str());
+                    std::wstring fileName;
 
                     if (libPath.has_filename())
-                        _dllDx12 = NtdllProxy::LoadLibraryExW_Ldr(libPath.c_str(), NULL, 0);
+                        fileName = libPath.c_str();
                     else
-                        _dllDx12 = NtdllProxy::LoadLibraryExW_Ldr((libPath / dllNames[i]).c_str(), NULL, 0);
+                        fileName = (libPath / dllNames[i]).c_str();
+
+                    _dllDx12 = NtdllProxy::LoadLibraryExW_Ldr(fileName.c_str(), NULL, 0);
 
                     if (_dllDx12 != nullptr)
                     {
@@ -122,7 +141,7 @@ class FfxApiProxy
                                  wstring_to_string(Config::Instance()->FfxDx12Path.value()));
 
                         // hacky but works for now
-                        _dx12Loader = (i == 0);
+                        _dx12Loader = IsLoader(fileName);
                         break;
                     }
                 }
@@ -136,7 +155,7 @@ class FfxApiProxy
                         LOG_INFO("{} loaded from exe folder", wstring_to_string(dllNames[i]));
 
                         // hacky but works for now
-                        _dx12Loader = (i == 0);
+                        _dx12Loader = IsLoader(dllNames[i]);
                         break;
                     }
                 }
