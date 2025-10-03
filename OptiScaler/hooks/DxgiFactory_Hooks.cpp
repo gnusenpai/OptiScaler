@@ -214,7 +214,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChain(IDXGIFactory* realFactory, IUnknown* p
     }
 
     State::Instance().SCAllowTearing = (pDesc->Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
-    _lastSwapChainFlags = pDesc->Flags;
+    State::Instance().SCLastFlags = pDesc->Flags;
     State::Instance().realExclusiveFullscreen = !pDesc->Windowed;
 
     // Check for SL proxy, get real queue
@@ -382,7 +382,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForHwnd(IDXGIFactory2* realFactory, IUn
     }
 
     State::Instance().SCAllowTearing = (pDesc->Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
-    _lastSwapChainFlags = pDesc->Flags;
+    State::Instance().SCLastFlags = pDesc->Flags;
     State::Instance().realExclusiveFullscreen = pFullscreenDesc != nullptr && !pFullscreenDesc->Windowed;
 
     // Check for SL proxy, get real queue
@@ -527,7 +527,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForCoreWindow(IDXGIFactory2* realFactor
     }
 
     State::Instance().SCAllowTearing = (pDesc->Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
-    _lastSwapChainFlags = pDesc->Flags;
+    State::Instance().SCLastFlags = pDesc->Flags;
     State::Instance().realExclusiveFullscreen = false;
 
     ID3D12CommandQueue* realQ = nullptr;

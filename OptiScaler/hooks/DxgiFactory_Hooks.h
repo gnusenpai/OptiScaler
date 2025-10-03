@@ -54,7 +54,6 @@ class DxgiFactoryHooks
 
     // To prevent recursive FG swapchain creation
     inline static bool _skipFGSwapChainCreation = false;
-    inline static UINT _lastSwapChainFlags = 0;
     inline static bool _skipHighPerfCheck = false;
 
     static void CheckAdapter(IUnknown* unkAdapter);

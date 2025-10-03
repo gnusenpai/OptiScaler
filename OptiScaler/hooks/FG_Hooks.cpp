@@ -337,13 +337,13 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         {
             LOG_DEBUG("SC BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}", desc.BufferCount,
                       desc.BufferDesc.Width, desc.BufferDesc.Height, (UINT) desc.BufferDesc.Format,
-                      _lastSwapChainFlags);
+                      State::Instance().SCLastFlags);
 
             if (BufferCount == 0)
                 BufferCount = desc.BufferCount;
 
             if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height &&
-                NewFormat == desc.BufferDesc.Format && _lastSwapChainFlags == SwapChainFlags)
+                NewFormat == desc.BufferDesc.Format && State::Instance().SCLastFlags == SwapChainFlags)
             {
                 LOG_DEBUG("Skipping resize");
                 return S_OK;
@@ -354,7 +354,7 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
     }
 
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
-    _lastSwapChainFlags = SwapChainFlags;
+    State::Instance().SCLastFlags = SwapChainFlags;
 
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
@@ -444,13 +444,13 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
         {
             LOG_DEBUG("SC BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}", desc.BufferCount,
                       desc.BufferDesc.Width, desc.BufferDesc.Height, (UINT) desc.BufferDesc.Format,
-                      _lastSwapChainFlags);
+                      State::Instance().SCLastFlags);
 
             if (BufferCount == 0)
                 BufferCount = desc.BufferCount;
 
             if (desc.BufferDesc.Width == Width && desc.BufferDesc.Height == Height &&
-                Format == desc.BufferDesc.Format && _lastSwapChainFlags == SwapChainFlags)
+                Format == desc.BufferDesc.Format && State::Instance().SCLastFlags == SwapChainFlags)
             {
                 LOG_DEBUG("Skipping resize");
                 return S_OK;
@@ -461,7 +461,7 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
     }
 
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
-    _lastSwapChainFlags = SwapChainFlags;
+    State::Instance().SCLastFlags = SwapChainFlags;
 
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())

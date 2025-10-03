@@ -201,6 +201,7 @@ class State
     bool realExclusiveFullscreen = false;
     bool SCExclusiveFullscreen = false;
     bool SCAllowTearing = false;
+    UINT SCLastFlags = 0;
 
     // HDR
     std::vector<IUnknown*> SCbuffers;
