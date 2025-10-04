@@ -21,8 +21,8 @@
 bool CheckForFGStatus()
 {
     // Need to check overlay menu parameter, goes to places it shouldn't go
-    if (!Config::Instance()->OverlayMenu.value_or_default())
-        return false;
+    // if (!Config::Instance()->OverlayMenu.value_or_default())
+    //    return false;
 
     // Disable FG if amd dll is not found
     if (State::Instance().activeFgOutput == FGOutput::FSRFG)

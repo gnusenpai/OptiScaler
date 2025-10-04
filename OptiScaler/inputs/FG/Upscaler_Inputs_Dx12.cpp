@@ -129,8 +129,8 @@ void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSD
 
     // FG Prepare
     UINT frameIndex;
-    if (!State::Instance().isShuttingDown && fg->IsActive() && Config::Instance()->OverlayMenu.value_or_default() &&
-        Config::Instance()->FGEnabled.value_or_default() && State::Instance().currentSwapchain != nullptr)
+    if (!State::Instance().isShuttingDown && fg->IsActive() && Config::Instance()->FGEnabled.value_or_default() &&
+        State::Instance().currentSwapchain != nullptr)
     {
         // Wait for present
         if (fg->Mutex.getOwner() == 2)
@@ -242,8 +242,8 @@ void UpscalerInputsDx12::UpscaleEnd(ID3D12GraphicsCommandList* InCmdList, NVSDK_
         return;
 
     // FG Dispatch
-    if (fg->IsActive() && Config::Instance()->OverlayMenu.value_or_default() &&
-        Config::Instance()->FGEnabled.value_or_default() && State::Instance().currentSwapchain != nullptr)
+    if (fg->IsActive() && Config::Instance()->FGEnabled.value_or_default() &&
+        State::Instance().currentSwapchain != nullptr)
     {
         if (Config::Instance()->FGHUDFix.value_or_default())
         {

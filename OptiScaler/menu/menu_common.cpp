@@ -1268,7 +1268,8 @@ static void MenuHdrCheck(ImGuiIO io)
 {
     // If game is using HDR, apply tone mapping to the ImGui style
     if (State::Instance().isHdrActive ||
-        (!Config::Instance()->OverlayMenu.value_or_default() && State::Instance().currentFeature->IsHdr()))
+        (!Config::Instance()->OverlayMenu.value_or_default() && State::Instance().currentFeature != nullptr &&
+         State::Instance().currentFeature->IsHdr()))
     {
         if (!_hdrTonemapApplied)
         {
@@ -2799,7 +2800,14 @@ bool MenuCommon::RenderMenu()
 
                 // OptiFG requirements
                 auto constexpr optiFgIndex = (uint32_t) FGInput::Upscaler;
-                if (!Config::Instance()->OverlayMenu.value_or_default())
+
+                // if (!Config::Instance()->OverlayMenu.value_or_default())
+                //{
+                //    disabledMaskInput[optiFgIndex] = true;
+                //    fgInputDesc[optiFgIndex] = "Old overlay menu is unsupported";
+                //}
+                // else if (State::Instance().api != DX12)
+                if (State::Instance().api != DX12)
                 {
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Old overlay menu is unsupported";
@@ -3057,8 +3065,7 @@ bool MenuCommon::RenderMenu()
 
                 // FSR FG controls
                 if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
-                    State::Instance().activeFgInput != FGInput::NoFG &&
-                    Config::Instance()->OverlayMenu.value_or_default() && !State::Instance().isWorkingAsNvngx &&
+                    State::Instance().activeFgInput != FGInput::NoFG && !State::Instance().isWorkingAsNvngx &&
                     State::Instance().api == DX12)
                 {
                     if (State::Instance().activeFgInput != FGInput::Upscaler ||
@@ -3258,8 +3265,7 @@ bool MenuCommon::RenderMenu()
 
                 // XeFG controls
                 if (State::Instance().activeFgOutput == FGOutput::XeFG &&
-                    State::Instance().activeFgInput != FGInput::NoFG &&
-                    Config::Instance()->OverlayMenu.value_or_default() && !State::Instance().isWorkingAsNvngx &&
+                    State::Instance().activeFgInput != FGInput::NoFG && !State::Instance().isWorkingAsNvngx &&
                     State::Instance().api == DX12)
                 {
                     if (State::Instance().activeFgInput != FGInput::Upscaler ||
@@ -3432,8 +3438,8 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // OptiFG
-                if (Config::Instance()->OverlayMenu.value_or_default() && State::Instance().api == DX12 &&
-                    !State::Instance().isWorkingAsNvngx && State::Instance().activeFgInput == FGInput::Upscaler)
+                if (State::Instance().api == DX12 && !State::Instance().isWorkingAsNvngx &&
+                    State::Instance().activeFgInput == FGInput::Upscaler)
                 {
                     SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
 

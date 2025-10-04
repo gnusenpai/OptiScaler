@@ -316,7 +316,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     }
 
     // Hooks
-    if (CheckDllNameW(&libName, &dx11NamesW) && Config::Instance()->OverlayMenu.value_or_default())
+    if (CheckDllNameW(&libName, &dx11NamesW))
     {
         auto module = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, 0);
 
@@ -326,7 +326,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
         return module;
     }
 
-    if (CheckDllNameW(&libName, &dx12NamesW) && Config::Instance()->OverlayMenu.value_or_default())
+    if (CheckDllNameW(&libName, &dx12NamesW))
     {
         auto module = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, 0);
 

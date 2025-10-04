@@ -623,8 +623,7 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
     LOG_FUNC();
 
     // If needed hooks are missing or XeFG proxy is not inited or FG swapchain is not created
-    if (!Config::Instance()->OverlayMenu.value_or_default() || !XeFGProxy::InitXeFG() ||
-        State::Instance().currentFGSwapchain == nullptr)
+    if (!XeFGProxy::InitXeFG() || State::Instance().currentFGSwapchain == nullptr)
         return;
 
     if (State::Instance().isShuttingDown)

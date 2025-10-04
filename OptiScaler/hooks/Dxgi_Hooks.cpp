@@ -146,6 +146,18 @@ inline static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory
 
 void DxgiHooks::Hook()
 {
+    // If not spoofing and
+    // using no frame generation (or Nukem's) and
+    // not using DXGI spoofing we don't need DXGI hooks
+    // Probably I forgot something but we can add it later
+    if (!Config::Instance()->OverlayMenu.value_or_default() &&
+        (Config::Instance()->FGInput.value_or_default() == FGInput::NoFG ||
+         Config::Instance()->FGInput.value_or_default() == FGInput::Nukems) &&
+        !Config::Instance()->DxgiSpoofing.value_or_default())
+    {
+        return;
+    }
+
     if (o_CreateDXGIFactory != nullptr)
         return;
 

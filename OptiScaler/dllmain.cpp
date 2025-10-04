@@ -881,8 +881,7 @@ static void CheckWorkingMode()
             }
 
             // SpecialK
-            if (!Config::Instance()->OverlayMenu.value_or_default() && skModule == nullptr &&
-                Config::Instance()->LoadSpecialK.value_or_default())
+            if (skModule == nullptr && Config::Instance()->LoadSpecialK.value_or_default())
             {
                 auto skFile = Util::DllPath().parent_path() / L"SpecialK64.dll";
                 SetEnvironmentVariableW(L"RESHADE_DISABLE_GRAPHICS_HOOK", L"1");
