@@ -176,14 +176,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
         for (size_t i = 0; i < InFeatureInfo->PathListInfo.Length; i++)
         {
             const wchar_t* path = InFeatureInfo->PathListInfo.Path[i];
-
             State::Instance().NVNGX_FeatureInfo_Paths.push_back(std::wstring(path));
-
-            std::wstring iniPathW(path);
-            LOG_DEBUG("PathListInfo[{1}] checking OptiScaler.ini file in: {0}", wstring_to_string(iniPathW), i);
-
-            if (Config::Instance()->LoadFromPath(path))
-                LOG_INFO("PathListInfo[{1}] OptiScaler.ini file reloaded from: {0}", wstring_to_string(iniPathW), i);
         }
     }
 
