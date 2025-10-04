@@ -37,7 +37,10 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckA(std::string libName, LPCSTR lpLibFul
 HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibFullPath)
 {
     auto libNameA = wstring_to_string(libName);
+
+#ifdef VER_PRE_RELEASE
     LOG_TRACE("{}", libNameA);
+#endif
 
     // C:\\Path\\like\\this.dll
     auto normalizedPath = std::filesystem::path(libName).lexically_normal().wstring();
