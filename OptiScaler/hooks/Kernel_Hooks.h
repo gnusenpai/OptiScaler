@@ -68,15 +68,6 @@ class KernelHooks
                       Util::WhoIsTheCaller(_ReturnAddress()));
         }
 
-        std::string pName(lpProcName);
-
-        if (pName == "xessDestroyContext")
-        {
-            LOG_DEBUG("XeSSProxy: {:X}", (size_t) XeSSProxy::Module());
-            LOG_DEBUG("Address: {:X}", (size_t) o_K32_GetModuleHandleA("libxess.dll"));
-            LOG_DEBUG("HERE!");
-        }
-
         // FSR 4 Init in case of missing amdxc64.dll
         // 2nd check is amdxcffx64.dll trying to queue amdxc64 but amdxc64 not being loaded.
         // Also skip the internal call of amdxc64
