@@ -584,8 +584,7 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
         LOG_DEBUG("flags: {:X}, Frametime: {}", Flags, ftDelta);
     }
 
-    if (willPresent && State::Instance().activeFgInput == FGInput::Upscaler &&
-        State::Instance().currentCommandQueue != nullptr)
+    if (willPresent && State::Instance().currentCommandQueue != nullptr)
     {
         UpscalerTimeDx12::ReadUpscalingTime(State::Instance().currentCommandQueue);
     }
