@@ -784,7 +784,7 @@ bool XeFG_Dx12::Present()
         _uiCommandListResetted[fIndex] = false;
     }
 
-    if (_lastDispatchedFrame == _frameCount)
+    if (_lastDispatchedFrame != 0 && _frameCount > (_lastDispatchedFrame + 2))
     {
         LOG_DEBUG("Pausing FG");
         State::Instance().FGchanged = true;
