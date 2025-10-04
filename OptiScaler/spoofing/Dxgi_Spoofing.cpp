@@ -235,6 +235,18 @@ HRESULT DxgiSpoofing::hkGetDesc(IDXGIAdapter* This, DXGI_ADAPTER_DESC* pDesc)
 
 void DxgiSpoofing::AttachToAdapter(IUnknown* unkAdapter)
 {
+    static bool logAdded = false;
+    if (!Config::Instance()->DxgiSpoofing.value_or_default() && !Config::Instance()->DxgiVRAM.has_value())
+    {
+        if (!logAdded)
+        {
+            LOG_WARN("DxgiSpoofing and DxgiVRAM is disabled, skipping hooking");
+            logAdded = true;
+        }
+
+        return;
+    }
+
     if (o_GetDesc != nullptr && o_GetDesc1 != nullptr && o_GetDesc2 != nullptr && o_GetDesc3 != nullptr)
         return;
 
