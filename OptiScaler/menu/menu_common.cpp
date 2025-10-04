@@ -2810,11 +2810,6 @@ bool MenuCommon::RenderMenu()
                 if (State::Instance().api != DX12)
                 {
                     disabledMaskInput[optiFgIndex] = true;
-                    fgInputDesc[optiFgIndex] = "Old overlay menu is unsupported";
-                }
-                else if (State::Instance().api != DX12)
-                {
-                    disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported API";
                 }
                 else if (State::Instance().isWorkingAsNvngx)
@@ -2822,20 +2817,20 @@ bool MenuCommon::RenderMenu()
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
                 }
-                else if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
-                         ((fsr31InitTried && !FfxApiProxy::IsFGReady()) ||
-                          (!fsr31InitTried && (!FfxApiProxy::InitFfxDx12()) || !FfxApiProxy::IsFGReady())))
+                else if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() &&
+                         !fsr31InitTried)
                 {
                     fsr31InitTried = true;
-                    disabledMaskInput[optiFgIndex] = true;
+                    FfxApiProxy::InitFfxDx12();
+                    disabledMaskInput[optiFgIndex] = !FfxApiProxy::IsFGReady();
                     fgInputDesc[optiFgIndex] = "amd_fidelityfx_dx12.dll is missing";
                 }
-                else if (State::Instance().activeFgOutput == FGOutput::XeFG &&
-                         ((xefgInitTried && XeFGProxy::Module() == nullptr) ||
-                          (!xefgInitTried && !XeFGProxy::InitXeFG())))
+                else if (State::Instance().activeFgOutput == FGOutput::XeFG && !xefgInitTried &&
+                         XeFGProxy::Module() == nullptr)
                 {
                     xefgInitTried = true;
-                    disabledMaskInput[optiFgIndex] = true;
+                    XeFGProxy::InitXeFG();
+                    disabledMaskInput[optiFgIndex] = XeFGProxy::Module() == nullptr;
                     fgInputDesc[optiFgIndex] = "libxess_fg.dll is missing";
                 }
 
@@ -3069,7 +3064,7 @@ bool MenuCommon::RenderMenu()
                     State::Instance().api == DX12)
                 {
                     if (State::Instance().activeFgInput != FGInput::Upscaler ||
-                        (currentFeature != nullptr && !currentFeature->IsFrozen()) && FfxApiProxy::InitFfxDx12())
+                        (currentFeature != nullptr && !currentFeature->IsFrozen()) && FfxApiProxy::IsFGReady())
                     {
                         ImGui::SeparatorText("Frame Generation (FSR FG)");
 
@@ -3082,7 +3077,6 @@ bool MenuCommon::RenderMenu()
                             if (Config::Instance()->FGEnabled.value_or_default())
                                 State::Instance().FGchanged = true;
                         }
-
                         ShowHelpMarker("Enable frame generation");
 
                         bool fgAsync = Config::Instance()->FGAsync.value_or_default();
@@ -3196,7 +3190,7 @@ bool MenuCommon::RenderMenu()
 
                             auto fg = State::Instance().currentFG;
                             if (fg != nullptr && strcmp(fg->Name(), "FSR-FG") == 0 &&
-                                FfxApiProxy::VersionDx12() >= feature_version { 3, 1, 3 })
+                                FfxApiProxy::VersionDx12_FG() >= feature_version { 3, 1, 3 })
                             {
                                 ImGui::Spacing();
                                 if (ImGui::TreeNode("Frame Pacing Tuning"))
@@ -3443,7 +3437,7 @@ bool MenuCommon::RenderMenu()
                 {
                     SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
 
-                    if (currentFeature != nullptr && !currentFeature->IsFrozen() && FfxApiProxy::InitFfxDx12())
+                    if (currentFeature != nullptr && !currentFeature->IsFrozen() && FfxApiProxy::IsFGReady())
                     {
                         bool fgHudfix = Config::Instance()->FGHUDFix.value_or_default();
                         bool disableHudfix = static_cast<bool>(State::Instance().gameQuirks & GameQuirk::DisableHudfix);
@@ -3650,7 +3644,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Upscaler is not active"); // Probably never will be visible
                     }
-                    else if (!FfxApiProxy::InitFfxDx12())
+                    else if (!FfxApiProxy::IsFGReady())
                     {
                         ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f },
                                            "amd_fidelityfx_dx12.dll is missing!"); // Probably never will be visible

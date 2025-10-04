@@ -28,14 +28,16 @@ bool CheckForFGStatus()
     if (State::Instance().activeFgOutput == FGOutput::FSRFG)
     {
         FfxApiProxy::InitFfxDx12();
-        if (FfxApiProxy::IsFGReady())
+        if (!FfxApiProxy::IsFGReady())
         {
+            LOG_DEBUG("Can't init FfxApiProxy, disabling FGOutput");
             Config::Instance()->FGOutput.set_volatile_value(FGOutput::NoFG);
             State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
         }
     }
     else if (State::Instance().activeFgOutput == FGOutput::XeFG && !XeFGProxy::InitXeFG())
     {
+        LOG_DEBUG("Can't init XeFGProxy, disabling FGOutput");
         Config::Instance()->FGOutput.set_volatile_value(FGOutput::NoFG);
         State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
     }

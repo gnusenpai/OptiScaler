@@ -201,7 +201,8 @@ class FfxApiProxy
         InitFfxDx12_SR();
         InitFfxDx12_FG();
 
-        bool loadResult = _D3D12_CreateContext != nullptr;
+        bool loadResult =
+            _D3D12_CreateContext != nullptr || _D3D12_CreateContext_SR != nullptr || _D3D12_CreateContext_FG != nullptr;
 
         LOG_INFO("LoadResult: {}", loadResult);
 
