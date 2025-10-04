@@ -273,7 +273,14 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
 
     LOG_DEBUG("type: {}", FfxGetGetDescTypeName(desc->type));
 
-    if (State::Instance().activeFgInput == FGInput::FSRFG && IsFGType(desc->type))
+    // Extra checks added for Silent Hill f
+    // Game is creating FSR-FG swapchain and calling present twice per frame
+    // So when using OptiFG I am hijacking FSR-FG swapchain
+    // It would crash the games which uses swapchain for FG
+    if (IsFGType(desc->type) &&
+        (State::Instance().activeFgInput == FGInput::FSRFG ||
+         ((desc->type == 0x30005 || desc->type == 0x30006) && State::Instance().activeFgInput == FGInput::Upscaler &&
+          State::Instance().activeFgOutput != FGOutput::NoFG && State::Instance().activeFgOutput != FGOutput::Nukems)))
     {
         auto result = ffxCreateContext_Dx12FG(context, desc, memCb);
 
