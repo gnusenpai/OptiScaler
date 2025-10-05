@@ -84,8 +84,8 @@ static void CreateRenderTargetDx12(ID3D12Device* device, IDXGISwapChain* pSwapCh
 {
     LOG_FUNC();
 
-    DXGI_SWAP_CHAIN_DESC desc;
-    HRESULT hr = pSwapChain->GetDesc(&desc);
+    DXGI_SWAP_CHAIN_DESC sd;
+    HRESULT hr = pSwapChain->GetDesc(&sd);
 
     if (hr != S_OK)
     {
@@ -93,10 +93,9 @@ static void CreateRenderTargetDx12(ID3D12Device* device, IDXGISwapChain* pSwapCh
         return;
     }
 
-    for (UINT i = 0; i < desc.BufferCount; ++i)
+    for (UINT i = 0; i < sd.BufferCount; ++i)
     {
         ID3D12Resource* pBackBuffer = nullptr;
-
         auto result = pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
 
         if (result != S_OK)
@@ -107,9 +106,6 @@ static void CreateRenderTargetDx12(ID3D12Device* device, IDXGISwapChain* pSwapCh
 
         if (pBackBuffer)
         {
-            DXGI_SWAP_CHAIN_DESC sd;
-            pSwapChain->GetDesc(&sd);
-
             D3D12_RENDER_TARGET_VIEW_DESC desc = {};
             desc.Format = static_cast<DXGI_FORMAT>(GetCorrectDXGIFormat(sd.BufferDesc.Format));
             desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -133,10 +129,7 @@ static void CleanupRenderTargetDx12(bool clearQueue)
     for (UINT i = 0; i < NUM_BACK_BUFFERS; ++i)
     {
         if (g_mainRenderTargetResource[i])
-        {
-            g_mainRenderTargetResource[i]->Release();
-            g_mainRenderTargetResource[i] = NULL;
-        }
+            g_mainRenderTargetResource[i] = nullptr;
     }
 
     if (clearQueue)
@@ -176,10 +169,7 @@ static void CleanupRenderTargetDx12(bool clearQueue)
         }
 
         if (g_pd3dCommandQueue != nullptr)
-        {
-            g_pd3dCommandQueue->Release();
             g_pd3dCommandQueue = nullptr;
-        }
 
         g_pd3dSrvDescHeapAlloc.Destroy();
 
@@ -228,10 +218,7 @@ static void CleanupRenderTargetDx11(bool shutDown)
     }
 
     if (g_pd3dDevice != nullptr)
-    {
-        g_pd3dDevice->Release();
         g_pd3dDevice = nullptr;
-    }
 
     _dx11Device = false;
     _isInited = false;
@@ -615,7 +602,6 @@ void MenuOverlayDx::Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
             CleanupRenderTargetDx11(false);
 
             g_pd3dDevice = device;
-            g_pd3dDevice->AddRef();
 
             CreateRenderTargetDx11(pSwapChain);
             MenuOverlayBase::Dx11Ready();
@@ -630,9 +616,6 @@ void MenuOverlayDx::Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
             g_pd3dCommandQueue = cq;
             g_pd3dDeviceParam = device12;
-
-            g_pd3dCommandQueue->AddRef();
-            g_pd3dDeviceParam->AddRef();
 
             MenuOverlayBase::Dx12Ready();
             _isInited = true;
