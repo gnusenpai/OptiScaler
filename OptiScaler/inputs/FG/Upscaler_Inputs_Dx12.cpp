@@ -28,32 +28,6 @@ void UpscalerInputsDx12::Reset()
 void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_Parameter* InParameters,
                                       IFeature_Dx12* feature)
 {
-    auto fg = State::Instance().currentFG;
-
-    if (fg == nullptr || State::Instance().activeFgInput != FGInput::Upscaler || _device == nullptr)
-        return;
-
-    FG_Constants fgConstants {};
-    fgConstants.displayWidth = feature->DisplayWidth();
-    fgConstants.displayHeight = feature->DisplayHeight();
-
-    if (feature->IsHdr())
-        fgConstants.flags |= FG_Flags::Hdr;
-
-    if (feature->DepthInverted())
-        fgConstants.flags |= FG_Flags::InvertedDepth;
-
-    if (feature->JitteredMV())
-        fgConstants.flags |= FG_Flags::JitteredMVs;
-
-    if (!feature->LowResMV())
-        fgConstants.flags |= FG_Flags::DisplayResolutionMVs;
-
-    if (Config::Instance()->FGAsync.value_or_default())
-        fgConstants.flags |= FG_Flags::Async;
-
-    fg->EvaluateState(_device, fgConstants);
-
     // FSR Camera values
     float cameraNear = 0.0f;
     float cameraFar = 0.0f;
@@ -106,6 +80,32 @@ void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSD
 
     State::Instance().lastFsrCameraFar = cameraFar;
     State::Instance().lastFsrCameraNear = cameraNear;
+
+    auto fg = State::Instance().currentFG;
+
+    if (fg == nullptr || State::Instance().activeFgInput != FGInput::Upscaler || _device == nullptr)
+        return;
+
+    FG_Constants fgConstants {};
+    fgConstants.displayWidth = feature->DisplayWidth();
+    fgConstants.displayHeight = feature->DisplayHeight();
+
+    if (feature->IsHdr())
+        fgConstants.flags |= FG_Flags::Hdr;
+
+    if (feature->DepthInverted())
+        fgConstants.flags |= FG_Flags::InvertedDepth;
+
+    if (feature->JitteredMV())
+        fgConstants.flags |= FG_Flags::JitteredMVs;
+
+    if (!feature->LowResMV())
+        fgConstants.flags |= FG_Flags::DisplayResolutionMVs;
+
+    if (Config::Instance()->FGAsync.value_or_default())
+        fgConstants.flags |= FG_Flags::Async;
+
+    fg->EvaluateState(_device, fgConstants);
 
     int reset = 0;
     InParameters->Get(NVSDK_NGX_Parameter_Reset, &reset);
