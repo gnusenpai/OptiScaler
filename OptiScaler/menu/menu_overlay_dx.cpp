@@ -95,13 +95,13 @@ static void CreateRenderTargetDx12(ID3D12Device* device, IDXGISwapChain* pSwapCh
 
     for (UINT i = 0; i < desc.BufferCount; ++i)
     {
-        ID3D12Resource* pBackBuffer = NULL;
+        ID3D12Resource* pBackBuffer = nullptr;
 
         auto result = pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
 
         if (result != S_OK)
         {
-            LOG_ERROR("pSwapChain->GetBuffer: {0:X}", (unsigned long) result);
+            LOG_ERROR("pSwapChain->GetBuffer: {:X}", (unsigned long) result);
             return;
         }
 
@@ -116,6 +116,7 @@ static void CreateRenderTargetDx12(ID3D12Device* device, IDXGISwapChain* pSwapCh
 
             device->CreateRenderTargetView(pBackBuffer, &desc, g_mainRenderTargetDescriptor[i]);
             g_mainRenderTargetResource[i] = pBackBuffer;
+            pBackBuffer->Release();
         }
     }
 
