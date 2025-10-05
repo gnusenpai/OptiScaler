@@ -85,6 +85,9 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
         State::Instance().skipHeapCapture = true;
 
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !pDesc->Windowed)
+        LOG_WARN("Using exclusive fullscreen with XeFG!!!");
+
     auto scResult = fg->CreateSwapchain(pFactory, cq, pDesc, ppSwapChain);
 
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
@@ -142,6 +145,9 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
 
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
         State::Instance().skipHeapCapture = true;
+
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && pFullscreenDesc != nullptr && !pFullscreenDesc->Windowed)
+        LOG_WARN("Using exclusive fullscreen with XeFG!!!");
 
     auto scResult = fg->CreateSwapchain1(pFactory, cq, hWnd, pDesc, pFullscreenDesc, ppSwapChain);
 
@@ -254,6 +260,9 @@ HRESULT FGHooks::hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDX
 
     State::Instance().realExclusiveFullscreen = Fullscreen;
 
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && Fullscreen)
+        LOG_WARN("Using exclusive fullscreen with XeFG!!!");
+
     auto result = o_FGSCSetFullscreenState(This, Fullscreen, pTarget);
     LOG_DEBUG("Fullscreen: {}, Result: {:X}", Fullscreen, (UINT) result);
 
@@ -333,6 +342,8 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
     LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}", BufferCount, Width, Height,
               (UINT) NewFormat, SwapChainFlags);
 
+    auto fg = State::Instance().currentFG;
+
     if (State::Instance().activeFgOutput == FGOutput::XeFG && !State::Instance().SCExclusiveFullscreen)
     {
         DXGI_SWAP_CHAIN_DESC desc {};
@@ -349,6 +360,45 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
                 NewFormat == desc.BufferDesc.Format && State::Instance().SCLastFlags == SwapChainFlags)
             {
                 LOG_DEBUG("Skipping resize");
+
+                auto swapchain = ((IDXGISwapChain3*) This);
+                auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
+
+                if (fg != nullptr)
+                {
+                    LOG_INFO("Trying to change backbuffer state to COMMON");
+
+                    auto cmdList = fg->GetUICommandList();
+
+                    if (cmdList != nullptr)
+                    {
+                        for (size_t i = 0; i < desc.BufferCount; i++)
+                        {
+                            ID3D12Resource* backBuffer = nullptr;
+                            swapchain->GetBuffer(swapchainIndex, IID_PPV_ARGS(&backBuffer));
+
+                            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                                backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
+
+                            cmdList->ResourceBarrier(1, &barrier);
+
+                            backBuffer->Release();
+                        }
+                    }
+                }
+
+                // if (swapchainIndex != 0)
+                //{
+                //     auto presents = desc.BufferCount - swapchainIndex;
+
+                //    LOG_DEBUG("Trying to reset backbuffer index: {} with {} present calls", swapchainIndex, presents);
+
+                //    for (size_t i = 0; i < presents; i++)
+                //    {
+                //        swapchain->Present(0, 0);
+                //    }
+                //}
+
                 return S_OK;
             }
         }
@@ -359,7 +409,6 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
     State::Instance().SCLastFlags = SwapChainFlags;
 
-    auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
         State::Instance().FGchanged = true;
@@ -441,6 +490,8 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
     LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {}, Caller: {}", BufferCount,
               Width, Height, (UINT) Format, SwapChainFlags, Util::WhoIsTheCaller(_ReturnAddress()));
 
+    auto fg = State::Instance().currentFG;
+
     if (State::Instance().activeFgOutput == FGOutput::XeFG && !State::Instance().SCExclusiveFullscreen)
     {
         DXGI_SWAP_CHAIN_DESC desc {};
@@ -457,6 +508,46 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
                 Format == desc.BufferDesc.Format && State::Instance().SCLastFlags == SwapChainFlags)
             {
                 LOG_DEBUG("Skipping resize");
+
+                auto swapchain = ((IDXGISwapChain3*) This);
+                auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
+
+                if (fg != nullptr)
+                {
+                    LOG_INFO("Trying to change backbuffer state to COMMON");
+
+                    auto cmdList = fg->GetUICommandList();
+
+                    if (cmdList != nullptr)
+                    {
+                        for (size_t i = 0; i < desc.BufferCount; i++)
+                        {
+                            ID3D12Resource* backBuffer = nullptr;
+                            swapchain->GetBuffer(swapchainIndex, IID_PPV_ARGS(&backBuffer));
+
+                            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                                backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
+
+                            cmdList->ResourceBarrier(1, &barrier);
+                            backBuffer->Release();
+
+                            LOG_DEBUG("Buffer {}, added to command list!", i);
+                        }
+                    }
+                }
+
+                // if (swapchainIndex != 0)
+                //{
+                //     auto presents = desc.BufferCount - swapchainIndex;
+
+                //    LOG_DEBUG("Trying to reset backbuffer index: {} with {} present calls", swapchainIndex, presents);
+
+                //    for (size_t i = 0; i < presents; i++)
+                //    {
+                //        swapchain->Present(0, 0);
+                //    }
+                //}
+
                 return S_OK;
             }
         }
@@ -467,7 +558,6 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
     State::Instance().SCLastFlags = SwapChainFlags;
 
-    auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
         State::Instance().FGchanged = true;
@@ -632,6 +722,7 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
         auto swapchain = ((IDXGISwapChain3*) This);
         auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
         swapchain->GetBuffer(swapchainIndex, IID_PPV_ARGS(&backBuffer));
+        backBuffer->Release();
 
         auto result = fg->GetResourceCopy(FG_ResourceType::HudlessColor, D3D12_RESOURCE_STATE_PRESENT, backBuffer);
 
