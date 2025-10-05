@@ -148,14 +148,15 @@ class FfxApiProxy
 
                 if (_dllDx12 == nullptr)
                 {
-                    _dllDx12 = NtdllProxy::LoadLibraryExW_Ldr(dllNames[i].c_str(), NULL, 0);
+                    auto filePath = (Util::DllPath().parent_path() / dllNames[i]);
+                    _dllDx12 = NtdllProxy::LoadLibraryExW_Ldr(filePath.c_str(), NULL, 0);
 
                     if (_dllDx12 != nullptr)
                     {
                         LOG_INFO("{} loaded from exe folder", wstring_to_string(dllNames[i]));
 
                         // hacky but works for now
-                        _dx12Loader = IsLoader(dllNames[i]);
+                        _dx12Loader = IsLoader(filePath.c_str());
                         break;
                     }
                 }
