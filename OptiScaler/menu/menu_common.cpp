@@ -3437,7 +3437,9 @@ bool MenuCommon::RenderMenu()
                 {
                     SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
 
-                    if (currentFeature != nullptr && !currentFeature->IsFrozen() && FfxApiProxy::IsFGReady())
+                    if (currentFeature != nullptr && !currentFeature->IsFrozen() &&
+                        ((State::Instance().activeFgOutput == FGOutput::FSRFG && FfxApiProxy::IsFGReady()) ||
+                         (State::Instance().activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() != nullptr)))
                     {
                         bool fgHudfix = Config::Instance()->FGHUDFix.value_or_default();
                         bool disableHudfix = static_cast<bool>(State::Instance().gameQuirks & GameQuirk::DisableHudfix);
@@ -3644,10 +3646,15 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Upscaler is not active"); // Probably never will be visible
                     }
-                    else if (!FfxApiProxy::IsFGReady())
+                    else if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady())
                     {
                         ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f },
                                            "amd_fidelityfx_dx12.dll is missing!"); // Probably never will be visible
+                    }
+                    else if (State::Instance().activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() == nullptr)
+                    {
+                        ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f },
+                                           "libxess_fg.dll is missing!"); // Probably never will be visible
                     }
                 }
 
