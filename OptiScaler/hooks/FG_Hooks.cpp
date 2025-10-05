@@ -344,7 +344,8 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
 
     auto fg = State::Instance().currentFG;
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && !State::Instance().SCExclusiveFullscreen)
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !State::Instance().SCExclusiveFullscreen &&
+        Config::Instance()->FGXeFGSkipResizeBuffers.value_or_default())
     {
         DXGI_SWAP_CHAIN_DESC desc {};
         if (This->GetDesc(&desc) == S_OK)
@@ -361,43 +362,48 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
             {
                 LOG_DEBUG("Skipping resize");
 
-                auto swapchain = ((IDXGISwapChain3*) This);
-                auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
-
-                if (fg != nullptr)
+                if (Config::Instance()->FGXeFGModifyBufferState.value_or_default() ||
+                    Config::Instance()->FGXeFGModifySCIndex.value_or_default())
                 {
-                    LOG_INFO("Trying to change backbuffer state to COMMON");
+                    auto swapchain = ((IDXGISwapChain3*) This);
+                    auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
 
-                    auto cmdList = fg->GetUICommandList();
-
-                    if (cmdList != nullptr)
+                    if (fg != nullptr && Config::Instance()->FGXeFGModifyBufferState.value_or_default())
                     {
-                        for (size_t i = 0; i < desc.BufferCount; i++)
+                        LOG_INFO("Trying to change backbuffer state to COMMON");
+
+                        auto cmdList = fg->GetUICommandList();
+
+                        if (cmdList != nullptr)
                         {
-                            ID3D12Resource* backBuffer = nullptr;
-                            swapchain->GetBuffer(swapchainIndex, IID_PPV_ARGS(&backBuffer));
+                            for (size_t i = 0; i < desc.BufferCount; i++)
+                            {
+                                ID3D12Resource* backBuffer = nullptr;
+                                swapchain->GetBuffer(swapchainIndex, IID_PPV_ARGS(&backBuffer));
 
-                            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-                                backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
+                                auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                                    backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
 
-                            cmdList->ResourceBarrier(1, &barrier);
+                                cmdList->ResourceBarrier(1, &barrier);
 
-                            backBuffer->Release();
+                                backBuffer->Release();
+                            }
+                        }
+                    }
+
+                    if (swapchainIndex != 0 && Config ::Instance()->FGXeFGModifySCIndex.value_or_default())
+                    {
+                        auto presents = desc.BufferCount - swapchainIndex;
+
+                        LOG_DEBUG("Trying to reset backbuffer index: {} with {} present calls", swapchainIndex,
+                                  presents);
+
+                        for (size_t i = 0; i < presents; i++)
+                        {
+                            swapchain->Present(0, 0);
                         }
                     }
                 }
-
-                // if (swapchainIndex != 0)
-                //{
-                //     auto presents = desc.BufferCount - swapchainIndex;
-
-                //    LOG_DEBUG("Trying to reset backbuffer index: {} with {} present calls", swapchainIndex, presents);
-
-                //    for (size_t i = 0; i < presents; i++)
-                //    {
-                //        swapchain->Present(0, 0);
-                //    }
-                //}
 
                 return S_OK;
             }
@@ -509,44 +515,48 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
             {
                 LOG_DEBUG("Skipping resize");
 
-                auto swapchain = ((IDXGISwapChain3*) This);
-                auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
-
-                if (fg != nullptr)
+                if (Config::Instance()->FGXeFGModifyBufferState.value_or_default() ||
+                    Config::Instance()->FGXeFGModifySCIndex.value_or_default())
                 {
-                    LOG_INFO("Trying to change backbuffer state to COMMON");
+                    auto swapchain = ((IDXGISwapChain3*) This);
+                    auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
 
-                    auto cmdList = fg->GetUICommandList();
-
-                    if (cmdList != nullptr)
+                    if (fg != nullptr && Config::Instance()->FGXeFGModifyBufferState.value_or_default())
                     {
-                        for (size_t i = 0; i < desc.BufferCount; i++)
+                        LOG_INFO("Trying to change backbuffer state to COMMON");
+
+                        auto cmdList = fg->GetUICommandList();
+
+                        if (cmdList != nullptr)
                         {
-                            ID3D12Resource* backBuffer = nullptr;
-                            swapchain->GetBuffer(swapchainIndex, IID_PPV_ARGS(&backBuffer));
+                            for (size_t i = 0; i < desc.BufferCount; i++)
+                            {
+                                ID3D12Resource* backBuffer = nullptr;
+                                swapchain->GetBuffer(swapchainIndex, IID_PPV_ARGS(&backBuffer));
 
-                            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-                                backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
+                                auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                                    backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
 
-                            cmdList->ResourceBarrier(1, &barrier);
-                            backBuffer->Release();
+                                cmdList->ResourceBarrier(1, &barrier);
 
-                            LOG_DEBUG("Buffer {}, added to command list!", i);
+                                backBuffer->Release();
+                            }
+                        }
+                    }
+
+                    if (swapchainIndex != 0 && Config ::Instance()->FGXeFGModifySCIndex.value_or_default())
+                    {
+                        auto presents = desc.BufferCount - swapchainIndex;
+
+                        LOG_DEBUG("Trying to reset backbuffer index: {} with {} present calls", swapchainIndex,
+                                  presents);
+
+                        for (size_t i = 0; i < presents; i++)
+                        {
+                            swapchain->Present(0, 0);
                         }
                     }
                 }
-
-                // if (swapchainIndex != 0)
-                //{
-                //     auto presents = desc.BufferCount - swapchainIndex;
-
-                //    LOG_DEBUG("Trying to reset backbuffer index: {} with {} present calls", swapchainIndex, presents);
-
-                //    for (size_t i = 0; i < presents; i++)
-                //    {
-                //        swapchain->Present(0, 0);
-                //    }
-                //}
 
                 return S_OK;
             }
