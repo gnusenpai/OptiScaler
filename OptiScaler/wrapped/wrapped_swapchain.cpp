@@ -68,6 +68,8 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
     // try to obtain directx objects and find the path
     if (pDevice->QueryInterface(IID_PPV_ARGS(&device)) == S_OK)
     {
+        device->Release();
+
         if (!_dx11Device)
             LOG_DEBUG("D3D11Device captured");
 
@@ -125,6 +127,8 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
     }
     else if (pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
     {
+        cq->Release();
+
         if (!_dx12Device)
             LOG_DEBUG("D3D12CommandQueue captured");
 
@@ -139,6 +143,8 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
         if (cq->GetDevice(IID_PPV_ARGS(&device12)) == S_OK)
         {
+            device12->Release();
+
             if (!_dx12Device)
                 LOG_DEBUG("D3D12Device captured");
 
@@ -164,8 +170,8 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
         {
             ID3D11DeviceContext* context = nullptr;
             device->GetImmediateContext(&context);
-            UpscalerTimeDx11::ReadUpscalingTime(context);
             context->Release();
+            UpscalerTimeDx11::ReadUpscalingTime(context);
         }
     }
 
@@ -204,15 +210,6 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
     // DXVK check, it's here because of upscaler time calculations
     if (State::Instance().isRunningOnDXVK)
     {
-        if (cq != nullptr)
-            cq->Release();
-
-        if (device != nullptr)
-            device->Release();
-
-        if (device12 != nullptr)
-            device12->Release();
-
         if (pPresentParameters == nullptr)
             presentResult = pSwapChain->Present(SyncInterval, Flags);
         else
@@ -252,16 +249,6 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
     LOG_DEBUG("Original present result: {:X}", (UINT) presentResult);
 
-    // release used objects
-    if (cq != nullptr)
-        cq->Release();
-
-    if (device != nullptr)
-        device->Release();
-
-    if (device12 != nullptr)
-        device12->Release();
-
     if (presentResult == S_OK)
         LOG_TRACE("4 {}, Present result: {:X}", _frameCounter, (UINT) presentResult);
     else
@@ -281,19 +268,19 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* p
 
     _real->QueryInterface(IID_PPV_ARGS(&_real1));
     if (_real1 != nullptr)
-        _real->Release();
+        _real1->Release();
 
     _real->QueryInterface(IID_PPV_ARGS(&_real2));
     if (_real2 != nullptr)
-        _real->Release();
+        _real2->Release();
 
     _real->QueryInterface(IID_PPV_ARGS(&_real3));
     if (_real3 != nullptr)
-        _real->Release();
+        _real3->Release();
 
     _real->QueryInterface(IID_PPV_ARGS(&_real4));
     if (_real4 != nullptr)
-        _real->Release();
+        _real4->Release();
 
     _real->AddRef();
     auto refCount = _real->Release();
