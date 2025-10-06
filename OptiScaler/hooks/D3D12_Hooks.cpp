@@ -466,16 +466,7 @@ static void hkCreateSampler(ID3D12Device* device, const D3D12_SAMPLER_DESC* pDes
     if (pDesc == nullptr || device == nullptr)
         return;
 
-    D3D12_SAMPLER_DESC newDesc {};
-
-    newDesc.AddressU = pDesc->AddressU;
-    newDesc.AddressV = pDesc->AddressV;
-    newDesc.AddressW = pDesc->AddressW;
-    newDesc.BorderColor[0] = pDesc->BorderColor[0];
-    newDesc.BorderColor[1] = pDesc->BorderColor[1];
-    newDesc.BorderColor[2] = pDesc->BorderColor[2];
-    newDesc.BorderColor[3] = pDesc->BorderColor[3];
-    newDesc.ComparisonFunc = pDesc->ComparisonFunc;
+    D3D12_SAMPLER_DESC newDesc = *pDesc;
 
     if (Config::Instance()->AnisotropyOverride.has_value())
     {
@@ -490,10 +481,6 @@ static void hkCreateSampler(ID3D12Device* device, const D3D12_SAMPLER_DESC* pDes
         newDesc.Filter = pDesc->Filter;
         newDesc.MaxAnisotropy = pDesc->MaxAnisotropy;
     }
-
-    newDesc.MaxLOD = pDesc->MaxLOD;
-    newDesc.MinLOD = pDesc->MinLOD;
-    newDesc.MipLODBias = pDesc->MipLODBias;
 
     if ((newDesc.MipLODBias < 0.0f && newDesc.MinLOD != newDesc.MaxLOD) ||
         Config::Instance()->MipmapBiasOverrideAll.value_or_default())
