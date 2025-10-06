@@ -23,10 +23,6 @@ void DxgiFactoryWrappedCalls::CheckAdapter(IUnknown* unkAdapter)
     {
         State::Instance().isRunningOnDXVK = dxvkAdapter != nullptr;
         ((IDXGIAdapter*) dxvkAdapter)->Release();
-
-        // Temporary fix for Linux & DXVK
-        if (State::Instance().isRunningOnDXVK || State::Instance().isRunningOnLinux)
-            Config::Instance()->UseHQFont.set_volatile_value(false);
     }
 
     if (adapterOk)
@@ -193,8 +189,8 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChain(IDXGIFactory* realFactory, Wrap
 
             State::Instance().currentWrappedSwapchain = *ppSwapChain;
 
-            LOG_DEBUG("Created new WrappedIDXGISwapChain4: {:X}, pDevice: {:X}", (size_t) *ppSwapChain,
-                      (size_t) pDevice);
+            LOG_DEBUG("Created new WrappedIDXGISwapChain4: {:X}, pDevice: {:X}", (uintptr_t) *ppSwapChain,
+                      (uintptr_t) pDevice);
         }
     }
 
@@ -226,6 +222,9 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(IDXGIFactory2* realFacto
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
 
+        if (firstCall)
+            _skipFGSwapChainCreation = false;
+
         return res;
     }
 
@@ -238,6 +237,9 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(IDXGIFactory2* realFacto
             realFactory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
+
+        if (firstCall)
+            _skipFGSwapChainCreation = false;
 
         return res;
     }
@@ -252,11 +254,14 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(IDXGIFactory2* realFacto
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
 
+        if (firstCall)
+            _skipFGSwapChainCreation = false;
+
         return res;
     }
 
     LOG_DEBUG("Width: {}, Height: {}, Format: {}, Count: {}, Flags: {:X}, Hwnd: {:X}, SkipWrapping: {}", pDesc->Width,
-              pDesc->Height, (UINT) pDesc->Format, pDesc->BufferCount, pDesc->Flags, (size_t) hWnd,
+              pDesc->Height, (UINT) pDesc->Format, pDesc->BufferCount, pDesc->Flags, (uintptr_t) hWnd,
               _skipFGSwapChainCreation);
 
     if (pFullscreenDesc != nullptr)
@@ -501,7 +506,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters(IDXGIFactory* realFactory, UINT Ad
             State::Instance().skipDxgiLoadChecks = true;
 
             result = factory6->EnumAdapterByGpuPreference(Adapter, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                                          __uuidof(IDXGIAdapter), (void**) ppAdapter);
+                                                          __uuidof(IDXGIAdapter1), (void**) ppAdapter);
 
             State::Instance().skipDxgiLoadChecks = false;
             _skipHighPerfCheck = false;
@@ -551,7 +556,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters(IDXGIFactory* realFactory, UINT Ad
     }
 
 #if _DEBUG
-    LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (size_t) *ppAdapter);
+    LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppAdapter);
 #endif
 
     return result;
@@ -580,7 +585,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters1(IDXGIFactory1* realFactory, UINT 
             State::Instance().skipDxgiLoadChecks = true;
 
             result = factory6->EnumAdapterByGpuPreference(Adapter, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                                          __uuidof(IDXGIAdapter), (void**) ppAdapter);
+                                                          __uuidof(IDXGIAdapter1), (void**) ppAdapter);
 
             State::Instance().skipDxgiLoadChecks = false;
             _skipHighPerfCheck = false;
@@ -630,7 +635,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters1(IDXGIFactory1* realFactory, UINT 
     }
 
 #if _DEBUG
-    LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (size_t) *ppAdapter);
+    LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppAdapter);
 #endif
 
     return result;
@@ -652,7 +657,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapterByLuid(IDXGIFactory4* realFactory, L
     }
 
 #if _DEBUG
-    LOG_TRACE("result: {:X}, pAdapter: {:X}", (UINT) result, (size_t) *ppvAdapter);
+    LOG_TRACE("result: {:X}, pAdapter: {:X}", (UINT) result, (uintptr_t) *ppvAdapter);
 #endif
 
     return result;
@@ -675,7 +680,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapterByGpuPreference(IDXGIFactory6* realF
     }
 
 #if _DEBUG
-    LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (size_t) *ppvAdapter);
+    LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppvAdapter);
 #endif
 
     return result;
