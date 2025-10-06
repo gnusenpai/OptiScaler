@@ -395,7 +395,10 @@ struct AmdExtFfxQuery : public IAmdExtFfxQuery
         if (o_amdExtFfxQuery)
         {
             auto result = o_amdExtFfxQuery->Release();
-            o_amdExtFfxQuery = nullptr;
+
+            if (result == 0)
+                o_amdExtFfxQuery = nullptr;
+
             return result;
         }
 
