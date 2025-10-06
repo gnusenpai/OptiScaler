@@ -1799,7 +1799,7 @@ void ResTrack_Dx12::HookToQueue(ID3D12Device* InDevice)
 
 void ResTrack_Dx12::HookDevice(ID3D12Device* device)
 {
-    if (State::Instance().activeFgInput == FGInput::Nukems || !Config::Instance()->OverlayMenu.value_or_default())
+    if (State::Instance().activeFgInput == FGInput::Nukems)
         return;
 
     if (o_CreateDescriptorHeap != nullptr || device == nullptr)

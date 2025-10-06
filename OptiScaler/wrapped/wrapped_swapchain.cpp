@@ -154,7 +154,7 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
         ReflexHooks::update(false, false);
 
     // Upscaler GPU time computation
-    if (willPresent && State::Instance().currentFG == nullptr)
+    if (willPresent && (fg == nullptr || !fg->IsActive() || fg->IsPaused()))
     {
         if (cq != nullptr)
         {

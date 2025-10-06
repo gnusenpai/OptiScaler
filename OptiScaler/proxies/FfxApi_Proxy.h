@@ -148,14 +148,15 @@ class FfxApiProxy
 
                 if (_dllDx12 == nullptr)
                 {
-                    _dllDx12 = NtdllProxy::LoadLibraryExW_Ldr(dllNames[i].c_str(), NULL, 0);
+                    auto filePath = (Util::DllPath().parent_path() / dllNames[i]);
+                    _dllDx12 = NtdllProxy::LoadLibraryExW_Ldr(filePath.c_str(), NULL, 0);
 
                     if (_dllDx12 != nullptr)
                     {
                         LOG_INFO("{} loaded from exe folder", wstring_to_string(dllNames[i]));
 
                         // hacky but works for now
-                        _dx12Loader = IsLoader(dllNames[i]);
+                        _dx12Loader = IsLoader(filePath.c_str());
                         break;
                     }
                 }
@@ -201,7 +202,8 @@ class FfxApiProxy
         InitFfxDx12_SR();
         InitFfxDx12_FG();
 
-        bool loadResult = _D3D12_CreateContext != nullptr;
+        bool loadResult =
+            _D3D12_CreateContext != nullptr || _D3D12_CreateContext_SR != nullptr || _D3D12_CreateContext_FG != nullptr;
 
         LOG_INFO("LoadResult: {}", loadResult);
 

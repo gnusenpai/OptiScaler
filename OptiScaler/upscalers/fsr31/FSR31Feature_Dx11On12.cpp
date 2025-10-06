@@ -317,6 +317,9 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
             params.cameraNear = Config::Instance()->FsrCameraNear.value_or_default();
         }
 
+        State::Instance().lastFsrCameraFar = params.cameraFar;
+        State::Instance().lastFsrCameraNear = params.cameraNear;
+
         if (Config::Instance()->FsrVerticalFov.has_value())
             params.cameraFovAngleVertical = Config::Instance()->FsrVerticalFov.value() * 0.0174532925199433f;
         else if (Config::Instance()->FsrHorizontalFov.value_or_default() > 0.0f)

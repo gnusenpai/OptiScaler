@@ -142,6 +142,9 @@ bool Config::Reload(std::filesystem::path iniPath)
             FGXeFGHighResMV.set_from_config(readBool("XeFG", "HighResMV"));
             FGXeFGDebugView.set_from_config(readBool("XeFG", "DebugView"));
             FGXeFGForceBorderless.set_from_config(readBool("XeFG", "ForceBorderless"));
+            FGXeFGSkipResizeBuffers.set_from_config(readBool("XeFG", "SkipResizeBuffers"));
+            FGXeFGModifyBufferState.set_from_config(readBool("XeFG", "ModifyBufferState"));
+            FGXeFGModifySCIndex.set_from_config(readBool("XeFG", "ModifySCIndex"));
         }
 
         // Framerate
@@ -695,6 +698,11 @@ bool Config::SaveIni()
         ini.SetValue("XeFG", "DebugView", GetBoolValue(Instance()->FGXeFGDebugView.value_for_config()).c_str());
         ini.SetValue("XeFG", "ForceBorderless",
                      GetBoolValue(Instance()->FGXeFGForceBorderless.value_for_config()).c_str());
+        ini.SetValue("XeFG", "SkipResizeBuffers",
+                     GetBoolValue(Instance()->FGXeFGSkipResizeBuffers.value_for_config()).c_str());
+        ini.SetValue("XeFG", "ModifyBufferState",
+                     GetBoolValue(Instance()->FGXeFGModifyBufferState.value_for_config()).c_str());
+        ini.SetValue("XeFG", "ModifySCIndex", GetBoolValue(Instance()->FGXeFGModifySCIndex.value_for_config()).c_str());
     }
 
     // OptiFG

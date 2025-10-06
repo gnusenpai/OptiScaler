@@ -252,7 +252,7 @@ HRESULT DxgiFactoryHooks::CreateSwapChain(IDXGIFactory* realFactory, IUnknown* p
         }
 
         State::Instance().skipParentWrapping = true;
-        auto res = o_CreateSwapChain(realFactory, pDevice, pDesc, ppSwapChain);
+        result = o_CreateSwapChain(realFactory, pDevice, pDesc, ppSwapChain);
         State::Instance().skipParentWrapping = false;
 
         if (!_skipFGSwapChainCreation)

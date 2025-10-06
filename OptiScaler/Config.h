@@ -191,7 +191,7 @@ class Config
     CustomOptional<bool> LogToNGX { false };
     CustomOptional<bool> OpenConsole { false };
     CustomOptional<bool> DebugWait { false }; // not in ini
-    CustomOptional<int> LogLevel { 2 };
+    CustomOptional<int> LogLevel { 1 };
     CustomOptional<std::wstring> LogFileName { L"OptiScaler.log" };
     CustomOptional<bool> LogSingleFile { true };
     CustomOptional<bool> LogAsync { false };
@@ -260,7 +260,7 @@ class Config
     // Hooks
     CustomOptional<bool> HookOriginalNvngxOnly { false };
     CustomOptional<bool> EarlyHooking { false };
-    CustomOptional<bool> UseNtdllHooks { false };
+    CustomOptional<bool> UseNtdllHooks { true };
 
     // Upscale Ratio Override
     CustomOptional<bool> UpscaleRatioOverrideEnabled { false };
@@ -441,6 +441,9 @@ class Config
     CustomOptional<bool> FGXeFGHighResMV { false };
     CustomOptional<bool> FGXeFGDebugView { false };
     CustomOptional<bool> FGXeFGForceBorderless { false };
+    CustomOptional<bool> FGXeFGSkipResizeBuffers { true };
+    CustomOptional<bool> FGXeFGModifyBufferState { false };
+    CustomOptional<bool> FGXeFGModifySCIndex { false };
 
     // fakenvapi
     CustomOptional<bool> FN_EnableLogs { true };

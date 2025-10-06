@@ -3,8 +3,6 @@
 
 #include "Config.h"
 
-// #include "inputs/FG/DLSSG_Mod.h"
-
 #include <ankerl/unordered_dense.h>
 
 // Use real NVNGX params encapsulated in custom one

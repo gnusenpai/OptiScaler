@@ -708,8 +708,7 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
         FfxApiProxy::InitFfxDx12();
 
     // If needed hooks are missing or XeFG proxy is not inited or FG swapchain is not created
-    if (!Config::Instance()->OverlayMenu.value_or_default() || !FfxApiProxy::IsFGReady() ||
-        State::Instance().currentFGSwapchain == nullptr)
+    if (!FfxApiProxy::IsFGReady() || State::Instance().currentFGSwapchain == nullptr)
         return;
 
     if (State::Instance().isShuttingDown)
@@ -1037,7 +1036,7 @@ bool FSRFG_Dx12::Present()
         _uiCommandListResetted[fIndex] = false;
     }
 
-    if (_lastDispatchedFrame == _frameCount)
+    if (_lastDispatchedFrame != 0 && _frameCount > (_lastDispatchedFrame + 2))
     {
         LOG_DEBUG("Pausing FG");
         State::Instance().FGchanged = true;

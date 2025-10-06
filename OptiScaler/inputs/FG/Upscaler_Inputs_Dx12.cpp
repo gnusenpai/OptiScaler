@@ -28,32 +28,6 @@ void UpscalerInputsDx12::Reset()
 void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_Parameter* InParameters,
                                       IFeature_Dx12* feature)
 {
-    auto fg = State::Instance().currentFG;
-
-    if (fg == nullptr || State::Instance().activeFgInput != FGInput::Upscaler || _device == nullptr)
-        return;
-
-    FG_Constants fgConstants {};
-    fgConstants.displayWidth = feature->DisplayWidth();
-    fgConstants.displayHeight = feature->DisplayHeight();
-
-    if (feature->IsHdr())
-        fgConstants.flags |= FG_Flags::Hdr;
-
-    if (feature->DepthInverted())
-        fgConstants.flags |= FG_Flags::InvertedDepth;
-
-    if (feature->JitteredMV())
-        fgConstants.flags |= FG_Flags::JitteredMVs;
-
-    if (!feature->LowResMV())
-        fgConstants.flags |= FG_Flags::DisplayResolutionMVs;
-
-    if (Config::Instance()->FGAsync.value_or_default())
-        fgConstants.flags |= FG_Flags::Async;
-
-    fg->EvaluateState(_device, fgConstants);
-
     // FSR Camera values
     float cameraNear = 0.0f;
     float cameraFar = 0.0f;
@@ -107,6 +81,32 @@ void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSD
     State::Instance().lastFsrCameraFar = cameraFar;
     State::Instance().lastFsrCameraNear = cameraNear;
 
+    auto fg = State::Instance().currentFG;
+
+    if (fg == nullptr || State::Instance().activeFgInput != FGInput::Upscaler || _device == nullptr)
+        return;
+
+    FG_Constants fgConstants {};
+    fgConstants.displayWidth = feature->DisplayWidth();
+    fgConstants.displayHeight = feature->DisplayHeight();
+
+    if (feature->IsHdr())
+        fgConstants.flags |= FG_Flags::Hdr;
+
+    if (feature->DepthInverted())
+        fgConstants.flags |= FG_Flags::InvertedDepth;
+
+    if (feature->JitteredMV())
+        fgConstants.flags |= FG_Flags::JitteredMVs;
+
+    if (!feature->LowResMV())
+        fgConstants.flags |= FG_Flags::DisplayResolutionMVs;
+
+    if (Config::Instance()->FGAsync.value_or_default())
+        fgConstants.flags |= FG_Flags::Async;
+
+    fg->EvaluateState(_device, fgConstants);
+
     int reset = 0;
     InParameters->Get(NVSDK_NGX_Parameter_Reset, &reset);
 
@@ -129,8 +129,8 @@ void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSD
 
     // FG Prepare
     UINT frameIndex;
-    if (!State::Instance().isShuttingDown && fg->IsActive() && Config::Instance()->OverlayMenu.value_or_default() &&
-        Config::Instance()->FGEnabled.value_or_default() && State::Instance().currentSwapchain != nullptr)
+    if (!State::Instance().isShuttingDown && fg->IsActive() && Config::Instance()->FGEnabled.value_or_default() &&
+        State::Instance().currentSwapchain != nullptr)
     {
         // Wait for present
         if (fg->Mutex.getOwner() == 2)
@@ -242,8 +242,8 @@ void UpscalerInputsDx12::UpscaleEnd(ID3D12GraphicsCommandList* InCmdList, NVSDK_
         return;
 
     // FG Dispatch
-    if (fg->IsActive() && Config::Instance()->OverlayMenu.value_or_default() &&
-        Config::Instance()->FGEnabled.value_or_default() && State::Instance().currentSwapchain != nullptr)
+    if (fg->IsActive() && Config::Instance()->FGEnabled.value_or_default() &&
+        State::Instance().currentSwapchain != nullptr)
     {
         if (Config::Instance()->FGHUDFix.value_or_default())
         {
