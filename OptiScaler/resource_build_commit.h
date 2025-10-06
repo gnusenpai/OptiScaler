@@ -1,0 +1,1 @@
+#define VER_BUILD_COMMIT "2f184d7"

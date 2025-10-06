@@ -614,6 +614,9 @@
     <ClInclude Include="hooks\DxgiFactory_Hooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hooks\LibraryLoad_Hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -969,6 +972,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="hooks\DxgiFactory_Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks\LibraryLoad_Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spoofing\Vulkan_Spoofing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
