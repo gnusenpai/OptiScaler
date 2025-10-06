@@ -22,20 +22,20 @@ static HRESULT hkGetParent(IDXGIAdapter* This, REFIID riid, void** ppParent)
     if (f == nullptr)
         return result;
 
-    auto ref = f->AddRef() - 1;
-    f->Release();
+    //auto ref = f->AddRef() - 1;
+    //f->Release();
 
     auto wf = new WrappedIDXGIFactory7(f);
     *ppParent = wf;
 
-    if (ref > 1)
-    {
-        auto wfRef = 1;
-        do
-        {
-            wfRef = wf->AddRef();
-        } while (wfRef < ref);
-    }
+    // if (ref > 1)
+    //{
+    //     auto wfRef = 1;
+    //     do
+    //     {
+    //         wfRef = wf->AddRef();
+    //     } while (wfRef < ref);
+    // }
 
     return result;
 }
@@ -170,6 +170,7 @@ HRESULT __stdcall WrappedIDXGIFactory7::QueryInterface(REFIID riid, void** ppvOb
         return S_OK;
     }
 
+    *ppvObject = nullptr;
     return E_NOINTERFACE;
 }
 
@@ -319,6 +320,9 @@ HRESULT __stdcall WrappedIDXGIFactory7::CreateSwapChainForCoreWindow(IUnknown* p
 
     auto result = DxgiFactoryWrappedCalls::CreateSwapChainForCoreWindow(_real2, pDevice, pWindow, &localDesc,
                                                                         pRestrictToOutput, ppSwapChain);
+
+    if (result == S_OK)
+        return result;
 
     return _real2->CreateSwapChainForCoreWindow(pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
 }
