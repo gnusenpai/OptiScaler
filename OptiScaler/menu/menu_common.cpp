@@ -155,9 +155,9 @@ template <typename T, size_t N> struct RingBuffer
     float Average() const { return static_cast<float>(sum / static_cast<double>(N)); }
 };
 
-// Keep these static (scope: file)
-static RingBuffer<float, 512> gFrameTimes;
-static RingBuffer<float, 512> gUpscalerTimes;
+const int plotWidth = 360;
+static RingBuffer<float, plotWidth> gFrameTimes;
+static RingBuffer<float, plotWidth> gUpscalerTimes;
 
 struct FsExistsCache
 {
@@ -1945,9 +1945,9 @@ bool MenuCommon::RenderMenu()
 
                 // Graph of frame times
                 ImGui::PlotLines(
-                    "##FrameTimeGraph", [](void* rb, int idx) -> float
-                    { return static_cast<RingBuffer<float, 512>*>(rb)->At(static_cast<size_t>(idx)); }, &gFrameTimes,
-                    static_cast<int>(gFrameTimes.Size()), 0, nullptr, 0.0f, 66.6f, plotSize);
+                    "##FrameTimeGraph",
+                    [](void* rb, int idx) -> float { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); },
+                    &gFrameTimes, plotWidth, 0, nullptr, 0.0f, 66.6f, plotSize);
             }
 
             if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Full)
@@ -1973,9 +1973,9 @@ bool MenuCommon::RenderMenu()
 
                 // Graph of upscaler times
                 ImGui::PlotLines(
-                    "##UpscalerFrameTimeGraph", [](void* rb, int idx) -> float
-                    { return static_cast<RingBuffer<float, 512>*>(rb)->At(static_cast<size_t>(idx)); }, &gUpscalerTimes,
-                    static_cast<int>(gUpscalerTimes.Size()), 0, nullptr, 0.0f, 20.0f, plotSize);
+                    "##UpscalerFrameTimeGraph",
+                    [](void* rb, int idx) -> float { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); },
+                    &gUpscalerTimes, plotWidth, 0, nullptr, 0.0f, 20.0f, plotSize);
             }
 
             if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_ReflexTimings)
@@ -5007,16 +5007,20 @@ bool MenuCommon::RenderMenu()
                     ImGui::Text("FrameTime");
                     state.frameTimeMutex.lock();
                     auto ft = StrFmt("%.2f ms / %.1f fps", state.frameTimes.back(), frameRate);
-                    std::vector<float> frameTimeArray(state.frameTimes.begin(), state.frameTimes.end());
-                    ImGui::PlotLines(ft.c_str(), frameTimeArray.data(), (int) frameTimeArray.size());
+                    ImGui::PlotLines(
+                        ft.c_str(), [](void* rb, int idx) -> float
+                        { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); }, &gUpscalerTimes,
+                        plotWidth);
 
                     if (currentFeature != nullptr && !currentFeature->IsFrozen())
                     {
                         ImGui::TableNextColumn();
                         ImGui::Text("Upscaler");
                         auto ups = StrFmt("%.4f ms", state.upscaleTimes.back());
-                        std::vector<float> upscaleTimeArray(state.upscaleTimes.begin(), state.upscaleTimes.end());
-                        ImGui::PlotLines(ups.c_str(), upscaleTimeArray.data(), (int) upscaleTimeArray.size());
+                        ImGui::PlotLines(
+                            ups.c_str(), [](void* rb, int idx) -> float
+                            { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); }, &gUpscalerTimes,
+                            plotWidth);
                     }
                     state.frameTimeMutex.unlock();
 
