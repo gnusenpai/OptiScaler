@@ -41,12 +41,7 @@ static bool _d3d12Captured = false;
 // for showing
 static bool _showRenderImGuiDebugOnce = true;
 
-// mutexes
-static std::mutex _dx11CleanMutex;
-static std::mutex _dx12CleanMutex;
-
 static IID streamlineRiid {};
-
 static bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnknown** ppRealObject)
 {
     if (streamlineRiid.Data1 == 0)
@@ -98,13 +93,16 @@ static void CreateRenderTargetDx12(ID3D12Device* device, IDXGISwapChain* pSwapCh
         ID3D12Resource* pBackBuffer = nullptr;
         auto result = pSwapChain->GetBuffer(i, IID_PPV_ARGS(&pBackBuffer));
 
+        if (pBackBuffer != nullptr)
+            pBackBuffer->Release();
+
         if (result != S_OK)
         {
             LOG_ERROR("pSwapChain->GetBuffer: {:X}", (unsigned long) result);
             return;
         }
 
-        if (pBackBuffer)
+        if (pBackBuffer != nullptr)
         {
             D3D12_RENDER_TARGET_VIEW_DESC desc = {};
             desc.Format = static_cast<DXGI_FORMAT>(GetCorrectDXGIFormat(sd.BufferDesc.Format));
@@ -112,7 +110,6 @@ static void CreateRenderTargetDx12(ID3D12Device* device, IDXGISwapChain* pSwapCh
 
             device->CreateRenderTargetView(pBackBuffer, &desc, g_mainRenderTargetDescriptor[i]);
             g_mainRenderTargetResource[i] = pBackBuffer;
-            pBackBuffer->Release();
         }
     }
 
@@ -259,7 +256,9 @@ static void RenderImGui_DX11(IDXGISwapChain* pSwapChain)
     {
         if (pSwapChain->GetDevice(IID_PPV_ARGS(&g_pd3dDevice)) == S_OK)
         {
+            g_pd3dDevice->Release();
             g_pd3dDevice->GetImmediateContext(&g_pd3dDeviceContext);
+            g_pd3dDeviceContext->Release();
             ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
         }
     }
