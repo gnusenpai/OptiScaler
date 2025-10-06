@@ -273,7 +273,7 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
                                                               ppDevice, pFeatureLevel, ppImmediateContext);
 
                 State::Instance().skipParentWrapping = false;
-                _skipDx11Create = true;
+                _skipDx11Create = false;
 
                 return result;
             }
