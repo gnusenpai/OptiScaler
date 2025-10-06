@@ -4761,10 +4761,8 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::PushItemWidth(50.0f * Config::Instance()->MenuScale.value_or_default());
 
-                        char vsyncBuf[16];
-                        std::snprintf(vsyncBuf, sizeof(vsyncBuf), "%d",
-                                      Config::Instance()->VsyncInterval.value_or_default());
-                        if (ImGui::BeginCombo("Sync Int.", vsyncBuf))
+                        auto vsyncBuf = StrFmt("%d", Config::Instance()->VsyncInterval.value_or_default());
+                        if (ImGui::BeginCombo("Sync Int.", vsyncBuf.c_str()))
                         {
                             if (ImGui::Selectable("0", Config::Instance()->VsyncInterval.value_or_default() == 0))
                                 Config::Instance()->VsyncInterval = 0;
@@ -5005,8 +5003,7 @@ bool MenuCommon::RenderMenu()
                 {
                     ImGui::TableNextColumn();
                     ImGui::Text("FrameTime");
-                    state.frameTimeMutex.lock();
-                    auto ft = StrFmt("%.2f ms / %.1f fps", state.frameTimes.back(), frameRate);
+                    auto ft = StrFmt("%6.2f ms / %5.1f fps", state.frameTimes.back(), frameRate);
                     ImGui::PlotLines(
                         ft.c_str(), [](void* rb, int idx) -> float
                         { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); }, &gUpscalerTimes,
@@ -5016,13 +5013,12 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::TableNextColumn();
                         ImGui::Text("Upscaler");
-                        auto ups = StrFmt("%.4f ms", state.upscaleTimes.back());
+                        auto ups = StrFmt("%6.2f ms", state.upscaleTimes.back());
                         ImGui::PlotLines(
                             ups.c_str(), [](void* rb, int idx) -> float
                             { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); }, &gUpscalerTimes,
                             plotWidth);
                     }
-                    state.frameTimeMutex.unlock();
 
                     ImGui::EndTable();
                 }
