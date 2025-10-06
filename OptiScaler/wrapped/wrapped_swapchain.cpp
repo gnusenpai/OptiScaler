@@ -45,7 +45,7 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
     if (willPresent)
     {
-        double ftDelta = 0.0f;
+        double ftDelta = 0.0;
 
         auto now = Util::MillisecondsNow();
 
@@ -75,7 +75,7 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
         _dx11Device = true;
         State::Instance().swapchainApi = DX11;
-        State::Instance().currentD3D11Device == device;
+        State::Instance().currentD3D11Device = device;
 
         if (!State::Instance().DeviceAdapterNames.contains(device))
         {
@@ -170,8 +170,8 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
         {
             ID3D11DeviceContext* context = nullptr;
             device->GetImmediateContext(&context);
-            context->Release();
             UpscalerTimeDx11::ReadUpscalingTime(context);
+            context->Release();
         }
     }
 
@@ -355,7 +355,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
             return E_NOINTERFACE;
         }
     }
-    else if (riid == __uuidof(this))
+    else if (riid == __uuidof(WrappedIDXGISwapChain4))
     {
         AddRef();
         *ppvObject = this;
@@ -380,6 +380,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
         return S_OK;
     }
 
+    *ppvObject = nullptr;
     return E_NOINTERFACE;
 }
 
@@ -890,9 +891,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     State::Instance().SCAllowTearing = (SwapChainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) > 0;
 
-    LOG_DEBUG(
-        "BufferCount: {0}, Width: {1}, Height: {2}, NewFormat: {3}, SwapChainFlags: {4:X}, pCreationNodeMask: {5}",
-        BufferCount, Width, Height, (UINT) Format, SwapChainFlags, *pCreationNodeMask);
+    LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat: {}, SwapChainFlags: {:X}", BufferCount, Width, Height,
+              (UINT) Format, SwapChainFlags);
 
     if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
         State::Instance().skipHeapCapture = true;
