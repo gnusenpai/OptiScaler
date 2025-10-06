@@ -13,11 +13,15 @@
 #include <nvapi/fakenvapi.h>
 #include <nvapi/ReflexHooks.h>
 
+#include <version_check.h>
+
 #include <imgui/imgui_internal.h>
 
 #include <mutex>
+#include <cstdarg>
 
-#include <version_check.h>
+#include <array>
+#include <chrono>
 
 #define MARK_ALL_BACKENDS_CHANGED()                                                                                    \
     for (auto& singleChangeBackend : State::Instance().changeBackend)                                                  \
@@ -115,6 +119,80 @@ static double updateNoticeLimit = 0.0;
 static bool updateNoticeVisible = false;
 static std::string updateNoticeTag;
 static std::string updateNoticeUrl;
+
+template <typename T, size_t N> struct RingBuffer
+{
+    std::array<T, N> data {};
+    size_t head { 0 };
+    size_t count { N };
+    double sum { 0.0 };
+
+    RingBuffer() { data.fill(static_cast<T>(0)); }
+
+    void Push(T v)
+    {
+        if (count == N)
+        {
+            sum -= data[head];
+        }
+        else
+        {
+            ++count;
+        }
+        data[head] = v;
+        sum += v;
+        head = (head + 1) % N;
+    }
+
+    size_t Size() const { return N; }
+
+    T At(size_t i) const
+    {
+        size_t start = head;
+        return data[(start + i) % N];
+    }
+
+    float Average() const { return static_cast<float>(sum / static_cast<double>(N)); }
+};
+
+// Keep these static (scope: file)
+static RingBuffer<float, 512> gFrameTimes;
+static RingBuffer<float, 512> gUpscalerTimes;
+
+struct FsExistsCache
+{
+    std::wstring lastPath;
+    bool cached { false };
+    std::chrono::steady_clock::time_point nextRefresh { std::chrono::steady_clock::time_point::min() };
+    std::chrono::milliseconds interval { 2000 };
+
+    bool Get(const std::wstring& path)
+    {
+        auto now = std::chrono::steady_clock::now();
+        if (path != lastPath || now >= nextRefresh)
+        {
+            lastPath = path;
+            cached = std::filesystem::exists(path);
+            nextRefresh = now + interval;
+        }
+        return cached;
+    }
+};
+
+static FsExistsCache gExists;
+
+inline std::string StrFmt(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int len = std::vsnprintf(nullptr, 0, fmt, args);
+    va_end(args);
+    std::string out(len, '\0');
+    va_start(args, fmt);
+    std::vsnprintf(out.data(), len + 1, fmt, args);
+    va_end(args);
+    return out;
+}
 
 void MenuCommon::ShowTooltip(const char* tip)
 {
@@ -1338,6 +1416,8 @@ bool MenuCommon::RenderMenu()
     if (!_isInited)
         return false;
 
+    auto& state = State::Instance();
+
     _frameCount++;
 
     // FPS & frame time calculation
@@ -1353,12 +1433,12 @@ bool MenuCommon::RenderMenu()
 
     lastTime = now;
 
-    State::Instance().frameTimes.pop_front();
-    State::Instance().frameTimes.push_back(frameTime);
+    state.frameTimes.pop_front();
+    state.frameTimes.push_back(frameTime);
 
     ImGuiIO& io = ImGui::GetIO();
     (void) io;
-    auto currentFeature = State::Instance().currentFeature;
+    auto currentFeature = state.currentFeature;
 
     bool newFrame = false;
 
@@ -1383,14 +1463,13 @@ bool MenuCommon::RenderMenu()
         {
             inputFG = false;
 
-            if (State::Instance().activeFgInput != FGInput::NoFG &&
-                State::Instance().activeFgOutput != FGOutput::NoFG && State::Instance().api != API::DX11 &&
-                (State::Instance().api != API::Vulkan || State::Instance().activeFgInput == FGInput::Nukems))
+            if (state.activeFgInput != FGInput::NoFG && state.activeFgOutput != FGOutput::NoFG &&
+                state.api != API::DX11 && (state.api != API::Vulkan || state.activeFgInput == FGInput::Nukems))
             {
                 Config::Instance()->FGEnabled = !Config::Instance()->FGEnabled.value_or_default();
 
                 if (Config::Instance()->FGEnabled.value_or_default())
-                    State::Instance().FGchanged = true;
+                    state.FGchanged = true;
             }
         }
 
@@ -1415,7 +1494,7 @@ bool MenuCommon::RenderMenu()
             {
                 Config::Instance()->ReloadFakenvapi();
                 auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
-                State::Instance().NukemsFilesAvailable = std::filesystem::exists(dllPath);
+                state.NukemsFilesAvailable = gExists.Get(dllPath);
 
                 if (pfn_ClipCursor_hooked)
                 {
@@ -1462,7 +1541,6 @@ bool MenuCommon::RenderMenu()
     } versionStatus;
 
     {
-        auto& state = State::Instance();
         std::scoped_lock lock(state.versionCheckMutex);
         versionStatus.completed = state.versionCheckCompleted;
         versionStatus.updateAvailable = state.updateAvailable;
@@ -1505,7 +1583,7 @@ bool MenuCommon::RenderMenu()
         }
         else
         {
-            ImVec2 displaySize { State::Instance().screenWidth, State::Instance().screenHeight };
+            ImVec2 displaySize { state.screenWidth, state.screenHeight };
             ImGui_ImplUwp_NewFrame(displaySize);
         }
 
@@ -1658,9 +1736,9 @@ bool MenuCommon::RenderMenu()
         frameTime = 0;
         for (size_t i = 299; i > 199; i--)
         {
-            if (State::Instance().frameTimes[i] > 0.0)
+            if (state.frameTimes[i] > 0.0)
             {
-                frameTime += State::Instance().frameTimes[i];
+                frameTime += state.frameTimes[i];
                 frameCnt++;
             }
         }
@@ -1669,21 +1747,13 @@ bool MenuCommon::RenderMenu()
         frameRate = 1000.0 / frameTime;
         frameTimesCalculated = true;
 
-        State::Instance().frameTimeMutex.lock();
-        std::vector<float> frameTimeArray(State::Instance().frameTimes.begin(), State::Instance().frameTimes.end());
-        std::vector<float> upscalerFrameTimeArray(State::Instance().upscaleTimes.begin(),
-                                                  State::Instance().upscaleTimes.end());
-        State::Instance().frameTimeMutex.unlock();
-        float averageFrameTime = 0.0f;
-        float averageUpscalerFT = 0.0f;
+        float lastFT = state.frameTimes.empty() ? 0.0f : state.frameTimes.back();
+        float lastUT = state.upscaleTimes.empty() ? 0.0f : state.upscaleTimes.back();
+        gFrameTimes.Push(lastFT);
+        gUpscalerTimes.Push(lastUT);
 
-        for (size_t i = 0; i < frameTimeArray.size(); i++)
-        {
-            averageFrameTime += frameTimeArray[i];
-            averageUpscalerFT += upscalerFrameTimeArray[i];
-        }
-        averageFrameTime /= frameTimeArray.size();
-        averageUpscalerFT /= frameTimeArray.size();
+        float averageFrameTime = gFrameTimes.Average();
+        float averageUpscalerFT = gUpscalerTimes.Average();
 
         // Set overlay position
         ImGui::SetNextWindowPos(overlayPosition, ImGuiCond_Always);
@@ -1694,7 +1764,7 @@ bool MenuCommon::RenderMenu()
         ImGui::SetNextWindowBgAlpha(Config::Instance()->FpsOverlayAlpha.value_or_default()); // Transparent background
 
         ImVec4 green(0.0f, 1.0f, 0.0f, 1.0f);
-        if (State::Instance().isHdrActive)
+        if (state.isHdrActive)
             ImGui::PushStyleColor(ImGuiCol_PlotLines, toneMapColor(green)); // Tone Map plot line color
         else
             ImGui::PushStyleColor(ImGuiCol_PlotLines, green);
@@ -1708,13 +1778,13 @@ bool MenuCommon::RenderMenu()
                              ImGuiWindowFlags_NoNav))
         {
             std::string api;
-            if (State::Instance().isRunningOnDXVK || State::Instance().isRunningOnLinux)
+            if (state.isRunningOnDXVK || state.isRunningOnLinux)
             {
                 api = "VKD3D";
             }
             else
             {
-                switch (State::Instance().swapchainApi)
+                switch (state.swapchainApi)
                 {
                 case Vulkan:
                     api = "VLK";
@@ -1729,7 +1799,7 @@ bool MenuCommon::RenderMenu()
                     break;
 
                 default:
-                    switch (State::Instance().api)
+                    switch (state.api)
                     {
                     case Vulkan:
                         api = "VLK";
@@ -1761,39 +1831,44 @@ bool MenuCommon::RenderMenu()
             std::string secondLine = "";
             std::string thirdLine = "";
 
-            auto fg = State::Instance().currentFG;
-            auto fgText = (fg != nullptr && fg->IsActive() && !fg->IsPaused()) ? std::format("({})", fg->Name()) : "";
+            auto fg = state.currentFG;
+            auto fgText = (fg != nullptr && fg->IsActive() && !fg->IsPaused()) ? ("(" + std::string(fg->Name()) + ")")
+                                                                               : std::string();
 
             // Prepare Line 1
             if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_JustFPS)
             {
-                firstLine = std::format("{} | FPS: {:5.1f} {}", api.c_str(), frameRate, fgText);
+                firstLine = StrFmt("%s | FPS: %5.1f %s", api.c_str(), frameRate, fgText.c_str());
             }
             else if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_Simple)
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
-                    firstLine =
-                        std::format("{} | FPS: {:5.1f}, {:6.2f} ms {} | {} -> {} {}.{}.{}", api.c_str(), frameRate,
-                                    frameTime, fgText, State::Instance().currentInputApiName.c_str(),
-                                    currentFeature->Name().c_str(), State::Instance().currentFeature->Version().major,
-                                    State::Instance().currentFeature->Version().minor,
-                                    State::Instance().currentFeature->Version().patch);
+                {
+                    firstLine = StrFmt("%s | FPS: %5.1f, %6.2f ms %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
+                                       frameTime, fgText.c_str(), state.currentInputApiName.c_str(),
+                                       currentFeature->Name().c_str(), state.currentFeature->Version().major,
+                                       state.currentFeature->Version().minor, state.currentFeature->Version().patch);
+                }
                 else
+                {
                     firstLine =
-                        std::format("{} | FPS: {:5.1f}, {:6.2f} ms {}", api.c_str(), frameRate, frameTime, fgText);
+                        StrFmt("%s | FPS: %5.1f, %6.2f ms %s", api.c_str(), frameRate, frameTime, fgText.c_str());
+                }
             }
             else
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
-                    firstLine =
-                        std::format("{} | FPS: {:5.1f}, Avg: {:5.1f} {} | {} -> {} {}.{}.{}", api.c_str(), frameRate,
-                                    1000.0f / averageFrameTime, fgText, State::Instance().currentInputApiName.c_str(),
-                                    currentFeature->Name().c_str(), State::Instance().currentFeature->Version().major,
-                                    State::Instance().currentFeature->Version().minor,
-                                    State::Instance().currentFeature->Version().patch);
+                {
+                    firstLine = StrFmt("%s | FPS: %5.1f, Avg: %5.1f %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
+                                       1000.0f / averageFrameTime, fgText.c_str(), state.currentInputApiName.c_str(),
+                                       currentFeature->Name().c_str(), state.currentFeature->Version().major,
+                                       state.currentFeature->Version().minor, state.currentFeature->Version().patch);
+                }
                 else
-                    firstLine = std::format("{} | FPS: {:5.1f}, Avg: {:5.1f} {}", api.c_str(), frameRate,
-                                            1000.0f / averageFrameTime, fgText);
+                {
+                    firstLine = StrFmt("%s | FPS: %5.1f, Avg: %5.1f %s", api.c_str(), frameRate,
+                                       1000.0f / averageFrameTime, fgText.c_str());
+                }
             }
 
             // Prepare Line 2
@@ -1810,15 +1885,14 @@ bool MenuCommon::RenderMenu()
                     ImGui::Spacing();
                 }
 
-                secondLine = std::format("Frame Time: {:6.2f} ms, Avg: {:6.2f} ms", State::Instance().frameTimes.back(),
-                                         averageFrameTime);
+                secondLine = StrFmt("Frame Time: %6.2f ms, Avg: %6.2f ms", state.frameTimes.back(), averageFrameTime);
             }
 
             // Prepare Line 3
             if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Full)
             {
-                thirdLine = std::format("Upscaler Time: {:6.2f} ms, Avg: {:6.2f} ms",
-                                        State::Instance().upscaleTimes.back(), averageUpscalerFT);
+                thirdLine =
+                    StrFmt("Upscaler Time: %6.2f ms, Avg: %6.2f ms", state.upscaleTimes.back(), averageUpscalerFT);
             }
 
             ImVec2 plotSize;
@@ -1870,8 +1944,10 @@ bool MenuCommon::RenderMenu()
                     ImGui::SameLine(0.0f, 0.0f);
 
                 // Graph of frame times
-                ImGui::PlotLines("##FrameTimeGraph", frameTimeArray.data(), static_cast<int>(frameTimeArray.size()), 0,
-                                 nullptr, 0.0f, 66.6f, plotSize);
+                ImGui::PlotLines(
+                    "##FrameTimeGraph", [](void* rb, int idx) -> float
+                    { return static_cast<RingBuffer<float, 512>*>(rb)->At(static_cast<size_t>(idx)); }, &gFrameTimes,
+                    static_cast<int>(gFrameTimes.Size()), 0, nullptr, 0.0f, 66.6f, plotSize);
             }
 
             if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Full)
@@ -1896,8 +1972,10 @@ bool MenuCommon::RenderMenu()
                     ImGui::SameLine(0.0f, 0.0f);
 
                 // Graph of upscaler times
-                ImGui::PlotLines("##UpscalerFrameTimeGraph", upscalerFrameTimeArray.data(),
-                                 static_cast<int>(upscalerFrameTimeArray.size()), 0, nullptr, 0.0f, 20.0f, plotSize);
+                ImGui::PlotLines(
+                    "##UpscalerFrameTimeGraph", [](void* rb, int idx) -> float
+                    { return static_cast<RingBuffer<float, 512>*>(rb)->At(static_cast<size_t>(idx)); }, &gUpscalerTimes,
+                    static_cast<int>(gUpscalerTimes.Size()), 0, nullptr, 0.0f, 20.0f, plotSize);
             }
 
             if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_ReflexTimings)
@@ -1920,7 +1998,7 @@ bool MenuCommon::RenderMenu()
 
                     const auto& rangeInNs = timingData[TimingType::TimeRange].value().length;
 
-                    ImGui::Text(std::format("Reflex timings, whole frame: {:.1f}ms", rangeInNs / 1000).c_str());
+                    ImGui::Text("Reflex timings, whole frame: %.1fms", rangeInNs / 1000.0);
 
                     const auto maxWidth = Config::Instance()->FpsOverlayHorizontal.value_or_default()
                                               ? ImGui::GetWindowWidth()
@@ -1933,8 +2011,7 @@ bool MenuCommon::RenderMenu()
 
                         auto& timing = timingData[type].value();
                         float duration = timing.length * rangeInNs / 1000;
-                        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(color),
-                                           std::format("{:<12} {:>4.1f}ms", desc, duration).c_str());
+                        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(color), "%-12s %4.1fms", desc, duration);
                         auto leftLimit = ImGui::GetItemRectMin().x + offsetForText * fpsScale;
                         auto start = leftLimit + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) * timing.position;
                         auto end = start + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) * timing.length;
@@ -2001,9 +2078,9 @@ bool MenuCommon::RenderMenu()
             frameTime = 0;
             for (size_t i = 299; i > 199; i--)
             {
-                if (State::Instance().frameTimes[i] > 0.0)
+                if (state.frameTimes[i] > 0.0)
                 {
-                    frameTime += State::Instance().frameTimes[i];
+                    frameTime += state.frameTimes[i];
                     frameCnt++;
                 }
             }
@@ -2050,11 +2127,9 @@ bool MenuCommon::RenderMenu()
         // Main menu window
         if (windowTitle.empty())
         {
-            windowTitle =
-                std::format("{} - {} {} {} {}", VER_PRODUCT_NAME, State::Instance().GameExe,
-                            State::Instance().GameName.empty() ? "" : std::format("- {}", State::Instance().GameName),
-                            State::Instance().gameQuirks.count() > 0 ? "(Q)" : "",
-                            State::Instance().isOptiPatcherSucceed ? "(OP)" : "");
+            windowTitle = StrFmt("%s - %s %s %s %s", VER_PRODUCT_NAME, state.GameExe.c_str(),
+                                 state.GameName.empty() ? "" : StrFmt("- %s", state.GameName.c_str()).c_str(),
+                                 (state.gameQuirks.count() > 0) ? "(Q)" : "", state.isOptiPatcherSucceed ? "(OP)" : "");
         }
 
         if (ImGui::Begin(windowTitle.c_str(), NULL, flags))
@@ -2100,21 +2175,20 @@ bool MenuCommon::RenderMenu()
                 else
                     ImGui::SetWindowFontScale(Config::Instance()->MenuScale.value_or_default() * 3.0);
 
-                if (State::Instance().nvngxExists || State::Instance().nvngxReplacement.has_value() ||
-                    (State::Instance().libxessExists || XeSSProxy::Module() != nullptr))
+                if (state.nvngxExists || state.nvngxReplacement.has_value() ||
+                    (state.libxessExists || XeSSProxy::Module() != nullptr))
                 {
                     ImGui::Spacing();
 
                     std::vector<std::string> upscalers;
 
-                    if (State::Instance().fsrHooks)
+                    if (state.fsrHooks)
                         upscalers.push_back("FSR");
 
-                    if (State::Instance().nvngxExists || State::Instance().nvngxReplacement.has_value() ||
-                        State::Instance().isRunningOnNvidia)
+                    if (state.nvngxExists || state.nvngxReplacement.has_value() || state.isRunningOnNvidia)
                         upscalers.push_back("DLSS");
 
-                    if (State::Instance().libxessExists || XeSSProxy::Module() != nullptr)
+                    if (state.libxessExists || XeSSProxy::Module() != nullptr)
                         upscalers.push_back("XeSS");
 
                     auto joined = upscalers | std::views::join_with(std::string { " or " });
@@ -2131,15 +2205,13 @@ bool MenuCommon::RenderMenu()
                         ImGui::SetWindowFontScale(Config::Instance()->MenuScale.value_or_default());
 
                     ImGui::Spacing();
-                    ImGui::Text("nvngx.dll: %s", State::Instance().nvngxExists || State::Instance().isRunningOnNvidia
-                                                     ? "Exists"
-                                                     : "Doesn't Exist");
+                    ImGui::Text("nvngx.dll: %s",
+                                state.nvngxExists || state.isRunningOnNvidia ? "Exists" : "Doesn't Exist");
                     ImGui::Text("nvngx replacement: %s",
-                                State::Instance().nvngxReplacement.has_value() ? "Exists" : "Doesn't Exist");
-                    ImGui::Text("libxess.dll: %s", (State::Instance().libxessExists || XeSSProxy::Module() != nullptr)
-                                                       ? "Exists"
-                                                       : "Doesn't Exist");
-                    ImGui::Text("fsr: %s", State::Instance().fsrHooks ? "Exists" : "Doesn't Exist");
+                                state.nvngxReplacement.has_value() ? "Exists" : "Doesn't Exist");
+                    ImGui::Text("libxess.dll: %s",
+                                (state.libxessExists || XeSSProxy::Module() != nullptr) ? "Exists" : "Doesn't Exist");
+                    ImGui::Text("fsr: %s", state.fsrHooks ? "Exists" : "Doesn't Exist");
 
                     ImGui::Spacing();
                 }
@@ -2184,71 +2256,61 @@ bool MenuCommon::RenderMenu()
                     ImGui::SeparatorText("Upscalers");
                     ShowTooltip("Which copium you choose?");
 
-                    GetCurrentBackendInfo(State::Instance().api, &currentBackend, &currentBackendName);
+                    GetCurrentBackendInfo(state.api, &currentBackend, &currentBackendName);
 
                     std::string spoofingText;
 
                     ImGui::PushItemWidth(180.0f * Config::Instance()->MenuScale.value_or_default());
 
-                    switch (State::Instance().api)
+                    switch (state.api)
                     {
                     case DX11:
-                        if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentD3D11Device))
-                            ImGui::Text(
-                                State::Instance().DeviceAdapterNames[State::Instance().currentD3D11Device].c_str());
-                        else if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentD3D12Device))
-                            ImGui::Text(
-                                State::Instance().DeviceAdapterNames[State::Instance().currentD3D12Device].c_str());
+                        if (state.DeviceAdapterNames.contains(state.currentD3D11Device))
+                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D11Device].c_str());
+                        else if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
+                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
 
-                        ImGui::Text("D3D11 %s| %s %d.%d.%d", State::Instance().isRunningOnDXVK ? "(DXVK) " : "",
-                                    State::Instance().currentFeature->Name().c_str(),
-                                    State::Instance().currentFeature->Version().major,
-                                    State::Instance().currentFeature->Version().minor,
-                                    State::Instance().currentFeature->Version().patch);
+                        ImGui::Text("D3D11 %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                                    state.currentFeature->Name().c_str(), state.currentFeature->Version().major,
+                                    state.currentFeature->Version().minor, state.currentFeature->Version().patch);
 
                         ImGui::SameLine(0.0f, 6.0f);
                         spoofingText = Config::Instance()->DxgiSpoofing.value_or_default() ? "On" : "Off";
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
-                        if (State::Instance().currentFeature->Name() != "DLSSD")
+                        if (state.currentFeature->Name() != "DLSSD")
                             AddDx11Backends(&currentBackend, &currentBackendName);
 
                         break;
 
                     case DX12:
-                        if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentD3D12Device))
-                            ImGui::Text(
-                                State::Instance().DeviceAdapterNames[State::Instance().currentD3D12Device].c_str());
+                        if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
+                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
 
-                        ImGui::Text("D3D12 %s| %s %d.%d.%d", State::Instance().isRunningOnDXVK ? "(DXVK) " : "",
-                                    State::Instance().currentFeature->Name().c_str(),
-                                    State::Instance().currentFeature->Version().major,
-                                    State::Instance().currentFeature->Version().minor,
-                                    State::Instance().currentFeature->Version().patch);
+                        ImGui::Text("D3D12 %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                                    state.currentFeature->Name().c_str(), state.currentFeature->Version().major,
+                                    state.currentFeature->Version().minor, state.currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
-                        ImGui::Text("| Input: %s", State::Instance().currentInputApiName.c_str());
+                        ImGui::Text("| Input: %s", state.currentInputApiName.c_str());
 
                         ImGui::SameLine(0.0f, 6.0f);
                         spoofingText = Config::Instance()->DxgiSpoofing.value_or_default() ? "On" : "Off";
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
-                        if (State::Instance().currentFeature->Name() != "DLSSD")
+                        if (state.currentFeature->Name() != "DLSSD")
                             AddDx12Backends(&currentBackend, &currentBackendName);
 
                         break;
 
                     default:
-                        if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentVkDevice))
-                            ImGui::Text(
-                                State::Instance().DeviceAdapterNames[State::Instance().currentVkDevice].c_str());
+                        if (state.DeviceAdapterNames.contains(state.currentVkDevice))
+                            ImGui::Text(state.DeviceAdapterNames[state.currentVkDevice].c_str());
 
-                        ImGui::Text("Vulkan %s| %s %d.%d.%d", State::Instance().isRunningOnDXVK ? "(DXVK) " : "",
-                                    State::Instance().currentFeature->Name().c_str(),
-                                    State::Instance().currentFeature->Version().major,
-                                    State::Instance().currentFeature->Version().minor,
-                                    State::Instance().currentFeature->Version().patch);
+                        ImGui::Text("Vulkan %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                                    state.currentFeature->Name().c_str(), state.currentFeature->Version().major,
+                                    state.currentFeature->Version().minor, state.currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
-                        ImGui::Text("| Input: %s", State::Instance().currentInputApiName.c_str());
+                        ImGui::Text("| Input: %s", state.currentInputApiName.c_str());
 
                         auto vlkSpoof = Config::Instance()->VulkanSpoofing.value_or_default();
                         auto vlkExtSpoof = Config::Instance()->VulkanExtensionSpoofing.value_or_default();
@@ -2265,20 +2327,20 @@ bool MenuCommon::RenderMenu()
                         ImGui::SameLine(0.0f, 6.0f);
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
-                        if (State::Instance().currentFeature->Name() != "DLSSD")
+                        if (state.currentFeature->Name() != "DLSSD")
                             AddVulkanBackends(&currentBackend, &currentBackendName);
                     }
 
                     ImGui::PopItemWidth();
 
-                    if (State::Instance().currentFeature->Name() != "DLSSD")
+                    if (state.currentFeature->Name() != "DLSSD")
                     {
                         ImGui::SameLine(0.0f, 6.0f);
 
-                        if (ImGui::Button("Change Upscaler##2") && State::Instance().newBackend != "" &&
-                            State::Instance().newBackend != currentBackend)
+                        if (ImGui::Button("Change Upscaler##2") && state.newBackend != "" &&
+                            state.newBackend != currentBackend)
                         {
-                            if (State::Instance().newBackend == "xess")
+                            if (state.newBackend == "xess")
                             {
                                 // Reseting them for xess
                                 Config::Instance()->DisableReactiveMask.reset();
@@ -2289,7 +2351,7 @@ bool MenuCommon::RenderMenu()
                         }
                     }
 
-                    if (State::Instance().currentFeature->AccessToReactiveMask())
+                    if (state.currentFeature->AccessToReactiveMask())
                     {
                         ImGui::BeginDisabled(Config::Instance()->DisableReactiveMask.value_or(false));
 
@@ -2304,8 +2366,7 @@ bool MenuCommon::RenderMenu()
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                 {
                     // Dx11 with Dx12
-                    if (State::Instance().api == DX11 &&
-                        Config::Instance()->Dx11Upscaler.value_or_default() != "fsr22" &&
+                    if (state.api == DX11 && Config::Instance()->Dx11Upscaler.value_or_default() != "fsr22" &&
                         Config::Instance()->Dx11Upscaler.value_or_default() != "dlss" &&
                         Config::Instance()->Dx11Upscaler.value_or_default() != "fsr31")
                     {
@@ -2327,7 +2388,7 @@ bool MenuCommon::RenderMenu()
                     // UPSCALER SPECIFIC -----------------------------
 
                     // XeSS -----------------------------
-                    if (currentBackend == "xess" && State::Instance().currentFeature->Name() != "DLSSD")
+                    if (currentBackend == "xess" && state.currentFeature->Name() != "DLSSD")
                     {
                         ImGui::Spacing();
                         if (ImGui::CollapsingHeader("XeSS Settings"))
@@ -2351,7 +2412,7 @@ bool MenuCommon::RenderMenu()
                                                           (Config::Instance()->NetworkModel.value_or_default() == n)))
                                     {
                                         Config::Instance()->NetworkModel = n;
-                                        State::Instance().newBackend = currentBackend;
+                                        state.newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
                                     }
                                 }
@@ -2360,11 +2421,11 @@ bool MenuCommon::RenderMenu()
                             }
                             ShowHelpMarker("Likely don't do much");
 
-                            if (bool dbg = State::Instance().xessDebug; ImGui::Checkbox("Dump (Shift+Del)", &dbg))
-                                State::Instance().xessDebug = dbg;
+                            if (bool dbg = state.xessDebug; ImGui::Checkbox("Dump (Shift+Del)", &dbg))
+                                state.xessDebug = dbg;
 
                             ImGui::SameLine(0.0f, 6.0f);
-                            int dbgCount = State::Instance().xessDebugFrames;
+                            int dbgCount = state.xessDebugFrames;
 
                             ImGui::PushItemWidth(95.0f * Config::Instance()->MenuScale.value_or_default());
                             if (ImGui::InputInt("frames", &dbgCount))
@@ -2374,7 +2435,7 @@ bool MenuCommon::RenderMenu()
                                 else if (dbgCount > 999)
                                     dbgCount = 999;
 
-                                State::Instance().xessDebugFrames = dbgCount;
+                                state.xessDebugFrames = dbgCount;
                             }
 
                             ImGui::PopItemWidth();
@@ -2385,7 +2446,7 @@ bool MenuCommon::RenderMenu()
                     }
 
                     // FFX -----------------
-                    if (currentBackend.rfind("fsr", 0) == 0 && State::Instance().currentFeature->Name() != "DLSSD" &&
+                    if (currentBackend.rfind("fsr", 0) == 0 && state.currentFeature->Name() != "DLSSD" &&
                         (currentBackend == "fsr31" || currentBackend == "fsr31_12"))
                     {
                         ImGui::SeparatorText("FFX Settings");
@@ -2394,16 +2455,16 @@ bool MenuCommon::RenderMenu()
                             _fsr3xIndex = Config::Instance()->Fsr3xIndex.value_or_default();
 
                         if (currentBackend == "fsr31" ||
-                            currentBackend == "fsr31_12" && State::Instance().fsr3xVersionNames.size() > 0)
+                            currentBackend == "fsr31_12" && state.fsr3xVersionNames.size() > 0)
                         {
                             ImGui::PushItemWidth(135.0f * Config::Instance()->MenuScale.value_or_default());
 
-                            auto currentName = std::format("FSR {}", State::Instance().fsr3xVersionNames[_fsr3xIndex]);
+                            auto currentName = StrFmt("FSR %s", state.fsr3xVersionNames[_fsr3xIndex]);
                             if (ImGui::BeginCombo("FFX Upscaler", currentName.c_str()))
                             {
-                                for (int n = 0; n < State::Instance().fsr3xVersionIds.size(); n++)
+                                for (int n = 0; n < state.fsr3xVersionIds.size(); n++)
                                 {
-                                    auto name = std::format("FSR {}", State::Instance().fsr3xVersionNames[n]);
+                                    auto name = StrFmt("FSR %s", state.fsr3xVersionNames[n]);
                                     if (ImGui::Selectable(name.c_str(),
                                                           Config::Instance()->Fsr3xIndex.value_or_default() == n))
                                         _fsr3xIndex = n;
@@ -2421,7 +2482,7 @@ bool MenuCommon::RenderMenu()
                                 _fsr3xIndex != Config::Instance()->Fsr3xIndex.value_or_default())
                             {
                                 Config::Instance()->Fsr3xIndex = _fsr3xIndex;
-                                State::Instance().newBackend = currentBackend;
+                                state.newBackend = currentBackend;
                                 MARK_ALL_BACKENDS_CHANGED();
                             }
 
@@ -2438,7 +2499,7 @@ bool MenuCommon::RenderMenu()
                                     ImGui::Checkbox("Non-Linear Color Space", &nlCS))
                                 {
                                     Config::Instance()->FsrNonLinearColorSpace = nlCS;
-                                    State::Instance().newBackend = currentBackend;
+                                    state.newBackend = currentBackend;
                                     MARK_ALL_BACKENDS_CHANGED();
                                 }
 
@@ -2478,7 +2539,7 @@ bool MenuCommon::RenderMenu()
                                             }
                                         }
 
-                                        State::Instance().newBackend = currentBackend;
+                                        state.newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
                                     }
                                     ShowHelpMarker("Indicates input color resource contains perceptual sRGB colors\n"
@@ -2512,7 +2573,7 @@ bool MenuCommon::RenderMenu()
                                             }
                                         }
 
-                                        State::Instance().newBackend = currentBackend;
+                                        state.newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
                                     }
                                     ShowHelpMarker("Indicates input color resource contains perceptual PQ colors\n"
@@ -2551,7 +2612,7 @@ bool MenuCommon::RenderMenu()
                                             else
                                                 Config::Instance()->Fsr4Model = n - 1;
 
-                                            State::Instance().newBackend = currentBackend;
+                                            state.newBackend = currentBackend;
                                             MARK_ALL_BACKENDS_CHANGED();
                                         }
                                     }
@@ -2565,7 +2626,7 @@ bool MenuCommon::RenderMenu()
                                                "Model 5 is meant for Ultra Performance");
 
                                 ImGui::Spacing();
-                                ImGui::Text("Current model: %d", State::Instance().currentFsr4Model);
+                                ImGui::Text("Current model: %d", state.currentFsr4Model);
                                 ImGui::Spacing();
                             }
 
@@ -2665,18 +2726,18 @@ bool MenuCommon::RenderMenu()
 
                     // DLSS -----------------
                     if ((Config::Instance()->DLSSEnabled.value_or_default() && currentBackend == "dlss" &&
-                         State::Instance().currentFeature->Version().major > 2) ||
-                        State::Instance().currentFeature->Name() == "DLSSD")
+                         state.currentFeature->Version().major > 2) ||
+                        state.currentFeature->Name() == "DLSSD")
                     {
-                        const bool usesDlssd = State::Instance().currentFeature->Name() == "DLSSD";
+                        const bool usesDlssd = state.currentFeature->Name() == "DLSSD";
 
                         if (usesDlssd)
                             ImGui::SeparatorText("DLSSD Settings");
                         else
                             ImGui::SeparatorText("DLSS Settings");
 
-                        auto overridden = usesDlssd ? State::Instance().dlssdPresetsOverriddenExternally
-                                                    : State::Instance().dlssPresetsOverriddenExternally;
+                        auto overridden =
+                            usesDlssd ? state.dlssdPresetsOverriddenExternally : state.dlssPresetsOverriddenExternally;
 
                         if (overridden)
                         {
@@ -2711,9 +2772,9 @@ bool MenuCommon::RenderMenu()
                         if (ImGui::Button("Apply Changes"))
                         {
                             if (usesDlssd)
-                                State::Instance().newBackend = "dlssd";
+                                state.newBackend = "dlssd";
                             else
-                                State::Instance().newBackend = currentBackend;
+                                state.newBackend = currentBackend;
 
                             MARK_ALL_BACKENDS_CHANGED();
                         }
@@ -2806,27 +2867,25 @@ bool MenuCommon::RenderMenu()
                 //    disabledMaskInput[optiFgIndex] = true;
                 //    fgInputDesc[optiFgIndex] = "Old overlay menu is unsupported";
                 //}
-                // else if (State::Instance().api != DX12)
-                if (State::Instance().api != DX12)
+                // else if (state.api != DX12)
+                if (state.api != DX12)
                 {
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported API";
                 }
-                else if (State::Instance().isWorkingAsNvngx)
+                else if (state.isWorkingAsNvngx)
                 {
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
                 }
-                else if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() &&
-                         !fsr31InitTried)
+                else if (state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() && !fsr31InitTried)
                 {
                     fsr31InitTried = true;
                     FfxApiProxy::InitFfxDx12();
                     disabledMaskInput[optiFgIndex] = !FfxApiProxy::IsFGReady();
                     fgInputDesc[optiFgIndex] = "amd_fidelityfx_dx12.dll is missing";
                 }
-                else if (State::Instance().activeFgOutput == FGOutput::XeFG && !xefgInitTried &&
-                         XeFGProxy::Module() == nullptr)
+                else if (state.activeFgOutput == FGOutput::XeFG && !xefgInitTried && XeFGProxy::Module() == nullptr)
                 {
                     xefgInitTried = true;
                     XeFGProxy::InitXeFG();
@@ -2836,17 +2895,17 @@ bool MenuCommon::RenderMenu()
 
                 // DLSSG inputs requirements
                 auto constexpr dlssgInputIndex = (uint32_t) FGInput::DLSSG;
-                if (State::Instance().streamlineVersion.major < 2)
+                if (state.streamlineVersion.major < 2)
                 {
                     disabledMaskInput[dlssgInputIndex] = true;
-                    fgInputDesc[dlssgInputIndex] = std::format(
-                        "Unsupported Streamline version: {}.{}.{}", State::Instance().streamlineVersion.major,
-                        State::Instance().streamlineVersion.minor, State::Instance().streamlineVersion.patch);
+                    fgInputDesc[dlssgInputIndex] =
+                        StrFmt("Unsupported Streamline version: %d.%d.%d", state.streamlineVersion.major,
+                               state.streamlineVersion.minor, state.streamlineVersion.patch);
 
                     if (Config::Instance()->FGInput.value_or_default() == FGInput::DLSSG)
                         Config::Instance()->FGInput.reset();
                 }
-                else if (State::Instance().api != DX12)
+                else if (state.api != DX12)
                 {
                     disabledMaskInput[dlssgInputIndex] = true;
                     fgInputDesc[dlssgInputIndex] = "Unsupported API";
@@ -2854,7 +2913,7 @@ bool MenuCommon::RenderMenu()
 
                 // FSRFG inputs requirements
                 auto constexpr fsrfgInputIndex = (uint32_t) FGInput::FSRFG;
-                if (State::Instance().api != DX12)
+                if (state.api != DX12)
                 {
                     disabledMaskInput[fsrfgInputIndex] = true;
                     fgInputDesc[fsrfgInputIndex] = "Unsupported API";
@@ -2893,21 +2952,21 @@ bool MenuCommon::RenderMenu()
                 // Nukem's FG mod requirements
                 auto constexpr nukemsInputIndex = (uint32_t) FGInput::Nukems;
                 auto constexpr nukemsOutputIndex = (uint32_t) FGOutput::Nukems;
-                if (State::Instance().api == DX11)
+                if (state.api == DX11)
                 {
                     disabledMaskInput[nukemsInputIndex] = true;
                     fgInputDesc[nukemsInputIndex] = "Unsupported API";
                     disabledMaskOutput[nukemsOutputIndex] = true;
                     fgOutputDesc[nukemsOutputIndex] = "Unsupported API";
                 }
-                else if (State::Instance().isWorkingAsNvngx)
+                else if (state.isWorkingAsNvngx)
                 {
                     disabledMaskInput[nukemsInputIndex] = true;
                     fgInputDesc[nukemsInputIndex] = "Unsupported Opti working mode";
                     disabledMaskOutput[nukemsOutputIndex] = true;
                     fgOutputDesc[nukemsOutputIndex] = "Unsupported Opti working mode";
                 }
-                else if (!State::Instance().NukemsFilesAvailable)
+                else if (!state.NukemsFilesAvailable)
                 {
                     disabledMaskInput[nukemsInputIndex] = true;
                     fgInputDesc[nukemsInputIndex] = "Missing the dlssg_to_fsr3_amd_is_better.dll file";
@@ -2918,7 +2977,7 @@ bool MenuCommon::RenderMenu()
                 // FSR FG / XeFG output requirements
                 auto constexpr fsrfgOutputIndex = (uint32_t) FGOutput::FSRFG;
                 auto constexpr xefgOutputIndex = (uint32_t) FGOutput::XeFG;
-                if (State::Instance().api != DX12)
+                if (state.api != DX12)
                 {
                     disabledMaskOutput[fsrfgOutputIndex] = true;
                     fgOutputDesc[fsrfgOutputIndex] = "Unsupported API";
@@ -2932,7 +2991,7 @@ bool MenuCommon::RenderMenu()
                     Config::Instance()->FGOutput =
                         Config::Instance()->FGOutput.value_or_default(); // need to have a value before combo
 
-                if (State::Instance().api != DX11)
+                if (state.api != DX11)
                 {
                     ImGui::SeparatorText("Frame Generation");
 
@@ -2975,36 +3034,33 @@ bool MenuCommon::RenderMenu()
                         fgInputOverridden = false;
                     }
 
-                    if (State::Instance().activeFgOutput == FGOutput::FSRFG ||
-                        State::Instance().activeFgOutput == FGOutput::XeFG)
+                    if (state.activeFgOutput == FGOutput::FSRFG || state.activeFgOutput == FGOutput::XeFG)
                     {
-                        ImGui::Checkbox("Show Detected UI", &State::Instance().FGHudlessCompare);
+                        ImGui::Checkbox("Show Detected UI", &state.FGHudlessCompare);
                         ShowHelpMarker("Needs hudless texture to compare with final image.\n"
                                        "UI elements and ONLY UI elements should have a pink tint!");
                     }
 
-                    // if (State::Instance().activeFgInput != Config::Instance()->FGInput.value_or_default())
+                    // if (state.activeFgInput != Config::Instance()->FGInput.value_or_default())
                     //{
-                    //     State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
-                    //     State::Instance().FGchanged = true; // Formats might be different so reconfigure
+                    //     state.activeFgInput = Config::Instance()->FGInput.value_or_default();
+                    //     state.FGchanged = true; // Formats might be different so reconfigure
                     // }
 
-                    State::Instance().fgSettingsChanged =
-                        State::Instance().activeFgOutput != Config::Instance()->FGOutput.value_or_default() ||
-                        State::Instance().activeFgInput != Config::Instance()->FGInput.value_or_default();
+                    state.fgSettingsChanged = state.activeFgOutput != Config::Instance()->FGOutput.value_or_default() ||
+                                              state.activeFgInput != Config::Instance()->FGInput.value_or_default();
 
-                    if (State::Instance().fgSettingsChanged)
+                    if (state.fgSettingsChanged)
                     {
                         ImGui::Spacing();
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.0f, 1.f), "Save INI and restart to apply the changes");
                         ImGui::Spacing();
                     }
 
-                    if (State::Instance().activeFgInput == FGInput::DLSSG ||
-                        State::Instance().activeFgInput == FGInput::FSRFG ||
-                        State::Instance().activeFgInput == FGInput::FSRFG30)
+                    if (state.activeFgInput == FGInput::DLSSG || state.activeFgInput == FGInput::FSRFG ||
+                        state.activeFgInput == FGInput::FSRFG30)
                     {
-                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
                         if (fgOutput)
                         {
                             ImGui::BeginDisabled(!fgOutput->IsActive());
@@ -3059,11 +3115,10 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // FSR FG controls
-                if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
-                    State::Instance().activeFgInput != FGInput::NoFG && !State::Instance().isWorkingAsNvngx &&
-                    State::Instance().api == DX12)
+                if (state.activeFgOutput == FGOutput::FSRFG && state.activeFgInput != FGInput::NoFG &&
+                    !state.isWorkingAsNvngx && state.api == DX12)
                 {
-                    if (State::Instance().activeFgInput != FGInput::Upscaler ||
+                    if (state.activeFgInput != FGInput::Upscaler ||
                         (currentFeature != nullptr && !currentFeature->IsFrozen()) && FfxApiProxy::IsFGReady())
                     {
                         ImGui::SeparatorText("Frame Generation (FSR FG)");
@@ -3075,7 +3130,7 @@ bool MenuCommon::RenderMenu()
                             LOG_DEBUG("FGEnabled set FGEnabled: {}", fgActive);
 
                             if (Config::Instance()->FGEnabled.value_or_default())
-                                State::Instance().FGchanged = true;
+                                state.FGchanged = true;
                         }
                         ShowHelpMarker("Enable frame generation");
 
@@ -3086,8 +3141,8 @@ bool MenuCommon::RenderMenu()
 
                             if (Config::Instance()->FGEnabled.value_or_default())
                             {
-                                State::Instance().FGchanged = true;
-                                State::Instance().SCchanged = true;
+                                state.FGchanged = true;
+                                state.SCchanged = true;
                                 LOG_DEBUG("Async set FGChanged");
                             }
                         }
@@ -3103,7 +3158,7 @@ bool MenuCommon::RenderMenu()
 
                             if (Config::Instance()->FGEnabled.value_or_default())
                             {
-                                State::Instance().FGchanged = true;
+                                state.FGchanged = true;
                                 LOG_DEBUG("DebugView set FGChanged");
                             }
                         }
@@ -3115,7 +3170,7 @@ bool MenuCommon::RenderMenu()
                             ScopedIndent indent {};
                             ImGui::Spacing();
 
-                            ImGui::Checkbox("FG Only Generated", &State::Instance().FGonlyGenerated);
+                            ImGui::Checkbox("FG Only Generated", &state.FGonlyGenerated);
                             ShowHelpMarker("Display only FSR 3.1 generated frames");
 
                             ImGui::SameLine(0.0f, 16.0f);
@@ -3188,7 +3243,7 @@ bool MenuCommon::RenderMenu()
                                 ImGui::TreePop();
                             }
 
-                            auto fg = State::Instance().currentFG;
+                            auto fg = state.currentFG;
                             if (fg != nullptr && strcmp(fg->Name(), "FSR-FG") == 0 &&
                                 FfxApiProxy::VersionDx12_FG() >= feature_version { 3, 1, 3 })
                             {
@@ -3199,7 +3254,7 @@ bool MenuCommon::RenderMenu()
                                     if (ImGui::Checkbox("Enable Tuning", &fptEnabled))
                                     {
                                         Config::Instance()->FGFramePacingTuning = fptEnabled;
-                                        State::Instance().FSRFGFTPchanged = true;
+                                        state.FSRFGFTPchanged = true;
                                     }
 
                                     ImGui::BeginDisabled(!Config::Instance()->FGFramePacingTuning.value_or_default());
@@ -3244,7 +3299,7 @@ bool MenuCommon::RenderMenu()
                                     ShowHelpMarker("Allows WaitForSingleObject instead of spinning for fence value");
 
                                     if (ImGui::Button("Apply Timing Changes"))
-                                        State::Instance().FSRFGFTPchanged = true;
+                                        state.FSRFGFTPchanged = true;
 
                                     ImGui::EndDisabled();
                                     ImGui::TreePop();
@@ -3258,23 +3313,22 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // XeFG controls
-                if (State::Instance().activeFgOutput == FGOutput::XeFG &&
-                    State::Instance().activeFgInput != FGInput::NoFG && !State::Instance().isWorkingAsNvngx &&
-                    State::Instance().api == DX12)
+                if (state.activeFgOutput == FGOutput::XeFG && state.activeFgInput != FGInput::NoFG &&
+                    !state.isWorkingAsNvngx && state.api == DX12)
                 {
-                    if (State::Instance().activeFgInput != FGInput::Upscaler ||
+                    if (state.activeFgInput != FGInput::Upscaler ||
                         (currentFeature != nullptr && !currentFeature->IsFrozen()) && XeFGProxy::InitXeFG())
                     {
                         ImGui::SeparatorText("Frame Generation (XeFG)");
 
                         bool nativeAA = false;
-                        if (State::Instance().activeFgInput == FGInput::Upscaler && currentFeature != nullptr)
+                        if (state.activeFgInput == FGInput::Upscaler && currentFeature != nullptr)
                             nativeAA = currentFeature->RenderWidth() == currentFeature->DisplayWidth();
 
-                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
                         const bool correctMVs = fgOutput && fgOutput->IsLowResMV() || nativeAA;
 
-                        if (!correctMVs || State::Instance().realExclusiveFullscreen)
+                        if (!correctMVs || state.realExclusiveFullscreen)
                         {
                             Config::Instance()->FGEnabled.reset();
                             Config::Instance()->FGXeFGDebugView.reset();
@@ -3299,16 +3353,16 @@ bool MenuCommon::RenderMenu()
                                 ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                                    "Requires disabling dilated motion vectors");
 
-                            if (State::Instance().realExclusiveFullscreen)
+                            if (state.realExclusiveFullscreen)
                             {
                                 cantActivate = true;
                                 ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Borderless display mode required");
                             }
 
-                            if (State::Instance().isHdrActive)
+                            if (state.isHdrActive)
                             {
                                 DXGI_SWAP_CHAIN_DESC scDesc {};
-                                if (State::Instance().currentSwapchain->GetDesc(&scDesc) == S_OK)
+                                if (state.currentSwapchain->GetDesc(&scDesc) == S_OK)
                                 {
                                     // DXGI_FORMAT_R32G32B32A32_TYPELESS = 1
                                     // DXGI_FORMAT_R32G32B32A32_FLOAT
@@ -3342,7 +3396,7 @@ bool MenuCommon::RenderMenu()
                             LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
 
                             if (Config::Instance()->FGEnabled.value_or_default())
-                                State::Instance().FGchanged = true;
+                                state.FGchanged = true;
                         }
 
                         ShowHelpMarker("Enable frame generation");
@@ -3354,7 +3408,7 @@ bool MenuCommon::RenderMenu()
 
                             if (Config::Instance()->FGXeFGDebugView.value_or_default())
                             {
-                                State::Instance().FGchanged = true;
+                                state.FGchanged = true;
                                 LOG_DEBUG("DebugView set FGChanged");
                             }
                         }
@@ -3375,7 +3429,7 @@ bool MenuCommon::RenderMenu()
 
                         // Disable this for now
                         // ImGui::SameLine(0.0f, 16.0f);
-                        // ImGui::Checkbox("Only Generated##2", &State::Instance().FGonlyGenerated);
+                        // ImGui::Checkbox("Only Generated##2", &state.FGonlyGenerated);
                         // ShowHelpMarker("Display only XeFG generated frames");
 
                         ImGui::Spacing();
@@ -3432,25 +3486,24 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // OptiFG
-                if (State::Instance().api == DX12 && !State::Instance().isWorkingAsNvngx &&
-                    State::Instance().activeFgInput == FGInput::Upscaler)
+                if (state.api == DX12 && !state.isWorkingAsNvngx && state.activeFgInput == FGInput::Upscaler)
                 {
                     SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
 
                     if (currentFeature != nullptr && !currentFeature->IsFrozen() &&
-                        ((State::Instance().activeFgOutput == FGOutput::FSRFG && FfxApiProxy::IsFGReady()) ||
-                         (State::Instance().activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() != nullptr)))
+                        ((state.activeFgOutput == FGOutput::FSRFG && FfxApiProxy::IsFGReady()) ||
+                         (state.activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() != nullptr)))
                     {
                         bool fgHudfix = Config::Instance()->FGHUDFix.value_or_default();
-                        bool disableHudfix = static_cast<bool>(State::Instance().gameQuirks & GameQuirk::DisableHudfix);
+                        bool disableHudfix = static_cast<bool>(state.gameQuirks & GameQuirk::DisableHudfix);
 
                         ImGui::BeginDisabled(disableHudfix);
                         if (ImGui::Checkbox("HUDFix", &fgHudfix))
                         {
                             Config::Instance()->FGHUDFix = fgHudfix;
                             LOG_DEBUG("Enabled set FGHUDFix: {}", fgHudfix);
-                            State::Instance().ClearCapturedHudlesses = true;
-                            State::Instance().FGchanged = true;
+                            state.ClearCapturedHudlesses = true;
+                            state.FGchanged = true;
                         }
                         ImGui::EndDisabled();
 
@@ -3549,28 +3602,28 @@ bool MenuCommon::RenderMenu()
                                            "Helps games which use black borders for some \n"
                                            "resolutions and screen ratios (e.g. Witcher 3)");
 
-                            ImGui::BeginDisabled(State::Instance().FGresetCapturedResources);
+                            ImGui::BeginDisabled(state.FGresetCapturedResources);
                             ImGui::PushItemWidth(95.0f * Config::Instance()->MenuScale.value_or_default());
-                            if (ImGui::Checkbox("FG Create List", &State::Instance().FGcaptureResources))
+                            if (ImGui::Checkbox("FG Create List", &state.FGcaptureResources))
                             {
-                                if (!State::Instance().FGcaptureResources)
+                                if (!state.FGcaptureResources)
                                     Config::Instance()->FGHUDLimit = 1;
                                 else
-                                    State::Instance().FGonlyUseCapturedResources = false;
+                                    state.FGonlyUseCapturedResources = false;
                             }
 
                             ImGui::SameLine(0.0f, 16.0f);
-                            if (ImGui::Checkbox("FG Use List", &State::Instance().FGonlyUseCapturedResources))
+                            if (ImGui::Checkbox("FG Use List", &state.FGonlyUseCapturedResources))
                             {
-                                if (State::Instance().FGcaptureResources)
+                                if (state.FGcaptureResources)
                                 {
-                                    State::Instance().FGcaptureResources = false;
+                                    state.FGcaptureResources = false;
                                     Config::Instance()->FGHUDLimit = 1;
                                 }
                             }
 
                             ImGui::SameLine(0.0f, 8.0f);
-                            ImGui::Text("(%d)", State::Instance().FGcapturedResourceCount);
+                            ImGui::Text("(%d)", state.FGcapturedResourceCount);
 
                             ImGui::PopItemWidth();
 
@@ -3578,9 +3631,9 @@ bool MenuCommon::RenderMenu()
 
                             if (ImGui::Button("Reset List"))
                             {
-                                State::Instance().FGresetCapturedResources = true;
-                                State::Instance().FGonlyUseCapturedResources = false;
-                                State::Instance().FGonlyUseCapturedResources = false;
+                                state.FGresetCapturedResources = true;
+                                state.FGonlyUseCapturedResources = false;
+                                state.FGonlyUseCapturedResources = false;
                             }
 
                             ImGui::EndDisabled();
@@ -3646,12 +3699,12 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Upscaler is not active"); // Probably never will be visible
                     }
-                    else if (State::Instance().activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady())
+                    else if (state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady())
                     {
                         ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f },
                                            "amd_fidelityfx_dx12.dll is missing!"); // Probably never will be visible
                     }
-                    else if (State::Instance().activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() == nullptr)
+                    else if (state.activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() == nullptr)
                     {
                         ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f },
                                            "libxess_fg.dll is missing!"); // Probably never will be visible
@@ -3659,14 +3712,13 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // DLSSG Mod
-                if (State::Instance().api != DX11 && !State::Instance().isWorkingAsNvngx &&
-                    State::Instance().activeFgInput == FGInput::Nukems &&
-                    State::Instance().activeFgOutput == FGOutput::Nukems)
+                if (state.api != DX11 && !state.isWorkingAsNvngx && state.activeFgInput == FGInput::Nukems &&
+                    state.activeFgOutput == FGOutput::Nukems)
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR-FG via Nukem's DLSSG)",
                                             "Requires Nukem's dlssg_to_fsr3 dll\nSelect DLSS FG in-game");
 
-                    if (!State::Instance().NukemsFilesAvailable)
+                    if (!state.NukemsFilesAvailable)
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                            "Please put dlssg_to_fsr3_amd_is_better.dll next to OptiScaler");
 
@@ -3681,7 +3733,7 @@ bool MenuCommon::RenderMenu()
                                     "DLSS first");
                     }
 
-                    if (State::Instance().api == DX12)
+                    if (state.api == DX12)
                     {
                         ImGui::Text("Current DLSSG state:");
                         ImGui::SameLine();
@@ -3696,7 +3748,7 @@ bool MenuCommon::RenderMenu()
                         ShowHelpMarker("Makes a copy of the depth buffer\nCan fix broken visuals in some games on AMD "
                                        "GPUs under Windows\nCan cause stutters so best to use only when necessary");
                     }
-                    else if (State::Instance().api == Vulkan)
+                    else if (state.api == Vulkan)
                     {
                         ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
                                            "DLSSG is purposefully disabled when this menu is visible");
@@ -3707,38 +3759,37 @@ bool MenuCommon::RenderMenu()
                     {
                         if (DLSSGMod::is120orNewer())
                         {
-                            if (ImGui::Checkbox("Enable Debug View", &State::Instance().DLSSGDebugView))
+                            if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
                             {
-                                DLSSGMod::setDebugView(State::Instance().DLSSGDebugView);
+                                DLSSGMod::setDebugView(state.DLSSGDebugView);
                             }
-                            if (ImGui::Checkbox("Interpolated frames only", &State::Instance().DLSSGInterpolatedOnly))
+                            if (ImGui::Checkbox("Interpolated frames only", &state.DLSSGInterpolatedOnly))
                             {
-                                DLSSGMod::setInterpolatedOnly(State::Instance().DLSSGInterpolatedOnly);
+                                DLSSGMod::setInterpolatedOnly(state.DLSSGInterpolatedOnly);
                             }
                         }
                         else if (DLSSGMod::FSRDebugView() != nullptr)
                         {
-                            if (ImGui::Checkbox("Enable Debug View", &State::Instance().DLSSGDebugView))
+                            if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
                             {
-                                DLSSGMod::FSRDebugView()(State::Instance().DLSSGDebugView);
+                                DLSSGMod::FSRDebugView()(state.DLSSGDebugView);
                             }
                         }
                     }
                 }
 
                 // FSR-FG Inputs
-                if (State::Instance().api == DX12 && !State::Instance().isWorkingAsNvngx &&
-                    (State::Instance().activeFgInput == FGInput::FSRFG ||
-                     State::Instance().activeFgInput == FGInput::FSRFG30))
+                if (state.api == DX12 && !state.isWorkingAsNvngx &&
+                    (state.activeFgInput == FGInput::FSRFG || state.activeFgInput == FGInput::FSRFG30))
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR-FG Inputs)", "Select FSR-FG in-game");
 
-                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
                     if (fgOutput != nullptr)
                     {
                         ImGui::Text("Current FSR-FG state:");
                         ImGui::SameLine();
-                        if (State::Instance().FSRFGInputActive)
+                        if (state.FSRFGInputActive)
                         {
                             if (fgOutput->IsActive())
                                 ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
@@ -3755,12 +3806,11 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Streamline FG Inputs
-                if (State::Instance().api == DX12 && !State::Instance().isWorkingAsNvngx &&
-                    State::Instance().activeFgInput == FGInput::DLSSG)
+                if (state.api == DX12 && !state.isWorkingAsNvngx && state.activeFgInput == FGInput::DLSSG)
                 {
                     SeparatorWithHelpMarker("Frame Generation (Streamline FG Inputs)", "Select DLSS FG in-game");
 
-                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
 
                     if (!ReflexHooks::isReflexHooked())
                     {
@@ -3771,7 +3821,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Current Streamline FG state:");
                         ImGui::SameLine();
-                        if ((State::Instance().FGLastFrame - State::Instance().DLSSGLastFrame) < 3)
+                        if ((state.FGLastFrame - state.DLSSGLastFrame) < 3)
                         {
                             if (fgOutput->IsActive())
                                 ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
@@ -3791,7 +3841,7 @@ bool MenuCommon::RenderMenu()
                 {
                     // FSR Common -----------------
                     if (currentFeature != nullptr && !currentFeature->IsFrozen() &&
-                        (State::Instance().activeFgOutput == FGOutput::FSRFG || currentBackend.rfind("fsr", 0) == 0))
+                        (state.activeFgOutput == FGOutput::FSRFG || currentBackend.rfind("fsr", 0) == 0))
                     {
                         SeparatorWithHelpMarker("FSR Common Settings", "Affects both FSR-FG & Upscalers");
 
@@ -3872,12 +3922,9 @@ bool MenuCommon::RenderMenu()
                             }
 
                             ImGui::SameLine(0.0f, 6.0f);
-                            ImGui::Text(
-                                "Near: %.1f Far: %.1f",
-                                State::Instance().lastFsrCameraNear < 500000.0f ? State::Instance().lastFsrCameraNear
-                                                                                : 500000.0f,
-                                State::Instance().lastFsrCameraFar < 500000.0f ? State::Instance().lastFsrCameraFar
-                                                                               : 500000.0f);
+                            ImGui::Text("Near: %.1f Far: %.1f",
+                                        state.lastFsrCameraNear < 500000.0f ? state.lastFsrCameraNear : 500000.0f,
+                                        state.lastFsrCameraFar < 500000.0f ? state.lastFsrCameraFar : 500000.0f);
 
                             ImGui::Spacing();
                             ImGui::Spacing();
@@ -3886,14 +3933,14 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Framerate ---------------------
-                if (State::Instance().reflexLimitsFps || Config::Instance()->OverlayMenu)
+                if (state.reflexLimitsFps || Config::Instance()->OverlayMenu)
                 {
                     SeparatorWithHelpMarker(
                         "Framerate",
                         "Uses Reflex when possible\non AMD/Intel cards you can use fakenvapi to substitute Reflex");
 
                     static std::string currentMethod {};
-                    if (State::Instance().reflexLimitsFps)
+                    if (state.reflexLimitsFps)
                     {
                         if (fakenvapi::updateModeAndContext())
                         {
@@ -3908,7 +3955,7 @@ bool MenuCommon::RenderMenu()
                             else if (mode == Mode::AntiLagVk)
                                 currentMethod = "Vulkan AntiLag";
 
-                            if (State::Instance().rtssReflexInjection && mode == Mode::AntiLag2 &&
+                            if (state.rtssReflexInjection && mode == Mode::AntiLag2 &&
                                 Config::Instance()->FGInput == FGInput::Upscaler)
                                 ImGui::TextColored(
                                     ImVec4(1.f, 0.8f, 0.f, 1.f),
@@ -3924,12 +3971,12 @@ bool MenuCommon::RenderMenu()
                         currentMethod = "Fallback";
                     }
 
-                    if (State::Instance().rtssReflexInjection)
+                    if (state.rtssReflexInjection)
                         currentMethod.append(" (RTSS)");
 
-                    ImGui::Text(std::format("Current method: {}", currentMethod).c_str());
+                    ImGui::Text("Current method: %s", currentMethod.c_str());
 
-                    if (State::Instance().reflexShowWarning)
+                    if (state.reflexShowWarning)
                     {
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                            "Using Reflex's limit with OptiFG has performance overhead");
@@ -4008,9 +4055,9 @@ bool MenuCommon::RenderMenu()
                     {
                         Config::Instance()->OverrideSharpness = overrideSharpness;
 
-                        if (currentBackend == "dlss" && State::Instance().currentFeature->Version().major < 3)
+                        if (currentBackend == "dlss" && state.currentFeature->Version().major < 3)
                         {
-                            State::Instance().newBackend = currentBackend;
+                            state.newBackend = currentBackend;
                             MARK_ALL_BACKENDS_CHANGED();
                         }
                     }
@@ -4030,13 +4077,13 @@ bool MenuCommon::RenderMenu()
                     ImGui::EndDisabled();
 
                     // RCAS
-                    if (State::Instance().api == DX12 || State::Instance().api == DX11)
+                    if (state.api == DX12 || state.api == DX11)
                     {
                         // xess or dlss version >= 2.5.1
                         constexpr feature_version requiredDlssVersion = { 2, 5, 1 };
-                        rcasEnabled = (currentBackend == "xess" ||
-                                       (currentBackend == "dlss" &&
-                                        State::Instance().currentFeature->Version() >= requiredDlssVersion));
+                        rcasEnabled =
+                            (currentBackend == "xess" ||
+                             (currentBackend == "dlss" && state.currentFeature->Version() >= requiredDlssVersion));
 
                         if (bool rcas = Config::Instance()->RcasEnabled.value_or(rcasEnabled);
                             ImGui::Checkbox("Enable RCAS", &rcas))
@@ -4184,7 +4231,7 @@ bool MenuCommon::RenderMenu()
                     if (currentFeature != nullptr && !currentFeature->IsFrozen())
                     {
                         // OUTPUT SCALING -----------------------------
-                        if (State::Instance().api == DX12 || State::Instance().api == DX11)
+                        if (state.api == DX12 || state.api == DX11)
                         {
                             // if motion vectors are not display size
                             ImGui::BeginDisabled(!currentFeature->LowResMV());
@@ -4202,8 +4249,8 @@ bool MenuCommon::RenderMenu()
                             }
 
                             ImGui::BeginDisabled((currentBackend == "xess" || currentBackend == "dlss") &&
-                                                 State::Instance().currentFeature->RenderWidth() >
-                                                     State::Instance().currentFeature->DisplayWidth());
+                                                 state.currentFeature->RenderWidth() >
+                                                     state.currentFeature->DisplayWidth());
                             ImGui::Checkbox("Enable", &_ssEnabled);
                             ImGui::EndDisabled();
 
@@ -4251,17 +4298,17 @@ bool MenuCommon::RenderMenu()
                                 Config::Instance()->OutputScalingUseFsr = _ssUseFsr;
                                 _ssDownsampler = Config::Instance()->OutputScalingDownscaler.value_or_default();
 
-                                if (State::Instance().currentFeature->Name() == "DLSSD")
-                                    State::Instance().newBackend = "dlssd";
+                                if (state.currentFeature->Name() == "DLSSD")
+                                    state.newBackend = "dlssd";
                                 else
-                                    State::Instance().newBackend = currentBackend;
+                                    state.newBackend = currentBackend;
 
                                 MARK_ALL_BACKENDS_CHANGED();
                             }
                             ImGui::EndDisabled();
 
-                            ImGui::BeginDisabled(!_ssEnabled || State::Instance().currentFeature->RenderWidth() >
-                                                                    State::Instance().currentFeature->DisplayWidth());
+                            ImGui::BeginDisabled(!_ssEnabled || state.currentFeature->RenderWidth() >
+                                                                    state.currentFeature->DisplayWidth());
                             ImGui::SliderFloat("Ratio", &_ssRatio, 0.5f, 3.0f, "%.2f");
                             ImGui::EndDisabled();
 
@@ -4286,7 +4333,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::TableNextColumn();
 
                         // AutoExposure is always enabled for XeSS with native Dx11
-                        bool autoExposureDisabled = State::Instance().api == API::DX11 && currentBackend == "xess";
+                        bool autoExposureDisabled = state.api == API::DX11 && currentBackend == "xess";
                         ImGui::BeginDisabled(autoExposureDisabled);
 
                         if (bool autoExposure = currentFeature->AutoExposure();
@@ -4302,7 +4349,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::EndDisabled();
 
                         ImGui::TableNextColumn();
-                        auto accessToReactiveMask = State::Instance().currentFeature->AccessToReactiveMask();
+                        auto accessToReactiveMask = state.currentFeature->AccessToReactiveMask();
                         ImGui::BeginDisabled(!accessToReactiveMask);
 
                         bool canUseReactiveMask =
@@ -4318,7 +4365,7 @@ bool MenuCommon::RenderMenu()
 
                             if (currentBackend == "xess")
                             {
-                                State::Instance().newBackend = currentBackend;
+                                state.newBackend = currentBackend;
                                 MARK_ALL_BACKENDS_CHANGED();
                             }
                         }
@@ -4395,12 +4442,12 @@ bool MenuCommon::RenderMenu()
                                 ImGui::EndTable();
                             }
 
-                            if (State::Instance().currentFeature->AccessToReactiveMask() && currentBackend != "dlss")
+                            if (state.currentFeature->AccessToReactiveMask() && currentBackend != "dlss")
                             {
                                 ImGui::BeginDisabled(
                                     Config::Instance()->DisableReactiveMask.value_or(currentBackend == "xess"));
 
-                                bool binaryMask = State::Instance().api == Vulkan || currentBackend == "xess";
+                                bool binaryMask = state.api == Vulkan || currentBackend == "xess";
                                 auto defaultBias = binaryMask ? 0.0f : 0.45f;
                                 auto maskBias = Config::Instance()->DlssReactiveMaskBias.value_or(defaultBias);
 
@@ -4451,7 +4498,7 @@ bool MenuCommon::RenderMenu()
                     if (ImGui::Checkbox("Use Precompiled Shaders", &pcShaders))
                     {
                         Config::Instance()->UsePrecompiledShaders = pcShaders;
-                        State::Instance().newBackend = currentBackend;
+                        state.newBackend = currentBackend;
                         MARK_ALL_BACKENDS_CHANGED();
                     }
 
@@ -4493,7 +4540,7 @@ bool MenuCommon::RenderMenu()
                         }
 
                         // HOTFIXES -----------------------------
-                        if (State::Instance().api == DX12)
+                        if (state.api == DX12)
                         {
                             ImGui::Spacing();
                             if (ImGui::CollapsingHeader("Root Signatures"))
@@ -4678,7 +4725,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // DX11 & DX12 -----------------------------
-                if (State::Instance().api != Vulkan)
+                if (state.api != Vulkan)
                 {
                     // V-SYNC -----------------------------
                     ImGui::Spacing();
@@ -4713,9 +4760,11 @@ bool MenuCommon::RenderMenu()
                         ImGui::BeginDisabled(!forceVsyncOn);
 
                         ImGui::PushItemWidth(50.0f * Config::Instance()->MenuScale.value_or_default());
-                        if (ImGui::BeginCombo(
-                                "Sync Int.",
-                                std::format("{}", Config::Instance()->VsyncInterval.value_or_default()).c_str()))
+
+                        char vsyncBuf[16];
+                        std::snprintf(vsyncBuf, sizeof(vsyncBuf), "%d",
+                                      Config::Instance()->VsyncInterval.value_or_default());
+                        if (ImGui::BeginCombo("Sync Int.", vsyncBuf))
                         {
                             if (ImGui::Selectable("0", Config::Instance()->VsyncInterval.value_or_default() == 0))
                                 Config::Instance()->VsyncInterval = 0;
@@ -4809,8 +4858,8 @@ bool MenuCommon::RenderMenu()
                             if (ImGui::Button("Set"))
                             {
                                 Config::Instance()->MipmapBiasOverride = _mipBias;
-                                State::Instance().lastMipBias = 100.0f;
-                                State::Instance().lastMipBiasMax = -100.0f;
+                                state.lastMipBias = 100.0f;
+                                state.lastMipBiasMax = -100.0f;
                             }
                         }
                         ImGui::EndDisabled();
@@ -4823,8 +4872,8 @@ bool MenuCommon::RenderMenu()
                             {
                                 Config::Instance()->MipmapBiasOverride.reset();
                                 _mipBias = 0.0f;
-                                State::Instance().lastMipBias = 100.0f;
-                                State::Instance().lastMipBiasMax = -100.0f;
+                                state.lastMipBias = 100.0f;
+                                state.lastMipBiasMax = -100.0f;
                             }
                         }
                         ImGui::EndDisabled();
@@ -4841,27 +4890,23 @@ bool MenuCommon::RenderMenu()
                         {
                             if (Config::Instance()->MipmapBiasFixedOverride.value_or_default())
                             {
-                                ImGui::Text("Current : %.3f / %.3f, Target: %.3f", State::Instance().lastMipBias,
-                                            State::Instance().lastMipBiasMax,
-                                            Config::Instance()->MipmapBiasOverride.value());
+                                ImGui::Text("Current : %.3f / %.3f, Target: %.3f", state.lastMipBias,
+                                            state.lastMipBiasMax, Config::Instance()->MipmapBiasOverride.value());
                             }
                             else if (Config::Instance()->MipmapBiasScaleOverride.value_or_default())
                             {
-                                ImGui::Text("Current : %.3f / %.3f, Target: Base * %.3f", State::Instance().lastMipBias,
-                                            State::Instance().lastMipBiasMax,
-                                            Config::Instance()->MipmapBiasOverride.value());
+                                ImGui::Text("Current : %.3f / %.3f, Target: Base * %.3f", state.lastMipBias,
+                                            state.lastMipBiasMax, Config::Instance()->MipmapBiasOverride.value());
                             }
                             else
                             {
-                                ImGui::Text("Current : %.3f / %.3f, Target: Base + %.3f", State::Instance().lastMipBias,
-                                            State::Instance().lastMipBiasMax,
-                                            Config::Instance()->MipmapBiasOverride.value());
+                                ImGui::Text("Current : %.3f / %.3f, Target: Base + %.3f", state.lastMipBias,
+                                            state.lastMipBiasMax, Config::Instance()->MipmapBiasOverride.value());
                             }
                         }
                         else
                         {
-                            ImGui::Text("Current : %.3f / %.3f", State::Instance().lastMipBias,
-                                        State::Instance().lastMipBiasMax);
+                            ImGui::Text("Current : %.3f / %.3f", state.lastMipBias, state.lastMipBiasMax);
                         }
 
                         ImGui::Text("Will be applied after RESOLUTION/PRESET change !!!");
@@ -4960,22 +5005,20 @@ bool MenuCommon::RenderMenu()
                 {
                     ImGui::TableNextColumn();
                     ImGui::Text("FrameTime");
-                    State::Instance().frameTimeMutex.lock();
-                    auto ft = std::format("{:6.2f} ms / {:5.1f} fps", State::Instance().frameTimes.back(), frameRate);
-                    std::vector<float> frameTimeArray(State::Instance().frameTimes.begin(),
-                                                      State::Instance().frameTimes.end());
+                    state.frameTimeMutex.lock();
+                    auto ft = StrFmt("%.2f ms / %.1f fps", state.frameTimes.back(), frameRate);
+                    std::vector<float> frameTimeArray(state.frameTimes.begin(), state.frameTimes.end());
                     ImGui::PlotLines(ft.c_str(), frameTimeArray.data(), (int) frameTimeArray.size());
 
                     if (currentFeature != nullptr && !currentFeature->IsFrozen())
                     {
                         ImGui::TableNextColumn();
                         ImGui::Text("Upscaler");
-                        auto ups = std::format("{:7.4f} ms", State::Instance().upscaleTimes.back());
-                        std::vector<float> upscaleTimeArray(State::Instance().upscaleTimes.begin(),
-                                                            State::Instance().upscaleTimes.end());
+                        auto ups = StrFmt("%.4f ms", state.upscaleTimes.back());
+                        std::vector<float> upscaleTimeArray(state.upscaleTimes.begin(), state.upscaleTimes.end());
                         ImGui::PlotLines(ups.c_str(), upscaleTimeArray.data(), (int) upscaleTimeArray.size());
                     }
-                    State::Instance().frameTimeMutex.unlock();
+                    state.frameTimeMutex.unlock();
 
                     ImGui::EndTable();
                 }
@@ -4996,7 +5039,7 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::SameLine(0.0f, 4.0f);
 
-                    ImGui::Text("%d", State::Instance().currentFeature->FrameCount());
+                    ImGui::Text("%d", state.currentFeature->FrameCount());
 
                     ImGui::SameLine(0.0f, 10.0f);
                 }
@@ -5059,7 +5102,7 @@ bool MenuCommon::RenderMenu()
                 ImGui::Spacing();
                 ImGui::Separator();
 
-                if (State::Instance().nvngxIniDetected)
+                if (state.nvngxIniDetected)
                 {
                     ImGui::Spacing();
                     ImGui::TextColored(
@@ -5105,10 +5148,10 @@ bool MenuCommon::RenderMenu()
                 if (_displayWidth == 0)
                 {
                     if (Config::Instance()->OutputScalingEnabled.value_or_default())
-                        _displayWidth = State::Instance().currentFeature->DisplayWidth() *
+                        _displayWidth = state.currentFeature->DisplayWidth() *
                                         Config::Instance()->OutputScalingMultiplier.value_or_default();
                     else
-                        _displayWidth = State::Instance().currentFeature->DisplayWidth();
+                        _displayWidth = state.currentFeature->DisplayWidth();
 
                     _renderWidth = _displayWidth / 3.0f;
                     _mipmapUpscalerQuality = 0;
@@ -5126,10 +5169,10 @@ bool MenuCommon::RenderMenu()
                         if (_displayWidth <= 0)
                         {
                             if (Config::Instance()->OutputScalingEnabled.value_or_default())
-                                _displayWidth = State::Instance().currentFeature->DisplayWidth() *
+                                _displayWidth = state.currentFeature->DisplayWidth() *
                                                 Config::Instance()->OutputScalingMultiplier.value_or_default();
                             else
-                                _displayWidth = State::Instance().currentFeature->DisplayWidth();
+                                _displayWidth = state.currentFeature->DisplayWidth();
                         }
 
                         _renderWidth = _displayWidth / _mipmapUpscalerRatio;
@@ -5234,7 +5277,7 @@ bool MenuCommon::RenderMenu()
                 }
             }
 
-            auto fg = State::Instance().currentFG;
+            auto fg = state.currentFG;
             if (_showHudlessWindow && Config::Instance()->FGHUDFix.value_or_default() && fg != nullptr &&
                 fg->IsActive())
             {
@@ -5258,16 +5301,14 @@ bool MenuCommon::RenderMenu()
 
                         ankerl::unordered_dense::map<void*, CapturedHudlessInfo>::iterator it;
 
-                        for (it = State::Instance().CapturedHudlesses.begin();
-                             it != State::Instance().CapturedHudlesses.end(); it++)
+                        for (it = state.CapturedHudlesses.begin(); it != state.CapturedHudlesses.end(); it++)
                         {
                             ImGui::TableNextRow();
 
                             ImGui::TableSetColumnIndex(0);
 
-                            ImGui::Text(std::format("{:X}, Count: {}, {}", (size_t) it->first, it->second.usageCount,
-                                                    it->second.enabled ? "Active" : "Passive")
-                                            .c_str());
+                            ImGui::Text("%08x, Count: %s, %s", (size_t) it->first, it->second.usageCount,
+                                        it->second.enabled ? "Active" : "Passive");
 
                             ImGui::TableSetColumnIndex(1);
 
@@ -5275,9 +5316,9 @@ bool MenuCommon::RenderMenu()
                             std::string text;
 
                             if (it->second.enabled)
-                                text = std::format("Disable##{}", btnCount);
+                                text = StrFmt("Disable##%d", btnCount);
                             else
-                                text = std::format("Enable##{}", btnCount);
+                                text = StrFmt("Enable##%d", btnCount);
 
                             if (ImGui::Button(text.c_str()))
                                 it->second.enabled = !it->second.enabled;
@@ -5287,7 +5328,7 @@ bool MenuCommon::RenderMenu()
                     }
 
                     if (ImGui::Button("Clear##4"))
-                        State::Instance().ClearCapturedHudlesses = true;
+                        state.ClearCapturedHudlesses = true;
 
                     ImGui::SameLine(0.0f, 8.0f);
 
