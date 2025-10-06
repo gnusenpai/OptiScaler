@@ -436,7 +436,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByGpuHandleGR(SIZE_T gpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->cpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
+        if (fgHeaps[i]->gpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
         {
             cacheGR.index = i;
             cacheGR.genSeen = currentGen;
@@ -468,7 +468,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByGpuHandleCR(SIZE_T gpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->cpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
+        if (fgHeaps[i]->gpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
         {
             cacheCR.index = i;
             cacheCR.genSeen = currentGen;
@@ -556,11 +556,11 @@ void ResTrack_Dx12::hkCreateRenderTargetView(ID3D12Device* This, ID3D12Resource*
 
     o_CreateRenderTargetView(This, pResource, pDesc, DestDescriptor);
 
-    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_SRV_DIMENSION_TEXTURE2D ||
+    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_RTV_DIMENSION_TEXTURE2D ||
         !CheckResource(pResource))
     {
 
-        auto heap = GetHeapByCpuHandleSRV(DestDescriptor.ptr);
+        auto heap = GetHeapByCpuHandleRTV(DestDescriptor.ptr);
 
         if (heap != nullptr)
             heap->ClearByCpuHandle(DestDescriptor.ptr);
@@ -662,10 +662,10 @@ void ResTrack_Dx12::hkCreateUnorderedAccessView(ID3D12Device* This, ID3D12Resour
 
     o_CreateUnorderedAccessView(This, pResource, pCounterResource, pDesc, DestDescriptor);
 
-    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_SRV_DIMENSION_TEXTURE2D ||
+    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_UAV_DIMENSION_TEXTURE2D ||
         !CheckResource(pResource))
     {
-        auto heap = GetHeapByCpuHandleSRV(DestDescriptor.ptr);
+        auto heap = GetHeapByCpuHandleUAV(DestDescriptor.ptr);
 
         if (heap != nullptr)
             heap->ClearByCpuHandle(DestDescriptor.ptr);
