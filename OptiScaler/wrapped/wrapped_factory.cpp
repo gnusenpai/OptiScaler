@@ -22,14 +22,14 @@ static HRESULT hkGetParent(IDXGIAdapter* This, REFIID riid, void** ppParent)
     if (f == nullptr)
         return result;
 
-    //auto ref = f->AddRef() - 1;
-    //f->Release();
+    // auto ref = f->AddRef() - 1;
+    // f->Release();
 
     auto wf = new WrappedIDXGIFactory7(f);
     *ppParent = wf;
 
     // if (ref > 1)
-    //{
+    // {
     //     auto wfRef = 1;
     //     do
     //     {
