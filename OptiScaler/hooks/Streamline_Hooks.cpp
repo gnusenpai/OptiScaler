@@ -379,6 +379,8 @@ void StreamlineHooks::setArch(uint32_t arch)
 
             if (fakenvapi::isUsingFakenvapi() || !State::Instance().isRunningOnNvidia)
                 systemCapsSl15->driverVersionMajor = 999;
+
+            systemCapsSl15->hwSchedulingEnabled = true;
         }
     }
 }
