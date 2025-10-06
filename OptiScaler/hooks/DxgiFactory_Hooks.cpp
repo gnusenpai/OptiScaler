@@ -318,10 +318,12 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForHwnd(IDXGIFactory2* realFactory, IUn
         LOG_WARN("Vulkan is creating swapchain!");
         State::Instance().skipParentWrapping = true;
         State::Instance().skipDxgiLoadChecks = true;
-        return o_CreateSwapChainForHwnd(realFactory, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
-                                        ppSwapChain);
+        auto result = o_CreateSwapChainForHwnd(realFactory, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
+                                               ppSwapChain);
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
+
+        return result;
     }
 
     if (pDevice == nullptr || pDesc == nullptr)
@@ -329,10 +331,12 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForHwnd(IDXGIFactory2* realFactory, IUn
         LOG_WARN("pDevice or pDesc is nullptr!");
         State::Instance().skipParentWrapping = true;
         State::Instance().skipDxgiLoadChecks = true;
-        return o_CreateSwapChainForHwnd(realFactory, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
-                                        ppSwapChain);
+        auto result = o_CreateSwapChainForHwnd(realFactory, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
+                                               ppSwapChain);
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
+
+        return result;
     }
 
     if (pDesc->Height < 100 || pDesc->Width < 100)
@@ -340,10 +344,12 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForHwnd(IDXGIFactory2* realFactory, IUn
         LOG_WARN("Overlay call!");
         State::Instance().skipParentWrapping = true;
         State::Instance().skipDxgiLoadChecks = true;
-        return o_CreateSwapChainForHwnd(realFactory, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
-                                        ppSwapChain);
+        auto result = o_CreateSwapChainForHwnd(realFactory, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
+                                               ppSwapChain);
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
+
+        return result;
     }
 
     LOG_DEBUG("Width: {}, Height: {}, Format: {}, Count: {}, Flags: {:X}, Hwnd: {:X}, SkipWrapping: {}", pDesc->Width,

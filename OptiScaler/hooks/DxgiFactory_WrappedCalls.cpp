@@ -221,10 +221,12 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(IDXGIFactory2* realFacto
         LOG_WARN("Vulkan is creating swapchain!");
         State::Instance().skipParentWrapping = true;
         State::Instance().skipDxgiLoadChecks = true;
-        return realFactory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
-                                                   ppSwapChain);
+        auto res =
+            realFactory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
+
+        return res;
     }
 
     if (pDevice == nullptr || pDesc == nullptr)
@@ -232,10 +234,12 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(IDXGIFactory2* realFacto
         LOG_WARN("pDevice or pDesc is nullptr!");
         State::Instance().skipParentWrapping = true;
         State::Instance().skipDxgiLoadChecks = true;
-        return realFactory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
-                                                   ppSwapChain);
+        auto res =
+            realFactory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
+
+        return res;
     }
 
     if (pDesc->Height < 100 || pDesc->Width < 100)
@@ -243,10 +247,12 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(IDXGIFactory2* realFacto
         LOG_WARN("Overlay call!");
         State::Instance().skipParentWrapping = true;
         State::Instance().skipDxgiLoadChecks = true;
-        return realFactory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput,
-                                                   ppSwapChain);
+        auto res =
+            realFactory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipParentWrapping = false;
+
+        return res;
     }
 
     LOG_DEBUG("Width: {}, Height: {}, Format: {}, Count: {}, Flags: {:X}, Hwnd: {:X}, SkipWrapping: {}", pDesc->Width,
