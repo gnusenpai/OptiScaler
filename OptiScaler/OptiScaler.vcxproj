@@ -259,7 +259,8 @@ copy "$(SolutionDir)external\directx_agility_sdk\LICENSE.txt" $(SolutionDir)x64\
 copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>powershell -Command "Start-Sleep -Seconds 2; $date = Get-Date -Format 'yyyyMMdd_HHmmss'; Set-Content -Path '$(ProjectDir)resource_build_date.h' -Value ('#define VER_BUILD_DATE ""' + $date + '"""')</Command>
+      <Command>powershell -Command "Start-Sleep -Seconds 2; $date = Get-Date -Format 'yyyyMMdd_HHmmss'; Set-Content -Path '$(ProjectDir)resource_build_date.h' -Value ('#define VER_BUILD_DATE ""' + $date + '"""')
+powershell -Command "Start-Sleep -Seconds 2; $commit = git rev-parse --short HEAD; Set-Content -Path '$(ProjectDir)resource_build_commit.h' -Value ('#define VER_BUILD_COMMIT ""' + $commit + '"""')</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
