@@ -1838,13 +1838,13 @@ bool MenuCommon::RenderMenu()
             // Prepare Line 1
             if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_JustFPS)
             {
-                firstLine = StrFmt("%s | FPS: %5.1f %s", api.c_str(), frameRate, fgText.c_str());
+                firstLine = StrFmt("%s | FPS: %6.1f %s", api.c_str(), frameRate, fgText.c_str());
             }
             else if (Config::Instance()->FpsOverlayType.value_or_default() == FpsOverlay_Simple)
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                 {
-                    firstLine = StrFmt("%s | FPS: %5.1f, %6.2f ms %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
+                    firstLine = StrFmt("%s | FPS: %6.1f, %7.2f ms %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
                                        frameTime, fgText.c_str(), state.currentInputApiName.c_str(),
                                        currentFeature->Name().c_str(), state.currentFeature->Version().major,
                                        state.currentFeature->Version().minor, state.currentFeature->Version().patch);
@@ -1852,21 +1852,21 @@ bool MenuCommon::RenderMenu()
                 else
                 {
                     firstLine =
-                        StrFmt("%s | FPS: %5.1f, %6.2f ms %s", api.c_str(), frameRate, frameTime, fgText.c_str());
+                        StrFmt("%s | FPS: %6.1f, %7.2f ms %s", api.c_str(), frameRate, frameTime, fgText.c_str());
                 }
             }
             else
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                 {
-                    firstLine = StrFmt("%s | FPS: %5.1f, Avg: %5.1f %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
+                    firstLine = StrFmt("%s | FPS: %6.1f, Avg: %6.1f %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
                                        1000.0f / averageFrameTime, fgText.c_str(), state.currentInputApiName.c_str(),
                                        currentFeature->Name().c_str(), state.currentFeature->Version().major,
                                        state.currentFeature->Version().minor, state.currentFeature->Version().patch);
                 }
                 else
                 {
-                    firstLine = StrFmt("%s | FPS: %5.1f, Avg: %5.1f %s", api.c_str(), frameRate,
+                    firstLine = StrFmt("%s | FPS: %6.1f, Avg: %6.1f %s", api.c_str(), frameRate,
                                        1000.0f / averageFrameTime, fgText.c_str());
                 }
             }
@@ -1885,14 +1885,14 @@ bool MenuCommon::RenderMenu()
                     ImGui::Spacing();
                 }
 
-                secondLine = StrFmt("Frame Time: %6.2f ms, Avg: %6.2f ms", state.frameTimes.back(), averageFrameTime);
+                secondLine = StrFmt("Frame Time: %7.2f ms, Avg: %7.2f ms", state.frameTimes.back(), averageFrameTime);
             }
 
             // Prepare Line 3
             if (Config::Instance()->FpsOverlayType.value_or_default() >= FpsOverlay_Full)
             {
                 thirdLine =
-                    StrFmt("Upscaler Time: %6.2f ms, Avg: %6.2f ms", state.upscaleTimes.back(), averageUpscalerFT);
+                    StrFmt("Upscaler Time: %7.2f ms, Avg: %7.2f ms", state.upscaleTimes.back(), averageUpscalerFT);
             }
 
             ImVec2 plotSize;
@@ -5003,7 +5003,7 @@ bool MenuCommon::RenderMenu()
                 {
                     ImGui::TableNextColumn();
                     ImGui::Text("FrameTime");
-                    auto ft = StrFmt("%6.2f ms / %5.1f fps", state.frameTimes.back(), frameRate);
+                    auto ft = StrFmt("%7.2f ms / %6.1f fps", state.frameTimes.back(), frameRate);
                     ImGui::PlotLines(
                         ft.c_str(), [](void* rb, int idx) -> float
                         { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); }, &gUpscalerTimes,
@@ -5013,7 +5013,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::TableNextColumn();
                         ImGui::Text("Upscaler");
-                        auto ups = StrFmt("%6.2f ms", state.upscaleTimes.back());
+                        auto ups = StrFmt("%7.2f ms", state.upscaleTimes.back());
                         ImGui::PlotLines(
                             ups.c_str(), [](void* rb, int idx) -> float
                             { return static_cast<RingBuffer<float, plotWidth>*>(rb)->At(idx); }, &gUpscalerTimes,
