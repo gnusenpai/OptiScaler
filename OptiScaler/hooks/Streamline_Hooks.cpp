@@ -543,7 +543,7 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     sl::DLSSGOptions newOptions = options;
     newOptions.mode = newOptions.mode == sl::DLSSGMode::eOff ? sl::DLSSGMode::eOff : sl::DLSSGMode::eOn;
 
-    if (State::Instance().api == API::Vulkan)
+    if (State::Instance().swapchainApi == API::Vulkan)
     {
         // Only matters for Vulkan, DX doesn't use this delay
         if (options.mode != sl::DLSSGMode::eOff && !MenuOverlayBase::IsVisible())
