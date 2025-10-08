@@ -144,7 +144,7 @@ static const QuirkEntry quirkTable[] = {
     // The Witcher 3, Alan Wake 2, Crysis 3 Remastered, Marvel's Guardians of the Galaxy, UNCHARTED: Legacy of Thieves
     // Collection, Warhammer 40,000: Darktide, Dying Light 2 Stay Human, Dying Light: The Beast, Observer: System Redux,
     // Sackboy: A Big Adventure, Hellblade: Senua's Sacrifice, Pumpkin Jack, Metro Exodus Enhanced Edition, Rise of the
-    // Ronin
+    // Ronin, DYNASTY WARRIORS: ORIGINS
     QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing),
@@ -162,6 +162,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("pumpkinjack-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
     QUIRK_ENTRY("metroexodus.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
     QUIRK_ENTRY("ronin.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("dworigins.exe", GameQuirk::DisableDxgiSpoofing),
 
     // FSR2 only, no spoof needed
     //
