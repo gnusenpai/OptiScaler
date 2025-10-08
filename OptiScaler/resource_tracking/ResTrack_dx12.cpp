@@ -311,6 +311,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleCBV(SIZE_T cpuHandle)
         }
     }
 
+    cacheCBV.index = -1;
     return nullptr;
 }
 
@@ -336,6 +337,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleRTV(SIZE_T cpuHandle)
         }
     }
 
+    cacheRTV.index = -1;
     return nullptr;
 }
 
@@ -361,6 +363,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleSRV(SIZE_T cpuHandle)
         }
     }
 
+    cacheSRV.index = -1;
     return nullptr;
 }
 
@@ -386,6 +389,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleUAV(SIZE_T cpuHandle)
         }
     }
 
+    cacheUAV.index = -1;
     return nullptr;
 }
 
@@ -415,6 +419,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandle(SIZE_T cpuHandle)
         }
     }
 
+    cache.index = -1;
     return nullptr;
 }
 
@@ -444,6 +449,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByGpuHandleGR(SIZE_T gpuHandle)
         }
     }
 
+    cacheGR.index = -1;
     return nullptr;
 }
 
@@ -476,6 +482,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByGpuHandleCR(SIZE_T gpuHandle)
         }
     }
 
+    cacheCR.index = -1;
     return nullptr;
 }
 
@@ -859,235 +866,97 @@ void ResTrack_Dx12::hkCopyDescriptors(ID3D12Device* This, UINT NumDestDescriptor
     o_CopyDescriptors(This, NumDestDescriptorRanges, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
                       NumSrcDescriptorRanges, pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes, DescriptorHeapsType);
 
+    // Early exit conditions
     if (DescriptorHeapsType != D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV &&
         DescriptorHeapsType != D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
         return;
 
-    if (pDestDescriptorRangeStarts == nullptr || (*pDestDescriptorRangeStarts).ptr == 0 ||
-        pDestDescriptorRangeSizes == nullptr)
+    if (NumDestDescriptorRanges == 0 || pDestDescriptorRangeStarts == nullptr)
         return;
 
     if (!Config::Instance()->FGAlwaysTrackHeaps.value_or_default() && !IsHudFixActive())
         return;
 
-    // make copies, just in case
-    D3D12_CPU_DESCRIPTOR_HANDLE* destRangeStarts = pDestDescriptorRangeStarts;
-    UINT* destRangeSizes = pDestDescriptorRangeSizes;
-    D3D12_CPU_DESCRIPTOR_HANDLE* srcRangeStarts = pSrcDescriptorRangeStarts;
-    UINT* srcRangeSizes = pSrcDescriptorRangeSizes;
+    const UINT inc = This->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
 
-    LOG_DEBUG_ONLY("NumDestDescriptorRanges: {}, pDestDescriptorRangeStarts: {:X}, pDestDescriptorRangeSizes: {}",
-                   NumDestDescriptorRanges,
-                   (pDestDescriptorRangeStarts == nullptr || (*pDestDescriptorRangeStarts).ptr == 0)
-                       ? 9999
-                       : (size_t) (*pDestDescriptorRangeStarts).ptr,
-                   (pDestDescriptorRangeSizes == nullptr) ? 9999 : *pDestDescriptorRangeSizes);
-    LOG_DEBUG_ONLY("NumSrcDescriptorRanges: {}, pSrcDescriptorRangeStarts: {:X}, pSrcDescriptorRangeSizes: {}",
-                   NumSrcDescriptorRanges,
-                   (pSrcDescriptorRangeStarts == nullptr || (*pSrcDescriptorRangeStarts).ptr == 0)
-                       ? 9999
-                       : (size_t) (*pSrcDescriptorRangeStarts).ptr,
-                   (pSrcDescriptorRangeSizes == nullptr) ? 9999 : *pSrcDescriptorRangeSizes);
+    // Validate that we have source descriptors to copy
+    bool haveSources = (NumSrcDescriptorRanges > 0 && pSrcDescriptorRangeStarts != nullptr);
 
-    auto size = This->GetDescriptorHandleIncrementSize(DescriptorHeapsType);
+    // Track positions in both source and destination ranges
+    UINT srcRangeIndex = 0;
+    UINT srcOffsetInRange = 0;
+    UINT destRangeIndex = 0;
+    UINT destOffsetInRange = 0;
 
-    if (srcRangeStarts != nullptr && (*srcRangeStarts).ptr != 0 && srcRangeSizes != nullptr)
+    // Cache for heap lookups to avoid repeated lookups within the same range
+    HeapInfo* cachedDestHeap = nullptr;
+    SIZE_T cachedDestRangeStart = 0;
+    HeapInfo* cachedSrcHeap = nullptr;
+    SIZE_T cachedSrcRangeStart = 0;
+
+    // Process all destination descriptors
+    while (destRangeIndex < NumDestDescriptorRanges)
     {
-        LOG_DEBUG_ONLY("Src based loop");
+        const UINT destRangeSize =
+            (pDestDescriptorRangeSizes == nullptr) ? 1 : pDestDescriptorRangeSizes[destRangeIndex];
 
-        size_t destRangeIndex = 0;
-        size_t destIndex = 0;
-
-        for (size_t i = 0; i < NumSrcDescriptorRanges; i++)
+        // Update destination heap cache if we've moved to a new range
+        if (destOffsetInRange == 0 || cachedDestHeap == nullptr)
         {
-            UINT copyCount = 1;
+            cachedDestRangeStart = pDestDescriptorRangeStarts[destRangeIndex].ptr;
+            cachedDestHeap = GetHeapByCpuHandle(cachedDestRangeStart);
+        }
 
-            if (srcRangeSizes != nullptr)
-                copyCount = srcRangeSizes[i];
+        // Calculate current destination handle
+        const SIZE_T destHandle = cachedDestRangeStart + (static_cast<SIZE_T>(destOffsetInRange) * inc);
 
-            LOG_DEBUG_ONLY("CopyCount[{}]: {}", i, copyCount);
+        // Get or update source information
+        ResourceInfo* srcInfo = nullptr;
+        if (haveSources && srcRangeIndex < NumSrcDescriptorRanges)
+        {
+            const UINT srcRangeSize =
+                (pSrcDescriptorRangeSizes == nullptr) ? 1 : pSrcDescriptorRangeSizes[srcRangeIndex];
 
-            for (size_t j = 0; j < copyCount; j++)
+            // Update source heap cache if we've moved to a new range
+            if (srcOffsetInRange == 0 || cachedSrcHeap == nullptr)
             {
-                LOG_DEBUG_ONLY("srcRangeIndex: {}, srcIndex: {}, dstRangeIndex: {}, dstIndex: {}", i, j, destRangeIndex,
-                               destIndex);
+                cachedSrcRangeStart = pSrcDescriptorRangeStarts[srcRangeIndex].ptr;
+                cachedSrcHeap = GetHeapByCpuHandle(cachedSrcRangeStart);
+            }
 
-                // source
-                auto srcHandle = srcRangeStarts[i].ptr + j * size;
-                auto srcHeap = GetHeapByCpuHandle(srcHandle);
-                auto destHandle = destRangeStarts[destRangeIndex].ptr + destIndex * size;
-                auto dstHeap = GetHeapByCpuHandle(destHandle);
+            // Calculate current source handle
+            const SIZE_T srcHandle = cachedSrcRangeStart + (static_cast<SIZE_T>(srcOffsetInRange) * inc);
 
-                LOG_DEBUG_ONLY("srcHeap: {:X}, dstHeap: {:X}", srcHandle, destHandle);
+            // Get source resource info
+            if (cachedSrcHeap != nullptr)
+                srcInfo = cachedSrcHeap->GetByCpuHandle(srcHandle);
 
-                if (srcHeap == nullptr)
-                {
-                    if (dstHeap != nullptr)
-                        dstHeap->ClearByCpuHandle(destHandle);
-
-                    if (destRangeSizes == nullptr || destRangeSizes[destRangeIndex] == destIndex)
-                    {
-                        destIndex = 0;
-                        destRangeIndex++;
-                    }
-                    else
-                    {
-                        destIndex++;
-                    }
-
-                    continue;
-                }
-
-                auto buffer = srcHeap->GetByCpuHandle(srcHandle);
-
-                // destination
-                if (dstHeap == nullptr)
-                {
-                    if (destRangeSizes == nullptr || destRangeSizes[destRangeIndex] == destIndex)
-                    {
-                        destIndex = 0;
-                        destRangeIndex++;
-                    }
-                    else
-                    {
-                        destIndex++;
-                    }
-
-                    continue;
-                }
-
-                if (buffer == nullptr)
-                {
-                    dstHeap->ClearByCpuHandle(destHandle);
-
-                    if (destRangeSizes == nullptr || destRangeSizes[destRangeIndex] == destIndex)
-                    {
-                        destIndex = 0;
-                        destRangeIndex++;
-                    }
-                    else
-                    {
-                        destIndex++;
-                    }
-
-                    continue;
-                }
-
-                dstHeap->SetByCpuHandle(destHandle, *buffer);
-
-                if (destRangeSizes == nullptr || destRangeSizes[destRangeIndex] == destIndex)
-                {
-                    destIndex = 0;
-                    destRangeIndex++;
-                }
-                else
-                {
-                    destIndex++;
-                }
+            // Advance source position
+            srcOffsetInRange++;
+            if (srcOffsetInRange >= srcRangeSize)
+            {
+                srcOffsetInRange = 0;
+                srcRangeIndex++;
+                cachedSrcHeap = nullptr; // Invalidate cache
             }
         }
-    }
-    else
-    {
-        LOG_DEBUG_ONLY("Dst based loop");
 
-        size_t srcRangeIndex = 0;
-        size_t srcIndex = 0;
-
-        for (size_t i = 0; i < NumDestDescriptorRanges; i++)
+        // Update destination heap tracking
+        if (cachedDestHeap != nullptr)
         {
-            UINT copyCount = 1;
+            if (srcInfo != nullptr && srcInfo->buffer != nullptr)
+                cachedDestHeap->SetByCpuHandle(destHandle, *srcInfo);
+            else
+                cachedDestHeap->ClearByCpuHandle(destHandle);
+        }
 
-            if (destRangeSizes != nullptr)
-                copyCount = destRangeSizes[i];
-
-            LOG_DEBUG_ONLY("CopyCount[{}]: {}", i, copyCount);
-
-            for (size_t j = 0; j < copyCount; j++)
-            {
-                LOG_DEBUG_ONLY("dstRangeIndex: {}, dstIndex: {}, srcRangeIndex: {}, srcIndex: {}", i, j, srcRangeIndex,
-                               srcIndex);
-
-                HeapInfo* srcHeap = nullptr;
-                unsigned long long srcHandle = 0;
-
-                // source
-                if (srcRangeStarts != nullptr && (*srcRangeStarts).ptr != 0)
-                {
-                    srcHandle = srcRangeStarts[srcRangeIndex].ptr + srcIndex * size;
-                    srcHeap = GetHeapByCpuHandle(srcHandle);
-                }
-
-                auto destHandle = destRangeStarts[i].ptr + j * size;
-                auto dstHeap = GetHeapByCpuHandle(destHandle);
-
-                LOG_DEBUG_ONLY("dstHeap: {:X}, srcHeap: {:X}", destHandle, srcHandle);
-
-                if (srcHeap == nullptr)
-                {
-                    if (dstHeap != nullptr)
-                        dstHeap->ClearByCpuHandle(destHandle);
-
-                    if (srcRangeSizes == nullptr || srcRangeSizes[srcRangeIndex] == srcIndex)
-                    {
-                        srcIndex = 0;
-                        srcRangeIndex++;
-                    }
-                    else
-                    {
-                        srcIndex++;
-                    }
-
-                    continue;
-                }
-
-                auto buffer = srcHeap->GetByCpuHandle(srcHandle);
-
-                // destination
-                if (dstHeap == nullptr)
-                {
-                    if (srcRangeSizes == nullptr || srcRangeSizes[srcRangeIndex] == srcIndex)
-                    {
-                        srcIndex = 0;
-                        srcRangeIndex++;
-                    }
-                    else
-                    {
-                        srcIndex++;
-                    }
-
-                    continue;
-                }
-
-                if (buffer == nullptr)
-                {
-                    dstHeap->ClearByCpuHandle(destHandle);
-
-                    if (srcRangeSizes == nullptr || srcRangeSizes[srcRangeIndex] == srcIndex)
-                    {
-                        srcIndex = 0;
-                        srcRangeIndex++;
-                    }
-                    else
-                    {
-                        srcIndex++;
-                    }
-
-                    continue;
-                }
-
-                dstHeap->SetByCpuHandle(destHandle, *buffer);
-
-                if (srcRangeSizes == nullptr || srcRangeSizes[srcRangeIndex] == srcIndex)
-                {
-                    srcIndex = 0;
-                    srcRangeIndex++;
-                }
-                else
-                {
-                    srcIndex++;
-                }
-            }
+        // Advance destination position
+        destOffsetInRange++;
+        if (destOffsetInRange >= destRangeSize)
+        {
+            destOffsetInRange = 0;
+            destRangeIndex++;
+            cachedDestHeap = nullptr; // Invalidate cache
         }
     }
 }
@@ -1403,17 +1272,16 @@ void ResTrack_Dx12::hkDrawInstanced(ID3D12GraphicsCommandList* This, UINT Vertex
 
     auto fIndex = Hudfix_Dx12::ActivePresentFrame() % BUFFER_COUNT;
 
-    if (This == MenuOverlayDx::MenuCommandList())
-    {
-        std::lock_guard<std::mutex> lock(hudlessMutex);
-        fgPossibleHudless[fIndex][This].clear();
-        return;
-    }
-
     {
         ankerl::unordered_dense::map<ID3D12Resource*, ResourceInfo> val0;
         {
             std::lock_guard<std::mutex> lock(hudlessMutex);
+
+            if (This == MenuOverlayDx::MenuCommandList() && fgPossibleHudless[fIndex].contains(This))
+            {
+                fgPossibleHudless[fIndex][This].clear();
+                return;
+            }
 
             // if can't find output skip
             if (fgPossibleHudless[fIndex].size() == 0 || !fgPossibleHudless[fIndex].contains(This))
@@ -1460,20 +1328,17 @@ void ResTrack_Dx12::hkDrawIndexedInstanced(ID3D12GraphicsCommandList* This, UINT
 
     auto fIndex = Hudfix_Dx12::ActivePresentFrame() % BUFFER_COUNT;
 
-    if (This == MenuOverlayDx::MenuCommandList())
-    {
-        std::lock_guard<std::mutex> lock(hudlessMutex);
-
-        fgPossibleHudless[fIndex][This].clear();
-
-        return;
-    }
-
     {
         ankerl::unordered_dense::map<ID3D12Resource*, ResourceInfo> val0;
 
         {
             std::lock_guard<std::mutex> lock(hudlessMutex);
+
+            if (This == MenuOverlayDx::MenuCommandList() && fgPossibleHudless[fIndex].contains(This))
+            {
+                fgPossibleHudless[fIndex][This].clear();
+                return;
+            }
 
             // if can't find output skip
             if (fgPossibleHudless[fIndex].size() == 0 || !fgPossibleHudless[fIndex].contains(This))
@@ -1598,18 +1463,17 @@ void ResTrack_Dx12::hkDispatch(ID3D12GraphicsCommandList* This, UINT ThreadGroup
 
     auto fIndex = Hudfix_Dx12::ActivePresentFrame() % BUFFER_COUNT;
 
-    if (This == MenuOverlayDx::MenuCommandList())
-    {
-        std::lock_guard<std::mutex> lock(hudlessMutex);
-        fgPossibleHudless[fIndex][This].clear();
-        return;
-    }
-
     {
         ankerl::unordered_dense::map<ID3D12Resource*, ResourceInfo> val0;
 
         {
             std::lock_guard<std::mutex> lock(hudlessMutex);
+
+            if (This == MenuOverlayDx::MenuCommandList() && fgPossibleHudless[fIndex].contains(This))
+            {
+                fgPossibleHudless[fIndex][This].clear();
+                return;
+            }
 
             // if can't find output skip
             if (fgPossibleHudless[fIndex].size() == 0 || !fgPossibleHudless[fIndex].contains(This))
