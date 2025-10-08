@@ -5308,7 +5308,7 @@ bool MenuCommon::RenderMenu()
 
                             ImGui::TableSetColumnIndex(0);
 
-                            ImGui::Text("%08x, Count: %s, %s", (size_t) it->first, it->second.usageCount,
+                            ImGui::Text("%08x, Count: %llu, %s", (size_t) it->first, it->second.usageCount,
                                         it->second.enabled ? "Active" : "Passive");
 
                             ImGui::TableSetColumnIndex(1);
