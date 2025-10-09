@@ -780,9 +780,9 @@ bool Config::SaveIni()
                      GetBoolValue(Instance()->Fsr4Update.value_for_config_ignore_default()).c_str());
         ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4EnableDebugView",
-                     GetIntValue(Instance()->Fsr4EnableDebugView.value_for_config()).c_str());
+                     GetBoolValue(Instance()->Fsr4EnableDebugView.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4EnableWatermark",
-                     GetIntValue(Instance()->Fsr4EnableWatermark.value_for_config()).c_str());
+                     GetBoolValue(Instance()->Fsr4EnableWatermark.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearColorSpace",
                      GetBoolValue(Instance()->FsrNonLinearColorSpace.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearPQ", GetBoolValue(Instance()->FsrNonLinearPQ.value_for_config()).c_str());

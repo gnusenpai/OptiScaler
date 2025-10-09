@@ -1234,13 +1234,22 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
             SetEnvironmentVariableW(L"SteamNoOverlayUIDrawing", L"1");
         }
 
-        if (Config::Instance()->Fsr4EnableWatermark.value_or_default())
+        // FSR4 Watermark, overrides environment variable only if set in config
+        if (Config::Instance()->Fsr4EnableWatermark.has_value())
         {
-            _wputenv_s(L"MLSR-WATERMARK", L"1");
-            SetEnvironmentVariableW(L"MLSR-WATERMARK", L"1");
+            if (Config::Instance()->Fsr4EnableWatermark.value())
+            {
+                _wputenv_s(L"MLSR-WATERMARK", L"1");
+                SetEnvironmentVariableW(L"MLSR-WATERMARK", L"1");
 
-            if (!Config::Instance()->FpsOverlayPos.has_value())
-                Config::Instance()->FpsOverlayPos = 1; // Top right
+                if (!Config::Instance()->FpsOverlayPos.has_value())
+                    Config::Instance()->FpsOverlayPos.set_volatile_value(1); // Top right
+            }
+            else
+            {
+                _wputenv_s(L"MLSR-WATERMARK", L"0");
+                SetEnvironmentVariableW(L"MLSR-WATERMARK", L"0");
+            }
         }
 
         // Hook FSR4 stuff as early as possible

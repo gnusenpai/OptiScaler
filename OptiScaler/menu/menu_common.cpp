@@ -2638,12 +2638,20 @@ bool MenuCommon::RenderMenu()
                                 ImGui::Spacing();
                             }
 
-                            if (majorFsrVersion == 3 ||
-                                (majorFsrVersion > 3 && Config::Instance()->Fsr4EnableDebugView.value_or_default()))
+                            if (majorFsrVersion >= 3)
                             {
                                 if (bool dView = Config::Instance()->FsrDebugView.value_or_default();
-                                    ImGui::Checkbox("FSR Upscaling Debug View", &dView))
+                                    ImGui::Checkbox("Upscaler Debug View", &dView))
+                                {
                                     Config::Instance()->FsrDebugView = dView;
+
+                                    if (majorFsrVersion > 3)
+                                    {
+                                        Config::Instance()->Fsr4EnableDebugView.set_volatile_value(dView);
+                                        state.newBackend = currentBackend;
+                                        MARK_ALL_BACKENDS_CHANGED();
+                                    }
+                                }
 
                                 if (majorFsrVersion > 3)
                                 {
@@ -2659,6 +2667,20 @@ bool MenuCommon::RenderMenu()
                                                    "Bottom left: Disocclusion mask\n"
                                                    "Bottom middle: Reactiveness\n"
                                                    "Bottom right: Detail Protection Takedown");
+                                }
+
+                                ImGui::SameLine(0.0f, 6.0f);
+
+                                if (majorFsrVersion > 3)
+                                {
+                                    if (bool wm = Config::Instance()->Fsr4EnableWatermark.value_or_default();
+                                        ImGui::Checkbox("Upscaler Watermark", &wm))
+                                    {
+                                        Config::Instance()->Fsr4EnableWatermark = wm;
+                                    }
+
+                                    ShowHelpMarker("After changing this option please Save INI\n"
+                                                   "It will be applied on next launch.");
                                 }
                             }
 
