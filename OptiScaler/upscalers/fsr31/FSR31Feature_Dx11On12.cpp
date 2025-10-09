@@ -184,6 +184,16 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
         params.sharpness = _sharpness;
     }
 
+    // Force enable RCAS when in FSR4 debug view mode
+    // it crashes when sharpening is disabled
+    // Debug view expects RCAS output (now sure why)
+    if (Version() >= feature_version { 4, 0, 2 } && Config::Instance()->FsrDebugView.value_or_default() &&
+        Config::Instance()->Fsr4EnableDebugView.value_or_default() && !params.enableSharpening)
+    {
+        params.enableSharpening = true;
+        params.sharpness = 0.0f;
+    }
+
     unsigned int reset;
     InParameters->Get(NVSDK_NGX_Parameter_Reset, &reset);
     params.reset = (reset == 1);

@@ -99,6 +99,16 @@ bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_
         params.sharpness = _sharpness;
     }
 
+    // Force enable RCAS when in FSR4 debug view mode
+    // it crashes when sharpening is disabled
+    // Debug view expects RCAS output (now sure why)
+    if (Version() >= feature_version { 4, 0, 2 } && Config::Instance()->FsrDebugView.value_or_default() &&
+        Config::Instance()->Fsr4EnableDebugView.value_or_default() && !params.enableSharpening)
+    {
+        params.enableSharpening = true;
+        params.sharpness = 0.0f;
+    }
+
     LOG_DEBUG("Jitter Offset: {0}x{1}", params.jitterOffset.x, params.jitterOffset.y);
 
     unsigned int reset;
