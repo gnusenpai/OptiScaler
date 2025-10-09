@@ -1229,11 +1229,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
             Config::Instance()->DisableOverlays.set_volatile_value(true);
 
         if (Config::Instance()->DisableOverlays.value_or_default())
-            SetEnvironmentVariable(L"SteamNoOverlayUIDrawing", L"1");
+        {
+            _wputenv_s(L"SteamNoOverlayUIDrawing", L"1");
+            SetEnvironmentVariableW(L"SteamNoOverlayUIDrawing", L"1");
+        }
 
         if (Config::Instance()->Fsr4EnableWatermark.value_or_default())
         {
-            SetEnvironmentVariable(L"MLSR-WATERMARK", L"1");
+            _wputenv_s(L"MLSR-WATERMARK", L"1");
+            SetEnvironmentVariableW(L"MLSR-WATERMARK", L"1");
 
             if (!Config::Instance()->FpsOverlayPos.has_value())
                 Config::Instance()->FpsOverlayPos = 1; // Top right
