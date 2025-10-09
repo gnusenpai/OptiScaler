@@ -2649,7 +2649,7 @@ bool MenuCommon::RenderMenu()
 
                                     if (majorFsrVersion > 3)
                                     {
-                                        Config::Instance()->Fsr4EnableDebugView.set_volatile_value(dView);
+                                        Config::Instance()->Fsr4EnableDebugView = dView;
                                         state.newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
                                     }

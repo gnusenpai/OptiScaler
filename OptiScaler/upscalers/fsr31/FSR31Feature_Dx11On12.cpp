@@ -154,8 +154,11 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
 
     params.flags = 0;
 
-    if (Config::Instance()->FsrDebugView.value_or_default())
+    if (Config::Instance()->FsrDebugView.value_or_default() &&
+        (Version() < feature_version { 4, 0, 0 } || Config::Instance()->Fsr4EnableDebugView.value_or_default()))
+    {
         params.flags |= FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW;
+    }
 
     if (Config::Instance()->FsrNonLinearPQ.value_or_default())
         params.flags |= FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_PQ;
@@ -191,7 +194,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
         Config::Instance()->Fsr4EnableDebugView.value_or_default() && !params.enableSharpening)
     {
         params.enableSharpening = true;
-        params.sharpness = 0.0f;
+        params.sharpness = 0.01f;
     }
 
     unsigned int reset;

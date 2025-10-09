@@ -69,8 +69,11 @@ bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_
 
     params.flags = 0;
 
-    if (Config::Instance()->FsrDebugView.value_or_default())
+    if (Config::Instance()->FsrDebugView.value_or_default() &&
+        (Version() < feature_version { 4, 0, 0 } || Config::Instance()->Fsr4EnableDebugView.value_or_default()))
+    {
         params.flags |= FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW;
+    }
 
     if (Config::Instance()->FsrNonLinearPQ.value_or_default())
         params.flags |= FFX_UPSCALE_FLAG_NON_LINEAR_COLOR_PQ;
@@ -106,7 +109,7 @@ bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_
         Config::Instance()->Fsr4EnableDebugView.value_or_default() && !params.enableSharpening)
     {
         params.enableSharpening = true;
-        params.sharpness = 0.0f;
+        params.sharpness = 0.01f;
     }
 
     LOG_DEBUG("Jitter Offset: {0}x{1}", params.jitterOffset.x, params.jitterOffset.y);
