@@ -2002,7 +2002,7 @@ bool MenuCommon::RenderMenu()
                 if (gotData && timingData[TimingType::TimeRange].has_value())
                 {
                     ImDrawList* drawList = ImGui::GetWindowDrawList();
-                    constexpr float offsetForText = 135;
+                    constexpr float offsetForText = 155;
 
                     const auto& rangeInNs = timingData[TimingType::TimeRange].value().length;
 
@@ -2012,28 +2012,30 @@ bool MenuCommon::RenderMenu()
                                               ? ImGui::GetWindowWidth()
                                               : plotSize.x;
 
-                    const auto drawTiming = [&](TimingType type, const char* desc, ImU32 color)
+                    const auto drawTiming = [&](TimingType type, const char* desc, ImVec4 color)
                     {
                         if (!timingData[type].has_value())
                             return;
 
+                        auto toneMappedColor = State::Instance().isHdrActive ? toneMapColor(color) : color;
+
                         auto& timing = timingData[type].value();
                         float duration = timing.length * rangeInNs / 1000;
-                        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(color), "%-12s %4.1fms", desc, duration);
+                        ImGui::TextColored(toneMappedColor, "%-12s %4.1fms", desc, duration);
                         auto leftLimit = ImGui::GetItemRectMin().x + offsetForText * fpsScale;
                         auto start = leftLimit + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) * timing.position;
                         auto end = start + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) * timing.length;
                         auto pos = ImVec2(start, ImGui::GetItemRectMin().y);
                         auto size = ImVec2(end, ImGui::GetItemRectMax().y);
-                        drawList->AddRectFilled(pos, size, color);
+                        drawList->AddRectFilled(pos, size, ImGui::ColorConvertFloat4ToU32(toneMappedColor));
                     };
 
-                    drawTiming(TimingType::Simulation, "Simulation", IM_COL32(230, 25, 75, 255));
-                    drawTiming(TimingType::RenderSubmit, "RenderSubmit", IM_COL32(60, 180, 75, 255));
-                    drawTiming(TimingType::Present, "Present", IM_COL32(255, 225, 25, 255));
-                    drawTiming(TimingType::Driver, "Driver", IM_COL32(67, 99, 216, 255));
-                    drawTiming(TimingType::OsRenderQueue, "RenderQueue", IM_COL32(245, 130, 48, 255));
-                    drawTiming(TimingType::GpuRender, "GpuRender", IM_COL32(145, 30, 180, 255));
+                    drawTiming(TimingType::Simulation, "Simulation", ImVec4(0.768f, 0.169f, 0.169f, 1.0f));
+                    drawTiming(TimingType::RenderSubmit, "RenderSubmit", ImVec4(0.235f, 0.705f, 0.294f, 1.0f));
+                    drawTiming(TimingType::Present, "Present", ImVec4(1.0f, 0.88f, 0.098f, 1.0f));
+                    drawTiming(TimingType::Driver, "Driver", ImVec4(0.263f, 0.388f, 0.847f, 1.0f));
+                    drawTiming(TimingType::OsRenderQueue, "RenderQueue", ImVec4(0.76f, 0.51f, 0.188f, 1.0f));
+                    drawTiming(TimingType::GpuRender, "GpuRender", ImVec4(0.569f, 0.117f, 0.705f, 1.0f));
                 }
             }
 
