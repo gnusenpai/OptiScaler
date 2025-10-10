@@ -225,7 +225,8 @@ static VkResult hkvkQueuePresentKHR(VkQueue queue, VkPresentInfoKHR* pPresentInf
     // get upscaler time
     UpscalerTimeVk::ReadUpscalingTime(_device);
 
-    State::Instance().swapchainApi = Vulkan;
+    if (!State::Instance().isRunningOnDXVK)
+        State::Instance().swapchainApi = Vulkan;
 
     // Tick feature to let it know if it's frozen
     if (auto currentFeature = State::Instance().currentFeature; currentFeature != nullptr)
