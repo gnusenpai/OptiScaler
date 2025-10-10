@@ -41,6 +41,7 @@ typedef void(STDMETHODCALLTYPE* PFN_CreateSampler)(ID3D12Device* This, const D3D
 typedef HRESULT(STDMETHODCALLTYPE* PFN_CreateDescriptorHeap)(ID3D12Device* This,
                                                              D3D12_DESCRIPTOR_HEAP_DESC* pDescriptorHeapDesc,
                                                              REFIID riid, void** ppvHeap);
+typedef ULONG(STDMETHODCALLTYPE* PFN_HeapRelease)(ID3D12DescriptorHeap* This);
 typedef void(STDMETHODCALLTYPE* PFN_CopyDescriptors)(ID3D12Device* This, UINT NumDestDescriptorRanges,
                                                      D3D12_CPU_DESCRIPTOR_HANDLE* pDestDescriptorRangeStarts,
                                                      UINT* pDestDescriptorRangeSizes, UINT NumSrcDescriptorRanges,
@@ -90,6 +91,7 @@ static PFN_CreateConstantBufferView o_CreateConstantBufferView = nullptr;
 static PFN_CreateSampler o_CreateSampler = nullptr;
 
 static PFN_CreateDescriptorHeap o_CreateDescriptorHeap = nullptr;
+static PFN_HeapRelease o_HeapRelease = nullptr;
 static PFN_CopyDescriptors o_CopyDescriptors = nullptr;
 static PFN_CopyDescriptorsSimple o_CopyDescriptorsSimple = nullptr;
 
@@ -144,6 +146,10 @@ bool ResTrack_Dx12::CheckResource(ID3D12Resource* resource)
     }
 
     auto resDesc = resource->GetDesc();
+
+    if (resDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+        return false;
+
     if (resDesc.Height != scDesc.BufferDesc.Height || resDesc.Width != scDesc.BufferDesc.Width)
     {
         return Config::Instance()->FGRelaxedResolutionCheck.value_or_default() &&
@@ -255,7 +261,7 @@ SIZE_T ResTrack_Dx12::GetGPUHandle(ID3D12Device* This, SIZE_T cpuHandle, D3D12_D
     for (UINT i = 0; i < fgHeapIndex; i++)
     {
         auto val = fgHeaps[i].get();
-        if (val->cpuStart <= cpuHandle && val->cpuEnd >= cpuHandle && val->gpuStart != 0)
+        if (val->cpuStart < cpuHandle && val->cpuEnd >= cpuHandle && val->gpuStart != 0)
         {
             auto incSize = This->GetDescriptorHandleIncrementSize(type);
             auto addr = cpuHandle - val->cpuStart;
@@ -275,7 +281,7 @@ SIZE_T ResTrack_Dx12::GetCPUHandle(ID3D12Device* This, SIZE_T gpuHandle, D3D12_D
     for (UINT i = 0; i < fgHeapIndex; i++)
     {
         auto val = fgHeaps[i].get();
-        if (val->gpuStart <= gpuHandle && val->gpuEnd >= gpuHandle && val->cpuStart != 0)
+        if (val->gpuStart < gpuHandle && val->gpuEnd >= gpuHandle && val->cpuStart != 0)
         {
             auto incSize = This->GetDescriptorHandleIncrementSize(type);
             auto addr = gpuHandle - val->gpuStart;
@@ -303,7 +309,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleCBV(SIZE_T cpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
+        if (fgHeaps[i]->active && fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
         {
             cacheCBV.index = i;
             cacheCBV.genSeen = currentGen;
@@ -329,7 +335,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleRTV(SIZE_T cpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
+        if (fgHeaps[i]->active && fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
         {
             cacheRTV.index = i;
             cacheRTV.genSeen = currentGen;
@@ -355,7 +361,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleSRV(SIZE_T cpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
+        if (fgHeaps[i]->active && fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
         {
             cacheSRV.index = i;
             cacheSRV.genSeen = currentGen;
@@ -381,7 +387,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandleUAV(SIZE_T cpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
+        if (fgHeaps[i]->active && fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
         {
             cacheUAV.index = i;
             cacheUAV.genSeen = currentGen;
@@ -411,7 +417,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByCpuHandle(SIZE_T cpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
+        if (fgHeaps[i]->active && fgHeaps[i]->cpuStart <= cpuHandle && fgHeaps[i]->cpuEnd > cpuHandle)
         {
             cache.index = i;
             cache.genSeen = currentGen;
@@ -441,7 +447,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByGpuHandleGR(SIZE_T gpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->gpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
+        if (fgHeaps[i]->active && fgHeaps[i]->gpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
         {
             cacheGR.index = i;
             cacheGR.genSeen = currentGen;
@@ -474,7 +480,7 @@ HeapInfo* ResTrack_Dx12::GetHeapByGpuHandleCR(SIZE_T gpuHandle)
 
     for (size_t i = 0; i < fgHeapIndex; i++)
     {
-        if (fgHeaps[i]->gpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
+        if (fgHeaps[i]->active && fgHeaps[i]->gpuStart <= gpuHandle && fgHeaps[i]->gpuEnd > gpuHandle)
         {
             cacheCR.index = i;
             cacheCR.genSeen = currentGen;
@@ -563,8 +569,7 @@ void ResTrack_Dx12::hkCreateRenderTargetView(ID3D12Device* This, ID3D12Resource*
 
     o_CreateRenderTargetView(This, pResource, pDesc, DestDescriptor);
 
-    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_RTV_DIMENSION_TEXTURE2D ||
-        !CheckResource(pResource))
+    if (pResource == nullptr)
     {
 
         auto heap = GetHeapByCpuHandleRTV(DestDescriptor.ptr);
@@ -575,14 +580,10 @@ void ResTrack_Dx12::hkCreateRenderTargetView(ID3D12Device* This, ID3D12Resource*
         return;
     }
 
-    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_RTV_DIMENSION_TEXTURE2D)
+    if (!CheckResource(pResource))
         return;
 
     auto gpuHandle = GetGPUHandle(This, DestDescriptor.ptr, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-    ResourceHeapInfo info {};
-    info.cpuStart = DestDescriptor.ptr;
-    info.gpuStart = gpuHandle;
 
     ResourceInfo resInfo {};
     FillResourceInfo(pResource, &resInfo);
@@ -616,8 +617,7 @@ void ResTrack_Dx12::hkCreateShaderResourceView(ID3D12Device* This, ID3D12Resourc
 
     o_CreateShaderResourceView(This, pResource, pDesc, DestDescriptor);
 
-    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_SRV_DIMENSION_TEXTURE2D ||
-        !CheckResource(pResource))
+    if (pResource == nullptr)
     {
 
         auto heap = GetHeapByCpuHandleSRV(DestDescriptor.ptr);
@@ -628,14 +628,10 @@ void ResTrack_Dx12::hkCreateShaderResourceView(ID3D12Device* This, ID3D12Resourc
         return;
     }
 
-    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_SRV_DIMENSION_TEXTURE2D)
+    if (!CheckResource(pResource))
         return;
 
     auto gpuHandle = GetGPUHandle(This, DestDescriptor.ptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-    ResourceHeapInfo info {};
-    info.cpuStart = DestDescriptor.ptr;
-    info.gpuStart = gpuHandle;
 
     ResourceInfo resInfo {};
     FillResourceInfo(pResource, &resInfo);
@@ -669,8 +665,7 @@ void ResTrack_Dx12::hkCreateUnorderedAccessView(ID3D12Device* This, ID3D12Resour
 
     o_CreateUnorderedAccessView(This, pResource, pCounterResource, pDesc, DestDescriptor);
 
-    if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_UAV_DIMENSION_TEXTURE2D ||
-        !CheckResource(pResource))
+    if (pResource == nullptr)
     {
         auto heap = GetHeapByCpuHandleUAV(DestDescriptor.ptr);
 
@@ -680,11 +675,10 @@ void ResTrack_Dx12::hkCreateUnorderedAccessView(ID3D12Device* This, ID3D12Resour
         return;
     }
 
-    auto gpuHandle = GetGPUHandle(This, DestDescriptor.ptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    if (!CheckResource(pResource))
+        return;
 
-    ResourceHeapInfo info {};
-    info.cpuStart = DestDescriptor.ptr;
-    info.gpuStart = gpuHandle;
+    auto gpuHandle = GetGPUHandle(This, DestDescriptor.ptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     ResourceInfo resInfo {};
     FillResourceInfo(pResource, &resInfo);
@@ -779,6 +773,56 @@ void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumComm
 
 #pragma region Heap hooks
 
+static ULONG STDMETHODCALLTYPE hkHeapRelease(ID3D12DescriptorHeap* This)
+{
+    if (State::Instance().isShuttingDown)
+        return o_HeapRelease(This);
+
+    std::unique_lock<std::shared_mutex> lock(heapMutex);
+
+    This->AddRef();
+    if (o_HeapRelease(This) <= 1)
+    {
+        for (UINT i = 0; i < fgHeapIndex; ++i)
+        {
+            auto& up = fgHeaps[i];
+
+            if (up == nullptr || up->heap != This)
+                continue;
+
+            // detach all slots from _trackedResources
+            {
+                std::scoped_lock lk(_trMutex);
+                for (UINT j = 0; j < up->numDescriptors; ++j)
+                {
+                    auto& slot = up->info[j];
+
+                    if (!slot.buffer)
+                        continue;
+
+                    if (auto it = _trackedResources.find(slot.buffer); it != _trackedResources.end())
+                    {
+                        auto& vec = it->second;
+                        vec.erase(std::remove(vec.begin(), vec.end(), &slot), vec.end());
+                        if (vec.empty())
+                            _trackedResources.erase(it);
+                    }
+
+                    slot.buffer = nullptr;
+                    slot.lastUsedFrame = 0;
+                }
+            }
+
+            up->active = false;
+            gHeapGeneration.fetch_add(1, std::memory_order_relaxed); // invalidate caches
+
+            break;
+        }
+    }
+
+    return o_HeapRelease(This);
+}
+
 HRESULT ResTrack_Dx12::hkCreateDescriptorHeap(ID3D12Device* This, D3D12_DESCRIPTOR_HEAP_DESC* pDescriptorHeapDesc,
                                               REFIID riid, void** ppvHeap)
 {
@@ -792,6 +836,17 @@ HRESULT ResTrack_Dx12::hkCreateDescriptorHeap(ID3D12Device* This, D3D12_DESCRIPT
                            pDescriptorHeapDesc->Type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV))
     {
         auto heap = (ID3D12DescriptorHeap*) (*ppvHeap);
+
+        if (!o_HeapRelease)
+        {
+            PVOID* vtbl = *(PVOID**) heap;
+            o_HeapRelease = (PFN_HeapRelease) vtbl[2];
+            DetourTransactionBegin();
+            DetourUpdateThread(GetCurrentThread());
+            DetourAttach(&(PVOID&) o_HeapRelease, hkHeapRelease);
+            DetourTransactionCommit();
+        }
+
         auto increment = This->GetDescriptorHandleIncrementSize(pDescriptorHeapDesc->Type);
         auto numDescriptors = pDescriptorHeapDesc->NumDescriptors;
         auto cpuStart = (SIZE_T) (heap->GetCPUDescriptorHandleForHeapStart().ptr);
@@ -981,7 +1036,7 @@ void ResTrack_Dx12::hkCopyDescriptorsSimple(ID3D12Device* This, UINT NumDescript
     for (size_t i = 0; i < NumDescriptors; i++)
     {
         HeapInfo* srcHeap = nullptr;
-        unsigned long long srcHandle = 0;
+        SIZE_T srcHandle = 0;
 
         // source
         if (SrcDescriptorRangeStart.ptr != 0)

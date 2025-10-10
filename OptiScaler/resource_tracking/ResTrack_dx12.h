@@ -51,6 +51,7 @@ typedef struct HeapInfo
     std::shared_ptr<ResourceInfo[]> info;
     UINT lastOffset = 0;
     UINT mutexIndex = 0;
+    bool active = true;
 
     HeapInfo(ID3D12DescriptorHeap* heap, SIZE_T cpuStart, SIZE_T cpuEnd, SIZE_T gpuStart, SIZE_T gpuEnd,
              UINT numResources, UINT increment, UINT type, UINT mutexIndex)
@@ -61,6 +62,30 @@ typedef struct HeapInfo
         {
             info[i].buffer = nullptr;
         }
+    }
+
+    void DetachFromOldResource(UINT index) const
+    {
+        if (info[index].buffer == nullptr)
+            return;
+
+        std::scoped_lock lock(_trMutex);
+        auto it = _trackedResources.find(info[index].buffer);
+        if (it != _trackedResources.end())
+        {
+            auto& vec = it->second;
+            vec.erase(std::remove(vec.begin(), vec.end(), &info[index]), vec.end());
+            if (vec.empty())
+                _trackedResources.erase(it);
+        }
+    }
+
+    void AttachToNewResource(UINT index) const
+    {
+        std::scoped_lock lock(_trMutex);
+        auto& vec = _trackedResources[info[index].buffer];
+        if (std::find(vec.begin(), vec.end(), &info[index]) == vec.end())
+            vec.push_back(&info[index]);
     }
 
     ResourceInfo* GetByCpuHandle(SIZE_T cpuHandle) const
@@ -112,7 +137,9 @@ typedef struct HeapInfo
         TestResource(&setInfo);
 #endif
 
+        DetachFromOldResource(index);
         info[index] = setInfo;
+        AttachToNewResource(index);
 
         {
             std::scoped_lock lock(_trMutex);
@@ -138,7 +165,9 @@ typedef struct HeapInfo
         TestResource(&setInfo);
 #endif
 
+        DetachFromOldResource(index);
         info[index] = setInfo;
+        AttachToNewResource(index);
 
         {
             std::scoped_lock lock(_trMutex);
