@@ -369,32 +369,27 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
         if (!Util::CheckForRealObject(__FUNCTION__, *ppDevice, (IUnknown**) &realDevice))
             realDevice = *ppDevice;
 
-        if (Util::GetProcessWindow() == pSwapChainDesc->OutputWindow)
-        {
-            State::Instance().screenWidth = pSwapChainDesc->BufferDesc.Width;
-            State::Instance().screenHeight = pSwapChainDesc->BufferDesc.Height;
-        }
+        State::Instance().screenWidth = pSwapChainDesc->BufferDesc.Width;
+        State::Instance().screenHeight = pSwapChainDesc->BufferDesc.Height;
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain,
                   (UINT64) pSwapChainDesc->OutputWindow);
 
-        WrappedIDXGISwapChain4* wsc = nullptr;
-        if (realSC->QueryInterface(IID_PPV_ARGS(&wsc)) != S_OK)
+        if (State::Instance().currentWrappedSwapchain == *ppSwapChain)
         {
-            *ppSwapChain = new WrappedIDXGISwapChain4(realSC, realDevice, pSwapChainDesc->OutputWindow,
-                                                      pSwapChainDesc->Flags, false);
+            LOG_DEBUG("Same as current wrapped swapchain, skipping wrapping");
         }
         else
         {
-            *ppSwapChain = wsc;
-            wsc->Release();
+            *ppSwapChain = new WrappedIDXGISwapChain4(realSC, realDevice, pSwapChainDesc->OutputWindow,
+                                                      pSwapChainDesc->Flags, false);
+
+            State::Instance().currentSwapchain = *ppSwapChain;
+            State::Instance().currentWrappedSwapchain = *ppSwapChain;
+
+            LOG_DEBUG("Created new WrappedIDXGISwapChain4: {0:X}, pDevice: {1:X}", (UINT64) *ppSwapChain,
+                      (UINT64) *ppDevice);
         }
-
-        State::Instance().currentSwapchain = *ppSwapChain;
-        State::Instance().currentWrappedSwapchain = *ppSwapChain;
-
-        LOG_DEBUG("Created new WrappedIDXGISwapChain4: {0:X}, pDevice: {1:X}", (UINT64) *ppSwapChain,
-                  (UINT64) *ppDevice);
     }
 
     if (result == S_OK && ppDevice != nullptr && *ppDevice != nullptr)
