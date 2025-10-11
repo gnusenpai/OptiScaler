@@ -90,6 +90,14 @@ inline DWORD processId;
 
 #define LOG_FUNC_RESULT(result) spdlog::trace(__FUNCTION__ " result: {0:X}", (UINT64) result)
 
+// #define TRACKING_LOGS
+
+#ifdef TRACKING_LOGS
+#define LOG_TRACK(msg, ...) spdlog::debug(__FUNCTION__ " [RT] " msg, ##__VA_ARGS__)
+#else
+#define LOG_TRACK(msg, ...)
+#endif
+
 struct feature_version
 {
     unsigned int major;

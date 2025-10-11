@@ -9,15 +9,6 @@
 
 #include <map>
 
-// Test resources if they are valid or not
-// #define DEBUG_TRACKING
-
-#ifdef DEBUG_TRACKING
-#define LOG_TRACK(msg, ...) spdlog::debug(__FUNCTION__ " " msg, ##__VA_ARGS__)
-#else
-#define LOG_TRACK(msg, ...)
-#endif
-
 #ifdef DEBUG_TRACKING
 static void TestResource(ResourceInfo* info)
 {
@@ -140,18 +131,6 @@ typedef struct HeapInfo
         DetachFromOldResource(index);
         info[index] = setInfo;
         AttachToNewResource(index);
-
-        {
-            std::scoped_lock lock(_trMutex);
-
-            if (_trackedResources.contains(setInfo.buffer))
-                _trackedResources[setInfo.buffer].push_back(&info[index]);
-            else
-                _trackedResources[setInfo.buffer] = { &info[index] };
-
-            LOG_TRACK("Add resource: {:X} to info: {:X}, Res: {}x{}", (size_t) setInfo.buffer, (size_t) &info[index],
-                      setInfo.width, setInfo.height);
-        }
     }
 
     void SetByGpuHandle(SIZE_T gpuHandle, ResourceInfo setInfo) const
@@ -168,18 +147,6 @@ typedef struct HeapInfo
         DetachFromOldResource(index);
         info[index] = setInfo;
         AttachToNewResource(index);
-
-        {
-            std::scoped_lock lock(_trMutex);
-
-            if (_trackedResources.contains(setInfo.buffer))
-                _trackedResources[setInfo.buffer].push_back(&info[index]);
-            else
-                _trackedResources[setInfo.buffer] = { &info[index] };
-
-            LOG_TRACK("Add resource: {:X} to info: {:X}, Res: {}x{}", (size_t) setInfo.buffer, (size_t) &info[index],
-                      setInfo.width, setInfo.height);
-        }
     }
 
     void ClearByCpuHandle(SIZE_T cpuHandle) const
@@ -191,24 +158,8 @@ typedef struct HeapInfo
 
         if (info[index].buffer != nullptr)
         {
-            std::scoped_lock lock(_trMutex);
-
             LOG_TRACK("Resource: {:X}, Res: {}x{}", (size_t) info[index].buffer, info[index].width, info[index].height);
-
-            if (_trackedResources.contains(info[index].buffer))
-            {
-                auto vector = &_trackedResources[info[index].buffer];
-
-                for (size_t i = 0; i < vector->size(); i++)
-                {
-                    if (vector->at(i) == &info[index])
-                    {
-                        LOG_TRACK("Erase from _trackedResources info: {:X}", (size_t) vector->at(i));
-                        vector->erase(vector->begin() + i);
-                        break;
-                    }
-                }
-            }
+            DetachFromOldResource(index);
         }
 
         info[index].buffer = nullptr;
@@ -224,24 +175,8 @@ typedef struct HeapInfo
 
         if (info[index].buffer != nullptr)
         {
-            std::scoped_lock lock(_trMutex);
-
             LOG_TRACK("Resource: {:X}, Res: {}x{}", (size_t) info[index].buffer, info[index].width, info[index].height);
-
-            if (_trackedResources.contains(info[index].buffer))
-            {
-                auto vector = &_trackedResources[info[index].buffer];
-
-                for (size_t i = 0; i < vector->size(); i++)
-                {
-                    if (vector->at(i) == &info[index])
-                    {
-                        LOG_TRACK("Erase from _trackedResources info: {:X}", (size_t) vector->at(i));
-                        vector->erase(vector->begin() + i);
-                        break;
-                    }
-                }
-            }
+            DetachFromOldResource(index);
         }
 
         info[index].buffer = nullptr;
