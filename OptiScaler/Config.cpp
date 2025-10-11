@@ -967,12 +967,8 @@ bool Config::SaveIni()
 
     // Hotfixes
     {
-        ini.SetValue("Hotfix", "CheckForUpdate",
-                     Instance()->CheckForUpdate.has_value() ? (Instance()->CheckForUpdate.value() ? "true" : "false")
-                                                            : "auto");
-        ini.SetValue("Hotfix", "DisableOverlays",
-                     Instance()->DisableOverlays.has_value() ? (Instance()->DisableOverlays.value() ? "true" : "false")
-                                                             : "auto");
+        ini.SetValue("Hotfix", "CheckForUpdate", GetBoolValue(Instance()->CheckForUpdate.value_for_config()).c_str());
+        ini.SetValue("Hotfix", "DisableOverlays", GetBoolValue(Instance()->DisableOverlays.value_for_config()).c_str());
 
         ini.SetValue("Hotfix", "RoundInternalResolution",
                      GetIntValue(Instance()->RoundInternalResolution.value_for_config()).c_str());
