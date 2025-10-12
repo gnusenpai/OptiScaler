@@ -5,6 +5,8 @@
 #include <proxies/XeLL_Proxy.h>
 #include <proxies/XeFG_Proxy.h>
 
+#include "shaders/depth_invert/DI_Dx12.h"
+
 #include <xell.h>
 #include <xell_d3d12.h>
 #include <xefg_swapchain.h>
@@ -21,6 +23,8 @@ class XeFG_Dx12 : public virtual IFGFeature_Dx12
     uint32_t _height = 0;
     bool _infiniteDepth = false;
     UINT64 _reEnableTargetFrame = 0;
+
+    std::unique_ptr<DI_Dx12> _depthInvert;
 
     static void xefgLogCallback(const char* message, xefg_swapchain_logging_level_t level, void* userData);
 
