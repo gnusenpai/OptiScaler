@@ -1,5 +1,7 @@
 #include "DS_Dx12.h"
 
+#include "DS_Common.h"
+
 #include <Config.h>
 #include <State.h>
 #include "precompiled/DS_Shader.h"

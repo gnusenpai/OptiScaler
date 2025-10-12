@@ -1,5 +1,7 @@
 #include "RF_Dx12.h"
 
+#include "RF_Common.h"
+
 #include <Config.h>
 #include <State.h>
 

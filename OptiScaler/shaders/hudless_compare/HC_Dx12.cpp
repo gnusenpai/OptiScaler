@@ -1,5 +1,9 @@
 #include "HC_Dx12.h"
 
+#include "HC_Common.h"
+#include "precompile/hudless_compare_PShader.h"
+#include "precompile/hudless_compare_VShader.h"
+
 #include <Config.h>
 
 DXGI_FORMAT HC_Dx12::ToSRGB(DXGI_FORMAT f)

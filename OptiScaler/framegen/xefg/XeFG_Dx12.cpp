@@ -8,6 +8,10 @@
 
 #include <magic_enum.hpp>
 
+#include <DirectXMath.h>
+
+using namespace DirectX;
+
 void XeFG_Dx12::xefgLogCallback(const char* message, xefg_swapchain_logging_level_t level, void* userData)
 {
     switch (level)
@@ -239,7 +243,9 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
     params.maxInterpolatedFrames = 1;
 
     params.initFlags = XEFG_SWAPCHAIN_INIT_FLAG_NONE;
-    if (Config::Instance()->FGXeFGDepthInverted.value_or_default())
+
+    if (State::Instance().activeFgInput != FGInput::Upscaler &&
+        Config::Instance()->FGXeFGDepthInverted.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
 
     if (Config::Instance()->FGXeFGJitteredMV.value_or_default())
@@ -329,7 +335,9 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     params.maxInterpolatedFrames = 1;
 
     params.initFlags = XEFG_SWAPCHAIN_INIT_FLAG_NONE;
-    if (Config::Instance()->FGXeFGDepthInverted.value_or_default())
+
+    if (State::Instance().activeFgInput != FGInput::Upscaler &&
+        Config::Instance()->FGXeFGDepthInverted.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
 
     if (Config::Instance()->FGXeFGJitteredMV.value_or_default())

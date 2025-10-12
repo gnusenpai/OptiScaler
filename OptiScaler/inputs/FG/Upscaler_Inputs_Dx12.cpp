@@ -4,8 +4,10 @@
 #include <resource_tracking/ResTrack_dx12.h>
 
 #include "shaders/depth_scale/DS_Dx12.h"
+#include "shaders/depth_invert/DI_Dx12.h"
 
 static DS_Dx12* DepthScale = nullptr;
+static DI_Dx12* DepthInvert = nullptr;
 
 void UpscalerInputsDx12::Init(ID3D12Device* device)
 {
@@ -201,6 +203,36 @@ void UpscalerInputsDx12::UpscaleStart(ID3D12GraphicsCommandList* InCmdList, NVSD
                         setResource.type = FG_ResourceType::Depth;
                         setResource.cmdList = commandList;
                         setResource.resource = DepthScale->Buffer();
+                        setResource.width = feature->RenderWidth();
+                        setResource.height = feature->RenderHeight();
+                        setResource.state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                        setResource.validity = FG_ResourceValidity::JustTrackCmdlist;
+
+                        fg->SetResource(&setResource);
+
+                        done = true;
+                    }
+                }
+            }
+            else if (State::Instance().activeFgOutput == FGOutput::XeFG &&
+                     !Config::Instance()->FGXeFGDepthInverted.value_or_default())
+            {
+                if (DepthInvert == nullptr)
+                    DepthInvert = new DI_Dx12("Depth Invert", _device);
+
+                if (DepthInvert->CreateBufferResource(_device, paramDepth, feature->DisplayWidth(),
+                                                      feature->DisplayHeight(),
+                                                      D3D12_RESOURCE_STATE_UNORDERED_ACCESS) &&
+                    DepthInvert->Buffer() != nullptr)
+                {
+                    DepthInvert->SetBufferState(InCmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+                    if (DepthInvert->Dispatch(_device, InCmdList, paramDepth, DepthInvert->Buffer()))
+                    {
+                        Dx12Resource setResource {};
+                        setResource.type = FG_ResourceType::Depth;
+                        setResource.cmdList = commandList;
+                        setResource.resource = DepthInvert->Buffer();
                         setResource.width = feature->RenderWidth();
                         setResource.height = feature->RenderHeight();
                         setResource.state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
