@@ -8,6 +8,10 @@
 
 #include <magic_enum.hpp>
 
+#include <DirectXMath.h>
+
+using namespace DirectX;
+
 void XeFG_Dx12::xefgLogCallback(const char* message, xefg_swapchain_logging_level_t level, void* userData)
 {
     switch (level)
@@ -239,8 +243,10 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
     params.maxInterpolatedFrames = 1;
 
     params.initFlags = XEFG_SWAPCHAIN_INIT_FLAG_NONE;
-    if (Config::Instance()->FGXeFGDepthInverted.value_or_default())
-        params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
+
+    // if (State::Instance().activeFgInput != FGInput::Upscaler &&
+    //     Config::Instance()->FGXeFGDepthInverted.value_or_default())
+    //     params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
 
     if (Config::Instance()->FGXeFGJitteredMV.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_JITTERED_MV;
@@ -329,8 +335,10 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     params.maxInterpolatedFrames = 1;
 
     params.initFlags = XEFG_SWAPCHAIN_INIT_FLAG_NONE;
-    if (Config::Instance()->FGXeFGDepthInverted.value_or_default())
-        params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
+
+    // if (State::Instance().activeFgInput != FGInput::Upscaler &&
+    //     Config::Instance()->FGXeFGDepthInverted.value_or_default())
+    //     params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
 
     if (Config::Instance()->FGXeFGJitteredMV.value_or_default())
         params.initFlags |= XEFG_SWAPCHAIN_INIT_FLAG_JITTERED_MV;
@@ -880,6 +888,32 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     if (willFlip && _device != nullptr)
     {
         FlipResource(fResource);
+    }
+
+    if (type == FG_ResourceType::Depth && !Config::Instance()->FGXeFGDepthInverted.value_or_default())
+    {
+        if (_depthInvert.get() == nullptr)
+        {
+            _depthInvert = std::make_unique<DI_Dx12>("DepthInvert", _device);
+        }
+        else if (_depthInvert->IsInit())
+        {
+            if (_depthInvert->CreateBufferResource(_device, fResource->GetResource(), fResource->width,
+                                                   fResource->height, fResource->state) &&
+                _depthInvert->Buffer() != nullptr)
+            {
+                auto cmdList = (fResource->cmdList != nullptr) ? fResource->cmdList : GetUICommandList(fIndex);
+
+                _depthInvert->SetBufferState(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+                if (_depthInvert->Dispatch(_device, cmdList, fResource->GetResource(), _depthInvert->Buffer()))
+                {
+                    fResource->copy = _depthInvert->Buffer();
+                }
+
+                _depthInvert->SetBufferState(cmdList, fResource->state);
+            }
+        }
     }
 
     // We usually don't copy any resources for XeFG, the ones with this tag are the exception

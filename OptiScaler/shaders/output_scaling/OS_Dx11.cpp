@@ -1,5 +1,7 @@
 #include "OS_Dx11.h"
 
+#include "OS_Common.h"
+
 #define A_CPU
 // FSR compute shader is from : https://github.com/fholger/vrperfkit/
 

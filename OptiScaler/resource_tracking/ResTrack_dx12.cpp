@@ -778,7 +778,7 @@ static ULONG STDMETHODCALLTYPE hkHeapRelease(ID3D12DescriptorHeap* This)
     if (State::Instance().isShuttingDown)
         return o_HeapRelease(This);
 
-    std::unique_lock<std::shared_mutex> lock(heapMutex);
+    heapMutex.lock();
 
     This->AddRef();
     if (o_HeapRelease(This) <= 1)
@@ -819,6 +819,8 @@ static ULONG STDMETHODCALLTYPE hkHeapRelease(ID3D12DescriptorHeap* This)
             break;
         }
     }
+
+    heapMutex.unlock();
 
     return o_HeapRelease(This);
 }

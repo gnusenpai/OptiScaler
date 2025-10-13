@@ -1,5 +1,7 @@
 #include "FT_Dx12.h"
 
+#include "FT_Common.h"
+
 #include "precompile/R10G10B10A2_Shader.h"
 #include "precompile/R8G8B8A8_Shader.h"
 #include "precompile/B8R8G8A8_Shader.h"

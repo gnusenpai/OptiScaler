@@ -162,7 +162,8 @@ void IFGFeature_Dx12::FlipResource(Dx12Resource* resource)
 
     if (flip->get()->IsInit())
     {
-        auto result = flip->get()->Dispatch(_device, (ID3D12GraphicsCommandList*) resource->cmdList, resource->resource,
+        auto cmdList = (resource->cmdList != nullptr) ? resource->cmdList : GetUICommandList(fIndex);
+        auto result = flip->get()->Dispatch(_device, (ID3D12GraphicsCommandList*) cmdList, resource->resource,
                                             flipOutput, resource->width, resource->height, true);
 
         if (result)
