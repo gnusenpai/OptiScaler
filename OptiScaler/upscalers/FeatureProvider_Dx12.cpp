@@ -166,7 +166,7 @@ bool FeatureProvider_Dx12::ChangeFeature(std::string upscalerName, ID3D12Device*
 
             contextData->feature.reset();
 
-            if (!GetFeature(State::Instance().newBackend, handleId, parameters, &contextData->feature))
+            if (!GetFeature(State::Instance().newBackend, handleId, contextData->createParams, &contextData->feature))
             {
                 LOG_ERROR("Upscaler can't created");
                 return false;

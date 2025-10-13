@@ -147,7 +147,7 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
 
         contextData->feature.reset();
 
-        if (!GetFeature(State::Instance().newBackend, handleId, parameters, &contextData->feature))
+        if (!GetFeature(State::Instance().newBackend, handleId, contextData->createParams, &contextData->feature))
         {
             LOG_ERROR("Upscaler can't created");
             return false;
