@@ -471,6 +471,27 @@ bool XeFG_Dx12::Dispatch()
 
     LOG_DEBUG("_frameCount: {}, _willDispatchFrame: {}, fIndex: {}", _frameCount, _willDispatchFrame, fIndex);
 
+    if (!_haveHudless.has_value())
+    {
+        _haveHudless = IsUsingHudless(fIndex);
+    }
+    else
+    {
+        auto usingHudless = IsUsingHudless(fIndex);
+        if (_haveHudless.value() != usingHudless)
+        {
+            LOG_INFO("Hudless state changed {} -> {}, skipping rendering for 10 frames", usingHudless,
+                     _haveHudless.value());
+
+            _haveHudless = usingHudless;
+            State::Instance().FGchanged = true;
+            UpdateTarget();
+            Deactivate();
+
+            return true;
+        }
+    }
+
     if (!_resourceReady[fIndex].contains(FG_ResourceType::Depth) ||
         !_resourceReady[fIndex].at(FG_ResourceType::Depth) ||
         !_resourceReady[fIndex].contains(FG_ResourceType::Velocity) ||
@@ -892,20 +913,23 @@ void XeFG_Dx12::SetResource(Dx12Resource* inputResource)
     else if (type == FG_ResourceType::Distortion)
         _noDistortionField[fIndex] = false;
     else if (type == FG_ResourceType::HudlessColor)
-    {
         _noHudless[fIndex] = false;
 
-        // HACK: Prevent FG dispatch from being called for a few frames
-        // Seems like XeFG doesn't like having hudless suddenly started to be tagged
-        // and then be required to use it right away
-        if (lastHudlessFrameId == UINT64_MAX || lastHudlessFrameId + 2 < _frameCount)
-        {
-            if (XeFGProxy::SetEnabled()(_swapChainContext, false) == XEFG_SWAPCHAIN_RESULT_SUCCESS)
-                _reEnableTargetFrame = _frameCount + 5;
-        }
+    // else if (type == FG_ResourceType::HudlessColor)
+    //{
+    //     _noHudless[fIndex] = false;
 
-        lastHudlessFrameId = _frameCount;
-    }
+    //    // HACK: Prevent FG dispatch from being called for a few frames
+    //    // Seems like XeFG doesn't like having hudless suddenly started to be tagged
+    //    // and then be required to use it right away
+    //    if (lastHudlessFrameId == UINT64_MAX || lastHudlessFrameId + 2 < _frameCount)
+    //    {
+    //        if (XeFGProxy::SetEnabled()(_swapChainContext, false) == XEFG_SWAPCHAIN_RESULT_SUCCESS)
+    //            _reEnableTargetFrame = _frameCount + 5;
+    //    }
+
+    //    lastHudlessFrameId = _frameCount;
+    //}
 
     fResource->validity = (fResource->validity != FG_ResourceValidity::ValidNow || willFlip)
                               ? FG_ResourceValidity::UntilPresent

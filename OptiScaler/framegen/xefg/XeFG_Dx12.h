@@ -21,6 +21,7 @@ class XeFG_Dx12 : public virtual IFGFeature_Dx12
     uint32_t _height = 0;
     bool _infiniteDepth = false;
     UINT64 _reEnableTargetFrame = 0;
+    std::optional<bool> _haveHudless = std::nullopt;
 
     static void xefgLogCallback(const char* message, xefg_swapchain_logging_level_t level, void* userData);
 

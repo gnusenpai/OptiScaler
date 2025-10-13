@@ -68,7 +68,14 @@ bool IFGFeature::IsUsingUIAny()
     return false;
 }
 bool IFGFeature::IsUsingDistortionField() { return !_noDistortionField[GetIndex()]; }
-bool IFGFeature::IsUsingHudless() { return !_noHudless[GetIndex()]; }
+bool IFGFeature::IsUsingHudless(int index)
+{
+    if (index < 0)
+        index = GetIndex();
+
+    return !_noHudless[index];
+}
+
 bool IFGFeature::IsUsingHudlessAny()
 {
     for (const auto& value : _noHudless)
