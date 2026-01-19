@@ -165,6 +165,50 @@ if "%enablingSpoofing%"=="2" (
     powershell -Command "(Get-Content '%configFile%') -replace 'Dxgi=auto', 'Dxgi=false' | Set-Content '%configFile%'"
 )
 
+:checkOptiPatcher
+REM Check connectivity
+echo.
+echo Checking for OptiPatcher compatibility...
+ping -n 1 github.com >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Offline or GitHub blocked. Skipping OptiPatcher check.
+    goto completeSetup
+)
+
+set "OPTI_MATCH=NO"
+for /f "usebackq tokens=*" %%A in (`powershell -Command "& { $rawUrl = 'https://raw.githubusercontent.com/optiscaler/OptiPatcher/main/OptiPatcher/dllmain.cpp'; try { $code = (Invoke-WebRequest -Uri $rawUrl -UseBasicParsing).Content } catch { return 'ERR' }; $supported = @(); $ueMatches = [Regex]::Matches($code, 'CHECK_UE\s*\(\s*([a-zA-Z0-9_]+)\s*\)'); foreach ($m in $ueMatches) { $base = $m.Groups[1].Value; $supported += ($base + '-win64-shipping.exe').ToLower(); $supported += ($base + '-wingdk-shipping.exe').ToLower(); }; $directMatches = [Regex]::Matches($code, 'exeName\s*==\s*[\x22\x27]([^\x22\x27]+)[\x22\x27]'); foreach ($m in $directMatches) { $supported += $m.Groups[1].Value.ToLower(); }; $localFiles = Get-ChildItem *.exe | Select-Object -ExpandProperty Name; foreach ($file in $localFiles) { if ($supported -contains $file.ToLower()) { Write-Output 'YES'; exit; } }; Write-Output 'NO'; }"`) do (
+    set "OPTI_MATCH=%%A"
+)
+
+if "!OPTI_MATCH!"=="YES" (
+    echo.
+    echo OptiPatcher support detected!
+    echo.
+    set /p downloadOptiPatcher="Download OptiPatcher.asi? [y/n]: "
+    set downloadOptiPatcher=!downloadOptiPatcher: =!
+    
+    if "!downloadOptiPatcher!"=="y" (
+        echo.
+        echo Preparing plugins folder...
+        if not exist "plugins" mkdir "plugins"
+        
+        echo Downloading OptiPatcher...
+        powershell -Command "Invoke-WebRequest -Uri 'https://github.com/optiscaler/OptiPatcher/releases/download/rolling/OptiPatcher.asi' -OutFile 'plugins\OptiPatcher.asi'"
+        
+        if exist "plugins\OptiPatcher.asi" (
+            echo OptiPatcher.asi downloaded successfully.
+            echo Enabling ASI loading in OptiScaler.ini...
+            if exist "%configFile%" (
+                powershell -Command "(Get-Content '%configFile%') -replace 'LoadAsiPlugins=auto', 'LoadAsiPlugins=true' | Set-Content '%configFile%'"
+            ) else (
+                echo Warning: OptiScaler.ini not found, could not enable LoadAsiPlugins.
+            )
+        ) else (
+            echo Failed to download OptiPatcher.asi.
+        )
+    )
+)
+
 :completeSetup
 REM Rename OptiScaler file
 echo.
@@ -235,6 +279,8 @@ echo    del fakenvapi.ini
 echo    del fakenvapi.log
 echo    del dlssg_to_fsr3_amd_is_better.dll
 echo    del dlssg_to_fsr3.log
+echo    del plugins\OptiPatcher.asi
+echo    rd plugins
 echo    del /Q D3D12_Optiscaler\*
 echo    rd D3D12_Optiscaler
 echo    del /Q DlssOverrides\*
@@ -261,5 +307,3 @@ echo Uninstaller created.
 echo.
 
 goto create_uninstaller_return
-
-
