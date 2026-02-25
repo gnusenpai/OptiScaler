@@ -1,3 +1,5 @@
+#include <pch.h>
+
 #include "VulkanwDx12_Hooks.h"
 
 #include <State.h>

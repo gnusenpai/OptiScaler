@@ -1,3 +1,5 @@
+#include <pch.h>
+
 #include "IFeature_VkwDx12.h"
 
 #include <Config.h>
