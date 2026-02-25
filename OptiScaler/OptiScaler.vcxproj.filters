@@ -686,9 +686,6 @@
     <ClInclude Include="hooks\VulkanwDx12\VulkanwDx12_Hooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="inputs\FG\XeSS_Dx12_FG.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hooks\VulkanwDx12\CommandBuffer_StateTracker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1086,9 +1083,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="hooks\VulkanwDx12\VulkanwDx12_Hooks.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="inputs\FG\XeSS_Dx12_FG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
