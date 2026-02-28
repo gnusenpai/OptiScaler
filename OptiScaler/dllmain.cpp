@@ -40,6 +40,7 @@
 
 #include <cwctype>
 #include <version_check.h>
+#include <misc/IdentifyGpu.h>
 
 static std::vector<HMODULE> _asiHandles;
 static bool _passThruMode = false;
@@ -1696,273 +1697,281 @@ void CheckForExcludedProcess()
     _passThruMode = false;
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+DWORD WINAPI InitThread(LPVOID hModuleVoid)
 {
+    HMODULE hModule = (HMODULE) hModuleVoid;
     HMODULE handle = nullptr;
     OSVERSIONINFOW winVer { 0 };
 
-    switch (ul_reason_for_call)
+    dllModule = hModule;
+    exeModule = GetModuleHandle(nullptr);
+    processId = GetCurrentProcessId();
+
+    CheckForExcludedProcess();
+
+    if (_passThruMode)
     {
-    case DLL_PROCESS_ATTACH:
-        DisableThreadLibraryCalls(hModule);
-
-        dllModule = hModule;
-        exeModule = GetModuleHandle(nullptr);
-        processId = GetCurrentProcessId();
-
-        CheckForExcludedProcess();
-
-        if (_passThruMode)
-        {
-            NtdllProxy::Init();
-            KernelBaseProxy::Init();
-            Kernel32Proxy::Init();
-
-            CheckWorkingMode();
-            break;
-        }
-
-#ifdef _DEBUG // VER_PRE_RELEASE
-        // Enable file logging for pre builds
-        Config::Instance()->LogToFile.set_volatile_value(true);
-
-        // Set log level to debug
-        if (Config::Instance()->LogLevel.value_or_default() > 1)
-            Config::Instance()->LogLevel.set_volatile_value(1);
-#endif
-
-        PrepareLogger();
-
-        spdlog::warn("{0} loaded", VER_PRODUCT_NAME);
-        spdlog::warn("---------------------------------");
-        spdlog::warn("OptiScaler is freely downloadable from");
-        spdlog::warn("GitHub : https://github.com/optiscaler/OptiScaler/releases");
-        spdlog::warn("Nexus  : https://www.nexusmods.com/site/mods/986");
-        spdlog::warn("If you paid for these files, you've been scammed!");
-        spdlog::warn("DO NOT USE IN MULTIPLAYER GAMES");
-        spdlog::info("");
-        spdlog::info("LogLevel: {0}", Config::Instance()->LogLevel.value_or_default());
-
-        spdlog::info("");
-        if (Util::GetRealWindowsVersion(winVer))
-            spdlog::info("Windows version: {} ({}.{}.{})", Util::GetWindowsName(winVer), winVer.dwMajorVersion,
-                         winVer.dwMinorVersion, winVer.dwBuildNumber, winVer.dwPlatformId);
-        else
-            spdlog::warn("Can't read windows version");
-
-        spdlog::info("");
-
-        spdlog::info("Config parameters:");
-        for (const std::string& l : Config::Instance()->GetConfigLog())
-            spdlog::info(l);
-
-#ifdef VER_PRE_RELEASE
-        spdlog::info("Pre-release build, disabling update checks");
-        Config::Instance()->CheckForUpdate.set_volatile_value(false);
-#endif
-
-        // Initial state of FG
-        State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
-        State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
-
-        // Init Kernel proxies
         NtdllProxy::Init();
         KernelBaseProxy::Init();
         Kernel32Proxy::Init();
 
-        // Check for Wine
+        CheckWorkingMode();
+        return true;
+    }
+
+#ifdef _DEBUG // VER_PRE_RELEASE
+    // Enable file logging for pre builds
+    Config::Instance()->LogToFile.set_volatile_value(true);
+
+    // Set log level to debug
+    if (Config::Instance()->LogLevel.value_or_default() > 1)
+        Config::Instance()->LogLevel.set_volatile_value(1);
+#endif
+
+    PrepareLogger();
+
+    spdlog::warn("{0} loaded", VER_PRODUCT_NAME);
+    spdlog::warn("---------------------------------");
+    spdlog::warn("OptiScaler is freely downloadable from");
+    spdlog::warn("GitHub : https://github.com/optiscaler/OptiScaler/releases");
+    spdlog::warn("Nexus  : https://www.nexusmods.com/site/mods/986");
+    spdlog::warn("If you paid for these files, you've been scammed!");
+    spdlog::warn("DO NOT USE IN MULTIPLAYER GAMES");
+    spdlog::info("");
+    spdlog::info("LogLevel: {0}", Config::Instance()->LogLevel.value_or_default());
+
+    spdlog::info("");
+    if (Util::GetRealWindowsVersion(winVer))
+        spdlog::info("Windows version: {} ({}.{}.{})", Util::GetWindowsName(winVer), winVer.dwMajorVersion,
+                     winVer.dwMinorVersion, winVer.dwBuildNumber, winVer.dwPlatformId);
+    else
+        spdlog::warn("Can't read windows version");
+
+    spdlog::info("");
+
+    spdlog::info("Config parameters:");
+    for (const std::string& l : Config::Instance()->GetConfigLog())
+        spdlog::info(l);
+
+#ifdef VER_PRE_RELEASE
+    spdlog::info("Pre-release build, disabling update checks");
+    Config::Instance()->CheckForUpdate.set_volatile_value(false);
+#endif
+
+    // Initial state of FG
+    State::Instance().activeFgInput = Config::Instance()->FGInput.value_or_default();
+    State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
+
+    // Init Kernel proxies
+    NtdllProxy::Init();
+    KernelBaseProxy::Init();
+    Kernel32Proxy::Init();
+
+    // Check for Wine
+    spdlog::info("");
+    State::Instance().isRunningOnLinux = IsRunningOnWine();
+    State::Instance().isRunningOnDXVK = State::Instance().isRunningOnLinux;
+
+    // Check if real DLSS available
+    if (Config::Instance()->DLSSEnabled.value_or_default())
+    {
         spdlog::info("");
-        State::Instance().isRunningOnLinux = IsRunningOnWine();
-        State::Instance().isRunningOnDXVK = State::Instance().isRunningOnLinux;
+        State::Instance().isRunningOnNvidia = isNvidia();
 
-        // Check if real DLSS available
-        if (Config::Instance()->DLSSEnabled.value_or_default())
+        if (State::Instance().isRunningOnNvidia)
         {
-            spdlog::info("");
-            State::Instance().isRunningOnNvidia = isNvidia();
+            spdlog::info("Running on Nvidia");
 
-            if (State::Instance().isRunningOnNvidia)
+            auto exePath = Util::ExePath().remove_filename();
+            State::Instance().NVNGX_DLSS_Path = Util::FindFilePath(exePath, "nvngx_dlss.dll");
+            State::Instance().NVNGX_DLSSD_Path = Util::FindFilePath(exePath, "nvngx_dlssd.dll");
+            State::Instance().NVNGX_DLSSG_Path = Util::FindFilePath(exePath, "nvngx_dlssg.dll");
+
+            if (State::Instance().NVNGX_DLSS_Path.has_value())
             {
-                spdlog::info("Running on Nvidia");
-
-                auto exePath = Util::ExePath().remove_filename();
-                State::Instance().NVNGX_DLSS_Path = Util::FindFilePath(exePath, "nvngx_dlss.dll");
-                State::Instance().NVNGX_DLSSD_Path = Util::FindFilePath(exePath, "nvngx_dlssd.dll");
-                State::Instance().NVNGX_DLSSG_Path = Util::FindFilePath(exePath, "nvngx_dlssg.dll");
-
-                if (State::Instance().NVNGX_DLSS_Path.has_value())
-                {
-                    spdlog::info("Enabling DLSS");
-                    Config::Instance()->DLSSEnabled.set_volatile_value(true);
-                }
-                else
-                {
-                    spdlog::warn("nvngx_dlss.dll not found, disabling DLSS");
-                    Config::Instance()->DLSSEnabled.set_volatile_value(false);
-                }
-
-                if (!Config::Instance()->DxgiSpoofing.has_value())
-                {
-                    spdlog::info("Disabling DxgiSpoofing");
-                    Config::Instance()->DxgiSpoofing.set_volatile_value(false);
-                }
-
-                // StreamlineSpoofing is more selective on Nvidia now
-                // if (!Config::Instance()->StreamlineSpoofing.has_value())
-                //    Config::Instance()->StreamlineSpoofing.set_volatile_value(false);
+                spdlog::info("Enabling DLSS");
+                Config::Instance()->DLSSEnabled.set_volatile_value(true);
             }
             else
             {
-                spdlog::info("Not running on Nvidia, disabling DLSS");
+                spdlog::warn("nvngx_dlss.dll not found, disabling DLSS");
                 Config::Instance()->DLSSEnabled.set_volatile_value(false);
             }
+
+            if (!Config::Instance()->DxgiSpoofing.has_value())
+            {
+                spdlog::info("Disabling DxgiSpoofing");
+                Config::Instance()->DxgiSpoofing.set_volatile_value(false);
+            }
+
+            // StreamlineSpoofing is more selective on Nvidia now
+            // if (!Config::Instance()->StreamlineSpoofing.has_value())
+            //    Config::Instance()->StreamlineSpoofing.set_volatile_value(false);
         }
         else
         {
             spdlog::info("Not running on Nvidia, disabling DLSS");
             Config::Instance()->DLSSEnabled.set_volatile_value(false);
         }
+    }
+    else
+    {
+        spdlog::info("Not running on Nvidia, disabling DLSS");
+        Config::Instance()->DLSSEnabled.set_volatile_value(false);
+    }
 
+    spdlog::info("");
+    CheckQuirks();
+
+    // Check for working mode and attach hooks
+    spdlog::info("");
+    CheckWorkingMode();
+
+    auto d = IdentifyGpu::getGpuInfo();
+
+    // OptiFG & Overlay Checks
+    // TODO: Either FGInput == FGInput::Upscaler or FGOutput == FGOutput::FSRFG
+    if ((Config::Instance()->FGInput.value_or_default() == FGInput::Upscaler) &&
+        !Config::Instance()->DisableOverlays.has_value())
+        Config::Instance()->DisableOverlays.set_volatile_value(true);
+
+    if (Config::Instance()->DisableOverlays.value_or_default())
+    {
+        _wputenv_s(L"SteamNoOverlayUIDrawing", L"1");
+        SetEnvironmentVariableW(L"SteamNoOverlayUIDrawing", L"1");
+    }
+
+    // FSR4 Watermark, overrides environment variable only if set in config
+    if (Config::Instance()->Fsr4EnableWatermark.has_value())
+    {
+        if (Config::Instance()->Fsr4EnableWatermark.value())
+        {
+            _wputenv_s(L"MLSR-WATERMARK", L"1");
+            SetEnvironmentVariableW(L"MLSR-WATERMARK", L"1");
+
+            if (!Config::Instance()->FpsOverlayPos.has_value())
+                Config::Instance()->FpsOverlayPos.set_volatile_value(1); // Top right
+        }
+        else
+        {
+            _wputenv_s(L"MLSR-WATERMARK", L"0");
+            SetEnvironmentVariableW(L"MLSR-WATERMARK", L"0");
+        }
+    }
+
+    if (Config::Instance()->FSRFGEnableWatermark.has_value())
+    {
+        if (Config::Instance()->FSRFGEnableWatermark.value())
+        {
+            _wputenv_s(L"MLFI-WATERMARK", L"1");
+            SetEnvironmentVariableW(L"MLFI-WATERMARK", L"1");
+
+            if (!Config::Instance()->FpsOverlayPos.has_value())
+                Config::Instance()->FpsOverlayPos.set_volatile_value(1); // Top right
+        }
+        else
+        {
+            _wputenv_s(L"MLFI-WATERMARK", L"0");
+            SetEnvironmentVariableW(L"MLFI-WATERMARK", L"0");
+        }
+    }
+
+    // Hook FSR4 stuff as early as possible
+    spdlog::info("");
+    InitFSR4Update();
+
+    if (!Config::Instance()->OverrideNvapiDll.has_value())
+    {
+        spdlog::info("OverrideNvapiDll not set, setting it to: {}",
+                     !State::Instance().isRunningOnNvidia ? "true" : "false");
+        Config::Instance()->OverrideNvapiDll.set_volatile_value(!State::Instance().isRunningOnNvidia);
+
+        // Try to load fakenvapi.dll as the main nvapi if not on Nvidia
+        if (!State::Instance().isRunningOnNvidia && !Config::Instance()->NvapiDllPath.has_value())
+            Config::Instance()->NvapiDllPath.set_volatile_value(L"fakenvapi.dll");
+    }
+
+    // Asi plugins
+    if (!State::Instance().isWorkingAsNvngx && Config::Instance()->LoadAsiPlugins.value_or_default())
+    {
         spdlog::info("");
-        CheckQuirks();
+        LoadAsiPlugins();
+    }
 
-        // Check for working mode and attach hooks
+    if (!Config::Instance()->DxgiSpoofing.has_value() && !State::Instance().nvngxReplacement.has_value())
+    {
+        LOG_WARN("Nvngx replacement not found!");
+
+        if (!State::Instance().nvngxExists)
+        {
+            LOG_WARN("nvngx.dll not found! - disabling spoofing");
+            Config::Instance()->DxgiSpoofing.set_volatile_value(false);
+        }
+    }
+
+    if (Config::Instance()->EnableFsr2Inputs.value_or_default())
+    {
         spdlog::info("");
-        CheckWorkingMode();
 
-        // OptiFG & Overlay Checks
-        // TODO: Either FGInput == FGInput::Upscaler or FGOutput == FGOutput::FSRFG
-        if ((Config::Instance()->FGInput.value_or_default() == FGInput::Upscaler) &&
-            !Config::Instance()->DisableOverlays.has_value())
-            Config::Instance()->DisableOverlays.set_volatile_value(true);
-
-        if (Config::Instance()->DisableOverlays.value_or_default())
+        if (Config::Instance()->UseFsr2VulkanInputs.value_or_default())
+            HookFSR2VkExeInputs();
+        else if (Config::Instance()->UseFsr2Dx11Inputs.value_or_default())
+            HookFSR2Dx11ExeInputs();
+        else
         {
-            _wputenv_s(L"SteamNoOverlayUIDrawing", L"1");
-            SetEnvironmentVariableW(L"SteamNoOverlayUIDrawing", L"1");
-        }
-
-        // FSR4 Watermark, overrides environment variable only if set in config
-        if (Config::Instance()->Fsr4EnableWatermark.has_value())
-        {
-            if (Config::Instance()->Fsr4EnableWatermark.value())
-            {
-                _wputenv_s(L"MLSR-WATERMARK", L"1");
-                SetEnvironmentVariableW(L"MLSR-WATERMARK", L"1");
-
-                if (!Config::Instance()->FpsOverlayPos.has_value())
-                    Config::Instance()->FpsOverlayPos.set_volatile_value(1); // Top right
-            }
-            else
-            {
-                _wputenv_s(L"MLSR-WATERMARK", L"0");
-                SetEnvironmentVariableW(L"MLSR-WATERMARK", L"0");
-            }
-        }
-
-        if (Config::Instance()->FSRFGEnableWatermark.has_value())
-        {
-            if (Config::Instance()->FSRFGEnableWatermark.value())
-            {
-                _wputenv_s(L"MLFI-WATERMARK", L"1");
-                SetEnvironmentVariableW(L"MLFI-WATERMARK", L"1");
-
-                if (!Config::Instance()->FpsOverlayPos.has_value())
-                    Config::Instance()->FpsOverlayPos.set_volatile_value(1); // Top right
-            }
-            else
-            {
-                _wputenv_s(L"MLFI-WATERMARK", L"0");
-                SetEnvironmentVariableW(L"MLFI-WATERMARK", L"0");
-            }
-        }
-
-        // Hook FSR4 stuff as early as possible
-        spdlog::info("");
-        InitFSR4Update();
-
-        if (!Config::Instance()->OverrideNvapiDll.has_value())
-        {
-            spdlog::info("OverrideNvapiDll not set, setting it to: {}",
-                         !State::Instance().isRunningOnNvidia ? "true" : "false");
-            Config::Instance()->OverrideNvapiDll.set_volatile_value(!State::Instance().isRunningOnNvidia);
-
-            // Try to load fakenvapi.dll as the main nvapi if not on Nvidia
-            if (!State::Instance().isRunningOnNvidia && !Config::Instance()->NvapiDllPath.has_value())
-                Config::Instance()->NvapiDllPath.set_volatile_value(L"fakenvapi.dll");
-        }
-
-        // Asi plugins
-        if (!State::Instance().isWorkingAsNvngx && Config::Instance()->LoadAsiPlugins.value_or_default())
-        {
-            spdlog::info("");
-            LoadAsiPlugins();
-        }
-
-        if (!Config::Instance()->DxgiSpoofing.has_value() && !State::Instance().nvngxReplacement.has_value())
-        {
-            LOG_WARN("Nvngx replacement not found!");
-
-            if (!State::Instance().nvngxExists)
-            {
-                LOG_WARN("nvngx.dll not found! - disabling spoofing");
-                Config::Instance()->DxgiSpoofing.set_volatile_value(false);
-            }
-        }
-
-        if (Config::Instance()->EnableFsr2Inputs.value_or_default())
-        {
-            spdlog::info("");
-
-            if (Config::Instance()->UseFsr2VulkanInputs.value_or_default())
-                HookFSR2VkExeInputs();
-            else if (Config::Instance()->UseFsr2Dx11Inputs.value_or_default())
-                HookFSR2Dx11ExeInputs();
-            else
-            {
-                handle = GetDllNameWModule(&fsr2NamesW);
-                if (handle != nullptr)
-                    HookFSR2Inputs(handle);
-
-                handle = GetDllNameWModule(&fsr2BENamesW);
-                if (handle != nullptr)
-                    HookFSR2Dx12Inputs(handle);
-
-                HookFSR2ExeInputs();
-            }
-        }
-
-        if (Config::Instance()->EnableFsr3Inputs.value_or_default())
-        {
-            handle = GetDllNameWModule(&fsr3NamesW);
+            handle = GetDllNameWModule(&fsr2NamesW);
             if (handle != nullptr)
-                HookFSR3Inputs(handle);
+                HookFSR2Inputs(handle);
 
-            handle = GetDllNameWModule(&fsr3BENamesW);
+            handle = GetDllNameWModule(&fsr2BENamesW);
             if (handle != nullptr)
-                HookFSR3Dx12Inputs(handle);
+                HookFSR2Dx12Inputs(handle);
 
-            HookFSR3ExeInputs();
+            HookFSR2ExeInputs();
         }
-        // HookFfxExeInputs();
+    }
 
-        if (State::Instance().activeFgInput == FGInput::FSRFG30)
-        {
-            FSR3FG::HookFSR3FGInputs();
-            FSR3FG::HookFSR3FGExeInputs();
-        }
+    if (Config::Instance()->EnableFsr3Inputs.value_or_default())
+    {
+        handle = GetDllNameWModule(&fsr3NamesW);
+        if (handle != nullptr)
+            HookFSR3Inputs(handle);
 
-        for (size_t i = 0; i < 300; i++)
-        {
-            State::Instance().frameTimes.push_back(0.0f);
-            State::Instance().upscaleTimes.push_back(0.0f);
-        }
+        handle = GetDllNameWModule(&fsr3BENamesW);
+        if (handle != nullptr)
+            HookFSR3Dx12Inputs(handle);
 
-        spdlog::info("");
-        spdlog::info("Init done");
-        spdlog::info("---------------------------------------------");
-        spdlog::info("");
+        HookFSR3ExeInputs();
+    }
+    // HookFfxExeInputs();
 
+    if (State::Instance().activeFgInput == FGInput::FSRFG30)
+    {
+        FSR3FG::HookFSR3FGInputs();
+        FSR3FG::HookFSR3FGExeInputs();
+    }
+
+    for (size_t i = 0; i < 300; i++)
+    {
+        State::Instance().frameTimes.push_back(0.0f);
+        State::Instance().upscaleTimes.push_back(0.0f);
+    }
+
+    spdlog::info("");
+    spdlog::info("Init done");
+    spdlog::info("---------------------------------------------");
+    spdlog::info("");
+
+    return 0;
+}
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+{
+    switch (ul_reason_for_call)
+    {
+    case DLL_PROCESS_ATTACH:
+        DisableThreadLibraryCalls(hModule);
+        CreateThread(nullptr, 0, InitThread, hModule, 0, nullptr);
         break;
 
     case DLL_PROCESS_DETACH:

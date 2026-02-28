@@ -1,0 +1,65 @@
+#pragma once
+#include <nvapi.h>
+
+MIDL_INTERFACE("39da4e09-bd1c-4198-9fae-86bbe3be41fd")
+ID3D12DXVKInteropDevice : public IUnknown
+{
+    virtual HRESULT STDMETHODCALLTYPE GetDXGIAdapter(REFIID iid, void** ppvObject) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE GetInstanceExtensions(UINT * pExtensionCount, const char** ppExtensions) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE GetDeviceExtensions(UINT * pExtensionCount, const char** ppExtensions) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE GetDeviceFeatures(const VkPhysicalDeviceFeatures2** ppFeatures) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE GetVulkanHandles(VkInstance * pVkInstance, VkPhysicalDevice * pVkPhysicalDevice,
+                                                       VkDevice * pVkDevice) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE GetVulkanQueueInfo(ID3D12CommandQueue * pCommandQueue, VkQueue * pVkQueue,
+                                                         UINT32 * pVkQueueFamily) = 0;
+
+    virtual void STDMETHODCALLTYPE GetVulkanImageLayout(ID3D12Resource * pResource, D3D12_RESOURCE_STATES State,
+                                                        VkImageLayout * pVkLayout) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE GetVulkanResourceInfo(ID3D12Resource * pResource, UINT64 * pVkHandle,
+                                                            UINT64 * pBufferOffset) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE LockCommandQueue(ID3D12CommandQueue * pCommandQueue) = 0;
+
+    virtual HRESULT STDMETHODCALLTYPE UnlockCommandQueue(ID3D12CommandQueue * pCommandQueue) = 0;
+};
+
+struct GpuInformation
+{
+    LUID luid {}; // Unique id to be able to reference the exact GPU, VkPhysicalDeviceIDProperties
+    std::string name {};
+    VendorId::Value vendorId = VendorId::Invalid;
+    size_t dedicatedVramInBytes = 0;
+
+    bool fsr4capable = false;
+    ID3D12Device* d3d12device = nullptr;
+
+    bool dlssCapable = false;
+    NV_GPU_ARCH_INFO nvidiaArchInfo {};
+};
+
+// - Check if FSR 4 is supported by using amdxc64, watch out for linux memes on proton experimental that don't check
+// vulkan caps
+// - Check Nvidia Arch, watch out for fakenvapi
+// - Check vram amount
+//
+// - Check hags support? watch out for linux
+// - Check if dxgi uses dxvk, some dxvk specific call?
+// - Check if vkd3d-proton is being used? Could be helpful to display in menu
+// - Check vulkan driver? radv vs amdvlk etc
+
+class IdentifyGpu
+{
+    static std::optional<std::vector<GpuInformation>> cachedInfo;
+
+    static void checkGpuInfo();
+
+  public:
+    // Sorted by priority, the first one should be treated as the primary one
+    static std::vector<GpuInformation> getGpuInfo();
+};
