@@ -10,7 +10,7 @@ std::optional<std::vector<GpuInformation>> IdentifyGpu::cachedInfo;
 
 using Microsoft::WRL::ComPtr;
 
-// Maybe take into account some other GPU ordering, DxgiFactoryWrappedCalls::EnumAdapters?
+// TODO: Maybe take into account some other GPU ordering, DxgiFactoryWrappedCalls::EnumAdapters?
 constexpr int vendorPriority(VendorId::Value v)
 {
     switch (v)
@@ -75,7 +75,13 @@ void IdentifyGpu::checkGpuInfo()
             std::wstring szName(adapterDesc.Description);
             gpuInfo.name = wstring_to_string(szName);
 
-            if (gpuInfo.vendorId == VendorId::AMD)
+            // TODO: check if an invalid guid still return S_OK but nullptr
+            ComPtr<IDXGIVkInteropDevice> dxgiInterop;
+            if (SUCCEEDED(adapter->QueryInterface(IID_PPV_ARGS(&dxgiInterop))))
+                gpuInfo.usesDxvk = true;
+
+            // Needed to be able to query amdxc and check for vkd3d-proton
+            if (gpuInfo.vendorId == VendorId::AMD || gpuInfo.usesDxvk)
             {
                 auto result =
                     D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device));
@@ -96,6 +102,10 @@ void IdentifyGpu::checkGpuInfo()
 
     for (auto& gpuInfo : localCachedInfo)
     {
+        ComPtr<ID3D12DXVKInteropDevice> vkd3dInterop;
+        if (gpuInfo.usesDxvk && SUCCEEDED(gpuInfo.d3d12device->QueryInterface(IID_PPV_ARGS(&vkd3dInterop))))
+            gpuInfo.usesVkd3dProton = true;
+
         if (gpuInfo.vendorId == VendorId::AMD && gpuInfo.d3d12device)
         {
             auto moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
@@ -119,32 +129,27 @@ void IdentifyGpu::checkGpuInfo()
                 {
                     HRESULT float8support =
                         amdExtD3DShaderIntrinsics->CheckSupport(AmdExtD3DShaderIntrinsicsSupport_Float8Conversion);
-                    gpuInfo.fsr4capable = float8support == S_OK;
+                    gpuInfo.fsr4Capable = float8support == S_OK;
                 }
             }
 
-            if (!gpuInfo.fsr4capable /*&& State::Instance().isRunningOnLinux*/)
+            if (!gpuInfo.fsr4Capable && gpuInfo.usesVkd3dProton)
             {
-                ComPtr<ID3D12DXVKInteropDevice> interop;
+                UINT extensionCount = 0;
 
-                if (SUCCEEDED(gpuInfo.d3d12device->QueryInterface(IID_PPV_ARGS(&interop))))
+                if (SUCCEEDED(vkd3dInterop->GetDeviceExtensions(&extensionCount, nullptr)) && extensionCount > 0)
                 {
-                    UINT extensionCount = 0;
+                    std::vector<const char*> exts(extensionCount);
 
-                    if (SUCCEEDED(interop->GetDeviceExtensions(&extensionCount, nullptr)) && extensionCount > 0)
+                    if (SUCCEEDED(vkd3dInterop->GetDeviceExtensions(&extensionCount, exts.data())))
                     {
-                        std::vector<const char*> exts(extensionCount);
-
-                        if (SUCCEEDED(interop->GetDeviceExtensions(&extensionCount, exts.data())))
+                        for (UINT i = 0; i < extensionCount; i++)
                         {
-                            for (UINT i = 0; i < extensionCount; i++)
+                            // Only RDNA4+
+                            if (!strcmp("VK_EXT_shader_float8", exts[i]))
                             {
-                                // Only RDNA4+
-                                if (!strcmp("VK_EXT_shader_float8", exts[i]))
-                                {
-                                    gpuInfo.fsr4capable = true;
-                                    break;
-                                }
+                                gpuInfo.fsr4Capable = true;
+                                break;
                             }
                         }
                     }
@@ -236,10 +241,16 @@ void IdentifyGpu::checkGpuInfo()
     }
 }
 
-std::vector<GpuInformation> IdentifyGpu::getGpuInfo()
+std::vector<GpuInformation> IdentifyGpu::getAllGpus()
 {
     if (!cachedInfo.has_value())
         checkGpuInfo();
 
     return cachedInfo.value();
+}
+
+GpuInformation IdentifyGpu::getPrimaryGpu()
+{
+    auto allGpus = getAllGpus();
+    return allGpus.size() > 0 ? allGpus[0] : GpuInformation {};
 }

@@ -587,45 +587,17 @@ static void CheckWorkingMode()
         // dxgi.dll
         if (lCaseFilename == "dxgi.dll")
         {
-            do
-            {
-                auto pluginFilePath = pluginPath / L"dxgi.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
+            // Init will try to load the specifc path itself
+            // It's to allow dxgi usage before this point
+            DxgiProxy::Init(nullptr, _passThruMode);
 
-                if (originalModule != nullptr)
-                {
-                    if (!_passThruMode)
-                        LOG_INFO("OptiScaler working as dxgi.dll, original dll loaded from plugin folder");
-
-                    break;
-                }
-
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"dxgi-original.dll", NULL, 0);
-
-                if (originalModule != nullptr)
-                {
-                    if (!_passThruMode)
-                        LOG_INFO("OptiScaler working as dxgi.dll, dxgi-original.dll loaded");
-
-                    break;
-                }
-
-                auto sysFilePath = sysPath / L"dxgi.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
-
-                if (originalModule != nullptr && !_passThruMode)
-                    LOG_INFO("OptiScaler working as dxgi.dll, system dll loaded");
-
-            } while (false);
-
-            if (originalModule != nullptr)
+            if (DxgiProxy::Module() != nullptr)
             {
                 dllNames.push_back("dxgi.dll");
                 dllNames.push_back("dxgi");
                 dllNamesW.push_back(L"dxgi.dll");
                 dllNamesW.push_back(L"dxgi");
 
-                DxgiProxy::Init(originalModule);
                 dxgi.LoadOriginalLibrary(originalModule);
 
                 State::Instance().isDxgiMode = true;
@@ -839,7 +811,7 @@ static void CheckWorkingMode()
             }
 
             // Vulkan
-            if (State::Instance().isRunningOnDXVK || State::Instance().isRunningOnLinux ||
+            if (IdentifyGpu::getPrimaryGpu().usesDxvk || State::Instance().isRunningOnLinux ||
                 (State::Instance().gameQuirks & GameQuirk::LoadVulkanManually))
             {
                 vulkanModule = NtdllProxy::LoadLibraryExW_Ldr(L"vulkan-1.dll", NULL, 0);
@@ -1770,7 +1742,8 @@ DWORD WINAPI InitThread(LPVOID hModuleVoid)
     // Check for Wine
     spdlog::info("");
     State::Instance().isRunningOnLinux = IsRunningOnWine();
-    State::Instance().isRunningOnDXVK = State::Instance().isRunningOnLinux;
+
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     // Check if real DLSS available
     if (Config::Instance()->DLSSEnabled.value_or_default())
@@ -1827,10 +1800,7 @@ DWORD WINAPI InitThread(LPVOID hModuleVoid)
     spdlog::info("");
     CheckWorkingMode();
 
-    auto d = IdentifyGpu::getGpuInfo();
-
     // OptiFG & Overlay Checks
-    // TODO: Either FGInput == FGInput::Upscaler or FGOutput == FGOutput::FSRFG
     if ((Config::Instance()->FGInput.value_or_default() == FGInput::Upscaler) &&
         !Config::Instance()->DisableOverlays.has_value())
         Config::Instance()->DisableOverlays.set_volatile_value(true);

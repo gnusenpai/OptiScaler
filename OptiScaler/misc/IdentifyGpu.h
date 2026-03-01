@@ -1,6 +1,7 @@
 #pragma once
 #include <nvapi.h>
 
+// vkd3d-proton
 MIDL_INTERFACE("39da4e09-bd1c-4198-9fae-86bbe3be41fd")
 ID3D12DXVKInteropDevice : public IUnknown
 {
@@ -29,14 +30,24 @@ ID3D12DXVKInteropDevice : public IUnknown
     virtual HRESULT STDMETHODCALLTYPE UnlockCommandQueue(ID3D12CommandQueue * pCommandQueue) = 0;
 };
 
+// dxvk
+MIDL_INTERFACE("e2ef5fa5-dc21-4af7-90c4-f67ef6a09323")
+IDXGIVkInteropDevice : public IUnknown
+{
+    virtual void STDMETHODCALLTYPE GetVulkanHandles(VkInstance * pInstance, VkPhysicalDevice * pPhysDev,
+                                                    VkDevice * pDevice) = 0;
+};
+
 struct GpuInformation
 {
     LUID luid {}; // Unique id to be able to reference the exact GPU, VkPhysicalDeviceIDProperties
     std::string name {};
     VendorId::Value vendorId = VendorId::Invalid;
     size_t dedicatedVramInBytes = 0;
+    bool usesDxvk = false;
+    bool usesVkd3dProton = false;
 
-    bool fsr4capable = false;
+    bool fsr4Capable = false;
     ID3D12Device* d3d12device = nullptr;
 
     bool dlssCapable = false;
@@ -47,11 +58,15 @@ struct GpuInformation
 // vulkan caps
 // - Check Nvidia Arch, watch out for fakenvapi
 // - Check vram amount
+// - Check if dxgi uses dxvk, some dxvk specific call?
 //
 // - Check hags support? watch out for linux
-// - Check if dxgi uses dxvk, some dxvk specific call?
 // - Check if vkd3d-proton is being used? Could be helpful to display in menu
 // - Check vulkan driver? radv vs amdvlk etc
+// - Opti in many spots assumes a single GPU and that all handles are coming from that gpu,
+// might need to always check if LUID of the held device matches the one provided by this class
+// before trying to use any info from here. Could also create a method to query GpuInformation based on LUID
+// - Look at removing state.DeviceAdapterNames
 
 class IdentifyGpu
 {
@@ -61,5 +76,6 @@ class IdentifyGpu
 
   public:
     // Sorted by priority, the first one should be treated as the primary one
-    static std::vector<GpuInformation> getGpuInfo();
+    static std::vector<GpuInformation> getAllGpus();
+    static GpuInformation getPrimaryGpu();
 };

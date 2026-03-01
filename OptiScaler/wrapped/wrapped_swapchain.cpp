@@ -16,6 +16,7 @@
 
 #include <d3d11.h>
 #include <d3d12.h>
+#include <misc/IdentifyGpu.h>
 
 #pragma intrinsic(_ReturnAddress)
 
@@ -214,7 +215,7 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
     }
 
     // DXVK check, it's here because of upscaler time calculations
-    if (State::Instance().isRunningOnDXVK)
+    if (IdentifyGpu::getPrimaryGpu().usesDxvk)
     {
         if (pPresentParameters == nullptr)
             presentResult = pSwapChain->Present(SyncInterval, Flags);

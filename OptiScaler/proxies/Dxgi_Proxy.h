@@ -20,7 +20,7 @@ class DxgiProxy
     typedef HRESULT (*PFN_DeclareAdepterRemovalSupport)();
     typedef HRESULT (*PFN_GetDebugInterface)(UINT Flags, REFIID riid, void** ppDebug);
 
-    static void Init(HMODULE module = nullptr)
+    static void Init(HMODULE module = nullptr, bool passThruMode = false)
     {
         if (_dll != nullptr)
             return;
@@ -28,6 +28,47 @@ class DxgiProxy
         if (module == nullptr)
         {
             _dll = GetModuleHandle(L"dxgi.dll");
+
+            if (_dll == dllModule)
+            {
+                wchar_t sysFolder[MAX_PATH];
+                GetSystemDirectory(sysFolder, MAX_PATH);
+                std::filesystem::path sysPath(sysFolder);
+                std::filesystem::path pluginPath(Config::Instance()->PluginPath.value_or_default());
+
+                do
+                {
+                    auto pluginFilePath = pluginPath / L"dxgi.dll";
+                    originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
+
+                    if (originalModule != nullptr)
+                    {
+                        if (!passThruMode)
+                            LOG_INFO("OptiScaler working as dxgi.dll, original dll loaded from plugin folder");
+
+                        break;
+                    }
+
+                    originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"dxgi-original.dll", NULL, 0);
+
+                    if (originalModule != nullptr)
+                    {
+                        if (!passThruMode)
+                            LOG_INFO("OptiScaler working as dxgi.dll, dxgi-original.dll loaded");
+
+                        break;
+                    }
+
+                    auto sysFilePath = sysPath / L"dxgi.dll";
+                    originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+
+                    if (originalModule != nullptr && !passThruMode)
+                        LOG_INFO("OptiScaler working as dxgi.dll, system dll loaded");
+
+                    _dll = originalModule;
+
+                } while (false);
+            }
 
             if (_dll == nullptr)
                 _dll = NtdllProxy::LoadLibraryExW_Ldr(L"dxgi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);

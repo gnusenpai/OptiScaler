@@ -23,6 +23,7 @@
 
 #include <array>
 #include <chrono>
+#include <misc/IdentifyGpu.h>
 
 #define MARK_ALL_BACKENDS_CHANGED()                                                                                    \
     for (auto& singleChangeBackend : State::Instance().changeBackend)                                                  \
@@ -1872,7 +1873,11 @@ bool MenuCommon::RenderMenu()
                              ImGuiWindowFlags_NoNav))
         {
             std::string api;
-            if (state.isRunningOnDXVK || state.isRunningOnLinux)
+            if (IdentifyGpu::getPrimaryGpu().usesDxvk && state.api == DX11)
+            {
+                api = "DXVK";
+            }
+            else if (IdentifyGpu::getPrimaryGpu().usesVkd3dProton && state.api == DX12)
             {
                 api = "VKD3D";
             }
@@ -2390,7 +2395,7 @@ bool MenuCommon::RenderMenu()
                         else if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
                             ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
 
-                        ImGui::Text("D3D11 %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                        ImGui::Text("D3D11 %s| %s %d.%d.%d", IdentifyGpu::getPrimaryGpu().usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2409,7 +2414,7 @@ bool MenuCommon::RenderMenu()
                         if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
                             ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
 
-                        ImGui::Text("D3D12 %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                        ImGui::Text("D3D12 %s| %s %d.%d.%d", IdentifyGpu::getPrimaryGpu().usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2428,7 +2433,7 @@ bool MenuCommon::RenderMenu()
                         if (state.DeviceAdapterNames.contains(state.currentVkDevice))
                             ImGui::Text(state.DeviceAdapterNames[state.currentVkDevice].c_str());
 
-                        ImGui::Text("Vulkan %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                        ImGui::Text("Vulkan %s| %s %d.%d.%d", IdentifyGpu::getPrimaryGpu().usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);

@@ -53,8 +53,6 @@ class DxgiFactoryHooks
     inline static bool _skipFGSwapChainCreation = false;
     inline static bool _skipHighPerfCheck = false;
 
-    static void CheckAdapter(IUnknown* unkAdapter);
-
     class ScopedSkipFGSCCreation
     {
       private:

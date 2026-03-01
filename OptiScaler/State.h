@@ -194,7 +194,6 @@ class State
 
     // Linux checks
     bool isRunningOnLinux = false;
-    bool isRunningOnDXVK = false;
 
     // Other checks
     bool isRunningOnNvidia = false;

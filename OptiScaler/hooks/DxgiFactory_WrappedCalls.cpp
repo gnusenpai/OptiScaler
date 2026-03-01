@@ -18,28 +18,6 @@
 #include <magic_enum.hpp>
 #endif
 
-void DxgiFactoryWrappedCalls::CheckAdapter(IUnknown* unkAdapter)
-{
-    if (State::Instance().isRunningOnDXVK)
-        return;
-
-    // DXVK VkInterface GUID
-    const GUID guid = { 0x907bf281, 0xea3c, 0x43b4, { 0xa8, 0xe4, 0x9f, 0x23, 0x11, 0x07, 0xb4, 0xff } };
-
-    IDXGIAdapter* adapter = nullptr;
-    bool adapterOk = unkAdapter->QueryInterface(IID_PPV_ARGS(&adapter)) == S_OK;
-
-    void* dxvkAdapter = nullptr;
-    if (adapterOk && adapter->QueryInterface(guid, &dxvkAdapter) == S_OK)
-    {
-        State::Instance().isRunningOnDXVK = dxvkAdapter != nullptr;
-        ((IDXGIAdapter*) dxvkAdapter)->Release();
-    }
-
-    if (adapterOk)
-        adapter->Release();
-}
-
 HRESULT DxgiFactoryWrappedCalls::CreateSwapChain(IDXGIFactory* realFactory, WrappedIDXGIFactory7* wrappedFactory,
                                                  IUnknown* pDevice, const DXGI_SWAP_CHAIN_DESC* pDesc,
                                                  IDXGISwapChain** ppSwapChain)
@@ -810,10 +788,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters(IDXGIFactory* realFactory, UINT Ad
     }
 
     if (result == S_OK)
-    {
-        CheckAdapter(*ppAdapter);
         DxgiSpoofing::AttachToAdapter(*ppAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppAdapter);
@@ -886,10 +861,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters1(IDXGIFactory1* realFactory, UINT 
     }
 
     if (result == S_OK)
-    {
-        CheckAdapter(*ppAdapter);
         DxgiSpoofing::AttachToAdapter(*ppAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppAdapter);
@@ -909,10 +881,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapterByLuid(IDXGIFactory4* realFactory, L
     }
 
     if (result == S_OK)
-    {
-        CheckAdapter((IUnknown*) *ppvAdapter);
         DxgiSpoofing::AttachToAdapter((IUnknown*) *ppvAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, pAdapter: {:X}", (UINT) result, (uintptr_t) *ppvAdapter);
@@ -933,10 +902,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapterByGpuPreference(IDXGIFactory6* realF
     }
 
     if (result == S_OK)
-    {
-        CheckAdapter((IUnknown*) *ppvAdapter);
         DxgiSpoofing::AttachToAdapter((IUnknown*) *ppvAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppvAdapter);
