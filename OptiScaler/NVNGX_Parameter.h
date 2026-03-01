@@ -4,6 +4,7 @@
 #include "Config.h"
 
 #include <ankerl/unordered_dense.h>
+#include <misc/IdentifyGpu.h>
 
 // Use real NVNGX params encapsulated in custom one
 // Which is not working correctly
@@ -483,7 +484,8 @@ inline static void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
     InParams->Set(NVSDK_NGX_Parameter_DLSS_Enable_Output_Subrects, 1);
     InParams->Set(NVSDK_NGX_Parameter_RTXValue, 0);
 
-    if (!State::Instance().isRunningOnNvidia)
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    if (!primaryGpu.dlssCapable)
     {
         InParams->Set("SuperSamplingDenoising.NeedsUpdatedDriver", 0);
 

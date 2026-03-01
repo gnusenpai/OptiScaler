@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "fakenvapi.h"
 #include "proxies/FfxApi_Proxy.h"
+#include <misc/IdentifyGpu.h>
 
 void fakenvapi::Init(PFN_NvApi_QueryInterface& queryInterface)
 {
@@ -152,7 +153,9 @@ bool fakenvapi::setModeAndContext(void* context, Mode mode)
 
 bool fakenvapi::loadForNvidia()
 {
-    if (!State::Instance().isRunningOnNvidia)
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+
+    if (primaryGpu.vendorId != VendorId::Nvidia)
         return false;
 
     if (_dllForNvidia != nullptr)

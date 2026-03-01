@@ -104,7 +104,7 @@ template <class T, HasDefaultValue defaultState = WithDefault> class CustomOptio
             return this->has_value() ? std::move(this->value()) : std::move(_defaultValue);
         }
 
-        constexpr std::optional<T> value_for_config(bool forceSave = false)
+        constexpr std::optional<T> value_for_config()
             requires(defaultState == WithDefault)
     {
         if (_volatile)
@@ -115,7 +115,7 @@ template <class T, HasDefaultValue defaultState = WithDefault> class CustomOptio
             return std::nullopt;
         }
 
-        if (!this->has_value() || (!forceSave && *this == _defaultValue))
+        if (!this->has_value() || *this == _defaultValue)
             return std::nullopt;
 
         return this->value();
@@ -246,7 +246,7 @@ class Config
     CustomOptional<float> Contrast { 0.0f };
 
     // Menu
-    CustomOptional<float> MenuScale { 1.0f };
+    CustomOptional<float, SoftDefault> MenuScale { 1.0f };
     CustomOptional<bool> OverlayMenu { true };
     CustomOptional<int> ShortcutKey { VK_INSERT };
     CustomOptional<bool> ExtendedLimits { false };

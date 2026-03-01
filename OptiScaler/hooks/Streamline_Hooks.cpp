@@ -13,6 +13,7 @@
 #include <magic_enum.hpp>
 #include <sl1_reflex.h>
 #include <nvapi/fakenvapi.h>
+#include <misc/IdentifyGpu.h>
 
 sl::RenderAPI StreamlineHooks::renderApi = sl::RenderAPI::eCount;
 std::mutex StreamlineHooks::setConstantsMutex {};
@@ -355,7 +356,8 @@ uint32_t StreamlineHooks::getSystemCapsArch()
 {
     uint32_t highestArch = 0;
 
-    if (!fakenvapi::isUsingFakenvapi() && State::Instance().isRunningOnNvidia)
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    if (!fakenvapi::isUsingFakenvapi() && primaryGpu.vendorId == VendorId::Nvidia)
     {
         if (State::Instance().streamlineVersion.major > 1)
         {
@@ -391,6 +393,7 @@ uint32_t StreamlineHooks::getSystemCapsArch()
 
 void StreamlineHooks::setArch(uint32_t arch)
 {
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (State::Instance().streamlineVersion.major > 1)
     {
         if (systemCaps)
@@ -401,7 +404,7 @@ void StreamlineHooks::setArch(uint32_t arch)
                 systemCaps->adapters[i].vendor = VendorId::Nvidia;
             }
 
-            if (fakenvapi::isUsingFakenvapi() || !State::Instance().isRunningOnNvidia)
+            if (fakenvapi::isUsingFakenvapi() || primaryGpu.vendorId != VendorId::Nvidia)
                 systemCaps->driverVersionMajor = 999;
 
             systemCaps->hwsSupported = true;
@@ -414,7 +417,7 @@ void StreamlineHooks::setArch(uint32_t arch)
             for (uint32_t i = 0; i < systemCapsSl15->gpuCount; i++)
                 systemCapsSl15->architecture[i] = arch;
 
-            if (fakenvapi::isUsingFakenvapi() || !State::Instance().isRunningOnNvidia)
+            if (fakenvapi::isUsingFakenvapi() || primaryGpu.vendorId != VendorId::Nvidia)
                 systemCapsSl15->driverVersionMajor = 999;
 
             systemCapsSl15->hwSchedulingEnabled = true;
@@ -476,7 +479,8 @@ bool StreamlineHooks::hkdlss_slOnPluginLoad(void* params, const char* loaderJSON
 
     nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
 
-    if (!State::Instance().isRunningOnNvidia || State::Instance().isPascalOrOlder)
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    if (primaryGpu.vendorId != VendorId::Nvidia || !primaryGpu.dlssCapable)
     {
         if (Config::Instance()->VulkanExtensionSpoofing.value_or_default())
         {
@@ -702,7 +706,8 @@ bool StreamlineHooks::hkreflex_slOnPluginLoad(void* params, const char* loaderJS
 
     nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
 
-    if (!State::Instance().isRunningOnNvidia && Config::Instance()->VulkanExtensionSpoofing.value_or_default())
+    if (IdentifyGpu::getPrimaryGpu().vendorId != VendorId::Nvidia &&
+        Config::Instance()->VulkanExtensionSpoofing.value_or_default())
     {
         if (configJson.contains("/external/vk/instance/extensions"_json_pointer))
             configJson["external"]["vk"]["instance"]["extensions"].clear();

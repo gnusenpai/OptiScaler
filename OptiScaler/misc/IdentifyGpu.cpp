@@ -70,6 +70,7 @@ void IdentifyGpu::checkGpuInfo()
             GpuInformation gpuInfo;
             gpuInfo.luid = adapterDesc.AdapterLuid;
             gpuInfo.vendorId = (VendorId::Value) adapterDesc.VendorId;
+            gpuInfo.deviceId = adapterDesc.DeviceId;
             gpuInfo.dedicatedVramInBytes = adapterDesc.DedicatedVideoMemory;
 
             std::wstring szName(adapterDesc.Description);

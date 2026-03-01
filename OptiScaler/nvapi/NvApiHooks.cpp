@@ -8,6 +8,7 @@
 #include <proxies/KernelBase_Proxy.h>
 
 #include <detours/detours.h>
+#include <misc/IdentifyGpu.h>
 
 NvAPI_Status __stdcall NvApiHooks::hkNvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle hPhysicalGpu,
                                                            NV_GPU_ARCH_INFO* pGpuArchInfo)
@@ -87,9 +88,11 @@ void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
     if (!o_NvAPI_QueryInterface)
         return nullptr;
 
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+
     // Disable flip metering
     if (InterfaceId == 0xF3148C42 &&
-        Config::Instance()->DisableFlipMetering.value_or(!State::Instance().isRunningOnNvidia))
+        Config::Instance()->DisableFlipMetering.value_or(primaryGpu.vendorId != VendorId::Nvidia))
     {
         LOG_INFO("FlipMetering is disabled!");
         return nullptr;

@@ -6,6 +6,7 @@
 
 #include "nvapi/fakenvapi.h"
 #include <hooks/Streamline_Hooks.h>
+#include <misc/IdentifyGpu.h>
 
 #include <SimpleIni.h>
 
@@ -1007,7 +1008,7 @@ bool Config::SaveIni()
 
     // Menu
     {
-        ini.SetValue("Menu", "Scale", GetFloatValue(Instance()->MenuScale.value_for_config(true)).c_str());
+        ini.SetValue("Menu", "Scale", GetFloatValue(Instance()->MenuScale.value_for_config()).c_str());
         ini.SetValue("Menu", "OverlayMenu", GetBoolValue(Instance()->OverlayMenu.value_for_config()).c_str());
 
         auto setting = Instance()->ShortcutKey.value_for_config();
@@ -1213,13 +1214,7 @@ bool Config::SaveIni()
 
     // Spoofing
     {
-        // Save Dxgi spoofing value only if it differs from the current GPU vendor
-        bool forceSaveDxgi = Instance()->DxgiSpoofing.has_value() &&
-                             ((State::Instance().isRunningOnNvidia && Instance()->DxgiSpoofing.value()) ||
-                              (!State::Instance().isRunningOnNvidia && !Instance()->DxgiSpoofing.value()));
-
-        ini.SetValue("Spoofing", "Dxgi",
-                     GetBoolValue(Instance()->DxgiSpoofing.value_for_config(forceSaveDxgi)).c_str());
+        ini.SetValue("Spoofing", "Dxgi", GetBoolValue(Instance()->DxgiSpoofing.value_for_config()).c_str());
         ini.SetValue("Spoofing", "DxgiFactoryWrapping",
                      GetBoolValue(Instance()->DxgiFactoryWrapping.value_for_config()).c_str());
         ini.SetValue("Spoofing", "DxgiBlacklist", Instance()->DxgiBlacklist.value_for_config_or("auto").c_str());

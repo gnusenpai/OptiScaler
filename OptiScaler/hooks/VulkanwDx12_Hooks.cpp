@@ -10,6 +10,7 @@
 #include <detours/detours.h>
 
 #include <vulkan/vulkan_core.h>
+#include <misc/IdentifyGpu.h>
 
 typedef VkResult (*PFN_vkQueueSubmitL)(VkQueue queue, uint32_t submitCount, VkSubmitInfo* pSubmits, VkFence fence);
 typedef VkResult (*PFN_vkQueueSubmit2L)(VkQueue queue, uint32_t submitCount, VkSubmitInfo2* pSubmits, VkFence fence);
@@ -1058,8 +1059,9 @@ void Vulkan_wDx12::hk_vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipe
                                            uint32_t imageMemoryBarrierCount,
                                            const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (State::Instance().gameQuirks & GameQuirk::VulkanDLSSBarrierFixup &&
-        (!State::Instance().isRunningOnNvidia || State::Instance().isPascalOrOlder))
+        (primaryGpu.vendorId != VendorId::Nvidia || !primaryGpu.dlssCapable))
     {
         // AMD drivers on the cards around RDNA2 didn't treat VK_IMAGE_LAYOUT_UNDEFINED in the same way Nvidia does.
         // Doesn't seem like a bug, just a different way of handling an UB but we need to adjust.

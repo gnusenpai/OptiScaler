@@ -12,6 +12,7 @@
 #include <detours/detours.h>
 
 #include <vulkan/vulkan_core.h>
+#include <misc/IdentifyGpu.h>
 
 static std::map<std::string, bool> vkDeviceExtensions;
 static std::map<std::string, bool> vkInstanceExtensions;
@@ -274,7 +275,8 @@ VkResult VulkanSpoofing::hkvkCreateInstance(VkInstanceCreateInfo* pCreateInfo, c
         newExtensionList.push_back(pCreateInfo->ppEnabledExtensionNames[i]);
     }
 
-    if (State::Instance().isRunningOnNvidia && Config::Instance()->DLSSEnabled.value_or_default())
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    if (primaryGpu.dlssCapable && Config::Instance()->DLSSEnabled.value_or_default())
     {
         LOG_INFO("Adding NVNGX Vulkan extensions");
         if (vkInstanceExtensions.size() == 0 ||
@@ -374,12 +376,13 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
     static std::vector<const char*> newExtensionList;
     newExtensionList.clear();
 
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     LOG_DEBUG("Checking extensions and removing Streamline ones");
     for (size_t i = 0; i < pCreateInfo->enabledExtensionCount; i++)
     {
         auto extName = pCreateInfo->ppEnabledExtensionNames[i];
 
-        if (Config::Instance()->VulkanExtensionSpoofing.value_or_default() && !State::Instance().isRunningOnNvidia)
+        if (Config::Instance()->VulkanExtensionSpoofing.value_or_default() && primaryGpu.vendorId != VendorId::Nvidia)
         {
             auto binaryImport = std::strcmp(extName, VK_NVX_BINARY_IMPORT_EXTENSION_NAME) == 0;
             auto imgViewHandle = std::strcmp(extName, VK_NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME) == 0;
@@ -402,7 +405,7 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
     }
 
     const bool isPascalOrOlder = State::Instance().isPascalOrOlder;
-    if (State::Instance().isRunningOnNvidia)
+    if (primaryGpu.vendorId == VendorId::Nvidia)
     {
         LOG_INFO("Adding NVNGX Vulkan extensions");
         if (vkDeviceExtensions.size() == 0 ||
@@ -433,7 +436,7 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
             newExtensionList.push_back(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
         }
 
-        if (!isPascalOrOlder)
+        if (!primaryGpu.dlssCapable)
         {
             if (vkDeviceExtensions.size() == 0 ||
                 vkDeviceExtensions.contains(std::string(VK_NVX_BINARY_IMPORT_EXTENSION_NAME)))

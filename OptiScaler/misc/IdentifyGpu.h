@@ -43,6 +43,7 @@ struct GpuInformation
     LUID luid {}; // Unique id to be able to reference the exact GPU, VkPhysicalDeviceIDProperties
     std::string name {};
     VendorId::Value vendorId = VendorId::Invalid;
+    uint32_t deviceId = 0x0;
     size_t dedicatedVramInBytes = 0;
     bool usesDxvk = false;
     bool usesVkd3dProton = false;
@@ -50,7 +51,7 @@ struct GpuInformation
     bool fsr4Capable = false;
     ID3D12Device* d3d12device = nullptr;
 
-    bool dlssCapable = false;
+    bool dlssCapable = false; // assumes GTX16xx to be capable due to our spoofing
     NV_GPU_ARCH_INFO nvidiaArchInfo {};
 };
 

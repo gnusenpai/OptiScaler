@@ -2267,6 +2267,8 @@ bool MenuCommon::RenderMenu()
                 }
             }
 
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+
             // No active upscaler message
             if (currentFeature == nullptr || !currentFeature->IsInited())
             {
@@ -2287,7 +2289,7 @@ bool MenuCommon::RenderMenu()
                     if (state.fsrHooks)
                         upscalers.push_back("FSR");
 
-                    if (state.nvngxExists || state.nvngxReplacement.has_value() || state.isRunningOnNvidia)
+                    if (state.nvngxExists || state.nvngxReplacement.has_value() || primaryGpu.dlssCapable)
                         upscalers.push_back("DLSS");
 
                     if (state.libxessExists || XeSSProxy::Module() != nullptr)
@@ -2308,12 +2310,7 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::Spacing();
 
-                    if (!state.isRunningOnNvidia)
-                    {
-                        ImGui::Text("nvngx.dll: %s", state.nvngxExists ? "Exists" : "Doesn't Exist");
-                    }
-
-                    if (state.isRunningOnNvidia)
+                    if (primaryGpu.dlssCapable)
                     {
                         ImGui::Text("nvngx_dlss : %s", state.NVNGX_DLSS_Path.has_value() ? "Exists" : "Doesn't Exist");
                         ImGui::SameLine(0.0f, 16.0f);
@@ -2322,6 +2319,7 @@ bool MenuCommon::RenderMenu()
                     }
                     else
                     {
+                        ImGui::Text("nvngx.dll: %s", state.nvngxExists ? "Exists" : "Doesn't Exist");
                         ImGui::SameLine(0.0f, 16.0f);
                         ImGui::Text("nvngx replacement: %s",
                                     state.nvngxReplacement.has_value() ? "Exists" : "Doesn't Exist");
@@ -2489,7 +2487,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::EndDisabled();
                     }
 
-                    if (state.isRunningOnNvidia && !state.NVNGX_DLSS_Path.has_value())
+                    if (primaryGpu.dlssCapable && !state.NVNGX_DLSS_Path.has_value())
                     {
                         ImGui::Spacing();
                         ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "nvngx_dlss.dll not found, DLSS disabled!");
