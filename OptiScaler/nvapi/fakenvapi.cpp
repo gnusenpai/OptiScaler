@@ -153,7 +153,7 @@ bool fakenvapi::setModeAndContext(void* context, Mode mode)
 
 bool fakenvapi::loadForNvidia()
 {
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     if (primaryGpu.vendorId != VendorId::Nvidia)
         return false;

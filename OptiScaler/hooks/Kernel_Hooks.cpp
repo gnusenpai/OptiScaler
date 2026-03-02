@@ -13,6 +13,7 @@
 #include <Config.h>
 
 #include <cwctype>
+#include <misc/IdentifyGpu.h>
 
 #pragma intrinsic(_ReturnAddress)
 
@@ -103,8 +104,9 @@ FARPROC WINAPI KernelHooks::hk_K32_GetProcAddress(HMODULE hModule, LPCSTR lpProc
     // FSR 4 Init in case of missing amdxc64.dll
     // 2nd check is amdxcffx64.dll trying to queue amdxc64 but amdxc64 not being loaded.
     // Also skip the internal call of amdxc64
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (lpProcName != nullptr && (hModule == amdxc64Mark || hModule == nullptr) &&
-        lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 && Config::Instance()->Fsr4Update.value_or_default() &&
+        lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 && primaryGpu.fsr4Capable &&
         Util::GetCallerModule(_ReturnAddress()) != KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll"))
     {
         return (FARPROC) &hkAmdExtD3DCreateInterface;
@@ -137,11 +139,10 @@ HMODULE WINAPI KernelHooks::hk_K32_GetModuleHandleA(LPCSTR lpModuleName)
             // Therefore it should be safe for us to return a custom implementation when it's not loaded
             // This can get removed if Proton starts to ship amdxc64
 
-            CheckForGPU();
-
             auto original = o_K32_GetModuleHandleA(lpModuleName);
 
-            if (original == nullptr && Config::Instance()->Fsr4Update.value_or_default())
+            static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            if (original == nullptr && primaryGpu.fsr4Capable)
             {
                 LOG_INFO("amdxc64.dll is not loaded, giving a fake HMODULE");
                 return amdxc64Mark;

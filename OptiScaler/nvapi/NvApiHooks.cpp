@@ -25,8 +25,6 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle h
     {
         if (pGpuArchInfo->architecture_id <= NV_GPU_ARCHITECTURE_GP100)
         {
-            State::Instance().isPascalOrOlder = true;
-
             // Check if values were volatile, override them if so
             // if (!Config::Instance()->StreamlineSpoofing.value_for_config().has_value())
             //    Config::Instance()->StreamlineSpoofing.set_volatile_value(true);
@@ -88,7 +86,7 @@ void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
     if (!o_NvAPI_QueryInterface)
         return nullptr;
 
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     // Disable flip metering
     if (InterfaceId == 0xF3148C42 &&

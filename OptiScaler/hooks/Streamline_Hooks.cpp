@@ -356,7 +356,7 @@ uint32_t StreamlineHooks::getSystemCapsArch()
 {
     uint32_t highestArch = 0;
 
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (!fakenvapi::isUsingFakenvapi() && primaryGpu.vendorId == VendorId::Nvidia)
     {
         if (State::Instance().streamlineVersion.major > 1)
@@ -393,7 +393,7 @@ uint32_t StreamlineHooks::getSystemCapsArch()
 
 void StreamlineHooks::setArch(uint32_t arch)
 {
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (State::Instance().streamlineVersion.major > 1)
     {
         if (systemCaps)
@@ -479,7 +479,7 @@ bool StreamlineHooks::hkdlss_slOnPluginLoad(void* params, const char* loaderJSON
 
     nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
 
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (primaryGpu.vendorId != VendorId::Nvidia || !primaryGpu.dlssCapable)
     {
         if (Config::Instance()->VulkanExtensionSpoofing.value_or_default())

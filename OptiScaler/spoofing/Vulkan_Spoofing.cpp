@@ -275,7 +275,7 @@ VkResult VulkanSpoofing::hkvkCreateInstance(VkInstanceCreateInfo* pCreateInfo, c
         newExtensionList.push_back(pCreateInfo->ppEnabledExtensionNames[i]);
     }
 
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (primaryGpu.dlssCapable && Config::Instance()->DLSSEnabled.value_or_default())
     {
         LOG_INFO("Adding NVNGX Vulkan extensions");
@@ -376,7 +376,7 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
     static std::vector<const char*> newExtensionList;
     newExtensionList.clear();
 
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     LOG_DEBUG("Checking extensions and removing Streamline ones");
     for (size_t i = 0; i < pCreateInfo->enabledExtensionCount; i++)
     {
@@ -404,7 +404,6 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
         newExtensionList.push_back(extName);
     }
 
-    const bool isPascalOrOlder = State::Instance().isPascalOrOlder;
     if (primaryGpu.vendorId == VendorId::Nvidia)
     {
         LOG_INFO("Adding NVNGX Vulkan extensions");

@@ -221,7 +221,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             FfxFGIndex.set_from_config(readInt("FSR", "FGIndex"));
             FsrUseMaskForTransparency.set_from_config(readBool("FSR", "UseReactiveMaskForTransparency"));
             DlssReactiveMaskBias.set_from_config(readFloat("FSR", "DlssReactiveMaskBias"));
-            Fsr4Update.set_from_config(readBool("FSR", "Fsr4Update"));
+            Fsr4ForceCapable.set_from_config(readBool("FSR", "Fsr4ForceCapable"));
             Fsr4EnableDebugView.set_from_config(readBool("FSR", "Fsr4EnableDebugView"));
             Fsr4EnableWatermark.set_from_config(readBool("FSR", "Fsr4EnableWatermark"));
 
@@ -920,8 +920,7 @@ bool Config::SaveIni()
                      GetBoolValue(Instance()->FsrUseMaskForTransparency.value_for_config()).c_str());
         ini.SetValue("FSR", "DlssReactiveMaskBias",
                      GetFloatValue(Instance()->DlssReactiveMaskBias.value_for_config()).c_str());
-        ini.SetValue("FSR", "Fsr4Update",
-                     GetBoolValue(Instance()->Fsr4Update.value_for_config_ignore_default()).c_str());
+        ini.SetValue("FSR", "Fsr4ForceCapable", GetBoolValue(Instance()->Fsr4ForceCapable.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4EnableDebugView",
                      GetBoolValue(Instance()->Fsr4EnableDebugView.value_for_config()).c_str());

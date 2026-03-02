@@ -83,11 +83,7 @@ void IdentifyGpu::checkGpuInfo()
 
             // Needed to be able to query amdxc and check for vkd3d-proton
             if (gpuInfo.vendorId == VendorId::AMD || gpuInfo.usesDxvk)
-            {
-                auto result =
-                    D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device));
-                LOG_WARN("");
-            }
+                D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device));
 
             localCachedInfo.push_back(std::move(gpuInfo));
         }
@@ -121,7 +117,14 @@ void IdentifyGpu::checkGpuInfo()
             auto AmdExtD3DCreateInterface = (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
                 moduleAmdxc64, "AmdExtD3DCreateInterface");
 
-            if (SUCCEEDED(AmdExtD3DCreateInterface(gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DFactory))))
+            // Kinda questionable, may require reconsideration
+            if (Config::Instance()->Fsr4ForceCapable.value_or_default())
+                gpuInfo.fsr4Capable = true;
+
+            // Query amdxc for a specific intrinsics support, FSR 4 checks more but hopefully this one is enough
+            if (!gpuInfo.fsr4Capable && gpuInfo.d3d12device &&
+                SUCCEEDED(
+                    AmdExtD3DCreateInterface(gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DFactory))))
             {
                 ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics = nullptr;
 
@@ -134,6 +137,7 @@ void IdentifyGpu::checkGpuInfo()
                 }
             }
 
+            // Query vkd3d-proton for extensions it's using to look for the required one for FSR 4
             if (!gpuInfo.fsr4Capable && gpuInfo.usesVkd3dProton)
             {
                 UINT extensionCount = 0;
@@ -156,6 +160,19 @@ void IdentifyGpu::checkGpuInfo()
                     }
                 }
             }
+
+            // Pre-RDNA4 GPUs on Linux can support FSR 4 but require a special envvar
+            // check for the envvar and assume everything else is also setup for FSR 4 to work on those cards
+            if (!gpuInfo.fsr4Capable)
+            {
+                const char* envvar = getenv("DXIL_SPIRV_CONFIG");
+                if (envvar && strstr(envvar, "wmma_rdna3_workaround"))
+                    gpuInfo.fsr4Capable = true;
+
+            }
+
+            // TODO: could now try to ask amdxcffx for FSR 4 and see if it returns it
+            // but our FSR 4 upgrade code call this function so it gets complicated
         }
         else if (gpuInfo.vendorId == VendorId::Nvidia)
         {

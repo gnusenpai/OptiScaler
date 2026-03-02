@@ -23,6 +23,7 @@
 #define FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING_VK
 
 #include <vk/ffx_api_vk.h>
+#include <misc/IdentifyGpu.h>
 
 #undef FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK
 #undef FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING
@@ -130,80 +131,6 @@ std::vector<std::filesystem::path> GetDriverStore()
 }
 
 #pragma endregion
-
-void CheckForGPU()
-{
-    // CheckForGPU already ran before, no need to run it again
-    if (State::Instance().isRunningOnRDNA4.has_value())
-        return;
-
-    // Call init for any case
-    DxgiProxy::Init();
-
-    IDXGIFactory* factory = nullptr;
-    HRESULT result = DxgiProxy::CreateDxgiFactory_()(__uuidof(factory), &factory);
-
-    if (result != S_OK || factory == nullptr)
-        return;
-
-    UINT adapterIndex = 0;
-    DXGI_ADAPTER_DESC adapterDesc {};
-    IDXGIAdapter* adapter;
-
-    while (factory->EnumAdapters(adapterIndex, &adapter) == S_OK)
-    {
-        if (adapter == nullptr)
-        {
-            adapterIndex++;
-            continue;
-        }
-
-        {
-            ScopedSkipSpoofing skipSpoofing {};
-            result = adapter->GetDesc(&adapterDesc);
-        }
-
-        if (result == S_OK && adapterDesc.VendorId != VendorId::Microsoft)
-        {
-            if (!State::Instance().isRunningOnRDNA4.has_value() || !State::Instance().isRunningOnRDNA4.value())
-                State::Instance().isRunningOnRDNA4 = false;
-
-            std::wstring szName(adapterDesc.Description);
-            std::string descStr = std::format("Adapter: {}, VRAM: {} MB", wstring_to_string(szName),
-                                              adapterDesc.DedicatedVideoMemory / (1024.0 * 1024.0));
-            LOG_INFO("{}", descStr);
-
-            // If GPU is AMD
-            if (adapterDesc.VendorId == VendorId::AMD)
-            {
-                // If GPU Name contains 90XX or GFX12 (Linux) always set it to true
-                if (szName.find(L" 90") != std::wstring::npos || szName.find(L" GFX12") != std::wstring::npos)
-                {
-                    LOG_DEBUG("RDNA4 GPU detected");
-                    State::Instance().isRunningOnRDNA4 = true;
-                }
-            }
-        }
-        else
-        {
-            LOG_DEBUG("Can't get description of adapter: {}", adapterIndex);
-        }
-
-        adapter->Release();
-        adapter = nullptr;
-        adapterIndex++;
-    }
-
-    factory->Release();
-    factory = nullptr;
-
-    // If not set at Config enable/disable Fsr4Update according to GPU detection
-    if (!Config::Instance()->Fsr4Update.has_value())
-        Config::Instance()->Fsr4Update.set_volatile_value(State::Instance().isRunningOnRDNA4.value());
-
-    LOG_INFO("RNDA4: {}, Fsr4Update: {}", State::Instance().isRunningOnRDNA4.value(),
-             Config::Instance()->Fsr4Update.value_or_default());
-}
 
 struct ffxProviderInterface
 {
@@ -466,7 +393,8 @@ struct AmdExtD3DFactory : public IAmdExtD3DFactory
 
 void InitFSR4Update()
 {
-    if (Config::Instance()->Fsr4Update.has_value() && !Config::Instance()->Fsr4Update.value())
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    if (!primaryGpu.fsr4Capable)
         return;
 
     if (o_AmdExtD3DCreateInterface != nullptr)
@@ -504,9 +432,9 @@ HMODULE GetFSR4Module() { return moduleAmdxcffx64; }
 
 HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
 {
-    CheckForGPU();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
-    if (!Config::Instance()->Fsr4Update.value_or_default() && o_AmdExtD3DCreateInterface != nullptr)
+    if (!primaryGpu.fsr4Capable && o_AmdExtD3DCreateInterface != nullptr)
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
 
     // Proton bleeding edge ships amdxc64 that is missing some required functions

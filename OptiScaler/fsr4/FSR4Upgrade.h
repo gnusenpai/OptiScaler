@@ -23,7 +23,6 @@ typedef HRESULT(STDMETHODCALLTYPE* PFN_UpdateFfxApiProviderEx)(void* pData, uint
 void InitFSR4Update();
 HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject);
 
-void CheckForGPU();
 std::vector<std::filesystem::path> GetDriverStore();
 HMODULE GetFSR4Module();
 

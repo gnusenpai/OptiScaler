@@ -1026,9 +1026,8 @@ void MenuCommon::GetCurrentBackendInfo(const API api, std::string* code, std::st
 void MenuCommon::AddDx11Backends(std::string* code, std::string* name)
 {
     std::string selectedUpscalerName = "";
-    bool fsr4Possible =
-        Config::Instance()->Fsr4Update.value_or_default() || State::Instance().isRunningOnRDNA4.value_or(false);
-    std::string fsr3xName = fsr4Possible ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
 
     if (State::Instance().newBackend == "fsr22" || (State::Instance().newBackend == "" && *code == "fsr22"))
         selectedUpscalerName = "FSR 2.2.1";
@@ -1081,9 +1080,8 @@ void MenuCommon::AddDx11Backends(std::string* code, std::string* name)
 void MenuCommon::AddDx12Backends(std::string* code, std::string* name)
 {
     std::string selectedUpscalerName = "";
-    bool fsr4Possible =
-        Config::Instance()->Fsr4Update.value_or_default() || State::Instance().isRunningOnRDNA4.value_or(false);
-    std::string fsr3xName = fsr4Possible ? "FSR 3.X/4" : "FSR 3.X";
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4" : "FSR 3.X";
 
     if (State::Instance().newBackend == "fsr21" || (State::Instance().newBackend == "" && *code == "fsr21"))
         selectedUpscalerName = "FSR 2.1.2";
@@ -1121,9 +1119,8 @@ void MenuCommon::AddDx12Backends(std::string* code, std::string* name)
 void MenuCommon::AddVulkanBackends(std::string* code, std::string* name)
 {
     std::string selectedUpscalerName = "";
-    bool fsr4Possible =
-        Config::Instance()->Fsr4Update.value_or_default() || State::Instance().isRunningOnRDNA4.value_or(false);
-    std::string fsr3xName = fsr4Possible ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
 
     if (State::Instance().newBackend == "fsr21" || (State::Instance().newBackend == "" && *code == "fsr21"))
         selectedUpscalerName = "FSR 2.1.2";
@@ -2165,8 +2162,7 @@ bool MenuCommon::RenderMenu()
 
     if (_isVisible)
     {
-        // Check for gpu support
-        CheckForGPU();
+        static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
         // Overlay font
         if (config->UseHQFont.value_or_default())
@@ -2266,8 +2262,6 @@ bool MenuCommon::RenderMenu()
                     ImGui::Spacing();
                 }
             }
-
-            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
             // No active upscaler message
             if (currentFeature == nullptr || !currentFeature->IsInited())
@@ -2393,7 +2387,7 @@ bool MenuCommon::RenderMenu()
                         else if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
                             ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
 
-                        ImGui::Text("D3D11 %s| %s %d.%d.%d", IdentifyGpu::getPrimaryGpu().usesDxvk ? "(DXVK) " : "",
+                        ImGui::Text("D3D11 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2412,7 +2406,7 @@ bool MenuCommon::RenderMenu()
                         if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
                             ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
 
-                        ImGui::Text("D3D12 %s| %s %d.%d.%d", IdentifyGpu::getPrimaryGpu().usesDxvk ? "(DXVK) " : "",
+                        ImGui::Text("D3D12 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2431,7 +2425,7 @@ bool MenuCommon::RenderMenu()
                         if (state.DeviceAdapterNames.contains(state.currentVkDevice))
                             ImGui::Text(state.DeviceAdapterNames[state.currentVkDevice].c_str());
 
-                        ImGui::Text("Vulkan %s| %s %d.%d.%d", IdentifyGpu::getPrimaryGpu().usesDxvk ? "(DXVK) " : "",
+                        ImGui::Text("Vulkan %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);

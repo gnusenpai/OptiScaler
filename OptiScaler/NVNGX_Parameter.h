@@ -484,7 +484,7 @@ inline static void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
     InParams->Set(NVSDK_NGX_Parameter_DLSS_Enable_Output_Subrects, 1);
     InParams->Set(NVSDK_NGX_Parameter_RTXValue, 0);
 
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (!primaryGpu.dlssCapable)
     {
         InParams->Set("SuperSamplingDenoising.NeedsUpdatedDriver", 0);

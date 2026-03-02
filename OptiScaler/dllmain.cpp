@@ -1672,13 +1672,21 @@ DWORD WINAPI InitThread(LPVOID hModuleVoid)
     spdlog::info("");
     State::Instance().isRunningOnLinux = IsRunningOnWine();
 
+    auto detectedGpus = IdentifyGpu::getAllGpus();
+    spdlog::info("Detected GPUs:");
+    for (auto& gpu : detectedGpus)
+    {
+        spdlog::info("{}, vendorId: {:X}, deviceId: {:X}, ", gpu.name, (uint32_t) gpu.vendorId, gpu.deviceId);
+        spdlog::info("   dxvk: {}, vkd3d-proton: {}", gpu.usesDxvk, gpu.usesVkd3dProton);
+        spdlog::info("   Upscaler support - fsr4: {}, dlss: {}", gpu.fsr4Capable, gpu.dlssCapable);
+        spdlog::info("");
+    }
+
     auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     // Check if real DLSS available
     if (Config::Instance()->DLSSEnabled.value_or_default())
     {
-        spdlog::info("");
-
         if (primaryGpu.dlssCapable)
         {
             spdlog::info("Running on DLSS capable GPU");

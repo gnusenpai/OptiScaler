@@ -196,8 +196,6 @@ class State
     bool isRunningOnLinux = false;
 
     // Other checks
-    std::optional<bool> isRunningOnRDNA4;
-    bool isPascalOrOlder = false;
     bool isDxgiMode = false;
     bool isD3D12Mode = false;
     bool isWorkingAsNvngx = false;
