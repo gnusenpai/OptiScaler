@@ -72,11 +72,16 @@ struct GpuInformation
 class IdentifyGpu
 {
     static std::optional<std::vector<GpuInformation>> cachedInfo;
+    static std::optional<std::vector<GpuInformation>> cachedInfoNoDxgi;
 
     static void checkGpuInfo();
+    static void checkGpuInfoNoDxgi();
+    static void queryNvapi(GpuInformation& gpuInfo);
 
   public:
     // Sorted by priority, the first one should be treated as the primary one
     static std::vector<GpuInformation> getAllGpus();
     static GpuInformation getPrimaryGpu();
+    static std::vector<GpuInformation> getAllGpusNoDxgi();
+    static GpuInformation getPrimaryGpuNoDxgi();
 };

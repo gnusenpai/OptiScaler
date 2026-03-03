@@ -7,6 +7,7 @@
 #include <magic_enum.hpp>
 
 std::optional<std::vector<GpuInformation>> IdentifyGpu::cachedInfo;
+std::optional<std::vector<GpuInformation>> IdentifyGpu::cachedInfoNoDxgi;
 
 using Microsoft::WRL::ComPtr;
 
@@ -46,7 +47,11 @@ void IdentifyGpu::checkGpuInfo()
     HRESULT result = DxgiProxy::CreateDxgiFactory_()(__uuidof(factory), &factory);
 
     if (result != S_OK || factory == nullptr)
+    {
+        // Will land here if getPrimaryGpu/getAllGpus are called from within DLL_PROCESS_ATTACH
+        LOG_ERROR("Failed to create DXGI Factory, GPU info will be inaccurate!");
         return;
+    }
 
     UINT adapterIndex = 0;
     DXGI_ADAPTER_DESC adapterDesc {};
@@ -123,8 +128,7 @@ void IdentifyGpu::checkGpuInfo()
 
             // Query amdxc for a specific intrinsics support, FSR 4 checks more but hopefully this one is enough
             if (!gpuInfo.fsr4Capable && gpuInfo.d3d12device &&
-                SUCCEEDED(
-                    AmdExtD3DCreateInterface(gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DFactory))))
+                SUCCEEDED(AmdExtD3DCreateInterface(gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DFactory))))
             {
                 ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics = nullptr;
 
@@ -168,7 +172,6 @@ void IdentifyGpu::checkGpuInfo()
                 const char* envvar = getenv("DXIL_SPIRV_CONFIG");
                 if (envvar && strstr(envvar, "wmma_rdna3_workaround"))
                     gpuInfo.fsr4Capable = true;
-
             }
 
             // TODO: could now try to ask amdxcffx for FSR 4 and see if it returns it
@@ -176,79 +179,7 @@ void IdentifyGpu::checkGpuInfo()
         }
         else if (gpuInfo.vendorId == VendorId::Nvidia)
         {
-
-            bool loadedHere = false;
-            auto nvapiModule = KernelBaseProxy::GetModuleHandleW_()(L"nvapi64.dll");
-
-            if (!nvapiModule)
-            {
-                nvapiModule = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-                loadedHere = true;
-            }
-
-            // No nvapi, should not be nvidia, possibly external spoofing
-            if (!nvapiModule)
-                continue;
-
-            if (auto o_NvAPI_QueryInterface =
-                    (PFN_NvApi_QueryInterface) KernelBaseProxy::GetProcAddress_()(nvapiModule, "nvapi_QueryInterface"))
-            {
-                // Check for fakenvapi in system32, assume it's not nvidia if found
-                if (o_NvAPI_QueryInterface(GET_ID(Fake_InformFGState)))
-                    continue;
-
-                // Handle we want to grab
-                NvPhysicalGpuHandle hPhysicalGpu {};
-
-                // Grab logical GPUs to extract coresponding LUID
-                auto* getLogicalGPUs = GET_INTERFACE(NvAPI_SYS_GetLogicalGPUs, o_NvAPI_QueryInterface);
-                NV_LOGICAL_GPUS logicalGpus {};
-                logicalGpus.version = NV_LOGICAL_GPUS_VER;
-                if (getLogicalGPUs)
-                {
-                    if (auto result = getLogicalGPUs(&logicalGpus); result != NVAPI_OK)
-                        LOG_ERROR("NvAPI_SYS_GetLogicalGPUs failed: {}", magic_enum::enum_name(result));
-                }
-
-                auto* getLogicalGpuInfo = GET_INTERFACE(NvAPI_GPU_GetLogicalGpuInfo, o_NvAPI_QueryInterface);
-
-                if (getLogicalGpuInfo)
-                {
-                    for (auto i = 0; i < logicalGpus.gpuHandleCount; i++)
-                    {
-                        LUID luid;
-                        NV_LOGICAL_GPU_DATA logicalGpuData {};
-                        logicalGpuData.pOSAdapterId = &luid;
-                        logicalGpuData.version = NV_LOGICAL_GPU_DATA_VER;
-                        auto logicalGpu = logicalGpus.gpuHandleData[i].hLogicalGpu;
-
-                        if (auto result = getLogicalGpuInfo(logicalGpu, &logicalGpuData); result != NVAPI_OK)
-                            LOG_ERROR("NvAPI_GPU_GetLogicalGpuInfo failed: {}", magic_enum::enum_name(result));
-
-                        // We are looking at the correct GPU for this gpuInfo.luid
-                        if (luid.HighPart == gpuInfo.luid.HighPart && luid.LowPart == gpuInfo.luid.LowPart &&
-                            logicalGpuData.physicalGpuCount > 0)
-                        {
-                            if (logicalGpuData.physicalGpuCount > 1)
-                                LOG_WARN("A logical GPU has more than a single physical GPU, we are only checking one");
-
-                            hPhysicalGpu = logicalGpuData.physicalGpuHandles[0];
-                        }
-                    }
-                }
-
-                auto* getArchInfo = GET_INTERFACE(NvAPI_GPU_GetArchInfo, o_NvAPI_QueryInterface);
-                gpuInfo.nvidiaArchInfo.version = NV_GPU_ARCH_INFO_VER;
-                if (getArchInfo && hPhysicalGpu && getArchInfo(hPhysicalGpu, &gpuInfo.nvidiaArchInfo) != NVAPI_OK)
-                    LOG_ERROR("Couldn't get GPU Architecture");
-            }
-
-            if (loadedHere)
-                NtdllProxy::FreeLibrary_Ldr(nvapiModule);
-
-            LOG_DEBUG("Detected architecture: {}", magic_enum::enum_name(gpuInfo.nvidiaArchInfo.architecture_id));
-
-            gpuInfo.dlssCapable = gpuInfo.nvidiaArchInfo.architecture_id >= NV_GPU_ARCHITECTURE_TU100;
+            queryNvapi(gpuInfo);
         }
 
         if (gpuInfo.d3d12device)
@@ -259,8 +190,162 @@ void IdentifyGpu::checkGpuInfo()
     }
 }
 
+// !!! Doesn't fill out FSR  4 capability and dxvk/vkd3d-proton usages !!!
+void IdentifyGpu::checkGpuInfoNoDxgi()
+{
+    cachedInfoNoDxgi = std::vector<GpuInformation> {};
+    auto& localCachedInfo = cachedInfoNoDxgi.value();
+
+    VkApplicationInfo appInfo {};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "AdapterQuery";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "None";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo createInfo {};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+
+    VkInstance instance = VK_NULL_HANDLE;
+    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+        return;
+
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+    if (deviceCount == 0)
+    {
+        vkDestroyInstance(instance, nullptr);
+        return;
+    }
+
+    // ScopedSkipSpoofing skipSpoofing {};
+
+    std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
+
+    for (auto physicalDevice : physicalDevices)
+    {
+        VkPhysicalDeviceIDProperties idProps {};
+        idProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+
+        VkPhysicalDeviceProperties2 props2 {};
+        props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        props2.pNext = &idProps;
+
+        vkGetPhysicalDeviceProperties2(physicalDevice, &props2);
+
+        VkPhysicalDeviceMemoryProperties memProps {};
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
+
+        GpuInformation gpuInfo;
+        for (uint32_t i = 0; i < memProps.memoryHeapCount; ++i)
+        {
+            if (memProps.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+                gpuInfo.dedicatedVramInBytes += memProps.memoryHeaps[i].size;
+        }
+
+        if (idProps.deviceLUIDValid == VK_TRUE)
+            memcpy(&gpuInfo.luid, idProps.deviceLUID, VK_LUID_SIZE);
+
+        gpuInfo.vendorId = (VendorId::Value) props2.properties.vendorID;
+        gpuInfo.deviceId = props2.properties.deviceID;
+        gpuInfo.name = std::string(props2.properties.deviceName);
+
+        localCachedInfo.push_back(std::move(gpuInfo));
+    }
+
+    vkDestroyInstance(instance, nullptr);
+    sortGpus(localCachedInfo);
+
+    for (auto& gpuInfo : localCachedInfo)
+    {
+        if (gpuInfo.vendorId == VendorId::Nvidia)
+            queryNvapi(gpuInfo);
+    }
+}
+
+void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
+{
+    bool loadedHere = false;
+    auto nvapiModule = KernelBaseProxy::GetModuleHandleW_()(L"nvapi64.dll");
+
+    if (!nvapiModule)
+    {
+        nvapiModule = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        loadedHere = true;
+    }
+
+    // No nvapi, should not be nvidia, possibly external spoofing
+    if (!nvapiModule)
+        return;
+
+    if (auto o_NvAPI_QueryInterface =
+            (PFN_NvApi_QueryInterface) KernelBaseProxy::GetProcAddress_()(nvapiModule, "nvapi_QueryInterface"))
+    {
+        // Check for fakenvapi in system32, assume it's not nvidia if found
+        if (o_NvAPI_QueryInterface(GET_ID(Fake_InformFGState)))
+            return;
+
+        // Handle we want to grab
+        NvPhysicalGpuHandle hPhysicalGpu {};
+
+        // Grab logical GPUs to extract coresponding LUID
+        auto* getLogicalGPUs = GET_INTERFACE(NvAPI_SYS_GetLogicalGPUs, o_NvAPI_QueryInterface);
+        NV_LOGICAL_GPUS logicalGpus {};
+        logicalGpus.version = NV_LOGICAL_GPUS_VER;
+        if (getLogicalGPUs)
+        {
+            if (auto result = getLogicalGPUs(&logicalGpus); result != NVAPI_OK)
+                LOG_ERROR("NvAPI_SYS_GetLogicalGPUs failed: {}", magic_enum::enum_name(result));
+        }
+
+        auto* getLogicalGpuInfo = GET_INTERFACE(NvAPI_GPU_GetLogicalGpuInfo, o_NvAPI_QueryInterface);
+
+        if (getLogicalGpuInfo)
+        {
+            for (uint32_t i = 0; i < logicalGpus.gpuHandleCount; i++)
+            {
+                LUID luid;
+                NV_LOGICAL_GPU_DATA logicalGpuData {};
+                logicalGpuData.pOSAdapterId = &luid;
+                logicalGpuData.version = NV_LOGICAL_GPU_DATA_VER;
+                auto logicalGpu = logicalGpus.gpuHandleData[i].hLogicalGpu;
+
+                if (auto result = getLogicalGpuInfo(logicalGpu, &logicalGpuData); result != NVAPI_OK)
+                    LOG_ERROR("NvAPI_GPU_GetLogicalGpuInfo failed: {}", magic_enum::enum_name(result));
+
+                // We are looking at the correct GPU for this gpuInfo.luid
+                if (luid.HighPart == gpuInfo.luid.HighPart && luid.LowPart == gpuInfo.luid.LowPart &&
+                    logicalGpuData.physicalGpuCount > 0)
+                {
+                    if (logicalGpuData.physicalGpuCount > 1)
+                        LOG_WARN("A logical GPU has more than a single physical GPU, we are only checking one");
+
+                    hPhysicalGpu = logicalGpuData.physicalGpuHandles[0];
+                }
+            }
+        }
+
+        auto* getArchInfo = GET_INTERFACE(NvAPI_GPU_GetArchInfo, o_NvAPI_QueryInterface);
+        gpuInfo.nvidiaArchInfo.version = NV_GPU_ARCH_INFO_VER;
+        if (getArchInfo && hPhysicalGpu && getArchInfo(hPhysicalGpu, &gpuInfo.nvidiaArchInfo) != NVAPI_OK)
+            LOG_ERROR("Couldn't get GPU Architecture");
+    }
+
+    if (loadedHere)
+        NtdllProxy::FreeLibrary_Ldr(nvapiModule);
+
+    LOG_DEBUG("Detected architecture: {}", magic_enum::enum_name(gpuInfo.nvidiaArchInfo.architecture_id));
+
+    gpuInfo.dlssCapable = gpuInfo.nvidiaArchInfo.architecture_id >= NV_GPU_ARCHITECTURE_TU100;
+}
+
 std::vector<GpuInformation> IdentifyGpu::getAllGpus()
 {
+    // TODO: mutex
     if (!cachedInfo.has_value())
         checkGpuInfo();
 
@@ -270,5 +355,21 @@ std::vector<GpuInformation> IdentifyGpu::getAllGpus()
 GpuInformation IdentifyGpu::getPrimaryGpu()
 {
     auto allGpus = getAllGpus();
+    return allGpus.size() > 0 ? allGpus[0] : GpuInformation {};
+}
+
+// !!! Use the NoDxgi variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
+std::vector<GpuInformation> IdentifyGpu::getAllGpusNoDxgi()
+{
+    if (!cachedInfoNoDxgi.has_value())
+        checkGpuInfoNoDxgi();
+
+    return cachedInfoNoDxgi.value();
+}
+
+// !!! Use the NoDxgi variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
+GpuInformation IdentifyGpu::getPrimaryGpuNoDxgi()
+{
+    auto allGpus = getAllGpusNoDxgi();
     return allGpus.size() > 0 ? allGpus[0] : GpuInformation {};
 }

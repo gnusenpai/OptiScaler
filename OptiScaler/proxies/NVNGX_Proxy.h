@@ -430,19 +430,8 @@ class NVNGXProxy
         {
             do
             {
-                std::wstring libraryName;
-                std::wstring libraryNameUS;
-
-                // if (State::Instance().isWorkingAsNvngx || State::Instance().enablerAvailable)
-                {
-                    libraryName = L"nvngx.dll";
-                    libraryNameUS = L"_nvngx.dll";
-                }
-                // else
-                //{
-                //     libraryName = L"nvngx.optidll";
-                //     libraryNameUS = L"_nvngx.optidll";
-                // }
+                std::wstring libraryName = L"nvngx.dll";
+                std::wstring libraryNameUS = L"_nvngx.dll";
 
                 // From OptiScaler.ini path
                 if (Config::Instance()->NvngxPath.has_value())

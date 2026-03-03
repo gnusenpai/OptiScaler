@@ -104,9 +104,8 @@ FARPROC WINAPI KernelHooks::hk_K32_GetProcAddress(HMODULE hModule, LPCSTR lpProc
     // FSR 4 Init in case of missing amdxc64.dll
     // 2nd check is amdxcffx64.dll trying to queue amdxc64 but amdxc64 not being loaded.
     // Also skip the internal call of amdxc64
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (lpProcName != nullptr && (hModule == amdxc64Mark || hModule == nullptr) &&
-        lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 && primaryGpu.fsr4Capable &&
+        lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 && IdentifyGpu::getPrimaryGpu().fsr4Capable &&
         Util::GetCallerModule(_ReturnAddress()) != KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll"))
     {
         return (FARPROC) &hkAmdExtD3DCreateInterface;

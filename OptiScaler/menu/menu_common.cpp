@@ -3069,11 +3069,6 @@ bool MenuCommon::RenderMenu()
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported API";
                 }
-                else if (state.isWorkingAsNvngx)
-                {
-                    disabledMaskInput[optiFgIndex] = true;
-                    fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
-                }
                 else if (state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() && !fsr31InitTried)
                 {
                     fsr31InitTried = true;
@@ -3154,14 +3149,7 @@ bool MenuCommon::RenderMenu()
                 // Nukem's FG mod requirements
                 auto constexpr nukemsInputIndex = (uint32_t) FGInput::Nukems;
                 auto constexpr nukemsOutputIndex = (uint32_t) FGOutput::Nukems;
-                if (state.isWorkingAsNvngx)
-                {
-                    disabledMaskInput[nukemsInputIndex] = true;
-                    fgInputDesc[nukemsInputIndex] = "Unsupported Opti working mode";
-                    disabledMaskOutput[nukemsOutputIndex] = true;
-                    fgOutputDesc[nukemsOutputIndex] = "Unsupported Opti working mode";
-                }
-                else if (!state.NukemsFilesAvailable)
+                if (!state.NukemsFilesAvailable)
                 {
                     disabledMaskInput[nukemsInputIndex] = true;
                     fgInputDesc[nukemsInputIndex] = "Missing the dlssg_to_fsr3_amd_is_better.dll file";
@@ -3398,7 +3386,7 @@ bool MenuCommon::RenderMenu()
 
                 // FSR FG controls
                 if (state.activeFgOutput == FGOutput::FSRFG && state.activeFgInput != FGInput::NoFG &&
-                    !state.isWorkingAsNvngx && state.currentFGSwapchain != nullptr)
+                    state.currentFGSwapchain != nullptr)
                 {
                     if (state.activeFgInput != FGInput::Upscaler ||
                         (currentFeature != nullptr && !currentFeature->IsFrozen()) && FfxApiProxy::IsFGReady())
@@ -3645,7 +3633,7 @@ bool MenuCommon::RenderMenu()
 
                 // XeFG controls
                 if (state.activeFgOutput == FGOutput::XeFG && state.activeFgInput != FGInput::NoFG &&
-                    !state.isWorkingAsNvngx && state.currentFGSwapchain != nullptr)
+                    state.currentFGSwapchain != nullptr)
                 {
                     if (XeFGProxy::InitXeFG() && currentFeature != nullptr && !currentFeature->IsFrozen())
                     {
@@ -3839,7 +3827,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // OptiFG
-                if (state.api == DX12 && state.currentFGSwapchain != nullptr && !state.isWorkingAsNvngx &&
+                if (state.api == DX12 && state.currentFGSwapchain != nullptr &&
                     state.activeFgInput == FGInput::Upscaler)
                 {
                     SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
@@ -4135,8 +4123,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Nukems Mod
-                if (!state.isWorkingAsNvngx && state.activeFgInput == FGInput::Nukems &&
-                    state.activeFgOutput == FGOutput::Nukems)
+                if (state.activeFgInput == FGInput::Nukems && state.activeFgOutput == FGOutput::Nukems)
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR3-FG via Nukem's DLSSG)",
                                             "Requires Nukem's dlssg_to_fsr3 dll\nSelect DLSS-FG in-game");
@@ -4202,7 +4189,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // FSR-FG Inputs
-                if (state.currentFGSwapchain != nullptr && !state.isWorkingAsNvngx &&
+                if (state.currentFGSwapchain != nullptr &&
                     (state.activeFgInput == FGInput::FSRFG || state.activeFgInput == FGInput::FSRFG30))
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR-FG Inputs)", "Select FSR-FG in-game");
@@ -4243,8 +4230,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Streamline FG Inputs
-                if (state.currentFGSwapchain != nullptr && !state.isWorkingAsNvngx &&
-                    state.activeFgInput == FGInput::DLSSG)
+                if (state.currentFGSwapchain != nullptr && state.activeFgInput == FGInput::DLSSG)
                 {
                     SeparatorWithHelpMarker("Frame Generation (Streamline FG Inputs)", "Select DLSS-FG in-game");
 

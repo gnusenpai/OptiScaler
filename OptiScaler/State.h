@@ -198,7 +198,6 @@ class State
     // Other checks
     bool isDxgiMode = false;
     bool isD3D12Mode = false;
-    bool isWorkingAsNvngx = false;
 
     // Vulkan stuff
     bool vulkanCreatingSC = false;
