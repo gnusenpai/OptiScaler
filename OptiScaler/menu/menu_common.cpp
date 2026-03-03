@@ -2379,13 +2379,12 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::PushItemWidth(180.0f * config->MenuScale.value_or_default());
 
+                    auto primaryGpuVulkan = IdentifyGpu::getPrimaryGpuNoDxgi();
+
                     switch (state.api)
                     {
                     case DX11:
-                        if (state.DeviceAdapterNames.contains(state.currentD3D11Device))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D11Device].c_str());
-                        else if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
+                        ImGui::Text(primaryGpu.name.c_str());
 
                         ImGui::Text("D3D11 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
@@ -2403,8 +2402,7 @@ bool MenuCommon::RenderMenu()
                         break;
 
                     case DX12:
-                        if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
+                        ImGui::Text(primaryGpu.name.c_str());
 
                         ImGui::Text("D3D12 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
@@ -2422,8 +2420,7 @@ bool MenuCommon::RenderMenu()
                         break;
 
                     default:
-                        if (state.DeviceAdapterNames.contains(state.currentVkDevice))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentVkDevice].c_str());
+                        ImGui::Text(primaryGpuVulkan.name.c_str());
 
                         ImGui::Text("Vulkan %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,

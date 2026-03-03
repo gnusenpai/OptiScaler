@@ -158,13 +158,22 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
 
         ScopedSkipSpoofing skipSpoofing {};
 
-        VkPhysicalDeviceProperties prop {};
-        vkGetPhysicalDeviceProperties(physicalDevice, &prop);
+        VkPhysicalDeviceIDProperties idProps {};
+        idProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
 
-        auto szName = std::string(prop.deviceName);
+        VkPhysicalDeviceProperties2 props2 {};
+        props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        props2.pNext = &idProps;
 
-        if (szName.size() > 0)
-            State::Instance().DeviceAdapterNames[*pDevice] = szName;
+        vkGetPhysicalDeviceProperties2(physicalDevice, &props2);
+
+        if (idProps.deviceLUIDValid == VK_TRUE)
+        {
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            auto luid = (PLUID) idProps.deviceLUID;
+            if (luid->HighPart != primaryGpu.luid.HighPart || luid->LowPart != primaryGpu.luid.LowPart)
+                LOG_WARN("VkDevice created with non-primary GPU");
+        }
     }
 
 #ifdef USE_QUEUE_SUBMIT_2_KHR

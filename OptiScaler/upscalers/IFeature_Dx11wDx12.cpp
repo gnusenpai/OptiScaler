@@ -5,6 +5,7 @@
 
 #include <proxies/DXGI_Proxy.h>
 #include <proxies/D3D12_Proxy.h>
+#include <misc/IdentifyGpu.h>
 
 #define ASSIGN_DESC(dest, src)                                                                                         \
     dest.Width = src.Width;                                                                                            \
@@ -410,11 +411,11 @@ HRESULT IFeature_Dx11wDx12::CreateDx12Device(D3D_FEATURE_LEVEL InFeatureLevel)
         if (hwAdapter != nullptr)
         {
             DXGI_ADAPTER_DESC desc {};
-            if (hwAdapter->GetDesc(&desc) == S_OK)
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            if (hwAdapter->GetDesc(&desc) == S_OK && (desc.AdapterLuid.HighPart != primaryGpu.luid.HighPart ||
+                                                      desc.AdapterLuid.LowPart != primaryGpu.luid.LowPart))
             {
-                auto adapterDesc = wstring_to_string(desc.Description);
-                LOG_INFO("D3D12Device created with adapter: {}", adapterDesc);
-                State::Instance().DeviceAdapterNames[_dx11on12Device] = adapterDesc;
+                LOG_WARN("D3D12Device created with non-primary GPU");
             }
         }
     }

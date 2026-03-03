@@ -587,17 +587,45 @@ static void CheckWorkingMode()
         // dxgi.dll
         if (lCaseFilename == "dxgi.dll")
         {
-            // Init will try to load the specifc path itself
-            // It's to allow dxgi usage before this point
-            DxgiProxy::Init(nullptr, _passThruMode);
+            do
+            {
+                auto pluginFilePath = pluginPath / L"dxgi.dll";
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(pluginFilePath.wstring().c_str(), NULL, 0);
 
-            if (DxgiProxy::Module() != nullptr)
+                if (originalModule != nullptr)
+                {
+                    if (!_passThruMode)
+                        LOG_INFO("OptiScaler working as dxgi.dll, original dll loaded from plugin folder");
+
+                    break;
+                }
+
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"dxgi-original.dll", NULL, 0);
+
+                if (originalModule != nullptr)
+                {
+                    if (!_passThruMode)
+                        LOG_INFO("OptiScaler working as dxgi.dll, dxgi-original.dll loaded");
+
+                    break;
+                }
+
+                auto sysFilePath = sysPath / L"dxgi.dll";
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+
+                if (originalModule != nullptr && !_passThruMode)
+                    LOG_INFO("OptiScaler working as dxgi.dll, system dll loaded");
+
+            } while (false);
+
+            if (originalModule != nullptr)
             {
                 dllNames.push_back("dxgi.dll");
                 dllNames.push_back("dxgi");
                 dllNamesW.push_back(L"dxgi.dll");
                 dllNamesW.push_back(L"dxgi");
 
+                DxgiProxy::Init(originalModule);
                 dxgi.LoadOriginalLibrary(originalModule);
 
                 State::Instance().isDxgiMode = true;

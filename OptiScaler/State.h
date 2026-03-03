@@ -63,7 +63,6 @@ class State
 
     std::string GameName;
     std::string GameExe;
-    ankerl::unordered_dense::map<void*, std::string> DeviceAdapterNames;
 
     bool NvngxDx11Inited = false;
     bool NvngxDx12Inited = false;

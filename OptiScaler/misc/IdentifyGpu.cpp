@@ -3,11 +3,9 @@
 #include "fsr4/FSR4Upgrade.h"
 
 #include <proxies/Dxgi_Proxy.h>
+#include <proxies/D3d12_Proxy.h>
 #include "nvapi/NvApiTypes.h"
 #include <magic_enum.hpp>
-
-std::optional<std::vector<GpuInformation>> IdentifyGpu::cachedInfo;
-std::optional<std::vector<GpuInformation>> IdentifyGpu::cachedInfoNoDxgi;
 
 using Microsoft::WRL::ComPtr;
 
@@ -35,12 +33,10 @@ void sortGpus(std::vector<GpuInformation>& gpus)
               { return vendorPriority(a.vendorId) < vendorPriority(b.vendorId); });
 }
 
-void IdentifyGpu::checkGpuInfo()
+std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
 {
-    cachedInfo = std::vector<GpuInformation> {};
-    auto& localCachedInfo = cachedInfo.value();
+    auto localCachedInfo = std::vector<GpuInformation> {};
 
-    // Call init for any case
     DxgiProxy::Init();
 
     ComPtr<IDXGIFactory> factory = nullptr;
@@ -50,7 +46,7 @@ void IdentifyGpu::checkGpuInfo()
     {
         // Will land here if getPrimaryGpu/getAllGpus are called from within DLL_PROCESS_ATTACH
         LOG_ERROR("Failed to create DXGI Factory, GPU info will be inaccurate!");
-        return;
+        return localCachedInfo;
     }
 
     UINT adapterIndex = 0;
@@ -88,7 +84,11 @@ void IdentifyGpu::checkGpuInfo()
 
             // Needed to be able to query amdxc and check for vkd3d-proton
             if (gpuInfo.vendorId == VendorId::AMD || gpuInfo.usesDxvk)
-                D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device));
+            {
+                D3d12Proxy::Init();
+                D3d12Proxy::D3D12CreateDevice_()(adapter.Get(), D3D_FEATURE_LEVEL_12_0,
+                                                 IID_PPV_ARGS(&gpuInfo.d3d12device));
+            }
 
             localCachedInfo.push_back(std::move(gpuInfo));
         }
@@ -188,13 +188,16 @@ void IdentifyGpu::checkGpuInfo()
             gpuInfo.d3d12device = nullptr;
         }
     }
+
+    return localCachedInfo;
 }
 
-// !!! Doesn't fill out FSR  4 capability and dxvk/vkd3d-proton usages !!!
-void IdentifyGpu::checkGpuInfoNoDxgi()
+// !!! Doesn't fill out FSR 4 capability and dxvk/vkd3d-proton usages !!!
+// We are using Vulkan inside DLL_PROCESS_ATTACH which unlike dxgi technically works™
+// Not ideal + requires a GPU that supports Vulkan but every GPU we care about should
+std::vector<GpuInformation> IdentifyGpu::checkGpuInfoNoDxgi()
 {
-    cachedInfoNoDxgi = std::vector<GpuInformation> {};
-    auto& localCachedInfo = cachedInfoNoDxgi.value();
+    auto localCachedInfo = std::vector<GpuInformation> {};
 
     VkApplicationInfo appInfo {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -210,15 +213,19 @@ void IdentifyGpu::checkGpuInfoNoDxgi()
 
     VkInstance instance = VK_NULL_HANDLE;
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
-        return;
+    {
+        LOG_ERROR("Couldn't create a Vulkan instance");
+        return localCachedInfo;
+    }
 
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     if (deviceCount == 0)
     {
+        LOG_ERROR("No Vulkan devices");
         vkDestroyInstance(instance, nullptr);
-        return;
+        return localCachedInfo;
     }
 
     // ScopedSkipSpoofing skipSpoofing {};
@@ -265,6 +272,8 @@ void IdentifyGpu::checkGpuInfoNoDxgi()
         if (gpuInfo.vendorId == VendorId::Nvidia)
             queryNvapi(gpuInfo);
     }
+
+    return localCachedInfo;
 }
 
 void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
@@ -345,11 +354,9 @@ void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
 
 std::vector<GpuInformation> IdentifyGpu::getAllGpus()
 {
-    // TODO: mutex
-    if (!cachedInfo.has_value())
-        checkGpuInfo();
-
-    return cachedInfo.value();
+    // Static inits are thread safe
+    static std::vector<GpuInformation> cache = []() { return checkGpuInfo(); }();
+    return cache;
 }
 
 GpuInformation IdentifyGpu::getPrimaryGpu()
@@ -361,10 +368,8 @@ GpuInformation IdentifyGpu::getPrimaryGpu()
 // !!! Use the NoDxgi variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
 std::vector<GpuInformation> IdentifyGpu::getAllGpusNoDxgi()
 {
-    if (!cachedInfoNoDxgi.has_value())
-        checkGpuInfoNoDxgi();
-
-    return cachedInfoNoDxgi.value();
+    static std::vector<GpuInformation> cache = []() { return checkGpuInfoNoDxgi(); }();
+    return cache;
 }
 
 // !!! Use the NoDxgi variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!

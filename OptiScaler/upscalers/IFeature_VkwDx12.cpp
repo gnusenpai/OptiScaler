@@ -13,6 +13,7 @@
 #include <detours/detours.h>
 
 #include <magic_enum.hpp>
+#include <misc/IdentifyGpu.h>
 
 // Used Nukem's VKToDX as a base
 // https://github.com/Nukem9/dlssg-to-fsr3/blob/eca4a79b4d23339a1dcf02e30b9f3bafe7901513/source/maindll/FFFrameInterpolatorVKToDX.cpp
@@ -2018,11 +2019,11 @@ HRESULT IFeature_VkwDx12::CreateDx12Device()
         if (hwAdapter != nullptr)
         {
             DXGI_ADAPTER_DESC desc {};
-            if (hwAdapter->GetDesc(&desc) == S_OK)
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            if (hwAdapter->GetDesc(&desc) == S_OK && (desc.AdapterLuid.HighPart != primaryGpu.luid.HighPart ||
+                                                      desc.AdapterLuid.LowPart != primaryGpu.luid.LowPart))
             {
-                auto adapterDesc = wstring_to_string(desc.Description);
-                LOG_INFO("D3D12Device created with adapter: {}", adapterDesc);
-                State::Instance().DeviceAdapterNames[_dx11on12Device] = adapterDesc;
+                LOG_WARN("D3D12Device created with non-primary GPU");
             }
         }
 

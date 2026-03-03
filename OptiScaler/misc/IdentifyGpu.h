@@ -60,22 +60,19 @@ struct GpuInformation
 // - Check Nvidia Arch, watch out for fakenvapi
 // - Check vram amount
 // - Check if dxgi uses dxvk, some dxvk specific call?
-//
-// - Check hags support? watch out for linux
 // - Check if vkd3d-proton is being used? Could be helpful to display in menu
 // - Check vulkan driver? radv vs amdvlk etc
+// - Look at removing state.DeviceAdapterNames
+//
+// - Check hags support? watch out for linux
 // - Opti in many spots assumes a single GPU and that all handles are coming from that gpu,
 // might need to always check if LUID of the held device matches the one provided by this class
 // before trying to use any info from here. Could also create a method to query GpuInformation based on LUID
-// - Look at removing state.DeviceAdapterNames
 
 class IdentifyGpu
 {
-    static std::optional<std::vector<GpuInformation>> cachedInfo;
-    static std::optional<std::vector<GpuInformation>> cachedInfoNoDxgi;
-
-    static void checkGpuInfo();
-    static void checkGpuInfoNoDxgi();
+    static std::vector<GpuInformation> checkGpuInfo();
+    static std::vector<GpuInformation> checkGpuInfoNoDxgi();
     static void queryNvapi(GpuInformation& gpuInfo);
 
   public:
