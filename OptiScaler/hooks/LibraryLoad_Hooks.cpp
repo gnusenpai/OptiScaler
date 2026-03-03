@@ -266,7 +266,12 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
         return commonModule;
     }
 
-    if (Config::Instance()->DisableOverlays.value_or_default() && CheckDllNameW(&libName, &blockOverlayNamesW))
+    if (CheckDllNameW(&libName, &blockedDllNamesW))
+    {
+        LOG_DEBUG("Blocking dll: {}", wstring_to_string(libName));
+        return (HMODULE) 1337;
+    }
+    else if (Config::Instance()->DisableOverlays.value_or_default() && CheckDllNameW(&libName, &blockOverlayNamesW))
     {
         LOG_DEBUG("Blocking overlay dll: {}", wstring_to_string(libName));
         return (HMODULE) 1337;

@@ -110,6 +110,8 @@ inline std::vector<std::string> blockOverlayNames = { "eosovh-win32-shipping.dll
                                                       "overlay",
                                                       "overlay.dll" };
 
+inline std::vector<std::wstring> blockedDllNamesW = { L"windhawk.dll" };
+
 inline std::vector<std::wstring> blockOverlayNamesW = { L"eosovh-win32-shipping.dll",
                                                         L"eosovh-win32-shipping",
                                                         L"eosovh-win64-shipping.dll",
