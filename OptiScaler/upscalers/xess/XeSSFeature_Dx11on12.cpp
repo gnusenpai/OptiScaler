@@ -95,13 +95,13 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
             return false;
         }
 
-        if (!Config::Instance()->OverlayMenu.value_or(true) && (Imgui == nullptr || Imgui.get() == nullptr))
+        if (!Config::Instance()->OverlayMenu.value_or_default() && (Imgui == nullptr || Imgui.get() == nullptr))
         {
             LOG_DEBUG("Create Imgui!");
             Imgui = std::make_unique<Menu_Dx11>(GetForegroundWindow(), Device);
         }
 
-        if (Config::Instance()->Dx11DelayedInit.value_or(false))
+        if (Config::Instance()->Dx11DelayedInit.value_or_default())
         {
             LOG_TRACE("sleeping after XeSSContext creation for 1500ms");
             std::this_thread::sleep_for(std::chrono::milliseconds(1500));
@@ -410,7 +410,7 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
         }
 
         // imgui - legacy menu disabled for now
-        // if (!Config::Instance()->OverlayMenu.value_or(true) && _frameCount > 30)
+        // if (!Config::Instance()->OverlayMenu.value_or_default() && _frameCount > 30)
         //{
         //    if (Imgui != nullptr && Imgui.get() != nullptr)
         //    {

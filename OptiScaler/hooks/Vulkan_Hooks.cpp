@@ -146,7 +146,8 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
 
     auto result = o_vkCreateDevice(physicalDevice, &localCreteInfo, pAllocator, pDevice);
 
-    if (result == VK_SUCCESS && !State::Instance().vulkanSkipHooks && Config::Instance()->OverlayMenu.value())
+    if (result == VK_SUCCESS && !State::Instance().vulkanSkipHooks &&
+        Config::Instance()->OverlayMenu.value_or_default())
     {
         MenuOverlayVk::DestroyVulkanObjects(false);
 
