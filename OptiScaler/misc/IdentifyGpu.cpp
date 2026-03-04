@@ -9,7 +9,6 @@
 
 using Microsoft::WRL::ComPtr;
 
-// TODO: Maybe take into account some other GPU ordering, DxgiFactoryWrappedCalls::EnumAdapters?
 constexpr int vendorPriority(VendorId::Value v)
 {
     switch (v)
@@ -39,8 +38,8 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
 
     DxgiProxy::Init();
 
-    ComPtr<IDXGIFactory> factory = nullptr;
-    HRESULT result = DxgiProxy::CreateDxgiFactory_()(__uuidof(factory), &factory);
+    ComPtr<IDXGIFactory6> factory = nullptr;
+    HRESULT result = DxgiProxy::CreateDxgiFactory_()(__uuidof(factory), (IDXGIFactory**) factory.GetAddressOf());
 
     if (result != S_OK || factory == nullptr)
     {
@@ -50,10 +49,14 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
     }
 
     UINT adapterIndex = 0;
-    DXGI_ADAPTER_DESC adapterDesc {};
-    ComPtr<IDXGIAdapter> adapter;
+    DXGI_ADAPTER_DESC1 adapterDesc {};
+    ComPtr<IDXGIAdapter1> adapter;
 
-    while (factory->EnumAdapters(adapterIndex, &adapter) == S_OK)
+    DXGI_GPU_PREFERENCE gpuPreference = DXGI_GPU_PREFERENCE_UNSPECIFIED;
+    if (Config::Instance()->PreferDedicatedGpu.value_or_default())
+        gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+
+    while (factory->EnumAdapterByGpuPreference(adapterIndex, gpuPreference, IID_PPV_ARGS(&adapter)) == S_OK)
     {
         if (adapter == nullptr)
         {
@@ -63,7 +66,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
 
         {
             ScopedSkipSpoofing skipSpoofing {};
-            result = adapter->GetDesc(&adapterDesc);
+            result = adapter->GetDesc1(&adapterDesc);
         }
 
         if (result == S_OK)
@@ -77,7 +80,6 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
             std::wstring szName(adapterDesc.Description);
             gpuInfo.name = wstring_to_string(szName);
 
-            // TODO: check if an invalid guid still return S_OK but nullptr
             ComPtr<IDXGIVkInteropDevice> dxgiInterop;
             if (SUCCEEDED(adapter->QueryInterface(IID_PPV_ARGS(&dxgiInterop))))
                 gpuInfo.usesDxvk = true;
@@ -90,6 +92,9 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
                                                  IID_PPV_ARGS(&gpuInfo.d3d12device));
             }
 
+            if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+                gpuInfo.softwareAdapter = true;
+
             localCachedInfo.push_back(std::move(gpuInfo));
         }
         else
@@ -100,7 +105,10 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
         adapterIndex++;
     }
 
-    sortGpus(localCachedInfo);
+    // We might be getting the correct ordering by default.
+    // Trying to sort by vendor might cause issues if someone
+    // has some old Nvidia card in their system for example.
+    // sortGpus(localCachedInfo);
 
     for (auto& gpuInfo : localCachedInfo)
     {
@@ -122,7 +130,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
             auto AmdExtD3DCreateInterface = (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
                 moduleAmdxc64, "AmdExtD3DCreateInterface");
 
-            // Kinda questionable, may require reconsideration
+            // Kinda questionable, may need to reconsider
             if (Config::Instance()->Fsr4ForceCapable.value_or_default())
                 gpuInfo.fsr4Capable = true;
 

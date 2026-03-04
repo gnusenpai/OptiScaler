@@ -47,6 +47,7 @@ struct GpuInformation
     size_t dedicatedVramInBytes = 0;
     bool usesDxvk = false;
     bool usesVkd3dProton = false;
+    bool softwareAdapter = false;
 
     bool fsr4Capable = false;
     ID3D12Device* d3d12device = nullptr;
@@ -64,6 +65,7 @@ struct GpuInformation
 // - Check vulkan driver? radv vs amdvlk etc
 // - Look at removing state.DeviceAdapterNames
 //
+// - Look into IFeature_Dx11wDx12::GetHardwareAdapter
 // - Check hags support? watch out for linux
 // - Opti in many spots assumes a single GPU and that all handles are coming from that gpu,
 // might need to always check if LUID of the held device matches the one provided by this class

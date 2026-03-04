@@ -27,7 +27,6 @@ class DxgiFactoryWrappedCalls
   private:
     // To prevent recursive FG swapchain creation
     inline static bool _skipFGSwapChainCreation = false;
-    inline static bool _skipHighPerfCheck = false;
 
     class ScopedSkipFGSCCreation
     {
@@ -41,19 +40,5 @@ class DxgiFactoryWrappedCalls
             DxgiFactoryWrappedCalls::_skipFGSwapChainCreation = true;
         }
         ~ScopedSkipFGSCCreation() { DxgiFactoryWrappedCalls::_skipFGSwapChainCreation = previousState; }
-    };
-
-    class ScopedSkipHighPerfCheck
-    {
-      private:
-        bool previousState;
-
-      public:
-        ScopedSkipHighPerfCheck()
-        {
-            previousState = DxgiFactoryWrappedCalls::_skipHighPerfCheck;
-            DxgiFactoryWrappedCalls::_skipHighPerfCheck = true;
-        }
-        ~ScopedSkipHighPerfCheck() { DxgiFactoryWrappedCalls::_skipHighPerfCheck = previousState; }
     };
 };
