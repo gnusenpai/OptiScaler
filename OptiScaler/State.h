@@ -262,7 +262,6 @@ class State
 
     std::vector<ID3D12Device*> d3d12Devices;
     std::vector<ID3D11Device*> d3d11Devices;
-    std::unordered_map<UINT64, std::string> adapterDescs;
 
     // Moved checks here to prevent circular includes
     /// <summary>

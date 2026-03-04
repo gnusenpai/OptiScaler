@@ -171,7 +171,7 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
         {
             auto primaryGpu = IdentifyGpu::getPrimaryGpu();
             auto luid = (PLUID) idProps.deviceLUID;
-            if (luid->HighPart != primaryGpu.luid.HighPart || luid->LowPart != primaryGpu.luid.LowPart)
+            if (!IsEqualLUID(*luid, primaryGpu.luid))
                 LOG_WARN("VkDevice created with non-primary GPU");
         }
     }

@@ -98,17 +98,6 @@ inline static void hkvkGetPhysicalDeviceProperties(VkPhysicalDevice physical_dev
 {
     o_vkGetPhysicalDeviceProperties(physical_device, properties);
 
-    // Report adapter info
-    auto uniqueId = properties->vendorID | properties->deviceID;
-    if (properties->vendorID != VendorId::Microsoft && !State::Instance().adapterDescs.contains(uniqueId))
-    {
-        std::string szName(properties->deviceName);
-        std::string descStr = std::format("Adapter: {}, VendorId: {:#x}, DeviceId: {:#x}", szName, properties->vendorID,
-                                          properties->deviceID);
-        LOG_INFO("{}", descStr);
-        State::Instance().adapterDescs.insert_or_assign(uniqueId, descStr);
-    }
-
     auto targetVendorIdMatches = !Config::Instance()->TargetVendorId.has_value() ||
                                  Config::Instance()->TargetVendorId.value() == properties->vendorID;
 
@@ -136,17 +125,6 @@ inline static void hkvkGetPhysicalDeviceProperties(VkPhysicalDevice physical_dev
 inline static void hkvkGetPhysicalDeviceProperties2(VkPhysicalDevice phys_dev, VkPhysicalDeviceProperties2* properties2)
 {
     o_vkGetPhysicalDeviceProperties2(phys_dev, properties2);
-
-    // Report adapter info
-    auto uniqueId = properties2->properties.vendorID | properties2->properties.deviceID;
-    if (properties2->properties.vendorID != VendorId::Microsoft && !State::Instance().adapterDescs.contains(uniqueId))
-    {
-        std::string szName(properties2->properties.deviceName);
-        std::string descStr = std::format("Adapter: {}, VendorId: {:#x}, DeviceId: {:#x}", szName,
-                                          properties2->properties.vendorID, properties2->properties.deviceID);
-        LOG_INFO("{}", descStr);
-        State::Instance().adapterDescs.insert_or_assign(uniqueId, descStr);
-    }
 
     auto targetVendorIdMatches = !Config::Instance()->TargetVendorId.has_value() ||
                                  Config::Instance()->TargetVendorId.value() == properties2->properties.vendorID;
@@ -194,17 +172,6 @@ inline static void hkvkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice phys_dev
                                                        VkPhysicalDeviceProperties2* properties2)
 {
     o_vkGetPhysicalDeviceProperties2KHR(phys_dev, properties2);
-
-    // Report adapter info
-    auto uniqueId = properties2->properties.vendorID | properties2->properties.deviceID;
-    if (properties2->properties.vendorID != VendorId::Microsoft && !State::Instance().adapterDescs.contains(uniqueId))
-    {
-        std::string szName(properties2->properties.deviceName);
-        std::string descStr = std::format("Adapter: {}, VendorId: {:#x}, DeviceId: {:#x}", szName,
-                                          properties2->properties.vendorID, properties2->properties.deviceID);
-        LOG_INFO("{}", descStr);
-        State::Instance().adapterDescs.insert_or_assign(uniqueId, descStr);
-    }
 
     auto targetVendorIdMatches = !Config::Instance()->TargetVendorId.has_value() ||
                                  Config::Instance()->TargetVendorId.value() == properties2->properties.vendorID;

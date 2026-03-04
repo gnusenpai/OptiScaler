@@ -412,8 +412,7 @@ HRESULT IFeature_Dx11wDx12::CreateDx12Device(D3D_FEATURE_LEVEL InFeatureLevel)
         {
             DXGI_ADAPTER_DESC desc {};
             auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-            if (hwAdapter->GetDesc(&desc) == S_OK && (desc.AdapterLuid.HighPart != primaryGpu.luid.HighPart ||
-                                                      desc.AdapterLuid.LowPart != primaryGpu.luid.LowPart))
+            if (hwAdapter->GetDesc(&desc) == S_OK && !IsEqualLUID(desc.AdapterLuid, primaryGpu.luid))
             {
                 LOG_WARN("D3D12Device created with non-primary GPU");
             }

@@ -68,6 +68,14 @@ struct GpuInformation
 // - Opti in many spots assumes a single GPU and that all handles are coming from that gpu,
 // might need to always check if LUID of the held device matches the one provided by this class
 // before trying to use any info from here. Could also create a method to query GpuInformation based on LUID
+// - Consider adding resetCache in case primary GPU has changed somehow + some way to tell IdentifyGpu
+// which GPU is the primary one. Seems mostly useful in cases where the game would manually chose a different GPU.
+// Would require removing "static" from calls to getPrimaryGpu().
+
+inline constexpr bool IsEqualLUID(LUID luid1, LUID luid2)
+{
+    return luid1.HighPart == luid2.HighPart && luid1.LowPart == luid2.LowPart;
+}
 
 class IdentifyGpu
 {

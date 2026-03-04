@@ -366,8 +366,7 @@ static HRESULT hkD3D12CreateDevice(IDXGIAdapter* pAdapter, D3D_FEATURE_LEVEL Min
             LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
 
             auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-            if (desc.AdapterLuid.HighPart != primaryGpu.luid.HighPart ||
-                desc.AdapterLuid.LowPart != primaryGpu.luid.LowPart)
+            if (!IsEqualLUID(desc.AdapterLuid, primaryGpu.luid))
                 LOG_WARN("D3D12Device created with non-primary GPU");
         }
     }
@@ -500,8 +499,7 @@ static HRESULT hkCreateDevice(ID3D12DeviceFactory* pFactory, IDXGIAdapter* pAdap
             LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
 
             auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-            if (desc.AdapterLuid.HighPart != primaryGpu.luid.HighPart ||
-                desc.AdapterLuid.LowPart != primaryGpu.luid.LowPart)
+            if (!IsEqualLUID(desc.AdapterLuid, primaryGpu.luid))
                 LOG_WARN("D3D12Device created with non-primary GPU");
         }
     }

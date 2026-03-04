@@ -327,8 +327,7 @@ void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
                     LOG_ERROR("NvAPI_GPU_GetLogicalGpuInfo failed: {}", magic_enum::enum_name(result));
 
                 // We are looking at the correct GPU for this gpuInfo.luid
-                if (luid.HighPart == gpuInfo.luid.HighPart && luid.LowPart == gpuInfo.luid.LowPart &&
-                    logicalGpuData.physicalGpuCount > 0)
+                if (IsEqualLUID(luid, gpuInfo.luid) && logicalGpuData.physicalGpuCount > 0)
                 {
                     if (logicalGpuData.physicalGpuCount > 1)
                         LOG_WARN("A logical GPU has more than a single physical GPU, we are only checking one");
