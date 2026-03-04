@@ -64,8 +64,8 @@ struct GpuInformation
 // - Check if vkd3d-proton is being used? Could be helpful to display in menu
 // - Check vulkan driver? radv vs amdvlk etc
 // - Look at removing state.DeviceAdapterNames
+// - Look into IFeature_Dx11wDx12::getHardwareAdapter
 //
-// - Look into IFeature_Dx11wDx12::GetHardwareAdapter
 // - Check hags support? watch out for linux
 // - Opti in many spots assumes a single GPU and that all handles are coming from that gpu,
 // might need to always check if LUID of the held device matches the one provided by this class
@@ -86,6 +86,9 @@ class IdentifyGpu
     static void queryNvapi(GpuInformation& gpuInfo);
 
   public:
+    static void getHardwareAdapter(IDXGIFactory* InFactory, IDXGIAdapter** InAdapter,
+                                   D3D_FEATURE_LEVEL requiredFeatureLevel);
+
     // Sorted by priority, the first one should be treated as the primary one
     static std::vector<GpuInformation> getAllGpus();
     static GpuInformation getPrimaryGpu();

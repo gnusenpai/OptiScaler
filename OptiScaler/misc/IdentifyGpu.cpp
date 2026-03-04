@@ -359,6 +359,48 @@ void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
     gpuInfo.dlssCapable = gpuInfo.nvidiaArchInfo.architecture_id >= NV_GPU_ARCHITECTURE_TU100;
 }
 
+void IdentifyGpu::getHardwareAdapter(IDXGIFactory* InFactory, IDXGIAdapter** InAdapter,
+                                     D3D_FEATURE_LEVEL requiredFeatureLevel)
+{
+    LOG_FUNC();
+
+    *InAdapter = nullptr;
+
+    auto allGpus = getAllGpus();
+    IDXGIFactory6* factory6 = nullptr;
+
+    if (InFactory->QueryInterface(IID_PPV_ARGS(&factory6)) == S_OK && factory6 != nullptr)
+    {
+        D3d12Proxy::Init();
+
+        for (auto gpu : allGpus)
+        {
+            if (*InAdapter == nullptr)
+            {
+                LOG_TRACE("Trying to select: {}", gpu.name);
+
+                ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
+                auto result = factory6->EnumAdapterByLuid(gpu.luid, IID_PPV_ARGS(InAdapter));
+            }
+
+            if (*InAdapter != nullptr)
+            {
+                // Check if the requested D3D_FEATURE_LEVEL is supported without actually creating the device
+                if (SUCCEEDED(D3d12Proxy::D3D12CreateDevice_()(*InAdapter, requiredFeatureLevel, _uuidof(ID3D12Device),
+                                                               nullptr)))
+                {
+                    break;
+                }
+
+                (*InAdapter)->Release();
+                *InAdapter = nullptr;
+            }
+        }
+
+        factory6->Release();
+    }
+}
+
 std::vector<GpuInformation> IdentifyGpu::getAllGpus()
 {
     // Static inits are thread safe

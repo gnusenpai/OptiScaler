@@ -8,6 +8,7 @@
 #include <wrapped/wrapped_factory.h>
 
 #include <DllNames.h>
+#include <misc/IdentifyGpu.h>
 
 static DxgiProxy::PFN_CreateDxgiFactory o_CreateDXGIFactory = nullptr;
 static DxgiProxy::PFN_CreateDxgiFactory1 o_CreateDXGIFactory1 = nullptr;
@@ -16,72 +17,10 @@ static bool creatingD3D12DeviceForLuma = false;
 
 #pragma intrinsic(_ReturnAddress)
 
-static void GetHardwareAdapter(IDXGIFactory* InFactory, IDXGIAdapter** InAdapter, D3D_FEATURE_LEVEL InFeatureLevel,
-                               bool InRequestHighPerformanceAdapter)
-{
-    LOG_FUNC();
-
-    *InAdapter = nullptr;
-
-    IDXGIAdapter1* adapter;
-    IDXGIFactory1* factory1;
-    IDXGIFactory6* factory6;
-
-    if (SUCCEEDED(InFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
-    {
-        LOG_DEBUG("Using IDXGIFactory6 & EnumAdapterByGpuPreference");
-        factory6->Release();
-
-        for (UINT adapterIndex = 0;
-             DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex,
-                                                                          InRequestHighPerformanceAdapter == true
-                                                                              ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE
-                                                                              : DXGI_GPU_PREFERENCE_UNSPECIFIED,
-                                                                          IID_PPV_ARGS(&adapter));
-             ++adapterIndex)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                continue;
-
-            *InAdapter = adapter;
-            break;
-        }
-    }
-    else if (SUCCEEDED(InFactory->QueryInterface(IID_PPV_ARGS(&factory1))))
-    {
-        factory1->Release();
-
-        LOG_DEBUG("Using InFactory & EnumAdapters1");
-        for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != factory1->EnumAdapters1(adapterIndex, &adapter);
-             ++adapterIndex)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                continue;
-
-            // Check to see whether the adapter supports Direct3D 12, but don't create the
-            // actual device yet.
-            auto result = D3d12Proxy::D3D12CreateDevice_()(adapter, InFeatureLevel, _uuidof(ID3D12Device), nullptr);
-
-            if (result == S_FALSE)
-            {
-                LOG_DEBUG("D3D12CreateDevice test result: {:X}", (UINT) result);
-                *InAdapter = adapter;
-                break;
-            }
-        }
-    }
-}
-
 static void InitD3D12DeviceForLuma(IDXGIFactory* factory)
 {
     IDXGIAdapter* hardwareAdapter = nullptr;
-    GetHardwareAdapter(factory, &hardwareAdapter, D3D_FEATURE_LEVEL_11_0, true);
+    IdentifyGpu::getHardwareAdapter(factory, &hardwareAdapter, D3D_FEATURE_LEVEL_11_0);
 
     if (hardwareAdapter == nullptr)
         LOG_WARN("Can't get hardwareAdapter, will try nullptr!");

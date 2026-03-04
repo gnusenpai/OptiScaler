@@ -1915,62 +1915,6 @@ void IFeature_VkwDx12::ReleaseSyncResources()
     }
 }
 
-void IFeature_VkwDx12::GetHardwareAdapter(IDXGIFactory1* InFactory, IDXGIAdapter** InAdapter,
-                                          D3D_FEATURE_LEVEL InFeatureLevel, bool InRequestHighPerformanceAdapter)
-{
-    LOG_FUNC();
-
-    *InAdapter = nullptr;
-
-    IDXGIAdapter1* adapter;
-
-    IDXGIFactory6* factory6;
-    if (SUCCEEDED(InFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
-    {
-        LOG_DEBUG("Using IDXGIFactory6 & EnumAdapterByGpuPreference");
-
-        for (UINT adapterIndex = 0;
-             DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(adapterIndex,
-                                                                          InRequestHighPerformanceAdapter == true
-                                                                              ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE
-                                                                              : DXGI_GPU_PREFERENCE_UNSPECIFIED,
-                                                                          IID_PPV_ARGS(&adapter));
-             ++adapterIndex)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                continue;
-
-            *InAdapter = adapter;
-            break;
-        }
-    }
-    else
-    {
-        LOG_DEBUG("Using InFactory & EnumAdapters1");
-        for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != InFactory->EnumAdapters1(adapterIndex, &adapter);
-             ++adapterIndex)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                continue;
-
-            auto result = D3d12Proxy::D3D12CreateDevice_()(adapter, InFeatureLevel, _uuidof(ID3D12Device), nullptr);
-
-            if (result == S_FALSE)
-            {
-                LOG_DEBUG("D3D12CreateDevice test result: {:X}", (UINT) result);
-                *InAdapter = adapter;
-                break;
-            }
-        }
-    }
-}
-
 HRESULT IFeature_VkwDx12::CreateDx12Device()
 {
     LOG_FUNC();
@@ -1998,7 +1942,7 @@ HRESULT IFeature_VkwDx12::CreateDx12Device()
         }
 
         IDXGIAdapter* hwAdapter = nullptr;
-        GetHardwareAdapter(factory, &hwAdapter, featureLevel, true);
+        IdentifyGpu::getHardwareAdapter(factory, &hwAdapter, featureLevel);
 
         if (hwAdapter == nullptr)
             LOG_WARN("Can't get hwAdapter, will try nullptr!");

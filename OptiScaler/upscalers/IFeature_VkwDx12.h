@@ -104,8 +104,6 @@ class IFeature_VkwDx12 : public virtual IFeature_Vk
 
     // Helper methods
     HRESULT CreateDx12Device();
-    void GetHardwareAdapter(IDXGIFactory1* InFactory, IDXGIAdapter** InAdapter, D3D_FEATURE_LEVEL InFeatureLevel,
-                            bool InRequestHighPerformanceAdapter);
 
     bool CreateSharedTexture(const VkImageCreateInfo& ImageInfo, VkImage& VulkanResource, VkDeviceMemory& VulkanMemory,
                              ID3D12Resource*& D3D12Resource, bool InOutput);

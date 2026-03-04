@@ -67,8 +67,6 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
     std::unique_ptr<DepthTransfer_Dx11> DT = nullptr;
 
     HRESULT CreateDx12Device(D3D_FEATURE_LEVEL InFeatureLevel);
-    void GetHardwareAdapter(IDXGIFactory1* InFactory, IDXGIAdapter** InAdapter, D3D_FEATURE_LEVEL InFeatureLevel,
-                            bool InRequestHighPerformanceAdapter);
 
     bool CopyTextureFrom11To12(ID3D11Resource* InResource, D3D11_TEXTURE2D_RESOURCE_C* OutResource, bool InCopy,
                                bool InDepth);
