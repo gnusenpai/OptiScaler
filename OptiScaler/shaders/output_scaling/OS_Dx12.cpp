@@ -23,7 +23,6 @@
 
 static Constants constants {};
 static UpscaleShaderConstants fsr1Constants {};
-static bool constantsInited = false;
 
 #pragma warning(disable : 4244)
 
@@ -82,26 +81,23 @@ bool OS_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdL
 
     InDevice->CreateUnorderedAccessView(OutResource, nullptr, &uavDesc, currentHeap.GetUavCPU(0));
 
-    if (!constantsInited)
-    {
-        FsrEasuCon(fsr1Constants.const0, fsr1Constants.const1, fsr1Constants.const2, fsr1Constants.const3,
-                   State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
-                   State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
-                   State::Instance().currentFeature->DisplayWidth(), State::Instance().currentFeature->DisplayHeight());
+    FsrEasuCon(fsr1Constants.const0, fsr1Constants.const1, fsr1Constants.const2, fsr1Constants.const3,
+               State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
+               State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
+               State::Instance().currentFeature->DisplayWidth(), State::Instance().currentFeature->DisplayHeight());
 
-        constants.srcWidth = State::Instance().currentFeature->TargetWidth();
-        constants.srcHeight = State::Instance().currentFeature->TargetHeight();
-        constants.destWidth = State::Instance().currentFeature->DisplayWidth();
-        constants.destHeight = State::Instance().currentFeature->DisplayHeight();
+    constants.srcWidth = State::Instance().currentFeature->TargetWidth();
+    constants.srcHeight = State::Instance().currentFeature->TargetHeight();
+    constants.destWidth = State::Instance().currentFeature->DisplayWidth();
+    constants.destHeight = State::Instance().currentFeature->DisplayHeight();
 
-        constantsInited = true;
-    }
+    constantsInited = true;
 
     // Create CBV for Constants
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 
     // fsr upscaling
-    if (Config::Instance()->OutputScalingUseFsr.value_or_default())
+    if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
     {
         // Copy the updated constant buffer data to the constant buffer resource
         UINT8* pCBDataBegin;
@@ -237,14 +233,14 @@ OS_Dx12::OS_Dx12(std::string InName, ID3D12Device* InDevice, bool InUpsample)
 
     // don't wanna compile fsr easu on runtime :)
     if (Config::Instance()->UsePrecompiledShaders.value_or_default() ||
-        Config::Instance()->OutputScalingUseFsr.value_or_default())
+        Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
     {
         D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
         computePsoDesc.pRootSignature = _rootSignature;
         computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
         // fsr upscaling
-        if (Config::Instance()->OutputScalingUseFsr.value_or_default())
+        if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
         {
             computePsoDesc.CS =
                 CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(FSR_EASU_cso), sizeof(FSR_EASU_cso));
@@ -262,38 +258,38 @@ OS_Dx12::OS_Dx12(std::string InName, ID3D12Device* InDevice, bool InUpsample)
 
                 switch (Config::Instance()->OutputScalingDownscaler.value_or_default())
                 {
-                case 0:
+                case Scaler::Bicubic:
                     computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(bcds_bicubic_cso),
                                                                 sizeof(bcds_bicubic_cso));
 
                     break;
 
-                case 1:
+                case Scaler::CatmullRom:
                     computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(bcds_catmull_cso),
                                                                 sizeof(bcds_catmull_cso));
                     break;
 
-                case 2:
+                case Scaler::Lanczos2:
                     computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(bcds_lanczos2_cso),
                                                                 sizeof(bcds_lanczos2_cso));
                     break;
 
-                case 3:
+                case Scaler::Lanczos3:
                     computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(bcds_lanczos3_cso),
                                                                 sizeof(bcds_lanczos3_cso));
                     break;
 
-                case 4:
+                case Scaler::Kaiser2:
                     computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(bcds_kaiser2_cso),
                                                                 sizeof(bcds_kaiser2_cso));
                     break;
 
-                case 5:
+                case Scaler::Kaiser3:
                     computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(bcds_kaiser3_cso),
                                                                 sizeof(bcds_kaiser3_cso));
                     break;
 
-                case 6:
+                case Scaler::Magic:
                     computePsoDesc.CS =
                         CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(bcds_magc_cso), sizeof(bcds_magc_cso));
                     break;
@@ -331,31 +327,31 @@ OS_Dx12::OS_Dx12(std::string InName, ID3D12Device* InDevice, bool InUpsample)
 
             switch (Config::Instance()->OutputScalingDownscaler.value_or_default())
             {
-            case 0:
+            case Scaler::Bicubic:
                 _recEncodeShader = OS_CompileShader(downsampleCodeBC.c_str(), "CSMain", "cs_5_0");
                 break;
 
-            case 1:
+            case Scaler::CatmullRom:
                 _recEncodeShader = OS_CompileShader(downsampleCodeCatmull.c_str(), "CSMain", "cs_5_0");
                 break;
 
-            case 2:
+            case Scaler::Lanczos2:
                 _recEncodeShader = OS_CompileShader(downsampleCodeLanczos2.c_str(), "CSMain", "cs_5_0");
                 break;
 
-            case 3:
+            case Scaler::Lanczos3:
                 _recEncodeShader = OS_CompileShader(downsampleCodeLanczos3.c_str(), "CSMain", "cs_5_0");
                 break;
 
-            case 4:
+            case Scaler::Kaiser2:
                 _recEncodeShader = OS_CompileShader(downsampleCodeKaiser2.c_str(), "CSMain", "cs_5_0");
                 break;
 
-            case 5:
+            case Scaler::Kaiser3:
                 _recEncodeShader = OS_CompileShader(downsampleCodeKaiser3.c_str(), "CSMain", "cs_5_0");
                 break;
 
-            case 6:
+            case Scaler::Magic:
                 _recEncodeShader = OS_CompileShader(downsampleCodeMAGIC.c_str(), "CSMain", "cs_5_0");
                 break;
 

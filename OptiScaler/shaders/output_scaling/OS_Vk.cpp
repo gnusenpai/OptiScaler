@@ -22,7 +22,6 @@
 
 static Constants constants {};
 static UpscaleShaderConstants fsr1Constants {};
-static bool constantsInited = false;
 
 #pragma warning(disable : 4244)
 
@@ -71,7 +70,7 @@ OS_Vk::OS_Vk(std::string InName, VkDevice InDevice, VkPhysicalDevice InPhysicalD
     std::vector<char> shaderCode;
 
     // fsr upscaling
-    if (Config::Instance()->OutputScalingUseFsr.value_or_default())
+    if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
     {
         shaderCode = std::vector<char>(FSR_EASU_spv, FSR_EASU_spv + sizeof(FSR_EASU_spv));
     }
@@ -85,31 +84,31 @@ OS_Vk::OS_Vk(std::string InName, VkDevice InDevice, VkPhysicalDevice InPhysicalD
         {
             switch (Config::Instance()->OutputScalingDownscaler.value_or_default())
             {
-            case 0:
+            case Scaler::Bicubic:
                 shaderCode = std::vector<char>(bcds_bicubic_spv, bcds_bicubic_spv + sizeof(bcds_bicubic_spv));
                 break;
 
-            case 1:
+            case Scaler::CatmullRom:
                 shaderCode = std::vector<char>(bcds_catmull_spv, bcds_catmull_spv + sizeof(bcds_catmull_spv));
                 break;
 
-            case 2:
+            case Scaler::Lanczos2:
                 shaderCode = std::vector<char>(bcds_lanczos2_spv, bcds_lanczos2_spv + sizeof(bcds_lanczos2_spv));
                 break;
 
-            case 3:
+            case Scaler::Lanczos3:
                 shaderCode = std::vector<char>(bcds_lanczos3_spv, bcds_lanczos3_spv + sizeof(bcds_lanczos3_spv));
                 break;
 
-            case 4:
+            case Scaler::Kaiser2:
                 shaderCode = std::vector<char>(bcds_kaiser2_spv, bcds_kaiser2_spv + sizeof(bcds_kaiser2_spv));
                 break;
 
-            case 5:
+            case Scaler::Kaiser3:
                 shaderCode = std::vector<char>(bcds_kaiser3_spv, bcds_kaiser3_spv + sizeof(bcds_kaiser3_spv));
                 break;
 
-            case 6:
+            case Scaler::Magic:
                 shaderCode = std::vector<char>(bcds_magc_spv, bcds_magc_spv + sizeof(bcds_magc_spv));
                 break;
 
@@ -339,22 +338,17 @@ bool OS_Vk::Dispatch(VkDevice InDevice, VkCommandBuffer InCmdList, VkImageView I
     if (!_init || InDevice == VK_NULL_HANDLE || InCmdList == VK_NULL_HANDLE)
         return false;
 
-    if (!constantsInited)
-    {
-        FsrEasuCon(fsr1Constants.const0, fsr1Constants.const1, fsr1Constants.const2, fsr1Constants.const3,
-                   State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
-                   State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
-                   State::Instance().currentFeature->DisplayWidth(), State::Instance().currentFeature->DisplayHeight());
+    FsrEasuCon(fsr1Constants.const0, fsr1Constants.const1, fsr1Constants.const2, fsr1Constants.const3,
+               State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
+               State::Instance().currentFeature->TargetWidth(), State::Instance().currentFeature->TargetHeight(),
+               State::Instance().currentFeature->DisplayWidth(), State::Instance().currentFeature->DisplayHeight());
 
-        constants.srcWidth = State::Instance().currentFeature->TargetWidth();
-        constants.srcHeight = State::Instance().currentFeature->TargetHeight();
-        constants.destWidth = State::Instance().currentFeature->DisplayWidth();
-        constants.destHeight = State::Instance().currentFeature->DisplayHeight();
+    constants.srcWidth = State::Instance().currentFeature->TargetWidth();
+    constants.srcHeight = State::Instance().currentFeature->TargetHeight();
+    constants.destWidth = State::Instance().currentFeature->DisplayWidth();
+    constants.destHeight = State::Instance().currentFeature->DisplayHeight();
 
-        constantsInited = true;
-    }
-
-    if (Config::Instance()->OutputScalingUseFsr.value_or_default())
+    if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
     {
         if (_mappedConstantBuffer)
         {
@@ -379,7 +373,7 @@ bool OS_Vk::Dispatch(VkDevice InDevice, VkCommandBuffer InCmdList, VkImageView I
                             &_descriptorSets[_currentSetIndex], 0, nullptr);
 
     // Dispatch
-    if (Config::Instance()->OutputScalingUseFsr.value_or_default() || _upsample)
+    if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1 || _upsample)
     {
         uint32_t groupX = (OutExtent.width + 15) / 16;
         uint32_t groupY = (OutExtent.height + 15) / 16;
@@ -564,7 +558,7 @@ void OS_Vk::CreateConstantBuffer()
 {
     VkDeviceSize bufferSize;
 
-    if (Config::Instance()->OutputScalingUseFsr.value_or_default())
+    if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
         bufferSize = sizeof(UpscaleShaderConstants);
     else
         bufferSize = sizeof(Constants);
