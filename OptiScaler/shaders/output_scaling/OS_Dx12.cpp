@@ -91,8 +91,6 @@ bool OS_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdL
     constants.destWidth = State::Instance().currentFeature->DisplayWidth();
     constants.destHeight = State::Instance().currentFeature->DisplayHeight();
 
-    constantsInited = true;
-
     // Create CBV for Constants
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 

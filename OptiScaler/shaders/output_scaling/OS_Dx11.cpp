@@ -175,8 +175,6 @@ bool OS_Dx11::Dispatch(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, I
     constants.destWidth = State::Instance().currentFeature->DisplayWidth();
     constants.destHeight = State::Instance().currentFeature->DisplayHeight();
 
-    constantsInited = true;
-
     // fsr upscaling
     if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
     {
