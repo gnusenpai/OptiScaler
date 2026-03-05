@@ -30,6 +30,8 @@
 
 #define BUFFER_COUNT 4
 
+#define OPTI_GUID "0F71CA1E-5CA1-E42A-AC1E-5CA1E0A11E55"
+
 // Enables logging of DLSS NV Parameters
 // #define DLSS_PARAM_DUMP
 

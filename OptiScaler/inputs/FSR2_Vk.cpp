@@ -371,8 +371,8 @@ static FfxErrorCode ffxFsr2ContextCreate_Vk(FfxFsr2Context* context, FfxFsr2Cont
         fcInfo.PathListInfo.Length = (int) pathStorage.size();
 
         auto nvResult = NVSDK_NGX_VULKAN_Init_ProjectID_Ext(
-            "OptiScaler", state.NVNGX_Engine, VER_PRODUCT_VERSION_STR, exePath.c_str(),
-            State::Instance().VulkanInstance, _vkPhysicalDevice, _vkDevice, vkGetInstanceProcAddr, vkGetDeviceProcAddr,
+            OPTI_GUID, state.NVNGX_Engine, OPTI_VERSION, exePath.c_str(), State::Instance().VulkanInstance,
+            _vkPhysicalDevice, _vkDevice, vkGetInstanceProcAddr, vkGetDeviceProcAddr,
             state.NVNGX_Version == 0 ? NVSDK_NGX_Version_API : state.NVNGX_Version, &fcInfo);
 
         if (nvResult != NVSDK_NGX_Result_Success)

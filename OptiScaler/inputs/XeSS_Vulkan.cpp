@@ -164,9 +164,8 @@ xess_result_t hk_xessVKCreateContext(VkInstance instance, VkPhysicalDevice physi
         fcInfo.PathListInfo.Length = (int) pathStorage.size();
 
         auto nvResult = NVSDK_NGX_VULKAN_Init_ProjectID_Ext(
-            "OptiScaler", NVSDK_NGX_ENGINE_TYPE_CUSTOM, VER_PRODUCT_VERSION_STR, exePath.c_str(), _instance,
-            _physicalDevice, _device, vkGetInstanceProcAddr, vkGetDeviceProcAddr, State::Instance().NVNGX_Version,
-            &fcInfo);
+            OPTI_GUID, NVSDK_NGX_ENGINE_TYPE_CUSTOM, OPTI_VERSION, exePath.c_str(), _instance, _physicalDevice, _device,
+            vkGetInstanceProcAddr, vkGetDeviceProcAddr, State::Instance().NVNGX_Version, &fcInfo);
 
         if (nvResult != NVSDK_NGX_Result_Success)
             return XESS_RESULT_ERROR_UNINITIALIZED;
