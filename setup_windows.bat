@@ -10,6 +10,7 @@ echo #+#    #+# #+#            #+#         #+#     #+#    #+# #+#    #+# #+#    
 echo  ########  ###            ###     ###########  ########   ########  ###     ### ########## ########## ###    ### 
 echo.
 echo Coping is strong with this one...
+echo v2.5 - now with OptiPatcher support
 echo.
 
 del "!! EXTRACT ALL FILES TO GAME FOLDER !!" 2>nul
@@ -21,11 +22,76 @@ if not exist OptiScaler.dll (
     echo Either a folder permissions issue or the repo source code was downloaded.
     echo.
     echo If "OptiScaler.dll" exists, please manually rename to a supported filename ^(e.g. dxgi/winmm.dll^) and you are done^^!
+	echo No need to run the setup BAT again after renaming.
+	echo.
     echo If .sln or .git files are in the folder, congratz, you have the source code. Now try properly downloading Opti please
     echo Hint - use the Releases page on GitHub, or RTFM :^)
     echo.
     echo.
     goto end
+)
+
+
+REM Check if old pre-0.9 additional files exist, along with an existing Opti installation
+set "OLD_FILES_FOUND=0"
+set "OPTI_DLL_LIST="
+if exist nvapi64.dll set "OLD_FILES_FOUND=1"
+if exist nvngx.dll set "OLD_FILES_FOUND=1"
+if exist OptiScaler.asi set "OLD_FILES_FOUND=1"
+if exist "Remove OptiScaler.bat" set "OLD_FILES_FOUND=1"
+
+for %%F in (dxgi.dll winmm.dll d3d12.dll dbghelp.dll version.dll wininet.dll winhttp.dll) do (
+    if exist "%%F" (
+        set "origname="
+        for /f "tokens=*" %%P in ('powershell -NoProfile -Command "(Get-Item '%%F').VersionInfo.OriginalFilename"') do (
+            set "origname=%%P"
+        )
+        if /i "!origname!"=="OptiScaler.dll" (
+            set "OLD_FILES_FOUND=1"
+            set "OPTI_DLL_LIST=!OPTI_DLL_LIST! %%F"
+        )
+    )
+)
+
+if "!OLD_FILES_FOUND!"=="1" (
+    echo WARNING: Possible old OptiScaler file^(s^) detected^^!
+    if exist nvapi64.dll echo   - nvapi64.dll
+    if exist nvngx.dll echo   - nvngx.dll
+    if exist OptiScaler.asi echo   - OptiScaler.asi
+    if exist "Remove OptiScaler.bat" echo   - Remove OptiScaler.bat
+    for %%F in (!OPTI_DLL_LIST!) do echo   - %%F ^(original filename: OptiScaler.dll^)
+    echo.
+    echo These files may conflict with the current version of OptiScaler.
+    echo It is recommended to delete them.
+    echo.
+    set /p "USER_CHOICE=Do you want to delete these files? (y/n): "
+    echo.
+    if /i "!USER_CHOICE!"=="y" (
+        if exist nvapi64.dll (
+            del nvapi64.dll
+            echo Deleted nvapi64.dll
+        )
+        if exist nvngx.dll (
+            del nvngx.dll
+            echo Deleted nvngx.dll
+        )
+        if exist OptiScaler.asi (
+            del OptiScaler.asi
+            echo Deleted OptiScaler.asi
+        )
+        if exist "Remove OptiScaler.bat" (
+            del "Remove OptiScaler.bat"
+            echo Deleted Remove OptiScaler.bat
+        )
+        for %%F in (!OPTI_DLL_LIST!) do (
+            del "%%F"
+            echo Deleted %%F
+        )
+        echo Done^^!
+    ) else (
+        echo Skipping deletion. Note that these files may cause issues.
+    )
+    echo.
 )
 
 REM Set paths based on current directory
@@ -130,26 +196,30 @@ echo Are you using an Nvidia GPU or AMD/Intel GPU?
 echo [1] AMD/Intel
 echo [2] Nvidia
 echo.
+
+:gpuPrompt
 if "%isNvidia%"=="true" (
-    set /p gpuChoice="Enter 1 or 2 (or press Enter for Nvidia): "
+    set /p gpuChoice="Enter 1 or 2 (Detected Nvidia): "
 ) else (
-    set /p gpuChoice="Enter 1 or 2 (or press Enter for AMD/Intel): "
+    set /p gpuChoice="Enter 1 or 2 (Detected AMD/Intel): "
 )
+
+if "%gpuChoice%"=="1" goto gpuValid
+if "%gpuChoice%"=="2" goto gpuValid
+echo Invalid input. Please enter 1 or 2.
+echo.
+goto gpuPrompt
+
+:gpuValid
 
 REM Skip spoofing if Nvidia
 if "%gpuChoice%"=="2" (
     goto completeSetup
 )
 
-if "%gpuChoice%"=="" (
-    if "%isNvidia%"=="true" (
-        goto completeSetup
-    )
-)
-
 REM Query user for DLSS
 echo.
-echo Will you try to use DLSS inputs? (enables spoofing, required for DLSS-FG, Reflex-^>AL2)
+echo Will you try to use DLSS inputs to replace with FSR/XeSS? (enables Nvidia spoofing, required for DLSS-FG, Reflex-^>AL2)
 echo If you want to change the setting later, edit OptiScaler.ini and set Dxgi=false to disable spoofing and reverse.
 echo.
 echo [1] Yes
@@ -167,11 +237,47 @@ if "%enablingSpoofing%"=="2" (
     powershell -Command "(Get-Content '%configFile%') -replace 'Dxgi=auto', 'Dxgi=false' | Set-Content '%configFile%'"
 )
 
+REM Decide whether to run OptiPatcher
+echo.
+if "%gpuChoice%"=="1" (
+    echo AMD/Intel GPU detected - running OptiPatcher check.
+    goto checkExistingOptiPatcher
+)
+
+:checkExistingOptiPatcher
+set "foundOptiPatcher="
+for %%F in (plugins\*OptiPatcher*.asi) do (
+    set "foundOptiPatcher=%%F"
+)
+
+if defined foundOptiPatcher (
+    echo.
+    echo OptiPatcher found: !foundOptiPatcher!
+    echo If the existing version works properly, might be best to keep it.
+    set /p optiRedownload="Do you want to re-download a possibly newer version [y/n]? "
+        
+    if /i "!optiRedownload!"=="y" (
+        echo.
+        echo Deleting !foundOptiPatcher!...
+        del "!foundOptiPatcher!"
+        goto checkOptiPatcher
+    ) else (
+        echo.
+        echo Keeping existing OptiPatcher - skipping download.
+        goto completeSetup
+    )
+)
+
+REM Not installed - continue to download
+goto checkOptiPatcher
+
 :checkOptiPatcher
 REM Check connectivity
 echo.
 echo Checking for OptiPatcher compatibility...
-ping -n 1 github.com >nul 2>&1
+echo Press Ctrl+C if this gets stuck to skip to setup completion.
+
+ping -n 1 -w 3000 github.com >nul 2>&1
 if %errorlevel% neq 0 (
     echo Offline or GitHub blocked. Skipping OptiPatcher check.
     goto completeSetup
@@ -184,7 +290,9 @@ for /f "usebackq tokens=*" %%A in (`powershell -Command "& { $rawUrl = 'https://
 
 if "!OPTI_MATCH!"=="YES" (
     echo.
-    echo OptiPatcher support detected!
+    echo OptiPatcher support detected^^!
+    echo An Opti plugin used for unlocking DLSS/DLSS-FG inputs, avoiding spoofing and performance overhead in supported games.
+    echo More info available on OptiPatcher Github
     echo.
     set /p downloadOptiPatcher="Download OptiPatcher.asi? [y/n]: "
     set downloadOptiPatcher=!downloadOptiPatcher: =!
@@ -195,21 +303,29 @@ if "!OPTI_MATCH!"=="YES" (
         if not exist "plugins" mkdir "plugins"
         
         echo Downloading OptiPatcher...
+        echo Press Ctrl+C if this gets stuck to skip to setup completion.
+        echo.
         powershell -Command "Invoke-WebRequest -Uri 'https://github.com/optiscaler/OptiPatcher/releases/download/rolling/OptiPatcher.asi' -OutFile 'plugins\OptiPatcher.asi'"
+        if errorlevel 1 goto completeSetup
         
         if exist "plugins\OptiPatcher.asi" (
             echo OptiPatcher.asi downloaded successfully.
             echo Enabling ASI loading in OptiScaler.ini...
             if exist "%configFile%" (
                 powershell -Command "(Get-Content '%configFile%') -replace 'LoadAsiPlugins=auto', 'LoadAsiPlugins=true' | Set-Content '%configFile%'"
+                echo Successfully enabled ASI loading in OptiScaler.ini^^!
             ) else (
                 echo Warning: OptiScaler.ini not found, could not enable LoadAsiPlugins.
             )
         ) else (
             echo Failed to download OptiPatcher.asi.
         )
+     timeout /t 3
     )
 )
+echo.
+
+goto completeSetup
 
 :completeSetup
 REM Rename OptiScaler file
@@ -230,6 +346,7 @@ if errorlevel 1 (
 )
 
 goto create_uninstaller
+
 :create_uninstaller_return
 
 cls
@@ -268,10 +385,11 @@ echo echo #+#    #+# #+#            #+#         #+#     #+#    #+# #+#    #+# #+
 echo echo  ########  ###            ###     ###########  ########   ########  ###     ### ########## ########## ###    ### 
 echo echo.
 echo echo Coping is strong with this one...
+echo echo v2.5 - now with OptiPatcher support
 echo echo.
 echo.
 echo set /p removeChoice="Do you want to remove OptiScaler? [y/n]: "
-echo.
+echo echo.
 echo if "%%removeChoice%%"=="y" ^(
 echo    del OptiScaler.log
 echo    del OptiScaler.ini
@@ -281,14 +399,16 @@ echo    del fakenvapi.ini
 echo    del fakenvapi.log
 echo    del dlssg_to_fsr3_amd_is_better.dll
 echo    del dlssg_to_fsr3.log
-echo    del plugins\OptiPatcher.asi
-echo    rd plugins
 echo    del /Q D3D12_Optiscaler\*
 echo    rd D3D12_Optiscaler
 echo    del /Q DlssOverrides\*
 echo    rd DlssOverrides
 echo    del /Q Licenses\*
 echo    rd Licenses
+echo    echo.
+echo    echo Deleting OptiPatcher if present
+echo    del plugins\OptiPatcher.asi
+echo    rd plugins
 echo    echo.
 echo    echo OptiScaler removed^^! Ignore the warnings about missing files.
 echo    echo.
@@ -300,7 +420,7 @@ echo ^)
 echo.
 echo pause
 echo if "%%removeChoice%%"=="y" ^(
-echo 	del %%0
+echo   del %%0
 echo ^)
 ) >> "Remove OptiScaler.bat"
 
