@@ -9,29 +9,31 @@
 
 using Microsoft::WRL::ComPtr;
 
-constexpr int vendorPriority(VendorId::Value v)
-{
-    switch (v)
-    {
-    case VendorId::Nvidia:
-        return 0;
-    case VendorId::AMD:
-        return 1;
-    case VendorId::Intel:
-        return 2;
-    case VendorId::Microsoft:
-        return 3;
-    default:
-        return 4;
-    }
-}
-
+// Prioritize Nvidia cards that can run DLSS and are connected to a display
 void sortGpus(std::vector<GpuInformation>& gpus)
 {
-    std::sort(gpus.begin(), gpus.end(), [](const GpuInformation& a, const GpuInformation& b)
-              { return vendorPriority(a.vendorId) < vendorPriority(b.vendorId); });
-}
+    std::sort(gpus.begin(), gpus.end(),
+              [](const GpuInformation& a, const GpuInformation& b)
+              {
+                  auto isPreferredNvidia = [](const GpuInformation& gpu)
+                  {
+                      bool isNvidia = (gpu.vendorId == VendorId::Nvidia);
+                      return isNvidia && gpu.dlssCapable && !gpu.noDisplayConnected;
+                  };
 
+                  bool aIsPreferred = isPreferredNvidia(a);
+                  bool bIsPreferred = isPreferredNvidia(b);
+
+                  // If one is a preferred and the other isn't then the preferred one should be sorted first
+                  if (aIsPreferred != bIsPreferred)
+                  {
+                      return aIsPreferred;
+                  }
+
+                  // Fallback on VRAM amount
+                  return a.dedicatedVramInBytes > b.dedicatedVramInBytes;
+              });
+}
 std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
 {
     auto localCachedInfo = std::vector<GpuInformation> {};
@@ -268,6 +270,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfoNoDxgi()
         gpuInfo.vendorId = (VendorId::Value) props2.properties.vendorID;
         gpuInfo.deviceId = props2.properties.deviceID;
         gpuInfo.name = std::string(props2.properties.deviceName);
+        gpuInfo.softwareAdapter = props2.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
 
         localCachedInfo.push_back(std::move(gpuInfo));
     }
@@ -349,12 +352,18 @@ void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
         gpuInfo.nvidiaArchInfo.version = NV_GPU_ARCH_INFO_VER;
         if (getArchInfo && hPhysicalGpu && getArchInfo(hPhysicalGpu, &gpuInfo.nvidiaArchInfo) != NVAPI_OK)
             LOG_ERROR("Couldn't get GPU Architecture");
+
+        auto* getConnectedDisplayIds = GET_INTERFACE(NvAPI_GPU_GetConnectedDisplayIds, o_NvAPI_QueryInterface);
+        NvU32 displayCount = 0;
+        if (getConnectedDisplayIds && hPhysicalGpu &&
+            getConnectedDisplayIds(hPhysicalGpu, nullptr, &displayCount, 0) == NVAPI_OK && displayCount == 0)
+        {
+            gpuInfo.noDisplayConnected = true;
+        }
     }
 
     if (loadedHere)
         NtdllProxy::FreeLibrary_Ldr(nvapiModule);
-
-    LOG_DEBUG("Detected architecture: {}", magic_enum::enum_name(gpuInfo.nvidiaArchInfo.architecture_id));
 
     gpuInfo.dlssCapable = gpuInfo.nvidiaArchInfo.architecture_id >= NV_GPU_ARCHITECTURE_TU100;
 }

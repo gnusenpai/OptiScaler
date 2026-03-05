@@ -54,6 +54,7 @@ struct GpuInformation
 
     bool dlssCapable = false; // assumes GTX16xx to be capable due to our spoofing
     NV_GPU_ARCH_INFO nvidiaArchInfo {};
+    bool noDisplayConnected = false;
 };
 
 // - Check if FSR 4 is supported by using amdxc64, watch out for linux memes on proton experimental that don't check
