@@ -330,7 +330,7 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // Nukems
         {
-            MakeDepthCopy.set_from_config(readBool("Nukems", "MakeDepthCopy"));
+            NukemMakeResourceCopy.set_from_config(readBool("Nukems", "MakeResourceCopy"));
         }
 
         // Logging
@@ -1003,7 +1003,8 @@ bool Config::SaveIni()
 
     // Nukems
     {
-        ini.SetValue("Nukems", "MakeDepthCopy", GetBoolValue(Instance()->MakeDepthCopy.value_for_config()).c_str());
+        ini.SetValue("Nukems", "MakeResourceCopy",
+                     GetBoolValue(Instance()->NukemMakeResourceCopy.value_for_config()).c_str());
     }
 
     // Sharpness
