@@ -56,6 +56,7 @@ enum class GameQuirk : uint64_t
     CreateD3D12DeviceForLuma,
     ForceCreateD3D12Device,
     ForceDepthD32S8,
+    DoNotPreserveFGSwapChain,
     // Don't forget to add the new entry to printQuirks
     _
 };
@@ -118,7 +119,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("sora_1st.exe", GameQuirk::UseFsr2Dx11Inputs, GameQuirk::DisableDxgiSpoofing),
 
     // Ninja Gaiden 4 (Steam)
-    QUIRK_ENTRY("ninjagaiden4-steam.exe", GameQuirk::DisableResizeSkip),
+    QUIRK_ENTRY("ninjagaiden4-steam.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain),
 
     // The Last of Us Part I
     QUIRK_ENTRY("tlou-i.exe", GameQuirk::AllowedFrameAhead2),

@@ -1434,8 +1434,12 @@ bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
     if (_fgContext != nullptr)
         DestroyFGContext();
 
-    if (State::Instance().isShuttingDown && _swapChainContext != nullptr)
-        DestroySwapchainContext();
+    // Don't call D3D12_DestroyContext for swapchain context
+    // Most probably we are calling it from wrapped swapchain's Release which means that the swapchain is already
+    // destroyed and calling D3D12_DestroyContext will cause an error
+    //
+    // if (State::Instance().isShuttingDown && _swapChainContext != nullptr)
+    //    DestroySwapchainContext();
 
     ReleaseObjects();
 

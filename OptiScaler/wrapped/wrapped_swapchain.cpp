@@ -431,6 +431,7 @@ ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
         auto fg = State::Instance().currentFG;
         if (fg != nullptr && fg->Mutex.getOwner() != 1 && fg->SwapchainContext() != nullptr)
         {
+            fg->Deactivate();
             fg->ReleaseSwapchain(_handle);
 
             if (State::Instance().currentFGSwapchain != nullptr)

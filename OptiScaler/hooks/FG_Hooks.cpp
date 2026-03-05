@@ -975,10 +975,28 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
         return o_FGRelease(This);
 
     This->AddRef();
-    if (o_FGRelease(This) == 1)
+
+    if (State::Instance().gameQuirks & GameQuirk::DoNotPreserveFGSwapChain)
     {
-        LOG_INFO("Preserving FG Swapchain from release");
-        return 0;
+        if (o_FGRelease(This) == 1)
+        {
+            if (State::Instance().currentFG != nullptr)
+            {
+                LOG_DEBUG("FG Swapchain released, deactivating FG");
+                State::Instance().currentFG->Deactivate();
+            }
+
+            LOG_DEBUG("FG Swapchain released, clearing currentFGSwapchain");
+            State::Instance().currentFGSwapchain = nullptr;
+        }
+    }
+    else
+    {
+        if (o_FGRelease(This) == 1)
+        {
+            LOG_INFO("Preserving FG Swapchain from release");
+            return 0;
+        }
     }
 
     return o_FGRelease(This);
