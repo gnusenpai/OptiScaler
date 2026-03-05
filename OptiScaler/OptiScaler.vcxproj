@@ -318,6 +318,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="hooks\FG_Hooks.h" />
     <ClInclude Include="hooks\LibraryLoad_Hooks.h" />
     <ClInclude Include="hooks\CommandBuffer_StateTracker.h" />
+    <ClInclude Include="spoofing\User32_Spoofing.h" />
     <ClInclude Include="hooks\VulkanwDx12_Hooks.h" />
     <ClInclude Include="inputs\FSR2_Dx11.h" />
     <ClInclude Include="inputs\FSR2_Vk.h" />
@@ -566,6 +567,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="shaders\Shader_Dx12.cpp" />
     <ClCompile Include="shaders\Shader_Vk.cpp" />
     <ClCompile Include="spoofing\Dxgi_Spoofing.cpp" />
+    <ClCompile Include="spoofing\User32_Spoofing.cpp" />
     <ClCompile Include="spoofing\Vulkan_Spoofing.cpp" />
     <ClCompile Include="upscalers\fsr2_212\FSR2Feature_VkOnDx12_212.cpp" />
     <ClCompile Include="upscalers\fsr31\FSR31Feature_VkOn12.cpp" />

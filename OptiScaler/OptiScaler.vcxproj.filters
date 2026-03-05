@@ -764,6 +764,9 @@
     <ClInclude Include="shaders\output_scaling\precompile\bcds_lanczos3_Shader_Vk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="spoofing\User32_Spoofing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1167,6 +1170,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="shaders\render_ui\RUI_Dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="spoofing\User32_Spoofing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

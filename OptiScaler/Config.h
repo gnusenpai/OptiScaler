@@ -406,6 +406,7 @@ class Config
     CustomOptional<std::wstring> SpoofedGPUName { L"NVIDIA GeForce RTX 4090" };
     CustomOptional<bool> UESpoofIntelAtomics64 { false };
     CustomOptional<bool> SpoofRegistry { false };
+    CustomOptional<bool> SpoofUser32 { false };
     CustomOptional<std::wstring> SpoofedDriver { L"32.0.15.7302" };
 
     // Plugins

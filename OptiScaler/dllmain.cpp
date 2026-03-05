@@ -10,11 +10,6 @@
 #include "proxies/Dxgi_Proxy.h"
 #include <proxies/XeSS_Proxy.h>
 #include <proxies/NVNGX_Proxy.h>
-#include <hooks/Gdi32_Hooks.h>
-#include <hooks/Wintrust_Hooks.h>
-#include <hooks/Crypt32_Hooks.h>
-#include <hooks/Advapi32_Hooks.h>
-#include <hooks/Streamline_Hooks.h>
 #include "proxies/Kernel32_Proxy.h"
 #include "proxies/KernelBase_Proxy.h"
 #include "proxies/Ntdll_Proxy.h"
@@ -36,7 +31,15 @@
 #include <hooks/Vulkan_Hooks.h>
 #include <hooks/Ntdll_Hooks.h>
 #include <hooks/Kernel_Hooks.h>
+#include <hooks/Gdi32_Hooks.h>
+#include <hooks/Wintrust_Hooks.h>
+#include <hooks/Crypt32_Hooks.h>
+#include <hooks/Advapi32_Hooks.h>
+#include <hooks/Streamline_Hooks.h>
+
 #include <nvapi/NvApiHooks.h>
+
+#include "spoofing/User32_Spoofing.h"
 
 #include <cwctype>
 #include <version_check.h>
@@ -878,7 +881,15 @@ static void CheckWorkingMode()
             // Advapi32
             if (Config::Instance()->DxgiSpoofing.value_or_default() ||
                 Config::Instance()->StreamlineSpoofing.value_or_default())
+            {
                 hookAdvapi32();
+            }
+
+            // User32
+            if (Config::Instance()->SpoofUser32.value_or_default())
+            {
+                User32Spoofing::Hook();
+            }
 
             // hook streamline right away if it's already loaded
             HMODULE slModule = nullptr;
