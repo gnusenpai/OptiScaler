@@ -508,7 +508,6 @@ ffxReturnCode_t ffxConfigure_Vk(ffxContext* context, const ffxConfigureDescHeade
 
     if (desc->type == FFX_API_CONFIGURE_DESC_TYPE_UPSCALE_KEYVALUE)
     {
-
         auto kvDesc = (ffxConfigureDescUpscaleKeyValue*) desc;
 
         LOG_DEBUG("key: {}, value: {}, ptr: {:X}", magic_enum::enum_name((FfxApiConfigureUpscaleKey) kvDesc->key),
@@ -516,6 +515,12 @@ ffxReturnCode_t ffxConfigure_Vk(ffxContext* context, const ffxConfigureDescHeade
 
         if (!Config::Instance()->EnableHotSwapping.value_or_default())
             return FFX_API_RETURN_OK;
+    }
+
+    if (desc->type > FFX_API_EFFECT_ID_FRAMEGENERATION && desc->type < 0x00050000u)
+    {
+        LOG_DEBUG("FG dispatch, redirecting to real FfxApi");
+        return FfxApiProxy::VULKAN_Configure()(context, desc);
     }
 
     if (Config::Instance()->EnableHotSwapping.value_or_default())
@@ -536,6 +541,7 @@ ffxReturnCode_t ffxQuery_Vk(ffxContext* context, ffxQueryDescHeader* desc)
     auto type = FfxApiProxy::GetIndirectType(desc);
     if (type == FFXStructType::SwapchainVulkan || type == FFXStructType::FG)
     {
+        LOG_DEBUG("FG dispatch, redirecting to real FfxApi");
         return FfxApiProxy::VULKAN_Query()(context, desc);
     }
 
@@ -668,6 +674,7 @@ ffxReturnCode_t ffxDispatch_Vk(ffxContext* context, ffxDispatchDescHeader* desc)
     auto type = FfxApiProxy::GetType(desc->type);
     if (type == FFXStructType::SwapchainVulkan || type == FFXStructType::FG)
     {
+        LOG_DEBUG("FG dispatch, redirecting to real FfxApi");
         return FfxApiProxy::VULKAN_Dispatch()(context, desc);
     }
 
