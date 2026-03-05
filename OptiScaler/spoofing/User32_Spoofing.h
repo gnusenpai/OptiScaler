@@ -2,7 +2,6 @@
 
 #include "SysUtils.h"
 
-
 class User32Spoofing
 {
   public:
@@ -10,5 +9,4 @@ class User32Spoofing
     static void Unhook();
 
   private:
-
 };
