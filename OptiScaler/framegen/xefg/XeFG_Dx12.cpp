@@ -359,7 +359,7 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
 
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
     {
-        LOG_ERROR("D3D12InitFromSwapChainDesc error: {} ({})", magic_enum::enum_name(result), (UINT) result);
+        LOG_ERROR("D3D12InitFromSwapChainDesc error: {} ({:X})", magic_enum::enum_name(result), (UINT) result);
         return false;
     }
 
@@ -1434,15 +1434,11 @@ bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
     if (_fgContext != nullptr)
         DestroyFGContext();
 
-    // Don't call D3D12_DestroyContext for swapchain context
-    // Most probably we are calling it from wrapped swapchain's Release which means that the swapchain is already
-    // destroyed and calling D3D12_DestroyContext will cause an error
-    //
-    // if (State::Instance().isShuttingDown && _swapChainContext != nullptr)
-    //    DestroySwapchainContext();
-
-    if (State::Instance().isShuttingDown)
+    if (!State::Instance().isShuttingDown)
     {
+        if (_swapChainContext != nullptr)
+            DestroySwapchainContext();
+
         _swapChainContext = nullptr;
         State::Instance().currentFGSwapchain = nullptr;
     }

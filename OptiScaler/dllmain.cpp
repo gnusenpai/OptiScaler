@@ -1354,9 +1354,9 @@ static void CheckQuirks()
         Config::Instance()->FGHudlessValidNow.set_volatile_value(true);
     }
 
-    if (quirks & GameQuirk::DisableResizeSkip && !Config::Instance()->FGXeFGSkipResizeBuffers.has_value())
+    if (quirks & GameQuirk::DisableResizeSkip && !Config::Instance()->FGSkipResizeBuffers.has_value())
     {
-        Config::Instance()->FGXeFGSkipResizeBuffers.set_volatile_value(false);
+        Config::Instance()->FGSkipResizeBuffers.set_volatile_value(false);
     }
 
     if (quirks & GameQuirk::SpoofRegistry && !Config::Instance()->SpoofRegistry.has_value())
@@ -1367,6 +1367,11 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DisableFakenvapi && !Config::Instance()->OverrideNvapiDll.has_value())
     {
         Config::Instance()->OverrideNvapiDll.set_volatile_value(false);
+    }
+
+    if (quirks & GameQuirk::DoNotPreserveFGSwapChain && !Config::Instance()->FGPreserveSwapChain.has_value())
+    {
+        Config::Instance()->FGPreserveSwapChain.set_volatile_value(false);
     }
 
     // For Luma, we assume if Luma addon in game folder it's used

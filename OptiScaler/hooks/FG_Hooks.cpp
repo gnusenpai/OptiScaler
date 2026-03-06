@@ -446,7 +446,7 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
     auto fg = State::Instance().currentFG;
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG && !State::Instance().SCExclusiveFullscreen &&
-        Config::Instance()->FGXeFGSkipResizeBuffers.value_or_default())
+        Config::Instance()->FGSkipResizeBuffers.value_or_default())
     {
         DXGI_SWAP_CHAIN_DESC desc {};
         if (This->GetDesc(&desc) == S_OK)
@@ -465,13 +465,13 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
             {
                 LOG_DEBUG("Skipping resize");
 
-                if (Config::Instance()->FGXeFGModifyBufferState.value_or_default() ||
-                    Config::Instance()->FGXeFGModifySCIndex.value_or_default())
+                if (Config::Instance()->FGModifyBufferState.value_or_default() ||
+                    Config::Instance()->FGModifySCIndex.value_or_default())
                 {
                     auto swapchain = ((IDXGISwapChain3*) This);
                     auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
 
-                    if (fg != nullptr && Config::Instance()->FGXeFGModifyBufferState.value_or_default())
+                    if (fg != nullptr && Config::Instance()->FGModifyBufferState.value_or_default())
                     {
                         LOG_INFO("Trying to change backbuffer state to COMMON");
 
@@ -495,7 +495,7 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
                         }
                     }
 
-                    if (swapchainIndex != 0 && Config ::Instance()->FGXeFGModifySCIndex.value_or_default())
+                    if (swapchainIndex != 0 && Config ::Instance()->FGModifySCIndex.value_or_default())
                     {
                         auto presents = desc.BufferCount - swapchainIndex;
 
@@ -661,13 +661,13 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
             {
                 LOG_DEBUG("Skipping resize");
 
-                if (Config::Instance()->FGXeFGModifyBufferState.value_or_default() ||
-                    Config::Instance()->FGXeFGModifySCIndex.value_or_default())
+                if (Config::Instance()->FGModifyBufferState.value_or_default() ||
+                    Config::Instance()->FGModifySCIndex.value_or_default())
                 {
                     auto swapchain = ((IDXGISwapChain3*) This);
                     auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
 
-                    if (fg != nullptr && Config::Instance()->FGXeFGModifyBufferState.value_or_default())
+                    if (fg != nullptr && Config::Instance()->FGModifyBufferState.value_or_default())
                     {
                         LOG_INFO("Trying to change backbuffer state to COMMON");
 
@@ -691,7 +691,7 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
                         }
                     }
 
-                    if (swapchainIndex != 0 && Config ::Instance()->FGXeFGModifySCIndex.value_or_default())
+                    if (swapchainIndex != 0 && Config ::Instance()->FGModifySCIndex.value_or_default())
                     {
                         auto presents = desc.BufferCount - swapchainIndex;
 
@@ -971,23 +971,32 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
 
 HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
 {
-    if (State::Instance().currentFGSwapchain != This || State::Instance().isShuttingDown)
+    static bool skipReleaseChecks = false;
+
+    if (skipReleaseChecks || State::Instance().currentFGSwapchain != This || State::Instance().isShuttingDown)
         return o_FGRelease(This);
 
     This->AddRef();
 
-    if (State::Instance().gameQuirks & GameQuirk::DoNotPreserveFGSwapChain)
+    if (!Config::Instance()->FGPreserveSwapChain.value_or_default())
     {
         if (o_FGRelease(This) == 1)
         {
+            // To prevent deadlock when FG release the swapchain
+            skipReleaseChecks = true;
+
             if (State::Instance().currentFG != nullptr)
             {
-                LOG_DEBUG("FG Swapchain released, deactivating FG");
-                State::Instance().currentFG->Deactivate();
+                LOG_DEBUG("FG Swapchain released, release FG & swapchain context");
+                State::Instance().currentFG->ReleaseSwapchain(_hwnd);
             }
 
             LOG_DEBUG("FG Swapchain released, clearing currentFGSwapchain");
             State::Instance().currentFGSwapchain = nullptr;
+
+            skipReleaseChecks = false;
+
+            return 0;
         }
     }
     else

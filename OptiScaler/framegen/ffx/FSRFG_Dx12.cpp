@@ -815,14 +815,13 @@ bool FSRFG_Dx12::ReleaseSwapchain(HWND hwnd)
     if (_fgContext != nullptr)
         DestroyFGContext();
 
-    if (_swapChainContext != nullptr)
+    if (!State::Instance().isShuttingDown)
     {
-        // Don't call D3D12_DestroyContext for swapchain context
-        // Most probably we are calling it from wrapped swapchain's Release which means that the swapchain is already
-        // destroyed and calling D3D12_DestroyContext will cause an error
-
-        // auto result = FfxApiProxy::D3D12_DestroyContext(&_swapChainContext, nullptr);
-        // LOG_INFO("Destroy Ffx Swapchain Result: {}({})", result, FfxApiProxy::ReturnCodeToString(result));
+        if (_swapChainContext != nullptr)
+        {
+            auto result = FfxApiProxy::D3D12_DestroyContext(&_swapChainContext, nullptr);
+            LOG_INFO("Destroy Ffx Swapchain Result: {}({})", result, FfxApiProxy::ReturnCodeToString(result));
+        }
 
         _swapChainContext = nullptr;
         State::Instance().currentFGSwapchain = nullptr;

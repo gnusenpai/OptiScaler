@@ -507,9 +507,12 @@ class Config
     CustomOptional<bool> FGXeFGHighResMV { false };
     CustomOptional<bool> FGXeFGDebugView { false };
     CustomOptional<bool> FGXeFGForceBorderless { false };
-    CustomOptional<bool> FGXeFGSkipResizeBuffers { true };
-    CustomOptional<bool> FGXeFGModifyBufferState { false };
-    CustomOptional<bool> FGXeFGModifySCIndex { false };
+
+    // FG
+    CustomOptional<bool> FGPreserveSwapChain { true };
+    CustomOptional<bool> FGSkipResizeBuffers { true };
+    CustomOptional<bool> FGModifyBufferState { false };
+    CustomOptional<bool> FGModifySCIndex { false };
 
     // fakenvapi
     CustomOptional<bool> FN_EnableLogs { true };
