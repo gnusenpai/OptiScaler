@@ -293,7 +293,7 @@ class D3d12Proxy
 
     inline static HMODULE HookModule()
     {
-        if (State::Instance().isD3D12Mode)
+        if (State::Instance().workingMode == WorkingMode::D3d12)
             return dllModule;
 
         return _dll;

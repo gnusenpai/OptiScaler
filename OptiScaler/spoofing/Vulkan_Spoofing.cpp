@@ -868,7 +868,7 @@ void VulkanSpoofing::HookForVulkanSpoofing(HMODULE vulkanModule)
 {
     Vulkan_wDx12::Hook(vulkanModule);
 
-    if (!State::Instance().isWorkingAsNvngx && Config::Instance()->VulkanSpoofing.value_or_default() &&
+    if (State::Instance().workingMode != WorkingMode::Nvngx && Config::Instance()->VulkanSpoofing.value_or_default() &&
         o_vkGetPhysicalDeviceProperties == nullptr)
     {
         FARPROC address = nullptr;
@@ -905,7 +905,7 @@ void VulkanSpoofing::HookForVulkanSpoofing(HMODULE vulkanModule)
 
 void VulkanSpoofing::HookForVulkanExtensionSpoofing(HMODULE vulkanModule)
 {
-    if (!State::Instance().isWorkingAsNvngx && o_vkEnumerateInstanceExtensionProperties == nullptr)
+    if (State::Instance().workingMode != WorkingMode::Nvngx && o_vkEnumerateInstanceExtensionProperties == nullptr)
     {
         FARPROC address = nullptr;
 
@@ -939,7 +939,7 @@ void VulkanSpoofing::HookForVulkanExtensionSpoofing(HMODULE vulkanModule)
 
 void VulkanSpoofing::HookForVulkanVRAMSpoofing(HMODULE vulkanModule)
 {
-    if (!State::Instance().isWorkingAsNvngx && Config::Instance()->VulkanVRAM.has_value() &&
+    if (State::Instance().workingMode != WorkingMode::Nvngx && Config::Instance()->VulkanVRAM.has_value() &&
         o_vkGetPhysicalDeviceMemoryProperties == nullptr)
     {
         FARPROC address = nullptr;

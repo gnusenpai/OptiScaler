@@ -48,7 +48,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     auto normalizedPath = std::filesystem::path(libName).lexically_normal().wstring();
 
     // If Opti is not loading as nvngx.dll
-    if (!State::Instance().isWorkingAsNvngx)
+    if (State::Instance().workingMode != WorkingMode::Nvngx)
     {
         // exe path
         auto exePath = Util::ExePath().parent_path().wstring();
@@ -70,8 +70,9 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
         }
     }
 
-    if (!State::Instance().isWorkingAsNvngx &&
-        (!State::Instance().isDxgiMode || !State::Instance().skipDxgiLoadChecks) && CheckDllNameW(&libName, &dllNamesW))
+    if (State::Instance().workingMode != WorkingMode::Nvngx &&
+        (State::Instance().workingMode != WorkingMode::Dxgi || !State::Instance().skipDxgiLoadChecks) &&
+        CheckDllNameW(&libName, &dllNamesW))
     {
         if (!State::Instance().ServeOriginal())
         {

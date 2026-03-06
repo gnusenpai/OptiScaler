@@ -162,7 +162,7 @@ class DxgiProxy
 
     inline static HMODULE HookModule()
     {
-        if (State::Instance().isDxgiMode)
+        if (State::Instance().workingMode == WorkingMode::Dxgi)
             return dllModule;
 
         return _dll;

@@ -118,7 +118,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
     State::Instance().currentD3D12Device = InDevice;
     D3D12Hooks::HookDevice(InDevice);
 
-    if (!State::Instance().isWorkingAsNvngx)
+    if (State::Instance().workingMode != WorkingMode::Nvngx)
     {
         UpscalerTimeDx12::Init(InDevice);
     }
@@ -816,7 +816,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     FSR3FG::SetUpscalerInputs(InCmdList, InParameters, deviceContext->feature.get());
 
     // Record the first timestamp
-    if (!State::Instance().isWorkingAsNvngx)
+    if (State::Instance().workingMode != WorkingMode::Nvngx)
         UpscalerTimeDx12::UpscaleStart(InCmdList);
 
     auto evalResult = false;
@@ -833,7 +833,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     {
         // Upscaler time calc
         // Record the second timestamp
-        if (!State::Instance().isWorkingAsNvngx)
+        if (State::Instance().workingMode != WorkingMode::Nvngx)
             UpscalerTimeDx12::UpscaleEnd(InCmdList);
 
         // FG Dispatch

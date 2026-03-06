@@ -45,6 +45,14 @@ enum class FGOutput : uint32_t
     XeFG
 };
 
+enum class WorkingMode : uint32_t
+{
+    Dxgi,
+    D3d12,
+    Nvngx,
+    Other,
+};
+
 typedef struct CapturedHudlessInfo
 {
     UINT64 usageCount = 1;
@@ -200,9 +208,7 @@ class State
     bool isRunningOnNvidia = false;
     std::optional<bool> isRunningOnRDNA4;
     bool isPascalOrOlder = false;
-    bool isDxgiMode = false;
-    bool isD3D12Mode = false;
-    bool isWorkingAsNvngx = false;
+    WorkingMode workingMode = WorkingMode::Other;
 
     // Vulkan stuff
     bool vulkanCreatingSC = false;

@@ -630,7 +630,7 @@ static void CheckWorkingMode()
                 DxgiProxy::Init(originalModule);
                 dxgi.LoadOriginalLibrary(originalModule);
 
-                State::Instance().isDxgiMode = true;
+                State::Instance().workingMode = WorkingMode::Dxgi;
                 modeFound = true;
             }
             else
@@ -691,7 +691,7 @@ static void CheckWorkingMode()
                 D3d12Proxy::Init(originalModule);
                 d3d12.LoadOriginalLibrary(originalModule);
 
-                State::Instance().isD3D12Mode = true;
+                State::Instance().workingMode = WorkingMode::D3d12;
 
                 modeFound = true;
             }
@@ -714,9 +714,9 @@ static void CheckWorkingMode()
     {
         Config::Instance()->CheckUpscalerFiles();
 
-        if (!State::Instance().isWorkingAsNvngx)
+        if (State::Instance().workingMode != WorkingMode::Nvngx)
         {
-            Config::Instance()->OverlayMenu.set_volatile_value(!State::Instance().isWorkingAsNvngx &&
+            Config::Instance()->OverlayMenu.set_volatile_value(State::Instance().workingMode != WorkingMode::Nvngx &&
                                                                Config::Instance()->OverlayMenu.value_or_default());
 
             // Intel Extension Framework
@@ -1777,7 +1777,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         }
 
         // Asi plugins
-        if (!State::Instance().isWorkingAsNvngx && Config::Instance()->LoadAsiPlugins.value_or_default())
+        if (State::Instance().workingMode != WorkingMode::Nvngx &&
+            Config::Instance()->LoadAsiPlugins.value_or_default())
         {
             spdlog::info("");
             LoadAsiPlugins();

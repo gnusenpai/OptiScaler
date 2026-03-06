@@ -3072,7 +3072,7 @@ bool MenuCommon::RenderMenu()
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported API";
                 }
-                else if (state.isWorkingAsNvngx)
+                else if (state.workingMode == WorkingMode::Nvngx)
                 {
                     disabledMaskInput[optiFgIndex] = true;
                     fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
@@ -3157,7 +3157,7 @@ bool MenuCommon::RenderMenu()
                 // Nukem's FG mod requirements
                 auto constexpr nukemsInputIndex = (uint32_t) FGInput::Nukems;
                 auto constexpr nukemsOutputIndex = (uint32_t) FGOutput::Nukems;
-                if (state.isWorkingAsNvngx)
+                if (state.workingMode == WorkingMode::Nvngx)
                 {
                     disabledMaskInput[nukemsInputIndex] = true;
                     fgInputDesc[nukemsInputIndex] = "Unsupported Opti working mode";
@@ -3401,7 +3401,7 @@ bool MenuCommon::RenderMenu()
 
                 // FSR FG controls
                 if (state.activeFgOutput == FGOutput::FSRFG && state.activeFgInput != FGInput::NoFG &&
-                    !state.isWorkingAsNvngx && state.currentFGSwapchain != nullptr)
+                    state.workingMode != WorkingMode::Nvngx && state.currentFGSwapchain != nullptr)
                 {
                     if (state.activeFgInput != FGInput::Upscaler ||
                         (currentFeature != nullptr && !currentFeature->IsFrozen()) && FfxApiProxy::IsFGReady())
@@ -3648,7 +3648,7 @@ bool MenuCommon::RenderMenu()
 
                 // XeFG controls
                 if (state.activeFgOutput == FGOutput::XeFG && state.activeFgInput != FGInput::NoFG &&
-                    !state.isWorkingAsNvngx && state.currentFGSwapchain != nullptr)
+                    state.workingMode != WorkingMode::Nvngx && state.currentFGSwapchain != nullptr)
                 {
                     if (XeFGProxy::InitXeFG() && currentFeature != nullptr && !currentFeature->IsFrozen())
                     {
@@ -3842,8 +3842,8 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // OptiFG
-                if (state.api == DX12 && state.currentFGSwapchain != nullptr && !state.isWorkingAsNvngx &&
-                    state.activeFgInput == FGInput::Upscaler)
+                if (state.api == DX12 && state.currentFGSwapchain != nullptr &&
+                    state.workingMode != WorkingMode::Nvngx && state.activeFgInput == FGInput::Upscaler)
                 {
                     SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
 
@@ -4138,7 +4138,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Nukems Mod
-                if (!state.isWorkingAsNvngx && state.activeFgInput == FGInput::Nukems &&
+                if (state.workingMode != WorkingMode::Nvngx && state.activeFgInput == FGInput::Nukems &&
                     state.activeFgOutput == FGOutput::Nukems)
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR3-FG via Nukem's DLSSG)",
@@ -4205,7 +4205,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // FSR-FG Inputs
-                if (state.currentFGSwapchain != nullptr && !state.isWorkingAsNvngx &&
+                if (state.currentFGSwapchain != nullptr && state.workingMode != WorkingMode::Nvngx &&
                     (state.activeFgInput == FGInput::FSRFG || state.activeFgInput == FGInput::FSRFG30))
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR-FG Inputs)", "Select FSR-FG in-game");
@@ -4246,7 +4246,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Streamline FG Inputs
-                if (state.currentFGSwapchain != nullptr && !state.isWorkingAsNvngx &&
+                if (state.currentFGSwapchain != nullptr && state.workingMode != WorkingMode::Nvngx &&
                     state.activeFgInput == FGInput::DLSSG)
                 {
                     SeparatorWithHelpMarker("Frame Generation (Streamline FG Inputs)", "Select DLSS-FG in-game");

@@ -433,7 +433,7 @@ class NVNGXProxy
                 std::wstring libraryName;
                 std::wstring libraryNameUS;
 
-                // if (State::Instance().isWorkingAsNvngx || State::Instance().enablerAvailable)
+                // if (State::Instance().workingMode == WorkingMode::Nvngx || State::Instance().enablerAvailable)
                 {
                     libraryName = L"nvngx.dll";
                     libraryNameUS = L"_nvngx.dll";
