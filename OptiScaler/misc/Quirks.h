@@ -39,6 +39,7 @@ enum class GameQuirk : uint64_t
     DisableResizeSkip,
     SpoofRegistry,
     DisableFakenvapi,
+    DoNotPreserveFGSwapChain,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessFixes,
@@ -56,7 +57,6 @@ enum class GameQuirk : uint64_t
     CreateD3D12DeviceForLuma,
     ForceCreateD3D12Device,
     ForceDepthD32S8,
-    DoNotPreserveFGSwapChain,
     // Don't forget to add the new entry to printQuirks
     _
 };
