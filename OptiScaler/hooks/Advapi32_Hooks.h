@@ -86,11 +86,11 @@ static LSTATUS hkRegCloseKey(HKEY hKey)
 static std::wstring GetSpoofedProviderNameW()
 {
     auto vendorId = Config::Instance()->SpoofedVendorId.value_or_default();
-    if (vendorId == 0x10DE)
+    if (vendorId == VendorId::Nvidia)
         return L"NVIDIA";
-    else if (vendorId == 0x1002)
+    else if (vendorId == VendorId::AMD)
         return L"Advanced Micro Devices, Inc.";
-    else if (vendorId == 0x8086)
+    else if (vendorId == VendorId::Intel)
         return L"Intel Corporation";
 
     return L"NVIDIA";
@@ -99,11 +99,11 @@ static std::wstring GetSpoofedProviderNameW()
 static std::string GetSpoofedProviderNameA()
 {
     auto vendorId = Config::Instance()->SpoofedVendorId.value_or_default();
-    if (vendorId == 0x10DE)
+    if (vendorId == VendorId::Nvidia)
         return "NVIDIA";
-    else if (vendorId == 0x1002)
+    else if (vendorId == VendorId::AMD)
         return "Advanced Micro Devices, Inc.";
-    else if (vendorId == 0x8086)
+    else if (vendorId == VendorId::Intel)
         return "Intel Corporation";
 
     return "NVIDIA";
