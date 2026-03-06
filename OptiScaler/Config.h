@@ -243,7 +243,7 @@ class Config
     CustomOptional<uint32_t> DLSSDRenderPresetUltraPerformance { 0 };
 
     // Nukems
-    CustomOptional<bool> NukemMakeResourceCopy { false };
+    CustomOptional<bool> MakeDepthCopy { false };
 
     // CAS
     CustomOptional<bool> RcasEnabled { false };

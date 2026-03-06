@@ -10,16 +10,10 @@
 typedef void (*PFN_RefreshGlobalConfiguration)();
 typedef void (*PFN_EnableDebugView)(bool enable);
 
-#define FRAMES_IN_FLIGHT 2
-
 class DLSSGMod
 {
   private:
     inline static HMODULE _dll = nullptr;
-
-    inline static ID3D12Resource* _copiedDlssgDepth[FRAMES_IN_FLIGHT] = { nullptr, nullptr };
-    inline static ID3D12Resource* _copiedDlssgMV[FRAMES_IN_FLIGHT] = { nullptr, nullptr };
-    inline static UINT64 _frameCount = 0;
 
     inline static PFN_RefreshGlobalConfiguration _refreshGlobalConfiguration = nullptr;
     inline static PFN_EnableDebugView _fsrDebugView = nullptr; // for now keep compatibility with the patched 0.110
@@ -62,68 +56,6 @@ class DLSSGMod
             SetEnvironmentVariable(setting, value);
             _refreshGlobalConfiguration();
         }
-    }
-
-    static bool CreateBufferResource(ID3D12Device* InDevice, ID3D12Resource* InResource, D3D12_RESOURCE_STATES InState,
-                                     ID3D12Resource** OutResource)
-    {
-        if (InDevice == nullptr || InResource == nullptr)
-            return false;
-
-        auto inDesc = InResource->GetDesc();
-
-        if (*OutResource != nullptr)
-        {
-            auto bufDesc = (*OutResource)->GetDesc();
-
-            if (bufDesc.Width != inDesc.Width || bufDesc.Height != inDesc.Height || bufDesc.Format != inDesc.Format)
-            {
-                (*OutResource)->Release();
-                (*OutResource) = nullptr;
-                LOG_WARN("Release {}x{}, new one: {}x{}", bufDesc.Width, bufDesc.Height, inDesc.Width, inDesc.Height);
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        D3D12_HEAP_PROPERTIES heapProperties;
-        D3D12_HEAP_FLAGS heapFlags;
-        HRESULT hr = InResource->GetHeapProperties(&heapProperties, &heapFlags);
-
-        if (hr != S_OK)
-        {
-            LOG_ERROR("GetHeapProperties result: {:X}", (UINT64) hr);
-            return false;
-        }
-
-        hr = InDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &inDesc, InState, nullptr,
-                                               IID_PPV_ARGS(OutResource));
-
-        if (hr != S_OK)
-        {
-            LOG_ERROR("CreateCommittedResource result: {:X}", (UINT64) hr);
-            return false;
-        }
-
-        LOG_DEBUG("Created new one: {}x{}", inDesc.Width, inDesc.Height);
-        return true;
-    }
-
-    static inline void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Resource* InResource,
-                                       D3D12_RESOURCE_STATES InBeforeState, D3D12_RESOURCE_STATES InAfterState)
-    {
-        if (InBeforeState == InAfterState)
-            return;
-
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = InResource;
-        barrier.Transition.StateBefore = InBeforeState;
-        barrier.Transition.StateAfter = InAfterState;
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        InCommandList->ResourceBarrier(1, &barrier);
     }
 
   public:
@@ -364,56 +296,48 @@ class DLSSGMod
                 //}
             }
 
-            _frameCount++;
-            auto index = _frameCount % FRAMES_IN_FLIGHT;
-
             // Make a copy of the depth going to the frame generator
             // Fixes an issue with the depth being corrupted on AMD under Windows
             ID3D12Resource* dlssgDepth = nullptr;
 
-            if (Config::Instance()->NukemMakeResourceCopy.value_or_default())
+            if (Config::Instance()->MakeDepthCopy.value_or_default())
                 InParameters->Get("DLSSG.Depth", &dlssgDepth);
 
             if (dlssgDepth)
             {
-                if (CreateBufferResource(State::Instance().currentD3D12Device, dlssgDepth,
-                                         D3D12_RESOURCE_STATE_COPY_DEST, &_copiedDlssgDepth[index]))
+                D3D12_RESOURCE_DESC desc = dlssgDepth->GetDesc();
+
+                D3D12_HEAP_PROPERTIES heapProperties;
+                D3D12_HEAP_FLAGS heapFlags;
+
+                static ID3D12Resource* copiedDlssgDepth = nullptr;
+                if (copiedDlssgDepth != nullptr)
                 {
-                    ResourceBarrier(InCmdList, dlssgDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-                                    D3D12_RESOURCE_STATE_COPY_SOURCE);
-
-                    InCmdList->CopyResource(_copiedDlssgDepth[index], dlssgDepth);
-
-                    ResourceBarrier(InCmdList, dlssgDepth, D3D12_RESOURCE_STATE_COPY_SOURCE,
-                                    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-                    // cast to make sure it's void*, otherwise dlssg cries
-                    InParameters->Set("DLSSG.Depth", (void*) _copiedDlssgDepth[index]);
+                    copiedDlssgDepth->Release();
+                    copiedDlssgDepth = nullptr;
                 }
-            }
 
-            // Make a copy of the MV going to the frame generator
-            // Fixes an issue with the MV being corrupted on AMD under Windows
-            ID3D12Resource* dlssgMV = nullptr;
-
-            if (Config::Instance()->NukemMakeResourceCopy.value_or_default())
-                InParameters->Get("DLSSG.MVecs", &dlssgMV);
-
-            if (dlssgMV)
-            {
-                if (CreateBufferResource(State::Instance().currentD3D12Device, dlssgMV, D3D12_RESOURCE_STATE_COPY_DEST,
-                                         &_copiedDlssgMV[index]))
+                if (dlssgDepth->GetHeapProperties(&heapProperties, &heapFlags) == S_OK)
                 {
-                    ResourceBarrier(InCmdList, dlssgMV, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-                                    D3D12_RESOURCE_STATE_COPY_SOURCE);
+                    auto result = State::Instance().currentD3D12Device->CreateCommittedResource(
+                        &heapProperties, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                        IID_PPV_ARGS(&copiedDlssgDepth));
 
-                    InCmdList->CopyResource(_copiedDlssgMV[index], dlssgMV);
-
-                    ResourceBarrier(InCmdList, dlssgMV, D3D12_RESOURCE_STATE_COPY_SOURCE,
-                                    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-                    // cast to make sure it's void*, otherwise dlssg cries
-                    InParameters->Set("DLSSG.MVecs", (void*) _copiedDlssgMV[index]);
+                    if (result == S_OK)
+                    {
+                        InCmdList->CopyResource(copiedDlssgDepth, dlssgDepth);
+                        InParameters->Set(
+                            "DLSSG.Depth",
+                            (void*) copiedDlssgDepth); // cast to make sure it's void*, otherwise dlssg cries
+                    }
+                    else
+                    {
+                        LOG_ERROR("Making a new resource for DLSSG Depth has failed");
+                    }
+                }
+                else
+                {
+                    LOG_ERROR("Getting heap properties has failed");
                 }
             }
 

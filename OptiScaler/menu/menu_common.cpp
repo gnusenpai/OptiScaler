@@ -4168,13 +4168,11 @@ bool MenuCommon::RenderMenu()
                         else
                             ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "OFF");
 
-                        if (bool makeResourceCopy = config->NukemMakeResourceCopy.value_or_default();
-                            ImGui::Checkbox("Fix broken visuals", &makeResourceCopy))
-                            config->NukemMakeResourceCopy = makeResourceCopy;
-
-                        ShowHelpMarker(
-                            "Makes a copy of the depth and MV buffer\nCan fix broken visuals in some games on AMD "
-                            "GPUs under Windows\nCan cause stutters, so best to use only when necessary");
+                        if (bool makeDepthCopy = config->MakeDepthCopy.value_or_default();
+                            ImGui::Checkbox("Fix broken visuals", &makeDepthCopy))
+                            config->MakeDepthCopy = makeDepthCopy;
+                        ShowHelpMarker("Makes a copy of the depth buffer\nCan fix broken visuals in some games on AMD "
+                                       "GPUs under Windows\nCan cause stutters, so best to use only when necessary");
                     }
                     else if (state.swapchainApi == Vulkan)
                     {
