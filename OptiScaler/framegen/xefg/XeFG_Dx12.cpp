@@ -65,8 +65,8 @@ bool XeFG_Dx12::CreateSwapchainContext(ID3D12Device* device)
             LOG_ERROR("SetLoggingCallback error: {} ({})", magic_enum::enum_name(result), (UINT) result);
         }
 
-        if (XeLLProxy::Context() == nullptr)
-            XeLLProxy::CreateContext(device);
+        // if (XeLLProxy::Context() == nullptr)
+        XeLLProxy::CreateContext(device);
 
         if (XeLLProxy::Context() != nullptr)
         {
@@ -1441,7 +1441,14 @@ bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
     // if (State::Instance().isShuttingDown && _swapChainContext != nullptr)
     //    DestroySwapchainContext();
 
+    if (State::Instance().isShuttingDown)
+    {
+        _swapChainContext = nullptr;
+        State::Instance().currentFGSwapchain = nullptr;
+    }
+
     ReleaseObjects();
+    XeLLProxy::DestroyXeLLContext();
 
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
     {
