@@ -963,7 +963,6 @@ bool IFeature_VkwDx12::ProcessVulkanTextures(VkCommandBuffer InCmdList, const NV
     LOG_FUNC();
 
     auto frame = _frameCount % 2;
-    Vulkan_wDx12::lastCmdBuffer = InCmdList;
     LOG_DEBUG("frame: {}", frame);
 
     auto queueFamilyOpt = Vulkan_wDx12::cmdBufferStateTracker.GetCommandBufferQueueFamily(InCmdList);
@@ -1406,6 +1405,7 @@ bool IFeature_VkwDx12::ProcessVulkanTextures(VkCommandBuffer InCmdList, const NV
 
 #pragma endregion
 
+    Vulkan_wDx12::lastCmdBuffer = InCmdList;
     return true;
 }
 
