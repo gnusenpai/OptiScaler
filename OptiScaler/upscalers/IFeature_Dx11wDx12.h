@@ -71,7 +71,7 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
                             bool InRequestHighPerformanceAdapter);
 
     bool CopyTextureFrom11To12(ID3D11Resource* InResource, D3D11_TEXTURE2D_RESOURCE_C* OutResource, bool InCopy,
-                               bool InDepth);
+                               bool InDepth, bool InDontUseNTShared);
     bool ProcessDx11Textures(const NVSDK_NGX_Parameter* InParameters);
     bool CopyBackOutput();
 

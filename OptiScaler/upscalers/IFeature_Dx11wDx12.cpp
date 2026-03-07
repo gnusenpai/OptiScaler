@@ -39,7 +39,7 @@ void IFeature_Dx11wDx12::ResourceBarrier(ID3D12GraphicsCommandList* commandList,
 }
 
 bool IFeature_Dx11wDx12::CopyTextureFrom11To12(ID3D11Resource* InResource, D3D11_TEXTURE2D_RESOURCE_C* OutResource,
-                                               bool InCopy, bool InDontUseNTShared)
+                                               bool InCopy, bool InDepth, bool InDontUseNTShared)
 {
     ID3D11Texture2D* originalTexture = nullptr;
     D3D11_TEXTURE2D_DESC desc {};
@@ -528,7 +528,7 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
     if (paramColor)
     {
         LOG_DEBUG("Color exist..");
-        if (CopyTextureFrom11To12(paramColor, &dx11Color, true, dontUseNTS) == false)
+        if (CopyTextureFrom11To12(paramColor, &dx11Color, true, false, dontUseNTS) == false)
             return false;
     }
     else
@@ -544,7 +544,7 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
     if (paramMv)
     {
         LOG_DEBUG("MotionVectors exist..");
-        if (CopyTextureFrom11To12(paramMv, &dx11Mv, true, dontUseNTS) == false)
+        if (CopyTextureFrom11To12(paramMv, &dx11Mv, true, false, dontUseNTS) == false)
             return false;
     }
     else
@@ -559,8 +559,7 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
     if (paramOutput[_frameCount % 2])
     {
         LOG_DEBUG("Output exist..");
-        if (CopyTextureFrom11To12(paramOutput[_frameCount % 2], &dx11Out, false,
-                                  Config::Instance()->DontUseNTShared.value_or(true)) == false)
+        if (CopyTextureFrom11To12(paramOutput[_frameCount % 2], &dx11Out, false, false, dontUseNTS) == false)
             return false;
     }
     else
@@ -577,7 +576,7 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
     {
         LOG_DEBUG("Depth exist..");
 
-        if (CopyTextureFrom11To12(paramDepth, &dx11Depth, true, true) == false)
+        if (CopyTextureFrom11To12(paramDepth, &dx11Depth, true, true, false) == false)
             return false;
     }
     else
@@ -597,7 +596,7 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
         {
             LOG_DEBUG("ExposureTexture exist..");
 
-            if (CopyTextureFrom11To12(paramExposure, &dx11Exp, true, dontUseNTS) == false)
+            if (CopyTextureFrom11To12(paramExposure, &dx11Exp, true, false, dontUseNTS) == false)
                 return false;
         }
         else
@@ -620,7 +619,7 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
             Config::Instance()->DisableReactiveMask.set_volatile_value(false);
             LOG_DEBUG("Input Bias mask exist..");
 
-            if (CopyTextureFrom11To12(paramReactiveMask, &dx11Reactive, true, dontUseNTS) == false)
+            if (CopyTextureFrom11To12(paramReactiveMask, &dx11Reactive, true, false, dontUseNTS) == false)
                 return false;
         }
         // This is only needed for XeSS
