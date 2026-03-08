@@ -55,6 +55,25 @@ class ScopedCollapsingHeader
     bool _headerOpen = false;
 };
 
+template <typename T> struct MenuOption
+{
+    T value;
+    std::string label;
+    std::string tooltip;
+    bool disabled = false;
+
+    MenuOption& set_disabled(bool condition, const std::string& reason = "")
+    {
+        if (condition)
+        {
+            disabled = true;
+            if (!reason.empty())
+                tooltip = reason;
+        }
+        return *this;
+    }
+};
+
 class MenuCommon
 {
   private:
@@ -170,6 +189,9 @@ class MenuCommon
     static void PopulateCombo(std::string name, CustomOptional<uint32_t, B>* value, const char* names[],
                               const std::string desc[], int length, const uint8_t disabledMask[] = nullptr,
                               bool firstAsDefault = true);
+    template <typename T, typename TOptional>
+    static void PopulateComboNew(const std::string& name, TOptional& currentValue,
+                                 const std::vector<MenuOption<T>>& options);
 
   public:
     static void Dx11Inited() { _dx11Ready = true; }

@@ -1382,6 +1382,49 @@ void MenuCommon::PopulateCombo(std::string name, CustomOptional<uint32_t, B>* va
     }
 }
 
+template <typename T, typename TOptional>
+void MenuCommon::PopulateComboNew(const std::string& name, TOptional& currentValue,
+                                const std::vector<MenuOption<T>>& options)
+{
+    // Find the label for the currently selected item
+    std::string preview = "Unknown";
+    T currentVal = currentValue.value_or(options[0].value);
+
+    for (const auto& opt : options)
+    {
+        if (opt.value == currentVal)
+        {
+            preview = opt.label;
+            break;
+        }
+    }
+
+    if (ImGui::BeginCombo(name.c_str(), preview.c_str()))
+    {
+        for (const auto& opt : options)
+        {
+            if (opt.disabled)
+                ImGui::BeginDisabled();
+
+            bool isSelected = (currentVal == opt.value);
+            if (ImGui::Selectable(opt.label.c_str(), isSelected))
+            {
+                currentValue = opt.value;
+            }
+
+            // Show tooltip for the individual item if it exists
+            if (!opt.tooltip.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            {
+                ImGui::SetTooltip("%s", opt.tooltip.c_str());
+            }
+
+            if (opt.disabled)
+                ImGui::EndDisabled();
+        }
+        ImGui::EndCombo();
+    }
+}
+
 static ImVec4 toneMapColor(const ImVec4& color)
 {
     // Apply tone mapping (e.g., Reinhard tone mapping)
@@ -3039,169 +3082,132 @@ bool MenuCommon::RenderMenu()
                     }
                 }
 
+                /// FG INPUTS
+
+                static std::vector<MenuOption<FGInput>> inputOptions;
+                inputOptions.clear();
+
                 // clang-format off
-                const char* fgInputOptions[] = {
-                    "No Frame Generation",   // NoFG
-                    "Nukem's DLSSG",         // Nukems
-                    "FSR 3.1 FG",            // FSRFG
-                    "DLSSG via Streamline",  // DLSSG
-                    "XeFG",                  // XeFG
-                    "OptiFG (Upscaler)",     // Upscaler
-                    "FSR 3.0 FG",            // FSRFG30
+
+                inputOptions = {
+                    { FGInput::NoFG, "No Frame Generation", "" },
+                    { FGInput::Nukems, "Nukem's DLSSG", "Limited to FSR3-FG\n\nSupports Hudless out of the box\n\nUses Streamline swapchain for pacing" },
+                    { FGInput::FSRFG, "FSR 3.1 FG", "Can be used with any FG Output\n\nSupports Hudless out of the box" },
+                    { FGInput::DLSSG, "DLSSG via Streamline", "Can be used with any FG Output\n\nSupports Hudless out of the box\n\nLimited to games that use Streamline v2" },
+                    { FGInput::XeFG, "XeFG", "" },
+                    { FGInput::Upscaler, "OptiFG (Upscaler)", "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, HUDfix required" },
+                    { FGInput::FSRFG30, "FSR 3.0 FG", "Can be used with any FG Output\n\nSupports Hudless out of the box" }
                 };
-                std::vector<std::string> fgInputDesc = {
-                    "",
-                    "Limited to FSR3-FG\n\nSupports Hudless out of the box\n\nUses Streamline swapchain for pacing", 
-                    "Can be used with any FG Output\n\nSupports Hudless out of the box", 
-                    "Can be used with any FG Output\n\nSupports Hudless out of the box\n\nLimited to games that use Streamline v2", 
-                    "Support not implemented", 
-                    "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, HUDfix required",
-                    "Can be used with any FG Output\n\nSupports Hudless out of the box", 
-                };
-                std::vector<uint8_t> disabledMaskInput = { 
-                    false, 
-                    false, 
-                    false, 
-                    false, // TODO: Disable DLSSG inputs in games that can't support it
-                    true, 
-                    false,
-                    false,
-                };
+
                 // clang-format on
+
+                // XeFG requirements
+                auto constexpr xefgInputIndex = (uint32_t) FGInput::XeFG;
+                inputOptions[xefgInputIndex].set_disabled(true, "Support not implemented");
 
                 // OptiFG requirements
                 auto constexpr optiFgIndex = (uint32_t) FGInput::Upscaler;
-                if (state.api == API::DX11 || state.api == API::Vulkan)
-                {
-                    disabledMaskInput[optiFgIndex] = true;
-                    fgInputDesc[optiFgIndex] = "Unsupported API";
-                }
-                else if (state.workingMode == WorkingMode::Nvngx)
-                {
-                    disabledMaskInput[optiFgIndex] = true;
-                    fgInputDesc[optiFgIndex] = "Unsupported Opti working mode";
-                }
-                else if (state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() && !fsr31InitTried)
+                inputOptions[optiFgIndex].set_disabled(state.api == API::DX11 || state.api == API::Vulkan,
+                                                       "Unsupported API");
+                inputOptions[optiFgIndex].set_disabled(state.workingMode == WorkingMode::Nvngx,
+                                                       "Unsupported Opti working mode");
+
+                if (!inputOptions[optiFgIndex].disabled && state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() &&
+                    !fsr31InitTried)
                 {
                     fsr31InitTried = true;
                     FfxApiProxy::InitFfxDx12();
-                    disabledMaskInput[optiFgIndex] = !FfxApiProxy::IsFGReady();
-                    fgInputDesc[optiFgIndex] = "amd_fidelityfx_dx12.dll is missing";
+                    inputOptions[optiFgIndex].set_disabled(!FfxApiProxy::IsFGReady(),
+                                                           "amd_fidelityfx_dx12.dll is missing");
                 }
-                else if (state.activeFgOutput == FGOutput::XeFG && !xefgInitTried && XeFGProxy::Module() == nullptr)
+                else if (!inputOptions[optiFgIndex].disabled && state.activeFgOutput == FGOutput::XeFG &&
+                         !xefgInitTried && XeFGProxy::Module() == nullptr)
                 {
                     xefgInitTried = true;
                     XeFGProxy::InitXeFG();
-                    disabledMaskInput[optiFgIndex] = XeFGProxy::Module() == nullptr;
-                    fgInputDesc[optiFgIndex] = "libxess_fg.dll is missing";
+                    inputOptions[optiFgIndex].set_disabled(XeFGProxy::Module() == nullptr, "libxess_fg.dll is missing");
                 }
 
                 // DLSSG inputs requirements
                 auto constexpr dlssgInputIndex = (uint32_t) FGInput::DLSSG;
-                if (state.streamlineVersion.major < 2)
-                {
-                    disabledMaskInput[dlssgInputIndex] = true;
-                    fgInputDesc[dlssgInputIndex] =
-                        StrFmt("Unsupported Streamline version: %d.%d.%d", state.streamlineVersion.major,
-                               state.streamlineVersion.minor, state.streamlineVersion.patch);
+                inputOptions[dlssgInputIndex].set_disabled(state.swapchainApi == API::DX11, "Unsupported API");
 
-                    if (config->FGInput.value_or_default() == FGInput::DLSSG)
-                        config->FGInput.reset();
-                }
-                else if (State::Instance().swapchainApi == API::DX11)
+                if (!inputOptions[dlssgInputIndex].disabled && state.streamlineVersion.major < 2)
                 {
-                    disabledMaskInput[dlssgInputIndex] = true;
-                    fgInputDesc[dlssgInputIndex] = "Unsupported API";
+                    inputOptions[dlssgInputIndex].set_disabled(true, std::format("Unsupported Streamline version: {}.{}.{}", state.streamlineVersion.major,
+                                          state.streamlineVersion.minor, state.streamlineVersion.patch));
                 }
 
                 // FSRFG inputs requirements
                 auto constexpr fsrfgInputIndex = (uint32_t) FGInput::FSRFG;
-                if (State::Instance().swapchainApi != API::DX12)
-                {
-                    disabledMaskInput[fsrfgInputIndex] = true;
-                    fgInputDesc[fsrfgInputIndex] = "Unsupported API";
-                }
+                inputOptions[fsrfgInputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
 
+                // FSRFG30 inputs requirements
                 auto constexpr fsrfg30InputIndex = (uint32_t) FGInput::FSRFG30;
-                if (State::Instance().swapchainApi != API::DX12)
-                {
-                    disabledMaskInput[fsrfg30InputIndex] = true;
-                    fgInputDesc[fsrfg30InputIndex] = "Unsupported API";
-                }
-
-                constexpr auto fgInputOptionsCount = sizeof(fgInputOptions) / sizeof(char*);
+                inputOptions[fsrfg30InputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
 
                 if (!config->FGInput.has_value())
                     config->FGInput = config->FGInput.value_or_default(); // need to have a value before combo
 
+
+                /// FG OUTPUTS
+
+                static std::vector<MenuOption<FGOutput>> outputOptions;
+                outputOptions.clear();
+
                 // clang-format off
-                const char* fgOutputOptions[] = {
-                    "No Frame Generation",  // NoFG
-                    "FSR3-FG via Nukem's",  // Nukems
-                    "FSR FG",               // FSRFG
-                    "DLSSG",                // DLSSG
-                    "XeFG"                  // XeFG
+
+                outputOptions = {
+                    { FGOutput::NoFG, "No Frame Generation", "" },
+                    { FGOutput::Nukems, "FSR3-FG via Nukem's", "Enable DLSS-FG in-game" },
+                    { FGOutput::FSRFG, "FSR FG", "FSR3/4 FG" },
+                    { FGOutput::DLSSG, "DLSSG", "Support not implemented" },
+                    { FGOutput::XeFG, "XeFG", "XeFG" }
                 };
-                std::vector<std::string> fgOutputDesc = {
-                    "",
-                    "Enable DLSS-FG in-game", 
-                    "FSR3/4 FG", 
-                    "Support not implemented", 
-                    "XeFG",
-                };
-                std::vector<uint8_t> disabledMaskOutput = { 
-                    false, 
-                    false, 
-                    false, 
-                    true, 
-                    false,
-                };
+
                 // clang-format on
+
+                // DLSSG output requirements
+                auto constexpr dlssgOutputIndex = (uint32_t) FGOutput::DLSSG;
+                outputOptions[dlssgOutputIndex].set_disabled(true, "Support not implemented");
 
                 // Nukem's FG mod requirements
                 auto constexpr nukemsInputIndex = (uint32_t) FGInput::Nukems;
                 auto constexpr nukemsOutputIndex = (uint32_t) FGOutput::Nukems;
                 if (state.workingMode == WorkingMode::Nvngx)
                 {
-                    disabledMaskInput[nukemsInputIndex] = true;
-                    fgInputDesc[nukemsInputIndex] = "Unsupported Opti working mode";
-                    disabledMaskOutput[nukemsOutputIndex] = true;
-                    fgOutputDesc[nukemsOutputIndex] = "Unsupported Opti working mode";
+                    inputOptions[nukemsInputIndex].set_disabled(true, "Unsupported Opti working mode");
+                    outputOptions[nukemsOutputIndex].set_disabled(true, "Unsupported Opti working mode");
                 }
                 else if (!state.NukemsFilesAvailable)
                 {
-                    disabledMaskInput[nukemsInputIndex] = true;
-                    fgInputDesc[nukemsInputIndex] = "Missing the dlssg_to_fsr3_amd_is_better.dll file";
-                    disabledMaskOutput[nukemsOutputIndex] = true;
-                    fgOutputDesc[nukemsOutputIndex] = "Missing the dlssg_to_fsr3_amd_is_better.dll file";
+                    inputOptions[nukemsInputIndex].set_disabled(true,
+                                                                "Missing the dlssg_to_fsr3_amd_is_better.dll file");
+                    outputOptions[nukemsOutputIndex].set_disabled(true,
+                                                                "Missing the dlssg_to_fsr3_amd_is_better.dll file");
                 }
 
-                // FSR FG / XeFG output requirements
+                // FSR FG output requirements
                 auto constexpr fsrfgOutputIndex = (uint32_t) FGOutput::FSRFG;
-                auto constexpr xefgOutputIndex = (uint32_t) FGOutput::XeFG;
-                if (state.swapchainApi != API::DX12)
-                {
-                    disabledMaskOutput[fsrfgOutputIndex] = true;
-                    fgOutputDesc[fsrfgOutputIndex] = "Unsupported API";
-                    disabledMaskOutput[xefgOutputIndex] = true;
-                    fgOutputDesc[xefgOutputIndex] = "Unsupported API";
-                }
+                outputOptions[fsrfgOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
 
-                constexpr auto fgOutputOptionsCount = std::size(fgOutputOptions);
+                // XeFG output requirements
+                auto constexpr xefgOutputIndex = (uint32_t) FGOutput::XeFG;
+                outputOptions[xefgOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
 
                 // Unsupported FG input selected
-                if (config->FGInput != FGInput::NoFG && disabledMaskInput[(uint32_t) state.activeFgInput] &&
+                if (config->FGInput != FGInput::NoFG && inputOptions[(uint32_t) state.activeFgInput].disabled &&
                     state.activeFgInput == config->FGInput)
                 {
-                    LOG_WARN("Resetting FGInput to NoFG: {}", fgInputDesc[(uint32_t) state.activeFgInput]);
+                    LOG_WARN("Resetting FGInput to NoFG: {}", inputOptions[(uint32_t) state.activeFgInput].label);
                     config->FGInput = FGInput::NoFG;
                 }
 
                 // Unsupported FG output selected
-                if (config->FGOutput != FGOutput::NoFG && disabledMaskOutput[(uint32_t) state.activeFgOutput] &&
+                if (config->FGOutput != FGOutput::NoFG && outputOptions[(uint32_t) state.activeFgOutput].disabled &&
                     state.activeFgOutput == config->FGOutput)
                 {
-                    LOG_WARN("Resetting FGOutput to NoFG: {}", fgOutputDesc[(uint32_t) state.activeFgOutput]);
+                    LOG_WARN("Resetting FGOutput to NoFG: {}", outputOptions[(uint32_t) state.activeFgOutput].label);
                     config->FGOutput = FGOutput::NoFG;
                 }
 
@@ -3215,9 +3221,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::TableNextColumn();
 
-                        PopulateCombo("FG Source", reinterpret_cast<CustomOptional<uint32_t>*>(&config->FGInput),
-                                      fgInputOptions, fgInputDesc.data(), fgInputOptionsCount, disabledMaskInput.data(),
-                                      false);
+                        PopulateComboNew("FG Input", config->FGInput, inputOptions);
                         ShowTooltip("The data source to be used for FG");
 
                         ImGui::TableNextColumn();
@@ -3225,13 +3229,13 @@ bool MenuCommon::RenderMenu()
                         const bool disableOutputs = config->FGInput.value_or_default() == FGInput::Nukems;
 
                         ImGui::BeginDisabled(disableOutputs);
-                        PopulateCombo("FG Output", reinterpret_cast<CustomOptional<uint32_t>*>(&config->FGOutput),
-                                      fgOutputOptions, fgOutputDesc.data(), fgOutputOptionsCount,
-                                      disabledMaskOutput.data(), false);
+                        PopulateComboNew("FG Output", config->FGOutput, outputOptions);
                         ImGui::EndDisabled();
 
                         if (disableOutputs)
                             ShowTooltip("Doesn't matter with the selected FG Source");
+                        else
+                            ShowTooltip("The FG that you will actually be using");
 
                         ImGui::EndTable();
                     }
