@@ -2161,7 +2161,11 @@ bool MenuCommon::RenderMenu()
     if (_isVisible)
     {
         // Check for gpu support
-        CheckForGPU();
+        {
+            // DXVK might call vulkan device creation which would destroy our objects
+            ScopedSkipVulkanHooks skipVulkanHooks;
+            CheckForGPU();
+        }
 
         // Overlay font
         if (config->UseHQFont.value_or_default())
