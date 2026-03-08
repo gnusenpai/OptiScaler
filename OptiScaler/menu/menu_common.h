@@ -185,13 +185,9 @@ class MenuCommon
     template <HasDefaultValue B> static void AddResourceBarrier(std::string name, CustomOptional<int32_t, B>* value);
     template <HasDefaultValue B> static void AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value);
     template <HasDefaultValue B> static void AddDLSSDRenderPreset(std::string name, CustomOptional<uint32_t, B>* value);
-    template <HasDefaultValue B>
-    static void PopulateCombo(std::string name, CustomOptional<uint32_t, B>* value, const char* names[],
-                              const std::string desc[], int length, const uint8_t disabledMask[] = nullptr,
-                              bool firstAsDefault = true);
     template <typename T, typename TOptional>
-    static void PopulateComboNew(const std::string& name, TOptional& currentValue,
-                                 const std::vector<MenuOption<T>>& options);
+    static void PopulateCombo(const std::string& name, TOptional& currentValue,
+                              const std::vector<MenuOption<T>>& options);
 
   public:
     static void Dx11Inited() { _dx11Ready = true; }

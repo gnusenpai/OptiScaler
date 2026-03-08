@@ -1229,162 +1229,64 @@ template <HasDefaultValue B> void MenuCommon::AddResourceBarrier(std::string nam
     }
 }
 
+constexpr uint32_t NV_PRESET_LATEST = 0x00FFFFFF;
+
+// TODO: disable presets based on the detected DLSS version
 template <HasDefaultValue B> void MenuCommon::AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value)
 {
-    const char* presets[] = { "DEFAULT",  "PRESET A", "PRESET B", "PRESET C", "PRESET D", "PRESET E",
-                              "PRESET F", "PRESET G", "PRESET H", "PRESET I", "PRESET J", "PRESET K",
-                              "PRESET L", "PRESET M", "PRESET N", "PRESET O", "Latest" };
-    const std::string presetsDesc[] = {
-        "Whatever the game uses",
-
-        // Preset A
-        "Intended for Performance/Balanced/Quality modes.\nAn older variant best suited to combat ghosting for "
-        "elements with missing inputs, such as motion vectors.\nRemoved on recent versions!",
-
-        // Preset B
-        "Intended for Ultra Performance mode.\nSimilar to Preset A but for Ultra Performance mode.\nRemoved on recent "
-        "versions!",
-
-        // Preset C
-        "Intended for Performance/Balanced/Quality modes.\nGenerally favors current frame information;\nwell suited "
-        "for fast-paced game content.\nRemoved on recent versions!",
-
-        // Preset D
-        "Default preset for Performance/Balanced/Quality modes;\ngenerally favors image stability. \nRemoved on recent "
-        "versions!",
-
-        // Preset E
-        "DLSS 3.7+, a better D preset\nRemoved on recent versions!",
-
-        // Preset F
-        "Default preset for Ultra Performance and DLAA modes\nRemoved on recent versions!",
-
-        // Preset G
-        "Unused",
-
-        // Preset H
-        "Unused",
-
-        // Preset I
-        "Unused",
-
-        // Preset J
-        "Similar to preset K. Preset J might exhibit slightly\nless ghostingat the cost of extra flickering.\nPreset K "
-        "is generally recommended over preset J\n1st Gen Transformer",
-
-        // Preset K
-        "Default preset for DLAA/Balanced/Quality modes that is\ntransformer based. Best image quality\npreset at a "
-        "higher performance cost\n1st Gen Transformer",
-
-        // Preset L
-        "Default for Ultra Perf mode\n2nd Gen Transformers",
-
-        // Preset M
-        "Default for Perf mode\n2nd Gen Transformer",
-
-        // Preset N
-        "Unused",
-
-        // Preset O
-        "Unused",
-
-        "Latest supported by the dll"
+    static const std::vector<MenuOption<uint32_t>> presets = {
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_Default, "DEFAULT", "Whatever the game uses" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_A, "PRESET A",
+          "Intended for Performance/Balanced/Quality modes.\nAn older variant best suited to combat "
+          "ghosting...\nRemoved on recent versions!" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_B, "PRESET B",
+          "Intended for Ultra Performance mode.\nSimilar to Preset A...\nRemoved on recent versions!" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_C, "PRESET C",
+          "Intended for Performance/Balanced/Quality modes.\nGenerally favors current frame information...\nRemoved on "
+          "recent versions!" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_D, "PRESET D",
+          "Default preset for Performance/Balanced/Quality modes;\ngenerally favors image stability.\nRemoved on "
+          "recent versions!" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_E, "PRESET E",
+          "DLSS 3.7+, a better D preset\nRemoved on recent versions!" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_F, "PRESET F",
+          "Default preset for Ultra Performance and DLAA modes\nRemoved on recent versions!" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_G, "PRESET G", "Unused" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_H_Reserved, "PRESET H", "Unused" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_I_Reserved, "PRESET I", "Unused" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_J, "PRESET J",
+          "Similar to preset K. Preset J might exhibit slightly\nless ghosting...\n1st Gen Transformer" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_K, "PRESET K",
+          "Default preset for DLAA/Balanced/Quality modes...\n1st Gen Transformer" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_L, "PRESET L", "Default for Ultra Perf mode\n2nd Gen Transformers" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_M, "PRESET M", "Default for Perf mode\n2nd Gen Transformer" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_N, "PRESET N", "Unused" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_O, "PRESET O", "Unused" },
+        { NV_PRESET_LATEST, "Latest", "Latest supported by the dll" }
     };
 
-    if (value->value_or_default() == 0x00FFFFFF)
-        *value = 16;
-
-    PopulateCombo(name, value, presets, presetsDesc, std::size(presets));
-
-    // Value for latest preset
-    if (value->value_or_default() == 16)
-        *value = 0x00FFFFFF;
+    PopulateCombo(name, *value, presets);
 }
 
 template <HasDefaultValue B> void MenuCommon::AddDLSSDRenderPreset(std::string name, CustomOptional<uint32_t, B>* value)
 {
-    const char* presets[] = { "DEFAULT", "PRESET A", "PRESET B", "PRESET C", "PRESET D", "PRESET E" };
-    const std::string presetsDesc[] = { "Whatever the game uses",
-                                        // Preset A
-                                        "Preset A\nRemoved on recent versions!",
+    // We don't have DLSSD definitions so using raw values
+    static const std::vector<MenuOption<uint32_t>> presets = {
+        { 0, "DEFAULT", "Whatever the game uses" },
+        { 1, "PRESET A", "Preset A\nRemoved on recent versions!" },
+        { 2, "PRESET B", "Preset B\nRemoved on recent versions!" },
+        { 3, "PRESET C", "Preset C\nRemoved on recent versions!" },
+        { 4, "PRESET D", "Default model, Transformer" },
+        { 5, "PRESET E", "Latest Transformer model\nMust use if DoF guide is needed" },
+        { NV_PRESET_LATEST, "Latest", "Latest supported by the dll" }
+    };
 
-                                        // Preset B
-                                        "Preset B\nRemoved on recent versions!",
-
-                                        // Preset C
-                                        "Preset C\nRemoved on recent versions!",
-
-                                        // Preset D
-                                        "Default model, Transformer",
-
-                                        // Preset E
-                                        "Latest Transformer model\nMust use if DoF guide is needed" };
-
-    if (value->value_or_default() == 0x00FFFFFF)
-        *value = 6;
-
-    PopulateCombo(name, value, presets, presetsDesc, std::size(presets));
-
-    // Value for latest preset
-    if (value->value_or_default() == 6)
-        *value = 0x00FFFFFF;
-}
-
-template <HasDefaultValue B>
-void MenuCommon::PopulateCombo(std::string name, CustomOptional<uint32_t, B>* value, const char* names[],
-                               const std::string desc[], int length, const uint8_t disabledMask[], bool firstAsDefault)
-{
-    int selected = value->value_or(0);
-
-    const char* selectedName = "";
-
-    for (int n = 0; n < length; n++)
-    {
-        if (n == selected)
-        {
-            selectedName = names[n];
-            break;
-        }
-    }
-
-    if (ImGui::BeginCombo(name.c_str(), selectedName))
-    {
-        if (ImGui::Selectable(names[0], !value->has_value()))
-        {
-            if (firstAsDefault)
-                value->reset();
-            else
-                *value = 0;
-        }
-
-        if (!desc[0].empty())
-            ShowTooltip(desc[0].c_str());
-
-        for (int n = 1; n < length; n++)
-        {
-            if (disabledMask && disabledMask[n])
-                ImGui::BeginDisabled();
-
-            if (ImGui::Selectable(names[n], selected == n))
-            {
-                if (n != selected)
-                    *value = n;
-            }
-
-            if (!desc[n].empty())
-                ShowTooltip(desc[n].c_str());
-
-            if (disabledMask && disabledMask[n])
-                ImGui::EndDisabled();
-        }
-
-        ImGui::EndCombo();
-    }
+    PopulateCombo(name, *value, presets);
 }
 
 template <typename T, typename TOptional>
-void MenuCommon::PopulateComboNew(const std::string& name, TOptional& currentValue,
-                                const std::vector<MenuOption<T>>& options)
+void MenuCommon::PopulateCombo(const std::string& name, TOptional& currentValue,
+                               const std::vector<MenuOption<T>>& options)
 {
     // Find the label for the currently selected item
     std::string preview = "Unknown";
@@ -3112,8 +3014,8 @@ bool MenuCommon::RenderMenu()
                 inputOptions[optiFgIndex].set_disabled(state.workingMode == WorkingMode::Nvngx,
                                                        "Unsupported Opti working mode");
 
-                if (!inputOptions[optiFgIndex].disabled && state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() &&
-                    !fsr31InitTried)
+                if (!inputOptions[optiFgIndex].disabled && state.activeFgOutput == FGOutput::FSRFG &&
+                    !FfxApiProxy::IsFGReady() && !fsr31InitTried)
                 {
                     fsr31InitTried = true;
                     FfxApiProxy::InitFfxDx12();
@@ -3134,7 +3036,8 @@ bool MenuCommon::RenderMenu()
 
                 if (!inputOptions[dlssgInputIndex].disabled && state.streamlineVersion.major < 2)
                 {
-                    inputOptions[dlssgInputIndex].set_disabled(true, std::format("Unsupported Streamline version: {}.{}.{}", state.streamlineVersion.major,
+                    inputOptions[dlssgInputIndex].set_disabled(
+                        true, std::format("Unsupported Streamline version: {}.{}.{}", state.streamlineVersion.major,
                                           state.streamlineVersion.minor, state.streamlineVersion.patch));
                 }
 
@@ -3148,7 +3051,6 @@ bool MenuCommon::RenderMenu()
 
                 if (!config->FGInput.has_value())
                     config->FGInput = config->FGInput.value_or_default(); // need to have a value before combo
-
 
                 /// FG OUTPUTS
 
@@ -3184,7 +3086,7 @@ bool MenuCommon::RenderMenu()
                     inputOptions[nukemsInputIndex].set_disabled(true,
                                                                 "Missing the dlssg_to_fsr3_amd_is_better.dll file");
                     outputOptions[nukemsOutputIndex].set_disabled(true,
-                                                                "Missing the dlssg_to_fsr3_amd_is_better.dll file");
+                                                                  "Missing the dlssg_to_fsr3_amd_is_better.dll file");
                 }
 
                 // FSR FG output requirements
@@ -3221,7 +3123,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::TableNextColumn();
 
-                        PopulateComboNew("FG Input", config->FGInput, inputOptions);
+                        PopulateCombo("FG Input", config->FGInput, inputOptions);
                         ShowTooltip("The data source to be used for FG");
 
                         ImGui::TableNextColumn();
@@ -3229,7 +3131,7 @@ bool MenuCommon::RenderMenu()
                         const bool disableOutputs = config->FGInput.value_or_default() == FGInput::Nukems;
 
                         ImGui::BeginDisabled(disableOutputs);
-                        PopulateComboNew("FG Output", config->FGOutput, outputOptions);
+                        PopulateCombo("FG Output", config->FGOutput, outputOptions);
                         ImGui::EndDisabled();
 
                         if (disableOutputs)
@@ -4506,20 +4408,21 @@ bool MenuCommon::RenderMenu()
                     ShowHelpMarker(
                         "AntiLag 2 / XeLL is used when available, this setting lets you force LatencyFlex instead");
 
-                    const char* lfx_modes[] = { "Conservative", "Aggressive", "Reflex ID" };
-                    const std::string lfx_modesDesc[] = {
-                        "The safest, but might not reduce latency well",
-                        "Improves latency, but in some cases will lower FPS more than expected",
-                        "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to "
-                        "Aggressive"
+                    static const std::vector<MenuOption<uint32_t>> lfx_modes = {
+                        { 0, "Conservative", "The safest, but might not reduce latency well" },
+                        { 1, "Aggressive", "Improves latency, but in some cases will lower FPS more than expected" },
+                        { 2, "Reflex ID",
+                          "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to "
+                          "Aggressive" }
                     };
 
-                    PopulateCombo("LatencyFlex mode", &config->FN_LatencyFlexMode, lfx_modes, lfx_modesDesc, 3);
+                    PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
 
-                    const char* rfx_modes[] = { "Follow in-game", "Force Disable", "Force Enable" };
-                    const std::string rfx_modesDesc[] = { "", "", "" };
+                    static const std::vector<MenuOption<uint32_t>> reflex_modes = { { 0, "Follow in-game" },
+                                                                                    { 1, "Force Disable" },
+                                                                                    { 2, "Force Enable" } };
 
-                    PopulateCombo("Force Reflex", &config->FN_ForceReflex, rfx_modes, rfx_modesDesc, 3);
+                    PopulateCombo("Force Reflex", config->FN_ForceReflex, reflex_modes);
 
                     if (ImGui::Button("Apply##2"))
                     {
