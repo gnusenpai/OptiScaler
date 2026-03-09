@@ -233,10 +233,9 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
     {
         auto effectType = FfxApiProxy::GetType(reinterpret_cast<ExternalProviderData*>(pData)->descType);
 
+        auto effect = magic_enum::enum_name(effectType);
         if (effectType >= FFXStructType::Unknown)
-            LOG_INFO("Trying to update something???");
-        else
-            LOG_INFO("Trying to update: {}", magic_enum::enum_name(effectType));
+            effect = "???";
 
         if (o_UpdateFfxApiProvider == nullptr)
         {
@@ -293,6 +292,7 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
             }
         }
 
+        // Result 0x80004002 (E_NOINTERFACE) basically means that amdxcffx64 doesn't have a provider for that effect
         if ((effectType == FFXStructType::FG || effectType == FFXStructType::Upscaling ||
              effectType == FFXStructType::SwapchainDX12) &&
             o_UpdateFfxApiProviderEx != nullptr)
@@ -302,8 +302,9 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
             magicData data = { { 0, 1, 1, 0 }, nullptr };
             auto result = o_UpdateFfxApiProviderEx(pData, dataSizeInBytes, &data);
 
-            LOG_INFO("UpdateFfxApiProviderEx called, result: {} ({:X})", result == S_OK ? "Ok" : "Error",
-                     (UINT) result);
+            auto level = SUCCEEDED(result) ? spdlog::level::info : spdlog::level::err;
+            spdlog::log(level, "UpdateFfxApiProviderEx for: {}, result: {:#X}", effect, (UINT) result);
+
             State::EnableChecks(1);
             return result;
         }
@@ -314,7 +315,9 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
 
             auto result = o_UpdateFfxApiProvider(pData, dataSizeInBytes);
 
-            LOG_INFO("UpdateFfxApiProvider called, result: {} ({:X})", result == S_OK ? "Ok" : "Error", (UINT) result);
+            auto level = SUCCEEDED(result) ? spdlog::level::info : spdlog::level::err;
+            spdlog::log(level, "UpdateFfxApiProvider for: {}, result: {:#X}", effect, (UINT) result);
+
             State::EnableChecks(1);
             return result;
         }
