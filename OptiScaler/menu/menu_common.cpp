@@ -4323,10 +4323,10 @@ bool MenuCommon::RenderMenu()
                                 currentMethod = "Vulkan AntiLag";
 
                             if (state.rtssReflexInjection && mode == Mode::AntiLag2 &&
-                                config->FGInput == FGInput::Upscaler)
+                                config->FGOutput == FGOutput::FSRFG)
                                 ImGui::TextColored(
                                     ImVec4(1.f, 0.8f, 0.f, 1.f),
-                                    "Using RTSS Reflex injection with AntiLag 2 and OptiFG might cause issues");
+                                    "Using RTSS Reflex injection with AntiLag 2 and FSR FG might cause issues");
                         }
                         else
                         {
