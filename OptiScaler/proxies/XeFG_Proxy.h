@@ -26,6 +26,7 @@ typedef decltype(&xefgSwapChainDestroy) PFN_xefgSwapChainDestroy;
 typedef decltype(&xefgSwapChainSetLatencyReduction) PFN_xefgSwapChainSetLatencyReduction;
 typedef decltype(&xefgSwapChainSetSceneChangeThreshold) PFN_xefgSwapChainSetSceneChangeThreshold;
 typedef decltype(&xefgSwapChainGetPipelineBuildStatus) PFN_xefgSwapChainGetPipelineBuildStatus;
+typedef decltype(&xefgSwapChainSetNumInterpolatedFrames) PFN_xefgSwapChainSetNumInterpolatedFrames;
 
 // Dx12
 typedef decltype(&xefgSwapChainD3D12CreateContext) PFN_xefgSwapChainD3D12CreateContext;
@@ -58,6 +59,7 @@ class XeFGProxy
     inline static PFN_xefgSwapChainSetLatencyReduction _xefgSwapChainSetLatencyReduction = nullptr;
     inline static PFN_xefgSwapChainSetSceneChangeThreshold _xefgSwapChainSetSceneChangeThreshold = nullptr;
     inline static PFN_xefgSwapChainGetPipelineBuildStatus _xefgSwapChainGetPipelineBuildStatus = nullptr;
+    inline static PFN_xefgSwapChainSetNumInterpolatedFrames _xefgSwapChainSetNumInterpolatedFrames = nullptr;
 
     // Dx12
     inline static PFN_xefgSwapChainD3D12CreateContext _xefgSwapChainD3D12CreateContext = nullptr;
@@ -226,6 +228,9 @@ class XeFGProxy
                 _xefgSwapChainGetPipelineBuildStatus =
                     (PFN_xefgSwapChainGetPipelineBuildStatus) KernelBaseProxy::GetProcAddress_()(
                         _dll, "xefgSwapChainGetPipelineBuildStatus");
+                _xefgSwapChainSetNumInterpolatedFrames =
+                    (PFN_xefgSwapChainSetNumInterpolatedFrames) KernelBaseProxy::GetProcAddress_()(
+                        _dll, "xefgSwapChainSetNumInterpolatedFrames");
 
                 // Dx12
                 _xefgSwapChainD3D12CreateContext =
@@ -308,6 +313,10 @@ class XeFGProxy
     static PFN_xefgSwapChainGetPipelineBuildStatus GetPipelineBuildStatus()
     {
         return _xefgSwapChainGetPipelineBuildStatus;
+    }
+    static PFN_xefgSwapChainSetNumInterpolatedFrames SetNumInterpolatedFrames()
+    {
+        return _xefgSwapChainSetNumInterpolatedFrames;
     }
 
     // Dx12

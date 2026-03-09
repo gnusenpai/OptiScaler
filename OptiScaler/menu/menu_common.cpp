@@ -3657,7 +3657,10 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::SameLine(0.0f, 16.0f);
 
-                        if (state.xefgMaxInterpolationCount > 1)
+                        auto maxInterpolationCount =
+                            Config::Instance()->FGXeFGMaxInterpolationCount.value_or(state.xefgMaxInterpolationCount);
+
+                        if (maxInterpolationCount > 1)
                         {
                             const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
                             auto currentSet = config->FGXeFGInterpolationCount.value_or_default() - 1;
@@ -3667,7 +3670,7 @@ bool MenuCommon::RenderMenu()
 
                             if (ImGui::BeginCombo("MFG", currentIntCount))
                             {
-                                for (int i = 0; i < state.xefgMaxInterpolationCount; i++)
+                                for (int i = 0; i < maxInterpolationCount; i++)
                                 {
                                     if (ImGui::Selectable(intModes[i], (currentSet == i)))
                                     {
@@ -3681,8 +3684,7 @@ bool MenuCommon::RenderMenu()
 
                             ImGui::PopItemWidth();
 
-                            ShowHelpMarker("Set XeFG interpolation count\n"
-                                           "Will be active after restart!");
+                            ShowHelpMarker("Set XeFG interpolation count");
                         }
 
                         bool fgDV = config->FGXeFGDebugView.value_or_default();

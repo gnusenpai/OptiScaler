@@ -502,6 +502,7 @@ class Config
     // OptiFG - XeFG
     CustomOptional<bool> FGXeFGIgnoreInitChecks { false };
     CustomOptional<int> FGXeFGInterpolationCount { 1 };
+    CustomOptional<int, NoDefault> FGXeFGMaxInterpolationCount;
     CustomOptional<bool> FGXeFGDepthInverted { false };
     CustomOptional<bool> FGXeFGJitteredMV { false };
     CustomOptional<bool> FGXeFGHighResMV { false };

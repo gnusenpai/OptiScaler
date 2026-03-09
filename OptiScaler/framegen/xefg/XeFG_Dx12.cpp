@@ -105,17 +105,14 @@ const char* XeFG_Dx12::Name()
 {
     static std::string nameBuffer;
 
-    if (nameBuffer.size() == 0)
+    if (State::Instance().xefgMaxInterpolationCount == 1)
     {
-        if (State::Instance().xefgMaxInterpolationCount == 1)
-        {
-            nameBuffer = "XeFG";
-        }
-        else
-        {
-            auto count = Config::Instance()->FGXeFGInterpolationCount.value_or_default() + 1;
-            nameBuffer = "XeFG " + std::to_string(count) + "x";
-        }
+        nameBuffer = "XeFG";
+    }
+    else
+    {
+        auto count = _framesToInterpolate + 1;
+        nameBuffer = "XeFG " + std::to_string(count) + "x";
     }
 
     return nameBuffer.c_str();
@@ -310,7 +307,8 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
 
     xefg_swapchain_d3d12_init_params_t params {};
 
-    int intTarget = _framesToInterpolate;
+    int intTarget =
+        Config::Instance()->FGXeFGMaxInterpolationCount.value_or(State::Instance().xefgMaxInterpolationCount);
 
     if (intTarget < 1 || intTarget > State::Instance().xefgMaxInterpolationCount)
     {
@@ -320,7 +318,9 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
         intTarget = 1;
     }
 
-    _framesToInterpolate = intTarget;
+    if (_framesToInterpolate > intTarget)
+        _framesToInterpolate = intTarget;
+
     params.maxInterpolatedFrames = intTarget;
 
     params.initFlags = XEFG_SWAPCHAIN_INIT_FLAG_NONE;
@@ -436,7 +436,8 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
 
     xefg_swapchain_d3d12_init_params_t params {};
 
-    int intTarget = _framesToInterpolate;
+    int intTarget =
+        Config::Instance()->FGXeFGMaxInterpolationCount.value_or(State::Instance().xefgMaxInterpolationCount);
 
     if (intTarget < 1 || intTarget > State::Instance().xefgMaxInterpolationCount)
     {
@@ -446,7 +447,9 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
         intTarget = 1;
     }
 
-    _framesToInterpolate = intTarget;
+    if (_framesToInterpolate > intTarget)
+        _framesToInterpolate = intTarget;
+
     params.maxInterpolatedFrames = intTarget;
 
     params.initFlags = XEFG_SWAPCHAIN_INIT_FLAG_NONE;
@@ -642,6 +645,31 @@ bool XeFG_Dx12::Dispatch()
         return false;
     }
 
+    if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() > State::Instance().xefgMaxInterpolationCount)
+    {
+        Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
+        LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
+                 State::Instance().xefgMaxInterpolationCount);
+    }
+
+    if (_framesToInterpolate != Config::Instance()->FGXeFGInterpolationCount.value_or_default())
+    {
+        LOG_INFO("Interpolation count changed {} -> {}", _framesToInterpolate,
+                 Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+
+        auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
+            _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+
+        if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+        {
+            LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
+        }
+        else
+        {
+            _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
+        }
+    }
+
     auto& state = State::Instance();
 
     if (!_haveHudless.has_value())
@@ -680,17 +708,6 @@ bool XeFG_Dx12::Dispatch()
         }
     }
 
-    // if (!_noUi[fIndex])
-    //{
-    //     auto res = &_frameResources[fIndex][FG_ResourceType::UIColor];
-    //     if (res->validity != FG_ResourceValidity::ValidNow)
-    //     {
-    //         res->validity = FG_ResourceValidity::UntilPresentFromDispatch;
-    //         res->frameIndex = fIndex;
-    //         SetResource(res);
-    //     }
-    // }
-
     if (!_noDistortionField[fIndex])
     {
         auto res = &_frameResources[fIndex][FG_ResourceType::Distortion];
@@ -706,8 +723,6 @@ bool XeFG_Dx12::Dispatch()
                                     Config::Instance()->FGXeFGDebugView.value_or_default(), nullptr);
     XeFGProxy::EnableDebugFeature()(_swapChainContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_SHOW_ONLY_INTERPOLATION,
                                     state.FGonlyGenerated, nullptr);
-    // XeFGProxy::EnableDebugFeature()(_swapChainContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_PRESENT_FAILED_INTERPOLATION,
-    //                                 state.FGonlyGenerated, nullptr);
 
     xefg_swapchain_frame_constant_data_t constData = {};
 
