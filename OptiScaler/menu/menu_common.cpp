@@ -1234,36 +1234,44 @@ constexpr uint32_t NV_PRESET_LATEST = 0x00FFFFFF;
 // TODO: disable presets based on the detected DLSS version
 template <HasDefaultValue B> void MenuCommon::AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value)
 {
+    // clang-format off
     static const std::vector<MenuOption<uint32_t>> presets = {
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_Default, "DEFAULT", "Whatever the game uses" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_Default, "DEFAULT", 
+            "Whatever the game uses" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_A, "PRESET A",
-          "Intended for Performance/Balanced/Quality modes.\nAn older variant best suited to combat "
-          "ghosting...\nRemoved on recent versions!" },
+            "Intended for Performance/Balanced/Quality modes.\nAn older variant best suited to combat ghosting...\nRemoved on recent versions!" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_B, "PRESET B",
-          "Intended for Ultra Performance mode.\nSimilar to Preset A...\nRemoved on recent versions!" },
+            "Intended for Ultra Performance mode.\nSimilar to Preset A...\nRemoved on recent versions!" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_C, "PRESET C",
-          "Intended for Performance/Balanced/Quality modes.\nGenerally favors current frame information...\nRemoved on "
-          "recent versions!" },
+            "Intended for Performance/Balanced/Quality modes.\nGenerally favors current frame information...\nRemoved on recent versions!" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_D, "PRESET D",
-          "Default preset for Performance/Balanced/Quality modes;\ngenerally favors image stability.\nRemoved on "
-          "recent versions!" },
+            "Default preset for Performance/Balanced/Quality modes;\ngenerally favors image stability.\nRemoved on recent versions!" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_E, "PRESET E",
-          "DLSS 3.7+, a better D preset\nRemoved on recent versions!" },
+            "DLSS 3.7+, a better D preset\nRemoved on recent versions!" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_F, "PRESET F",
-          "Default preset for Ultra Performance and DLAA modes\nRemoved on recent versions!" },
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_G, "PRESET G", "Unused" },
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_H_Reserved, "PRESET H", "Unused" },
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_I_Reserved, "PRESET I", "Unused" },
+            "Default preset for Ultra Performance and DLAA modes\nRemoved on recent versions!" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_G, "PRESET G",
+            "Unused" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_H_Reserved, "PRESET H",
+            "Unused" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_I_Reserved, "PRESET I",
+            "Unused" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_J, "PRESET J",
-          "Similar to preset K. Preset J might exhibit slightly\nless ghosting...\n1st Gen Transformer" },
+            "Similar to preset K. Preset J might exhibit slightly\nless ghosting...\n1st Gen Transformer" },
         { NVSDK_NGX_DLSS_Hint_Render_Preset_K, "PRESET K",
-          "Default preset for DLAA/Balanced/Quality modes...\n1st Gen Transformer" },
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_L, "PRESET L", "Default for Ultra Perf mode\n2nd Gen Transformers" },
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_M, "PRESET M", "Default for Perf mode\n2nd Gen Transformer" },
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_N, "PRESET N", "Unused" },
-        { NVSDK_NGX_DLSS_Hint_Render_Preset_O, "PRESET O", "Unused" },
-        { NV_PRESET_LATEST, "Latest", "Latest supported by the dll" }
+            "Default preset for DLAA/Balanced/Quality modes...\n1st Gen Transformer" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_L, "PRESET L",
+            "Default for Ultra Perf mode\n2nd Gen Transformers" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_M, "PRESET M",
+            "Default for Perf mode\n2nd Gen Transformer" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_N, "PRESET N",
+            "Unused" },
+        { NVSDK_NGX_DLSS_Hint_Render_Preset_O, "PRESET O",
+            "Unused" },
+        { NV_PRESET_LATEST, "Latest",
+            "Latest supported by the dll" }
     };
+    // clang-format on
 
     PopulateCombo(name, *value, presets);
 }
@@ -1284,14 +1292,22 @@ template <HasDefaultValue B> void MenuCommon::AddDLSSDRenderPreset(std::string n
     PopulateCombo(name, *value, presets);
 }
 
-template <typename T, typename TOptional>
-void MenuCommon::PopulateCombo(const std::string& name, TOptional& currentValue,
+template <typename TStorage, typename T>
+void MenuCommon::PopulateCombo(const std::string& name, TStorage& currentValue,
                                const std::vector<MenuOption<T>>& options)
 {
+    if (options.empty())
+        return;
+
+    // Assumes that different types mean that TStorage is std::optional
+    T currentVal;
+    if constexpr (std::is_same_v<TStorage, T>)
+        currentVal = currentValue;
+    else
+        currentVal = currentValue.value_or(options[0].value);
+
     // Find the label for the currently selected item
     std::string preview = "Unknown";
-    T currentVal = currentValue.value_or(options[0].value);
-
     for (const auto& opt : options)
     {
         if (opt.value == currentVal)
@@ -1310,15 +1326,11 @@ void MenuCommon::PopulateCombo(const std::string& name, TOptional& currentValue,
 
             bool isSelected = (currentVal == opt.value);
             if (ImGui::Selectable(opt.label.c_str(), isSelected))
-            {
                 currentValue = opt.value;
-            }
 
             // Show tooltip for the individual item if it exists
             if (!opt.tooltip.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-            {
                 ImGui::SetTooltip("%s", opt.tooltip.c_str());
-            }
 
             if (opt.disabled)
                 ImGui::EndDisabled();
@@ -2516,7 +2528,7 @@ bool MenuCommon::RenderMenu()
 
                                 ImGui::EndCombo();
                             }
-                            ShowHelpMarker("Likely don't do much");
+                            ShowHelpMarker("Likely doesn't do much");
 
                             if (bool dbg = state.xessDebug; ImGui::Checkbox("Dump (Shift+Del)", &dbg))
                                 state.xessDebug = dbg;
@@ -2992,13 +3004,18 @@ bool MenuCommon::RenderMenu()
                 // clang-format off
 
                 inputOptions = {
-                    { FGInput::NoFG, "No Frame Generation", "" },
-                    { FGInput::Nukems, "Nukem's DLSSG", "Limited to FSR3-FG\n\nSupports Hudless out of the box\n\nUses Streamline swapchain for pacing" },
-                    { FGInput::FSRFG, "FSR 3.1 FG", "Can be used with any FG Output\n\nSupports Hudless out of the box" },
-                    { FGInput::DLSSG, "DLSSG via Streamline", "Can be used with any FG Output\n\nSupports Hudless out of the box\n\nLimited to games that use Streamline v2" },
-                    { FGInput::XeFG, "XeFG", "" },
-                    { FGInput::Upscaler, "OptiFG (Upscaler)", "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, HUDfix required" },
-                    { FGInput::FSRFG30, "FSR 3.0 FG", "Can be used with any FG Output\n\nSupports Hudless out of the box" }
+                    { FGInput::NoFG, "No Frame Generation" },
+                    { FGInput::Nukems, "Nukem's DLSSG",
+                        "Limited to FSR3-FG\n\nSupports Hudless out of the box\n\nUses Streamline swapchain for pacing" },
+                    { FGInput::FSRFG, "FSR 3.1 FG",
+                        "Can be used with any FG Output\n\nSupports Hudless out of the box" },
+                    { FGInput::DLSSG, "DLSSG via Streamline",
+                        "Can be used with any FG Output\n\nSupports Hudless out of the box\n\nLimited to games that use Streamline v2" },
+                    { FGInput::XeFG, "XeFG" },
+                    { FGInput::Upscaler, "OptiFG (Upscaler)",
+                        "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, HUDfix required" },
+                    { FGInput::FSRFG30, "FSR 3.0 FG",
+                        "Can be used with any FG Output\n\nSupports Hudless out of the box" }
                 };
 
                 // clang-format on
@@ -3060,7 +3077,7 @@ bool MenuCommon::RenderMenu()
                 // clang-format off
 
                 outputOptions = {
-                    { FGOutput::NoFG, "No Frame Generation", "" },
+                    { FGOutput::NoFG, "No Frame Generation" },
                     { FGOutput::Nukems, "FSR3-FG via Nukem's", "Enable DLSS-FG in-game" },
                     { FGOutput::FSRFG, "FSR FG", "FSR3/4 FG" },
                     { FGOutput::DLSSG, "DLSSG", "Support not implemented" },
@@ -4408,12 +4425,14 @@ bool MenuCommon::RenderMenu()
                     ShowHelpMarker(
                         "AntiLag 2 / XeLL is used when available, this setting lets you force LatencyFlex instead");
 
+                    // clang-format off
                     static const std::vector<MenuOption<uint32_t>> lfx_modes = {
-                        { 0, "Conservative", "The safest, but might not reduce latency well" },
-                        { 1, "Aggressive", "Improves latency, but in some cases will lower FPS more than expected" },
+                        { 0, "Conservative",
+                            "The safest, but might not reduce latency well" },
+                        { 1, "Aggressive",
+                            "Improves latency, but in some cases will lower FPS more than expected" },
                         { 2, "Reflex ID",
-                          "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to "
-                          "Aggressive" }
+                            "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to Aggressive" }
                     };
 
                     PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
@@ -4423,6 +4442,7 @@ bool MenuCommon::RenderMenu()
                                                                                     { 2, "Force Enable" } };
 
                     PopulateCombo("Force Reflex", config->FN_ForceReflex, reflex_modes);
+                    // clang-format on
 
                     if (ImGui::Button("Apply##2"))
                     {
@@ -4648,71 +4668,43 @@ bool MenuCommon::RenderMenu()
 
                             ImGui::BeginDisabled(!_ssEnabled);
                             {
-                                const char* ds_modes[] = { "FSR1",     "Bicubic", "Catmull-Rom", "Lanczos2",
-                                                           "Lanczos3", "Kaiser2", "Kaiser3",     "MAGIC" };
-                                const char* ds_desc[] = { "Default option.\nGood enough image quality and very fast.",
-                                                          "Fastest traditional option.\nProduces a very soft/blurry "
-                                                          "image, but might be okay for downscaling.",
-                                                          "Designed primarily for downscaling.\nRetains good contrast "
-                                                          "with minimal artefacts, but softer than Lanczos.",
-                                                          "Lighter and faster than Lanczos3.\nLess prone to ringing "
-                                                          "artefacts, but slightly blurrier.",
-                                                          "Heavier version of Lanczos2.\nOffers the sharpest image, "
-                                                          "but is the most prone to ringing.",
-                                                          "Similar to Lanczos2.\nSmoother and less prone to artefacts "
-                                                          "than Lanczos, but slightly blurrier.",
-                                                          "Similar to Lanczos3.\nFar less prone to artefacting than "
-                                                          "Lanczos3, but much heavier on the GPU.",
-                                                          "Specialised to prevent artifacts.\nEliminates harsh halos "
-                                                          "for a natural look, but can appear slightly soft." };
-                                static_assert(std::size(ds_modes) == std::size(ds_desc));
-                                const size_t ds_count = std::size(ds_modes);
-
-                                const bool isUpsampleRatio = _ssRatio < 1.0f;
-                                const char* disabledReason =
-                                    "Only FSR1 and Bicubic are supported when Ratio is below 1.0.";
-
                                 ImGui::PushItemWidth(95.0f * config->MenuScale.value());
 
-                                size_t selectedIndex = static_cast<size_t>(_ssDownsampler);
-                                if (selectedIndex >= ds_count)
-                                    selectedIndex = static_cast<size_t>(Scaler::FSR1);
+                                // clang-format off
+                                std::vector<MenuOption<Scaler>> ds_options = {
+                                    { Scaler::FSR1, "FSR1",
+                                        "Default option.\nGood enough image quality and very fast." },
+                                    { Scaler::Bicubic, "Bicubic",
+                                        "Fastest traditional option.\nProduces a very soft/blurry image, but might be okay for downscaling." },
+                                    { Scaler::CatmullRom, "Catmull-Rom",
+                                        "Designed primarily for downscaling.\nRetains good contrast with minimal artefacts, but softer than Lanczos." },
+                                    { Scaler::Lanczos2, "Lanczos2",
+                                        "Lighter and faster than Lanczos3.\nLess prone to ringing artefacts, but slightly blurrier." },
+                                    { Scaler::Lanczos3, "Lanczos3",
+                                        "Heavier version of Lanczos2.\nOffers the sharpest image, but is the most prone to ringing." },
+                                    { Scaler::Kaiser2, "Kaiser2",
+                                        "Similar to Lanczos2.\nSmoother and less prone to artefacts than Lanczos, but slightly blurrier." },
+                                    { Scaler::Kaiser3, "Kaiser3",
+                                        "Similar to Lanczos3.\nFar less prone to artefacting than Lanczos3, but much heavier on the GPU." },
+                                    { Scaler::Magic, "MAGIC",
+                                        "Specialised to prevent artifacts.\nEliminates harsh halos for a natural look, but can appear slightly soft." }
+                                };
+                                // clang-format on
 
-                                const char* selectedName = ds_modes[selectedIndex];
-                                if (ImGui::BeginCombo("Downscaler", selectedName))
+                                const bool isUpsampleRatio = _ssRatio < 1.0f;
+                                const std::string disabledReason =
+                                    "Only FSR1 and Bicubic are supported when Ratio is below 1.0.";
+
+                                for (auto& opt : ds_options)
                                 {
-                                    for (size_t n = 0; n < ds_count; n++)
-                                    {
-                                        const bool isDisabled =
-                                            isUpsampleRatio && n > static_cast<size_t>(Scaler::Bicubic);
-
-                                        if (isDisabled)
-                                            ImGui::BeginDisabled();
-
-                                        auto mode = static_cast<Scaler>(n);
-                                        if (ImGui::Selectable(ds_modes[n], _ssDownsampler == mode))
-                                            _ssDownsampler = mode;
-
-                                        if (isDisabled)
-                                            ImGui::EndDisabled();
-
-                                        if (ds_desc[n] != nullptr && ds_desc[n][0] != '\0')
-                                        {
-                                            if (isDisabled)
-                                            {
-                                                std::string tooltip = ds_desc[n];
-                                                tooltip += "\n\n";
-                                                tooltip += disabledReason;
-                                                ShowTooltip(tooltip.c_str());
-                                            }
-                                            else
-                                            {
-                                                ShowTooltip(ds_desc[n]);
-                                            }
-                                        }
-                                    }
-                                    ImGui::EndCombo();
+                                    if (isUpsampleRatio && opt.value > Scaler::Bicubic)
+                                        opt.set_disabled(true, opt.tooltip + "\n\n" + disabledReason);
                                 }
+
+                                if (isUpsampleRatio && _ssDownsampler > Scaler::Bicubic)
+                                    _ssDownsampler = Scaler::FSR1;
+
+                                PopulateCombo("Downscaler", _ssDownsampler, ds_options);
 
                                 ImGui::PopItemWidth();
                             }

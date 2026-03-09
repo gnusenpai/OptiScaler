@@ -185,8 +185,8 @@ class MenuCommon
     template <HasDefaultValue B> static void AddResourceBarrier(std::string name, CustomOptional<int32_t, B>* value);
     template <HasDefaultValue B> static void AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value);
     template <HasDefaultValue B> static void AddDLSSDRenderPreset(std::string name, CustomOptional<uint32_t, B>* value);
-    template <typename T, typename TOptional>
-    static void PopulateCombo(const std::string& name, TOptional& currentValue,
+    template <typename TStorage, typename T>
+    static void PopulateCombo(const std::string& name, TStorage& currentValue,
                               const std::vector<MenuOption<T>>& options);
 
   public:
