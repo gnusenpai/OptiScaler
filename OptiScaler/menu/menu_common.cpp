@@ -1806,6 +1806,25 @@ bool MenuCommon::RenderMenu()
     // If Fps overlay is visible
     if (config->ShowFps.value_or_default())
     {
+        bool stylePushed = false;
+
+        static auto defaultStyle = ImGuiStyle();
+
+        // Rescale the fps overlay every frame because it shares style with the main menu
+        if (config->FpsScale.has_value() && config->FpsScale.value() != config->MenuScale.value_or_default())
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, defaultStyle.WindowPadding * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, defaultStyle.FramePadding * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, defaultStyle.CellPadding * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, defaultStyle.SeparatorTextPadding * fpsScale);
+
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, defaultStyle.ItemSpacing * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, defaultStyle.ItemInnerSpacing * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, defaultStyle.IndentSpacing * fpsScale);
+
+            stylePushed = true;
+        }
+
         // Set overlay position
         ImGui::SetNextWindowPos(overlayPosition, ImGuiCond_Always);
 
@@ -1819,9 +1838,6 @@ bool MenuCommon::RenderMenu()
             ImGui::PushStyleColor(ImGuiCol_PlotLines, toneMapColor(green)); // Tone Map plot line color
         else
             ImGui::PushStyleColor(ImGuiCol_PlotLines, green);
-
-        auto size = ImVec2 { 0.0f, 0.0f };
-        ImGui::SetNextWindowSize(size);
 
         if (ImGui::Begin("Performance Overlay", nullptr,
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration |
@@ -2094,6 +2110,9 @@ bool MenuCommon::RenderMenu()
 
         ImGui::End();
 
+        if (stylePushed)
+            ImGui::PopStyleVar(7);
+
         // Left / Right
         if (config->FpsOverlayPos.value_or_default() == 0 || config->FpsOverlayPos.value_or_default() == 2)
             overlayPosition.x = 0;
@@ -2152,9 +2171,9 @@ bool MenuCommon::RenderMenu()
         flags |= ImGuiWindowFlags_AlwaysAutoResize;
 
         // if UI scale is changed rescale the style
-        if (_imguiSizeUpdate || config->FpsScale.has_value())
+        if (_mainWindowSizeUpdate)
         {
-            _imguiSizeUpdate = false;
+            _mainWindowSizeUpdate = false;
 
             ImGuiStyle& style = ImGui::GetStyle();
             ImGuiStyle styleold = style; // Backup colors
@@ -2176,10 +2195,9 @@ bool MenuCommon::RenderMenu()
             style.ScaleAllSizes(config->MenuScale.value_or_default());
             style.MouseCursorScale = 1.0f;
             CopyMemory(style.Colors, styleold.Colors, sizeof(style.Colors)); // Restore colors
-        }
 
-        auto size = ImVec2 { 0.0f, 0.0f };
-        ImGui::SetNextWindowSize(size);
+            ImGui::SetNextWindowSize({ 1.0f, 1.0f });
+        }
 
         // Main menu window
         if (windowTitle.empty())
@@ -5112,13 +5130,9 @@ bool MenuCommon::RenderMenu()
                                          ImGuiSliderFlags_ClampOnInput))
                     {
                         if (currentIndex == 0)
-                        {
                             config->FpsScale.reset();
-                        }
                         else
-                        {
                             config->FpsScale = values[currentIndex];
-                        }
                     }
                 }
 
@@ -5502,13 +5516,10 @@ bool MenuCommon::RenderMenu()
                             _selectedScale = n;
                             config->MenuScale = 0.5f + (float) n / 10.0f;
 
-                            ImGuiStyle& style = ImGui::GetStyle();
-                            style.ScaleAllSizes(config->MenuScale.value());
-
                             if (config->MenuScale.value() < 1.0f)
-                                style.MouseCursorScale = 1.0f;
+                                ImGui::GetStyle().MouseCursorScale = 1.0f;
 
-                            _imguiSizeUpdate = true;
+                            _mainWindowSizeUpdate = true;
                         }
                     }
 
@@ -5873,7 +5884,7 @@ void MenuCommon::Init(HWND InHwnd, bool isUWP)
 
     if (!Config::Instance()->OverlayMenu.value_or_default())
     {
-        _imguiSizeUpdate = true;
+        _mainWindowSizeUpdate = true;
         _hdrTonemapApplied = false;
     }
 
