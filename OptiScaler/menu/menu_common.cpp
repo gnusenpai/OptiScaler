@@ -1806,13 +1806,23 @@ bool MenuCommon::RenderMenu()
     // If Fps overlay is visible
     if (config->ShowFps.value_or_default())
     {
+        bool stylePushed = false;
+
+        static auto defaultStyle = ImGuiStyle();
+
         // Rescale the fps overlay every frame because it shares style with the main menu
         if (config->FpsScale.has_value() && config->FpsScale.value() != config->MenuScale.value_or_default())
         {
-            ImGuiStyle& style = ImGui::GetStyle();
-            ImGuiStyle styleold = style;
-            style = ImGuiStyle();
-            style.ScaleAllSizes(fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, defaultStyle.WindowPadding * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, defaultStyle.FramePadding * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, defaultStyle.CellPadding * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, defaultStyle.SeparatorTextPadding * fpsScale);
+
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, defaultStyle.ItemSpacing * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, defaultStyle.ItemInnerSpacing * fpsScale);
+            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, defaultStyle.IndentSpacing * fpsScale);
+
+            stylePushed = true;
         }
 
         // Set overlay position
@@ -2100,6 +2110,9 @@ bool MenuCommon::RenderMenu()
 
         ImGui::End();
 
+        if (stylePushed)
+            ImGui::PopStyleVar(7);
+
         // Left / Right
         if (config->FpsOverlayPos.value_or_default() == 0 || config->FpsOverlayPos.value_or_default() == 2)
             overlayPosition.x = 0;
@@ -2158,10 +2171,10 @@ bool MenuCommon::RenderMenu()
         flags |= ImGuiWindowFlags_AlwaysAutoResize;
 
         // if UI scale is changed rescale the style
-        // FpsScale changes style every frame so this need to revert it for the main menu
-        if (_mainWindowSizeUpdate ||
-            (config->FpsScale.has_value() && config->FpsScale.value() != config->MenuScale.value_or_default()))
+        if (_mainWindowSizeUpdate)
         {
+            _mainWindowSizeUpdate = false;
+
             ImGuiStyle& style = ImGui::GetStyle();
             ImGuiStyle styleold = style; // Backup colors
             style = ImGuiStyle();        // IMPORTANT: ScaleAllSizes will change the original size,
@@ -2183,11 +2196,7 @@ bool MenuCommon::RenderMenu()
             style.MouseCursorScale = 1.0f;
             CopyMemory(style.Colors, styleold.Colors, sizeof(style.Colors)); // Restore colors
 
-            if (_mainWindowSizeUpdate)
-            {
-                ImGui::SetNextWindowSize({ 1.0f, 1.0f });
-                _mainWindowSizeUpdate = false;
-            }
+            ImGui::SetNextWindowSize({ 1.0f, 1.0f });
         }
 
         // Main menu window
@@ -5121,13 +5130,9 @@ bool MenuCommon::RenderMenu()
                                          ImGuiSliderFlags_ClampOnInput))
                     {
                         if (currentIndex == 0)
-                        {
                             config->FpsScale.reset();
-                        }
                         else
-                        {
                             config->FpsScale = values[currentIndex];
-                        }
                     }
                 }
 
@@ -5511,10 +5516,8 @@ bool MenuCommon::RenderMenu()
                             _selectedScale = n;
                             config->MenuScale = 0.5f + (float) n / 10.0f;
 
-                            ImGuiStyle& style = ImGui::GetStyle();
-
                             if (config->MenuScale.value() < 1.0f)
-                                style.MouseCursorScale = 1.0f;
+                                ImGui::GetStyle().MouseCursorScale = 1.0f;
 
                             _mainWindowSizeUpdate = true;
                         }
