@@ -27,15 +27,19 @@ typedef decltype(&xefgSwapChainSetLatencyReduction) PFN_xefgSwapChainSetLatencyR
 typedef decltype(&xefgSwapChainSetSceneChangeThreshold) PFN_xefgSwapChainSetSceneChangeThreshold;
 typedef decltype(&xefgSwapChainGetPipelineBuildStatus) PFN_xefgSwapChainGetPipelineBuildStatus;
 typedef decltype(&xefgSwapChainSetNumInterpolatedFrames) PFN_xefgSwapChainSetNumInterpolatedFrames;
+typedef decltype(&xefgSwapChainSetUiCompositionState) PFN_xefgSwapChainSetUiCompositionState;
 
 // Dx12
 typedef decltype(&xefgSwapChainD3D12CreateContext) PFN_xefgSwapChainD3D12CreateContext;
 typedef decltype(&xefgSwapChainD3D12BuildPipelines) PFN_xefgSwapChainD3D12BuildPipelines;
+typedef decltype(&xefgSwapChainD3D12GetProperties) PFN_xefgSwapChainD3D12GetProperties;
 typedef decltype(&xefgSwapChainD3D12InitFromSwapChain) PFN_xefgSwapChainD3D12InitFromSwapChain;
 typedef decltype(&xefgSwapChainD3D12InitFromSwapChainDesc) PFN_xefgSwapChainD3D12InitFromSwapChainDesc;
 typedef decltype(&xefgSwapChainD3D12GetSwapChainPtr) PFN_xefgSwapChainD3D12GetSwapChainPtr;
 typedef decltype(&xefgSwapChainD3D12TagFrameResource) PFN_xefgSwapChainD3D12TagFrameResource;
 typedef decltype(&xefgSwapChainD3D12SetDescriptorHeap) PFN_xefgSwapChainD3D12SetDescriptorHeap;
+typedef decltype(&xefgSwapChainD3D12UpdateExternalHeapOnResize) PFN_xefgSwapChainD3D12UpdateExternalHeapOnResize;
+typedef decltype(&xefgSwapChainD3D12GetInitializationParameters) PFN_xefgSwapChainD3D12GetInitializationParameters;
 
 // Debug
 typedef decltype(&xefgSwapChainEnableDebugFeature) PFN_xefgSwapChainEnableDebugFeature;
@@ -60,15 +64,21 @@ class XeFGProxy
     inline static PFN_xefgSwapChainSetSceneChangeThreshold _xefgSwapChainSetSceneChangeThreshold = nullptr;
     inline static PFN_xefgSwapChainGetPipelineBuildStatus _xefgSwapChainGetPipelineBuildStatus = nullptr;
     inline static PFN_xefgSwapChainSetNumInterpolatedFrames _xefgSwapChainSetNumInterpolatedFrames = nullptr;
+    inline static PFN_xefgSwapChainSetUiCompositionState _xefgSwapChainSetUiCompositionState = nullptr;
 
     // Dx12
     inline static PFN_xefgSwapChainD3D12CreateContext _xefgSwapChainD3D12CreateContext = nullptr;
     inline static PFN_xefgSwapChainD3D12BuildPipelines _xefgSwapChainD3D12BuildPipelines = nullptr;
+    inline static PFN_xefgSwapChainD3D12GetProperties _xefgSwapChainD3D12GetProperties = nullptr;
     inline static PFN_xefgSwapChainD3D12InitFromSwapChain _xefgSwapChainD3D12InitFromSwapChain = nullptr;
     inline static PFN_xefgSwapChainD3D12InitFromSwapChainDesc _xefgSwapChainD3D12InitFromSwapChainDesc = nullptr;
     inline static PFN_xefgSwapChainD3D12GetSwapChainPtr _xefgSwapChainD3D12GetSwapChainPtr = nullptr;
     inline static PFN_xefgSwapChainD3D12TagFrameResource _xefgSwapChainD3D12TagFrameResource = nullptr;
     inline static PFN_xefgSwapChainD3D12SetDescriptorHeap _xefgSwapChainD3D12SetDescriptorHeap = nullptr;
+    inline static PFN_xefgSwapChainD3D12UpdateExternalHeapOnResize _xefgSwapChainD3D12UpdateExternalHeapOnResize =
+        nullptr;
+    inline static PFN_xefgSwapChainD3D12GetInitializationParameters _xefgSwapChainD3D12GetInitializationParameters =
+        nullptr;
 
     // Debug
     inline static PFN_xefgSwapChainEnableDebugFeature _xefgSwapChainEnableDebugFeature = nullptr;
@@ -231,6 +241,9 @@ class XeFGProxy
                 _xefgSwapChainSetNumInterpolatedFrames =
                     (PFN_xefgSwapChainSetNumInterpolatedFrames) KernelBaseProxy::GetProcAddress_()(
                         _dll, "xefgSwapChainSetNumInterpolatedFrames");
+                _xefgSwapChainSetUiCompositionState =
+                    (PFN_xefgSwapChainSetUiCompositionState) KernelBaseProxy::GetProcAddress_()(
+                        _dll, "xefgSwapChainSetUiCompositionState");
 
                 // Dx12
                 _xefgSwapChainD3D12CreateContext =
@@ -239,6 +252,9 @@ class XeFGProxy
                 _xefgSwapChainD3D12BuildPipelines =
                     (PFN_xefgSwapChainD3D12BuildPipelines) KernelBaseProxy::GetProcAddress_()(
                         _dll, "xefgSwapChainD3D12BuildPipelines");
+                _xefgSwapChainD3D12GetProperties =
+                    (PFN_xefgSwapChainD3D12GetProperties) KernelBaseProxy::GetProcAddress_()(
+                        _dll, "xefgSwapChainD3D12GetProperties");
                 _xefgSwapChainD3D12InitFromSwapChain =
                     (PFN_xefgSwapChainD3D12InitFromSwapChain) KernelBaseProxy::GetProcAddress_()(
                         _dll, "xefgSwapChainD3D12InitFromSwapChain");
@@ -254,6 +270,12 @@ class XeFGProxy
                 _xefgSwapChainD3D12SetDescriptorHeap =
                     (PFN_xefgSwapChainD3D12SetDescriptorHeap) KernelBaseProxy::GetProcAddress_()(
                         _dll, "xefgSwapChainD3D12SetDescriptorHeap");
+                _xefgSwapChainD3D12UpdateExternalHeapOnResize =
+                    (PFN_xefgSwapChainD3D12UpdateExternalHeapOnResize) KernelBaseProxy::GetProcAddress_()(
+                        _dll, "xefgSwapChainD3D12UpdateExternalHeapOnResize");
+                _xefgSwapChainD3D12GetInitializationParameters =
+                    (PFN_xefgSwapChainD3D12GetInitializationParameters) KernelBaseProxy::GetProcAddress_()(
+                        _dll, "xefgSwapChainD3D12GetInitializationParameters");
 
                 // Debug
                 _xefgSwapChainEnableDebugFeature =
@@ -318,10 +340,15 @@ class XeFGProxy
     {
         return _xefgSwapChainSetNumInterpolatedFrames;
     }
+    static PFN_xefgSwapChainSetUiCompositionState SetUiCompositionState()
+    {
+        return _xefgSwapChainSetUiCompositionState;
+    }
 
     // Dx12
     static PFN_xefgSwapChainD3D12CreateContext D3D12CreateContext() { return _xefgSwapChainD3D12CreateContext; }
     static PFN_xefgSwapChainD3D12BuildPipelines D3D12BuildPipelines() { return _xefgSwapChainD3D12BuildPipelines; }
+    static PFN_xefgSwapChainD3D12GetProperties D3D12GetProperties() { return _xefgSwapChainD3D12GetProperties; }
     static PFN_xefgSwapChainD3D12InitFromSwapChain D3D12InitFromSwapChain()
     {
         return _xefgSwapChainD3D12InitFromSwapChain;
@@ -338,6 +365,14 @@ class XeFGProxy
     static PFN_xefgSwapChainD3D12SetDescriptorHeap D3D12SetDescriptorHeap()
     {
         return _xefgSwapChainD3D12SetDescriptorHeap;
+    }
+    static PFN_xefgSwapChainD3D12UpdateExternalHeapOnResize D3D12UpdateExternalHeapOnResize()
+    {
+        return _xefgSwapChainD3D12UpdateExternalHeapOnResize;
+    }
+    static PFN_xefgSwapChainD3D12GetInitializationParameters D3D12GetInitializationParameters()
+    {
+        return _xefgSwapChainD3D12GetInitializationParameters;
     }
 
     // Debug
