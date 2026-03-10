@@ -200,10 +200,12 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
                 if (Config::Instance()->VulkanUpscaler == "dlss")
                 {
                     State::Instance().newBackend = "xess";
+                    ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Falling back to XeSS" });
                 }
                 else
                 {
                     State::Instance().newBackend = "fsr21";
+                    ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Falling back to FSR 2.1" });
                 }
             }
             else

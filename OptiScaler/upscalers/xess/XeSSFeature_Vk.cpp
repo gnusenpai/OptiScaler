@@ -1,6 +1,7 @@
 #include <pch.h>
 #include "XeSSFeature_Vk.h"
 #include <nvsdk_ngx_vk.h>
+#include <imgui/ImGuiNotify.hpp>
 
 static std::string ResultToString(xess_result_t result)
 {
@@ -70,6 +71,8 @@ bool XeSSFeature_Vk::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice
 
     if (!_moduleLoaded)
     {
+        ImGui::InsertNotification(
+            { ImGuiToastType::Warning, 10000, "Couldn't load libxess.dll\nCheck if the dll is present" });
         LOG_ERROR("libxess.dll not loaded!");
         return false;
     }

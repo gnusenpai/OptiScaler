@@ -652,7 +652,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
 
     if (!upscaleResult)
     {
-        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Upscaler failed to run!" });
+        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Upscaler failed to run!" });
     }
 
     if (!upscaleResult && !deviceContext->IsInited() &&

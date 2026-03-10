@@ -200,10 +200,16 @@ bool FeatureProvider_Dx12::ChangeFeature(std::string upscalerName, ID3D12Device*
 
             if (State::Instance().newBackend != "dlssd")
             {
-                if (Config::Instance()->Dx12Upscaler == "dlss")
+                if (Config::Instance()->VulkanUpscaler == "dlss")
+                {
                     State::Instance().newBackend = "xess";
+                    ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Falling back to XeSS" });
+                }
                 else
+                {
                     State::Instance().newBackend = "fsr21";
+                    ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Falling back to FSR 2.1" });
+                }
             }
             else
             {

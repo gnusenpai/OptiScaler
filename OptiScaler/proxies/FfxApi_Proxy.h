@@ -33,6 +33,7 @@
 #define FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING_VK
 
 #include <vk/ffx_api_vk.h>
+#include <imgui/ImGuiNotify.hpp>
 
 #undef FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_WAITCALLBACK
 #undef FFX_API_CONFIGURE_FG_SWAPCHAIN_KEY_FRAMEPACINGTUNING
@@ -112,8 +113,27 @@ class FfxApiProxy
     static HMODULE Dx12Module_SR() { return upscaling_dx12.dll; }
     static HMODULE Dx12Module_FG() { return fg_dx12.dll; }
 
-    static bool IsFGReady() { return (main_dx12.dll && !main_dx12.isLoader) || fg_dx12.dll != nullptr; }
-    static bool IsSRReady() { return (main_dx12.dll && !main_dx12.isLoader) || upscaling_dx12.dll != nullptr; }
+    static bool IsFGReady()
+    {
+        bool result = (main_dx12.dll && !main_dx12.isLoader) || fg_dx12.dll != nullptr;
+
+        if (!result)
+            ImGui::InsertNotification({ ImGuiToastType::Error, 10000,
+                                        "Can't load amd_fidelityfx_dx12\nDid you forget to extract that dll?" });
+
+        return result;
+    }
+
+    static bool IsSRReady()
+    {
+        bool result = (main_dx12.dll && !main_dx12.isLoader) || upscaling_dx12.dll != nullptr;
+
+        if (!result)
+            ImGui::InsertNotification({ ImGuiToastType::Error, 10000,
+                                        "Can't load amd_fidelityfx_dx12\nDid you forget to extract that dll?" });
+
+        return result;
+    }
 
     static FFXStructType GetType(ffxStructType_t type)
     {

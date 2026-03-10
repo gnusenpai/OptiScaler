@@ -916,7 +916,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
     auto upscaleResult = deviceContext->Evaluate(InCmdList, InParameters);
 
     if (!upscaleResult)
-        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Upscaler failed to run!" });
+        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Upscaler failed to run!" });
 
     if ((!upscaleResult || !deviceContext->IsInited()) &&
         Config::Instance()->VulkanUpscaler.value_or_default() != "fsr22")

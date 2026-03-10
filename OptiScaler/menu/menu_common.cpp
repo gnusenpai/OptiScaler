@@ -1390,13 +1390,13 @@ static void MenuSizeCheck(ImGuiIO io)
     {
         if (!Config::Instance()->MenuScale.has_value())
         {
-            float y = State::Instance().screenHeight;
+            float screenHeight = State::Instance().screenHeight;
 
             if (io.DisplaySize.y != 0)
-                y = (float) io.DisplaySize.y;
+                screenHeight = io.DisplaySize.y;
 
             // 1000p is minimum for 1.0 menu ratio
-            Config::Instance()->MenuScale = (float) ((int) (y / 100.0f)) / 10.0f;
+            Config::Instance()->MenuScale = (float) ((int) (screenHeight / 100.0f)) / 10.0f;
 
             if (Config::Instance()->MenuScale.value() > 1.0f || Config::Instance()->MenuScale.value() <= 0.0f)
                 Config::Instance()->MenuScale.value() = 1.0f;
@@ -1776,11 +1776,19 @@ bool MenuCommon::RenderMenu()
                            (!Config::Instance()->OverlayMenu.value_or_default() &&
                             State::Instance().currentFeature != nullptr && State::Instance().currentFeature->IsHdr());
 
-    float notificationScale = 2.0f;
+    float screenHeight = State::Instance().screenHeight;
+    if (io.DisplaySize.y != 0)
+        screenHeight = io.DisplaySize.y;
+
+    // Map resolution height to scale, 0.5 for 480p, 2.0 for 1440p
+    constexpr float slope = (2.0f - 0.5f) / (1440.f - 480.f);
+    float notificationScale = 0.5f + slope * (screenHeight - 480.f);
+    notificationScale = std::clamp(notificationScale, 0.5f, 2.0f);
+
     if (config->UseHQFont.value_or_default())
         ImGui::PushFontSize(std::round(notificationScale * fontSize));
-    else
-        ImGui::SetWindowFontScale(notificationScale);
+
+    // No fallback font, SetWindowFontScale needs to be called after Begin()
 
     ImGui::RenderNotifications(ImGuiToastPos::TopCenter, notificationScale, tonemapRequired);
 
@@ -4408,10 +4416,12 @@ bool MenuCommon::RenderMenu()
                     }
 
                     if (ImGui::Button("S"))
-                        ImGui::InsertNotification({ ImGuiToastType::Success, 10000, "Test Success Test Success Test Success Test Success" });
+                        ImGui::InsertNotification(
+                            { ImGuiToastType::Success, 10000, "Test Success Test Success Test Success Test Success" });
                     ImGui::SameLine(0.0f, 16.0f);
                     if (ImGui::Button("W"))
-                        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Test warning Test warning Test warning" });
+                        ImGui::InsertNotification(
+                            { ImGuiToastType::Warning, 10000, "Test warning Test warning Test warning" });
                     ImGui::SameLine(0.0f, 16.0f);
                     if (ImGui::Button("E"))
                         ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Test error Test error" });

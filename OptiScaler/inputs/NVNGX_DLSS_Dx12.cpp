@@ -799,6 +799,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     if (!deviceContext->feature->IsInited() && Config::Instance()->Dx12Upscaler.value_or_default() != "fsr21")
     {
         LOG_WARN("InCmdList {0} is not inited, falling back to FSR 2.1.2", deviceContext->feature->Name());
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
         State::Instance().newBackend = "fsr21";
         State::Instance().changeBackend[handleId] = true;
         return NVSDK_NGX_Result_Success;
@@ -842,7 +843,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     }
     else
     {
-        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Upscaler failed to run!" });
+        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Upscaler failed to run!" });
     }
 
     // Root signature restore

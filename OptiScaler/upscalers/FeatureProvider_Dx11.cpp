@@ -199,6 +199,7 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
             {
                 State::Instance().newBackend = "fsr22";
                 State::Instance().changeBackend[handleId] = true;
+                ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Falling back to FSR 2.2" });
             }
             else
             {
