@@ -371,6 +371,25 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
         return false;
     }
 
+    if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() > State::Instance().xefgMaxInterpolationCount)
+    {
+        Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
+        LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
+                 State::Instance().xefgMaxInterpolationCount);
+    }
+
+    auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
+        _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+
+    if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+    {
+        LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
+    }
+    else
+    {
+        _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
+    }
+
     _gameCommandQueue = realQueue;
     _swapChain = *swapChain;
     _hwnd = hwnd;
@@ -502,6 +521,25 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     {
         LOG_ERROR("D3D12GetSwapChainPtr error: {} ({})", magic_enum::enum_name(result), (UINT) result);
         return false;
+    }
+
+    if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() > State::Instance().xefgMaxInterpolationCount)
+    {
+        Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
+        LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
+                 State::Instance().xefgMaxInterpolationCount);
+    }
+
+    auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
+        _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+
+    if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+    {
+        LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
+    }
+    else
+    {
+        _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
     }
 
     _gameCommandQueue = realQueue;
