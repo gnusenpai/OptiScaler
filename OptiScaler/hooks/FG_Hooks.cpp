@@ -18,6 +18,10 @@
 
 #include <d3d12.h>
 
+inline static ID3D12Fence* resizeFence = nullptr;
+inline static UINT64 resizeFenceValue = 0;
+inline static HANDLE resizeFenceEvent = nullptr;
+
 static bool CheckForFGStatus()
 {
     // Need to check overlay menu parameter, goes to places it shouldn't go
@@ -86,13 +90,6 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
                 new XeFG_Dx12(Config::Instance()->FGXeFGInterpolationCount.value_or_default());
         }
     }
-    // else
-    //{
-    //     // Release swapchain if FG Feaeture is FSR-FG
-    //     // Because it can't recreate swapchain on exsiting one
-    //     if (State::Instance().activeFgOutput == FGOutput::FSRFG)
-    //         State::Instance().currentFG->ReleaseSwapchain(pDesc->OutputWindow);
-    // }
 
     // Create FG swapchain
     auto fg = State::Instance().currentFG;
@@ -127,6 +124,24 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
     if (scResult)
     {
+        if (State::Instance().currentD3D12Device != nullptr)
+        {
+            if (resizeFence != nullptr)
+            {
+                resizeFence->Release();
+                resizeFence = nullptr;
+            }
+
+            if (resizeFenceEvent != nullptr)
+            {
+                CloseHandle(resizeFenceEvent);
+                resizeFenceEvent = nullptr;
+            }
+
+            State::Instance().currentD3D12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&resizeFence));
+            resizeFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        }
+
         _hwnd = pDesc->OutputWindow;
         State::Instance().currentFGSwapchain = *ppSwapChain;
 
@@ -173,13 +188,6 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
                 new XeFG_Dx12(Config::Instance()->FGXeFGInterpolationCount.value_or_default());
         }
     }
-    // else
-    //{
-    //     // Release swapchain if FG Feaeture is FSR-FG
-    //     // Because it can't recreate swapchain on exsiting one
-    //     if (State::Instance().activeFgOutput == FGOutput::FSRFG)
-    //         State::Instance().currentFG->ReleaseSwapchain(hWnd);
-    // }
 
     // Create FG swapchain
     auto fg = State::Instance().currentFG;
@@ -214,6 +222,24 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
 
     if (scResult)
     {
+        if (State::Instance().currentD3D12Device != nullptr)
+        {
+            if (resizeFence != nullptr)
+            {
+                resizeFence->Release();
+                resizeFence = nullptr;
+            }
+
+            if (resizeFenceEvent != nullptr)
+            {
+                CloseHandle(resizeFenceEvent);
+                resizeFenceEvent = nullptr;
+            }
+
+            State::Instance().currentD3D12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&resizeFence));
+            resizeFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        }
+
         _hwnd = hWnd;
         State::Instance().currentFGSwapchain = *ppSwapChain;
 
@@ -396,6 +422,22 @@ HRESULT FGHooks::hkGetFullscreenState(IDXGISwapChain* This, BOOL* pFullscreen, I
 HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat,
                                  UINT SwapChainFlags)
 {
+    if (State::Instance().currentCommandQueue != nullptr && resizeFence != nullptr && resizeFenceEvent != nullptr)
+    {
+        LOG_DEBUG("Waiting for GPU to finish before resizing buffers");
+
+        resizeFenceValue++;
+        State::Instance().currentCommandQueue->Signal(resizeFence, resizeFenceValue);
+
+        if (resizeFence->GetCompletedValue() < resizeFenceValue)
+        {
+            resizeFence->SetEventOnCompletion(resizeFenceValue, resizeFenceEvent);
+            // Max 5 sec
+            auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
+            LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
+        }
+    }
+
     // Skip XeFG's internal call
     if (_skipResize)
     {
@@ -403,13 +445,6 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         _skipResize = false;
 
         IDXGISwapChain* sc = nullptr;
-
-        // if (State::Instance().currentWrappedSwapchain != nullptr)
-        //     sc = State::Instance().currentWrappedSwapchain;
-        // else if (State::Instance().currentSwapchain != nullptr)
-        //     sc = State::Instance().currentSwapchain;
-        // else if (State::Instance().currentRealSwapchain != nullptr)
-        //     sc = State::Instance().currentRealSwapchain;
 
         if (sc != nullptr)
         {
@@ -591,6 +626,22 @@ HRESULT FGHooks::hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTarget
 HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
                                   UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
+    if (State::Instance().currentCommandQueue != nullptr && resizeFence != nullptr && resizeFenceEvent != nullptr)
+    {
+        LOG_DEBUG("Waiting for GPU to finish before resizing buffers");
+
+        resizeFenceValue++;
+        State::Instance().currentCommandQueue->Signal(resizeFence, resizeFenceValue);
+
+        if (resizeFence->GetCompletedValue() < resizeFenceValue)
+        {
+            resizeFence->SetEventOnCompletion(resizeFenceValue, resizeFenceEvent);
+            // Max 5 sec
+            auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
+            LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
+        }
+    }
+
     // Skip XeFG's internal call
     if (_skipResize1)
     {
@@ -598,13 +649,6 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
         _skipResize1 = false;
 
         IDXGISwapChain3* sc = nullptr;
-
-        // if (State::Instance().currentWrappedSwapchain != nullptr)
-        //     sc = (IDXGISwapChain3*) State::Instance().currentWrappedSwapchain;
-        // else if (State::Instance().currentSwapchain != nullptr)
-        //     sc = (IDXGISwapChain3*) State::Instance().currentSwapchain;
-        // else if (State::Instance().currentRealSwapchain != nullptr)
-        //     sc = (IDXGISwapChain3*) State::Instance().currentRealSwapchain;
 
         if (sc != nullptr)
         {
@@ -775,13 +819,6 @@ HRESULT FGHooks::hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 
         IDXGISwapChain* sc = nullptr;
 
-        // if (State::Instance().currentWrappedSwapchain != nullptr)
-        //     sc = State::Instance().currentWrappedSwapchain;
-        // else if (State::Instance().currentSwapchain != nullptr)
-        //     sc = State::Instance().currentSwapchain;
-        // else if (State::Instance().currentRealSwapchain != nullptr)
-        //     sc = State::Instance().currentRealSwapchain;
-
         HRESULT result;
 
         if (sc != nullptr)
@@ -816,13 +853,6 @@ HRESULT FGHooks::hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
         LOG_DEBUG("XeFG call skipping");
 
         IDXGISwapChain3* sc = nullptr;
-
-        // if (State::Instance().currentWrappedSwapchain != nullptr)
-        //     sc = (IDXGISwapChain3*) State::Instance().currentWrappedSwapchain;
-        // else if (State::Instance().currentSwapchain != nullptr)
-        //     sc = (IDXGISwapChain3*) State::Instance().currentSwapchain;
-        // else if (State::Instance().currentRealSwapchain != nullptr)
-        //     sc = (IDXGISwapChain3*) State::Instance().currentRealSwapchain;
 
         HRESULT result;
 
@@ -983,6 +1013,23 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
     {
         if (o_FGRelease(This) == 1)
         {
+            if (State::Instance().currentCommandQueue != nullptr && resizeFence != nullptr &&
+                resizeFenceEvent != nullptr)
+            {
+                LOG_DEBUG("Waiting for GPU to finish before resizing buffers");
+
+                resizeFenceValue++;
+                State::Instance().currentCommandQueue->Signal(resizeFence, resizeFenceValue);
+
+                if (resizeFence->GetCompletedValue() < resizeFenceValue)
+                {
+                    resizeFence->SetEventOnCompletion(resizeFenceValue, resizeFenceEvent);
+                    // Max 5 sec
+                    auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
+                    LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
+                }
+            }
+
             // To prevent deadlock when FG release the swapchain
             skipReleaseChecks = true;
 
