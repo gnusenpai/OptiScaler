@@ -114,7 +114,7 @@ class MenuCommon
 
     // ui scale
     inline static int _selectedScale = 5;
-    inline static bool _imguiSizeUpdate = true;
+    inline static bool _mainWindowSizeUpdate = true;
 
     // overlay states
     inline static bool _dx11Ready = false;

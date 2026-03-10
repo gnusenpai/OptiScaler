@@ -1806,6 +1806,15 @@ bool MenuCommon::RenderMenu()
     // If Fps overlay is visible
     if (config->ShowFps.value_or_default())
     {
+        // Rescale the fps overlay every frame because it shares style with the main menu
+        if (config->FpsScale.has_value() && config->FpsScale.value() != config->MenuScale.value_or_default())
+        {
+            ImGuiStyle& style = ImGui::GetStyle();
+            ImGuiStyle styleold = style;
+            style = ImGuiStyle();
+            style.ScaleAllSizes(fpsScale);
+        }
+
         // Set overlay position
         ImGui::SetNextWindowPos(overlayPosition, ImGuiCond_Always);
 
@@ -1819,9 +1828,6 @@ bool MenuCommon::RenderMenu()
             ImGui::PushStyleColor(ImGuiCol_PlotLines, toneMapColor(green)); // Tone Map plot line color
         else
             ImGui::PushStyleColor(ImGuiCol_PlotLines, green);
-
-        auto size = ImVec2 { 0.0f, 0.0f };
-        ImGui::SetNextWindowSize(size);
 
         if (ImGui::Begin("Performance Overlay", nullptr,
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration |
@@ -2152,10 +2158,10 @@ bool MenuCommon::RenderMenu()
         flags |= ImGuiWindowFlags_AlwaysAutoResize;
 
         // if UI scale is changed rescale the style
-        if (_imguiSizeUpdate || config->FpsScale.has_value())
+        // FpsScale changes style every frame so this need to revert it for the main menu
+        if (_mainWindowSizeUpdate ||
+            (config->FpsScale.has_value() && config->FpsScale.value() != config->MenuScale.value_or_default()))
         {
-            _imguiSizeUpdate = false;
-
             ImGuiStyle& style = ImGui::GetStyle();
             ImGuiStyle styleold = style; // Backup colors
             style = ImGuiStyle();        // IMPORTANT: ScaleAllSizes will change the original size,
@@ -2176,10 +2182,13 @@ bool MenuCommon::RenderMenu()
             style.ScaleAllSizes(config->MenuScale.value_or_default());
             style.MouseCursorScale = 1.0f;
             CopyMemory(style.Colors, styleold.Colors, sizeof(style.Colors)); // Restore colors
-        }
 
-        auto size = ImVec2 { 0.0f, 0.0f };
-        ImGui::SetNextWindowSize(size);
+            if (_mainWindowSizeUpdate)
+            {
+                ImGui::SetNextWindowSize({ 1.0f, 1.0f });
+                _mainWindowSizeUpdate = false;
+            }
+        }
 
         // Main menu window
         if (windowTitle.empty())
@@ -5503,12 +5512,11 @@ bool MenuCommon::RenderMenu()
                             config->MenuScale = 0.5f + (float) n / 10.0f;
 
                             ImGuiStyle& style = ImGui::GetStyle();
-                            style.ScaleAllSizes(config->MenuScale.value());
 
                             if (config->MenuScale.value() < 1.0f)
                                 style.MouseCursorScale = 1.0f;
 
-                            _imguiSizeUpdate = true;
+                            _mainWindowSizeUpdate = true;
                         }
                     }
 
@@ -5873,7 +5881,7 @@ void MenuCommon::Init(HWND InHwnd, bool isUWP)
 
     if (!Config::Instance()->OverlayMenu.value_or_default())
     {
-        _imguiSizeUpdate = true;
+        _mainWindowSizeUpdate = true;
         _hdrTonemapApplied = false;
     }
 
