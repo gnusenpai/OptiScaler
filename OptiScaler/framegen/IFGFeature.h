@@ -69,7 +69,7 @@ class IFGFeature
     std::optional<UINT> _interpolationTop[BUFFER_COUNT];
     UINT _reset[BUFFER_COUNT] = {};
 
-    UINT64 _frameCount = 1;
+    UINT64 _frameCount = 0;
     UINT64 _lastDispatchedFrame = 0;
     UINT64 _lastFGFrame = 0;
     bool _waitingNewFrameData = false;
@@ -133,6 +133,7 @@ class IFGFeature
     bool IsInvertedDepth();
     bool IsInfiniteDepth();
 
+    void SetFrameCount(UINT64 frameId);
     void SetJitter(float x, float y, int index = -1);
     void SetMVScale(float x, float y, int index = -1);
     void SetCameraValues(float nearValue, float farValue, float vFov, float aspectRatio, float meterFactor = 0.0f,

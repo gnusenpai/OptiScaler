@@ -177,6 +177,17 @@ bool IFGFeature::IsInvertedDepth() { return _constants.flags[FG_Flags::InvertedD
 
 bool IFGFeature::IsInfiniteDepth() { return _constants.flags[FG_Flags::InfiniteDepth]; }
 
+void IFGFeature::SetFrameCount(UINT64 frameId)
+{
+    // Only increment frame count, if it's higher than current one
+    // Also take allowed frame ahead into account to prevent wrong frame count
+    if (frameId > _frameCount && (frameId - _frameCount) > Config::Instance()->FGAllowedFrameAhead.value_or_default())
+    {
+        LOG_DEBUG("Old: {}, New: {}", _frameCount, frameId);
+        _frameCount = frameId;
+    }
+}
+
 void IFGFeature::SetJitter(float x, float y, int index)
 {
     if (index < 0)

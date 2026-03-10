@@ -436,4 +436,7 @@ void Sl_Inputs_Dx12::markPresent(uint64_t frameId)
     LOG_TRACE("frameId: {}", frameId);
     _isFrameFinished = true;
     _lastFrameId = static_cast<uint32_t>(frameId);
+
+    if (State::Instance().currentFG != nullptr)
+        State::Instance().currentFG->SetFrameCount(frameId);
 }

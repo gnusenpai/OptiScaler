@@ -82,11 +82,9 @@ static PFN_ffxFsr3ConfigureFrameGeneration o_ffxFsr3ConfigureFrameGeneration = n
 
 static ID3D12Device* _device = nullptr;
 static FG_Constants _fgConst {};
-static UINT64 _currentFrameId = 0;
 
 static Fsr3::FfxPresentCallbackFunc _presentCallback = nullptr;
 static Fsr3::FfxFrameGenerationDispatchFunc _fgCallback = nullptr;
-static UINT64 _presentCallbackFrameId = 0;
 
 static std::mutex _newFrameMutex;
 

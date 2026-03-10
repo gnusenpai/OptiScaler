@@ -466,6 +466,7 @@ ffxReturnCode_t ffxConfigure_Dx12FG(ffxContext* context, ffxConfigureDescHeader*
         auto cDesc = (ffxConfigureDescFrameGeneration*) desc;
 
         CheckForFrame(fg, cDesc->frameID);
+        fg->SetFrameCount(cDesc->frameID);
 
         auto fIndex = IndexForFrameId(cDesc->frameID);
         if (fIndex < 0)
