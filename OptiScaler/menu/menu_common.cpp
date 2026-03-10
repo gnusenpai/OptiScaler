@@ -17,6 +17,7 @@
 #include <version_check.h>
 
 #include <imgui/imgui_internal.h>
+#include <imgui/ImGuiNotify.hpp>
 
 #include <mutex>
 #include <cstdarg>
@@ -1770,6 +1771,22 @@ bool MenuCommon::RenderMenu()
         }
     }
 
+    // Notifications
+    bool tonemapRequired = State::Instance().isHdrActive ||
+                           (!Config::Instance()->OverlayMenu.value_or_default() &&
+                            State::Instance().currentFeature != nullptr && State::Instance().currentFeature->IsHdr());
+
+    float notificationScale = 2.0f;
+    if (config->UseHQFont.value_or_default())
+        ImGui::PushFontSize(std::round(notificationScale * fontSize));
+    else
+        ImGui::SetWindowFontScale(notificationScale);
+
+    ImGui::RenderNotifications(ImGuiToastPos::TopCenter, notificationScale, tonemapRequired);
+
+    if (config->UseHQFont.value_or_default())
+        ImGui::PopFontSize();
+
     // FPS Overlay font
     auto fpsScale = config->FpsScale.value_or(config->MenuScale.value_or_default());
 
@@ -1808,7 +1825,7 @@ bool MenuCommon::RenderMenu()
     {
         bool stylePushed = false;
 
-        static auto defaultStyle = ImGuiStyle();
+        const static auto defaultStyle = ImGuiStyle();
 
         // Rescale the fps overlay every frame because it shares style with the main menu
         if (config->FpsScale.has_value() && config->FpsScale.value() != config->MenuScale.value_or_default())
@@ -4389,6 +4406,18 @@ bool MenuCommon::RenderMenu()
                         _limitFps = 0.0f;
                         config->FramerateLimit = _limitFps;
                     }
+
+                    if (ImGui::Button("S"))
+                        ImGui::InsertNotification({ ImGuiToastType::Success, 10000, "Test Success Test Success Test Success Test Success" });
+                    ImGui::SameLine(0.0f, 16.0f);
+                    if (ImGui::Button("W"))
+                        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Test warning Test warning Test warning" });
+                    ImGui::SameLine(0.0f, 16.0f);
+                    if (ImGui::Button("E"))
+                        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Test error Test error" });
+                    ImGui::SameLine(0.0f, 16.0f);
+                    if (ImGui::Button("I"))
+                        ImGui::InsertNotification({ ImGuiToastType::Info, 10000, "Test info" });
 
                     ImGui::Spacing();
                     if (auto ch = ScopedCollapsingHeader("VRR Frame Cap Calculator"); ch.IsHeaderOpen())

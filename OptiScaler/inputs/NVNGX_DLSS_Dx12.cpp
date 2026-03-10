@@ -14,6 +14,7 @@
 #include "FG/Upscaler_Inputs_Dx12.h"
 
 #include <upscaler_time/UpscalerTime_Dx12.h>
+#include <imgui/ImGuiNotify.hpp>
 
 #include <hooks/D3D12_Hooks.h>
 
@@ -838,6 +839,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
 
         // FG Dispatch
         UpscalerInputsDx12::UpscaleEnd(InCmdList, InParameters, deviceContext->feature.get());
+    }
+    else
+    {
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Upscaler failed to run!" });
     }
 
     // Root signature restore
