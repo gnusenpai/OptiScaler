@@ -23,6 +23,7 @@ typedef decltype(&xellSleep) PFN_xellSleep;
 typedef decltype(&xellAddMarkerData) PFN_xellAddMarkerData;
 typedef decltype(&xellGetVersion) PFN_xellGetVersion;
 typedef decltype(&xellSetLoggingCallback) PFN_xellSetLoggingCallback;
+typedef decltype(&xellGetFramesReports) PFN_xellGetFramesReports;
 
 // Dx12
 typedef decltype(&xellD3D12CreateContext) PFN_xellD3D12CreateContext;
@@ -66,6 +67,7 @@ class XeLLProxy
     inline static PFN_xellAddMarkerData _xellAddMarkerData = nullptr;
     inline static PFN_xellGetVersion _xellGetVersion = nullptr;
     inline static PFN_xellSetLoggingCallback _xellSetLoggingCallback = nullptr;
+    inline static PFN_xellGetFramesReports _xellGetFramesReports = nullptr;
 
     // Dx12
     inline static PFN_xellD3D12CreateContext _xellD3D12CreateContext = nullptr;
@@ -208,6 +210,8 @@ class XeLLProxy
                 _xellGetVersion = (PFN_xellGetVersion) KernelBaseProxy::GetProcAddress_()(_dll, "xellGetVersion");
                 _xellSetLoggingCallback =
                     (PFN_xellSetLoggingCallback) KernelBaseProxy::GetProcAddress_()(_dll, "xellSetLoggingCallback");
+                _xellGetFramesReports =
+                    (PFN_xellGetFramesReports) KernelBaseProxy::GetProcAddress_()(_dll, "xellGetFramesReports");
 
                 _xellD3D12CreateContext =
                     (PFN_xellD3D12CreateContext) KernelBaseProxy::GetProcAddress_()(_dll, "xellD3D12CreateContext");
@@ -247,6 +251,7 @@ class XeLLProxy
     static PFN_xellAddMarkerData AddMarkerData() { return _xellAddMarkerData; }
     static PFN_xellGetVersion GetVersion() { return _xellGetVersion; }
     static PFN_xellSetLoggingCallback SetLoggingCallback() { return _xellSetLoggingCallback; }
+    static PFN_xellGetFramesReports GetFramesReports() { return _xellGetFramesReports; }
 
     static PFN_xellD3D12CreateContext D3D12CreateContext() { return _xellD3D12CreateContext; }
 
