@@ -307,8 +307,11 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
 
     xefg_swapchain_d3d12_init_params_t params {};
 
-    int intTarget =
-        Config::Instance()->FGXeFGMaxInterpolationCount.value_or(State::Instance().xefgMaxInterpolationCount);
+    int intTarget = State::Instance().xefgMaxInterpolationCount;
+
+    // For old libxess_fg versions we use max to control interpolation count
+    if (XeFGProxy::SetNumInterpolatedFrames() == nullptr)
+        intTarget = Config::Instance()->FGXeFGInterpolationCount.value_or(State::Instance().xefgMaxInterpolationCount);
 
     if (intTarget < 1 || intTarget > State::Instance().xefgMaxInterpolationCount)
     {
@@ -371,8 +374,11 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
         return false;
     }
 
-    if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() > State::Instance().xefgMaxInterpolationCount)
+    if (XeFGProxy::SetNumInterpolatedFrames() != nullptr)
     {
+        if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() >
+            State::Instance().xefgMaxInterpolationCount)
+        {
         Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
         LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
                  State::Instance().xefgMaxInterpolationCount);
@@ -455,8 +461,11 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
 
     xefg_swapchain_d3d12_init_params_t params {};
 
-    int intTarget =
-        Config::Instance()->FGXeFGMaxInterpolationCount.value_or(State::Instance().xefgMaxInterpolationCount);
+    int intTarget = State::Instance().xefgMaxInterpolationCount;
+
+    // For old libxess_fg versions we use max to control interpolation count
+    if (XeFGProxy::SetNumInterpolatedFrames() == nullptr)
+        intTarget = Config::Instance()->FGXeFGInterpolationCount.value_or(State::Instance().xefgMaxInterpolationCount);
 
     if (intTarget < 1 || intTarget > State::Instance().xefgMaxInterpolationCount)
     {
@@ -523,8 +532,11 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
         return false;
     }
 
-    if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() > State::Instance().xefgMaxInterpolationCount)
+    if (XeFGProxy::SetNumInterpolatedFrames() != nullptr)
     {
+        if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() >
+            State::Instance().xefgMaxInterpolationCount)
+        {
         Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
         LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
                  State::Instance().xefgMaxInterpolationCount);
@@ -540,6 +552,7 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     else
     {
         _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
+    }
     }
 
     _gameCommandQueue = realQueue;
@@ -683,7 +696,10 @@ bool XeFG_Dx12::Dispatch()
         return false;
     }
 
-    if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() > State::Instance().xefgMaxInterpolationCount)
+    if (XeFGProxy::SetNumInterpolatedFrames() != nullptr)
+    {
+        if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() >
+            State::Instance().xefgMaxInterpolationCount)
     {
         Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
         LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
@@ -700,12 +716,14 @@ bool XeFG_Dx12::Dispatch()
 
         if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
         {
-            LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
+                LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult),
+                          (UINT) intResult);
         }
         else
         {
             _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
         }
+    }
     }
 
     auto& state = State::Instance();
