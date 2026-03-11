@@ -422,22 +422,6 @@ HRESULT FGHooks::hkGetFullscreenState(IDXGISwapChain* This, BOOL* pFullscreen, I
 HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat,
                                  UINT SwapChainFlags)
 {
-    if (State::Instance().currentCommandQueue != nullptr && resizeFence != nullptr && resizeFenceEvent != nullptr)
-    {
-        LOG_DEBUG("Waiting for GPU to finish before resizing buffers");
-
-        resizeFenceValue++;
-        State::Instance().currentCommandQueue->Signal(resizeFence, resizeFenceValue);
-
-        if (resizeFence->GetCompletedValue() < resizeFenceValue)
-        {
-            resizeFence->SetEventOnCompletion(resizeFenceValue, resizeFenceEvent);
-            // Max 5 sec
-            auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
-            LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
-        }
-    }
-
     // Skip XeFG's internal call
     if (_skipResize)
     {
@@ -454,6 +438,22 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         }
 
         return o_FGSCResizeBuffers(This, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+    }
+
+    if (State::Instance().currentCommandQueue != nullptr && resizeFence != nullptr && resizeFenceEvent != nullptr)
+    {
+        LOG_DEBUG("Waiting for GPU to finish before resizing buffers");
+
+        resizeFenceValue++;
+        State::Instance().currentCommandQueue->Signal(resizeFence, resizeFenceValue);
+
+        if (resizeFence->GetCompletedValue() < resizeFenceValue)
+        {
+            resizeFence->SetEventOnCompletion(resizeFenceValue, resizeFenceEvent);
+            // Max 5 sec
+            auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
+            LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
+        }
     }
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
@@ -626,22 +626,6 @@ HRESULT FGHooks::hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTarget
 HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
                                   UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
-    if (State::Instance().currentCommandQueue != nullptr && resizeFence != nullptr && resizeFenceEvent != nullptr)
-    {
-        LOG_DEBUG("Waiting for GPU to finish before resizing buffers");
-
-        resizeFenceValue++;
-        State::Instance().currentCommandQueue->Signal(resizeFence, resizeFenceValue);
-
-        if (resizeFence->GetCompletedValue() < resizeFenceValue)
-        {
-            resizeFence->SetEventOnCompletion(resizeFenceValue, resizeFenceEvent);
-            // Max 5 sec
-            auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
-            LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
-        }
-    }
-
     // Skip XeFG's internal call
     if (_skipResize1)
     {
@@ -661,6 +645,22 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
 
         return o_FGSCResizeBuffers1(This, BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask,
                                     ppPresentQueue);
+    }
+
+    if (State::Instance().currentCommandQueue != nullptr && resizeFence != nullptr && resizeFenceEvent != nullptr)
+    {
+        LOG_DEBUG("Waiting for GPU to finish before resizing buffers");
+
+        resizeFenceValue++;
+        State::Instance().currentCommandQueue->Signal(resizeFence, resizeFenceValue);
+
+        if (resizeFence->GetCompletedValue() < resizeFenceValue)
+        {
+            resizeFence->SetEventOnCompletion(resizeFenceValue, resizeFenceEvent);
+            // Max 5 sec
+            auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
+            LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
+        }
     }
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG)

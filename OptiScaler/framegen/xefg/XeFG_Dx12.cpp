@@ -216,7 +216,8 @@ xefg_swapchain_d3d12_resource_data_t XeFG_Dx12::GetResourceData(FG_ResourceType 
 bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, DXGI_SWAP_CHAIN_DESC* desc,
                                 IDXGISwapChain** swapChain)
 {
-    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == desc->OutputWindow)
+    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == desc->OutputWindow &&
+        Config::Instance()->FGPreserveSwapChain.value_or_default())
     {
 
         LOG_WARN("FG swapchain already created for the same output window!");
@@ -379,21 +380,22 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
         if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() >
             State::Instance().xefgMaxInterpolationCount)
         {
-        Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
-        LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
-                 State::Instance().xefgMaxInterpolationCount);
-    }
+            Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
+            LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
+                     State::Instance().xefgMaxInterpolationCount);
+        }
 
-    auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
-        _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+        auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
+            _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
 
-    if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
-    {
-        LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
-    }
-    else
-    {
-        _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
+        if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+        {
+            LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
+        }
+        else
+        {
+            _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
+        }
     }
 
     _gameCommandQueue = realQueue;
@@ -407,7 +409,8 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
                                  DXGI_SWAP_CHAIN_DESC1* desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
                                  IDXGISwapChain1** swapChain)
 {
-    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == hwnd)
+    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == hwnd &&
+        Config::Instance()->FGPreserveSwapChain.value_or_default())
     {
 
         LOG_WARN("FG swapchain already created for the same output window!");
@@ -537,22 +540,22 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
         if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() >
             State::Instance().xefgMaxInterpolationCount)
         {
-        Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
-        LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
-                 State::Instance().xefgMaxInterpolationCount);
-    }
+            Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
+            LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
+                     State::Instance().xefgMaxInterpolationCount);
+        }
 
-    auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
-        _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+        auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
+            _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
 
-    if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
-    {
-        LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
-    }
-    else
-    {
-        _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
-    }
+        if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+        {
+            LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult), (UINT) intResult);
+        }
+        else
+        {
+            _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
+        }
     }
 
     _gameCommandQueue = realQueue;
@@ -700,30 +703,30 @@ bool XeFG_Dx12::Dispatch()
     {
         if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() >
             State::Instance().xefgMaxInterpolationCount)
-    {
-        Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
-        LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
-                 State::Instance().xefgMaxInterpolationCount);
-    }
-
-    if (_framesToInterpolate != Config::Instance()->FGXeFGInterpolationCount.value_or_default())
-    {
-        LOG_INFO("Interpolation count changed {} -> {}", _framesToInterpolate,
-                 Config::Instance()->FGXeFGInterpolationCount.value_or_default());
-
-        auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
-            _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
-
-        if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
         {
+            Config::Instance()->FGXeFGInterpolationCount = State::Instance().xefgMaxInterpolationCount;
+            LOG_WARN("Requested interpolation count is higher than max supported, setting to max: {}",
+                     State::Instance().xefgMaxInterpolationCount);
+        }
+
+        if (_framesToInterpolate != Config::Instance()->FGXeFGInterpolationCount.value_or_default())
+        {
+            LOG_INFO("Interpolation count changed {} -> {}", _framesToInterpolate,
+                     Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+
+            auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
+                _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+
+            if (intResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+            {
                 LOG_ERROR("SetNumInterpolatedFrames error: {} ({})", magic_enum::enum_name(intResult),
                           (UINT) intResult);
+            }
+            else
+            {
+                _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
+            }
         }
-        else
-        {
-            _framesToInterpolate = Config::Instance()->FGXeFGInterpolationCount.value_or_default();
-        }
-    }
     }
 
     auto& state = State::Instance();
@@ -1495,6 +1498,12 @@ bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
 
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
     {
+        if (Mutex.getOwner() == 1)
+        {
+            LOG_WARN("Skipping Mutex we are already in ReleaseSwapchain");
+            return true;
+        }
+
         LOG_TRACE("Waiting Mutex 1, current: {}", Mutex.getOwner());
         Mutex.lock(1);
         LOG_TRACE("Accuired Mutex: {}", Mutex.getOwner());

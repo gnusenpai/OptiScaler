@@ -703,7 +703,8 @@ bool FSRFG_Dx12::Shutdown()
 bool FSRFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, DXGI_SWAP_CHAIN_DESC* desc,
                                  IDXGISwapChain** swapChain)
 {
-    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == desc->OutputWindow)
+    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == desc->OutputWindow &&
+        Config::Instance()->FGPreserveSwapChain.value_or_default())
     {
 
         LOG_WARN("FG swapchain already created for the same output window!");
@@ -751,7 +752,8 @@ bool FSRFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
                                   DXGI_SWAP_CHAIN_DESC1* desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
                                   IDXGISwapChain1** swapChain)
 {
-    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == hwnd)
+    if (State::Instance().currentFGSwapchain != nullptr && _hwnd == hwnd &&
+        Config::Instance()->FGPreserveSwapChain.value_or_default())
     {
 
         LOG_WARN("XeFG swapchain already created for the same output window!");
@@ -805,6 +807,12 @@ bool FSRFG_Dx12::ReleaseSwapchain(HWND hwnd)
 
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
     {
+        if (Mutex.getOwner() == 1)
+        {
+            LOG_WARN("Skipping Mutex we are already in ReleaseSwapchain");
+            return true;
+        }
+
         LOG_TRACE("Waiting Mutex 1, current: {}", Mutex.getOwner());
         Mutex.lock(1);
         LOG_TRACE("Accuired Mutex: {}", Mutex.getOwner());
