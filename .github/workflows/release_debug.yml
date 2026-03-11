@@ -102,7 +102,7 @@ jobs:
       
     - name: upload-unsigned-artifact
       id: upload-unsigned-artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7.0.0
       with: 
         name: '${{ steps.get_version.outputs.filename }}_unsigned_dll'
         path: '${{ github.workspace }}\x64\ReleaseDebug\OptiScaler.dll'
@@ -135,9 +135,10 @@ jobs:
 
       continue-on-error: false
         
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7.0.0
       with:
         name: '${{ steps.get_version.outputs.filename }}'
         path: '${{ github.workspace }}\${{ steps.get_version.outputs.filename }}.7z'
+        archive: false
         compression-level: 0
         if-no-files-found: error
