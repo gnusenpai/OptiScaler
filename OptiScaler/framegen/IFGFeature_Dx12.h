@@ -89,10 +89,10 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     virtual HWND Hwnd() = 0;
 
     virtual bool CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, DXGI_SWAP_CHAIN_DESC* desc,
-                                 IDXGISwapChain** swapChain) = 0;
+                                 IDXGISwapChain** swapChain, bool readyToRelease) = 0;
     virtual bool CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQueue, HWND hwnd,
                                   DXGI_SWAP_CHAIN_DESC1* desc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
-                                  IDXGISwapChain1** swapChain) = 0;
+                                  IDXGISwapChain1** swapChain, bool readyToRelease) = 0;
 
     virtual void CreateContext(ID3D12Device* device, FG_Constants& fgConstants) = 0;
     virtual void EvaluateState(ID3D12Device* device, FG_Constants& fgConstants) = 0;
