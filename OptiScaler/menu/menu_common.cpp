@@ -125,6 +125,7 @@ static double updateNoticeLimit = 0.0;
 static bool updateNoticeVisible = false;
 static std::string updateNoticeTag;
 static std::string updateNoticeUrl;
+static float lastMenuScale = 0.0f;
 
 template <typename T, size_t N> struct RingBuffer
 {
@@ -1383,36 +1384,27 @@ static void MenuHdrCheck(ImGuiIO io)
     }
 }
 
-static void MenuSizeCheck(ImGuiIO io)
+static float MenuResolutionScale(ImGuiIO io)
 {
+    if (Config::Instance()->MenuScale.has_value())
+        return Config::Instance()->MenuScale.value();
+
     // Calculate menu scale according to display resolution
-    {
-        if (!Config::Instance()->MenuScale.has_value())
-        {
-            float y = State::Instance().screenHeight;
+    float y = State::Instance().screenHeight;
 
-            if (io.DisplaySize.y != 0)
-                y = (float) io.DisplaySize.y;
+    if (io.DisplaySize.y != 0)
+        y = (float) io.DisplaySize.y;
 
-            // 1000p is minimum for 1.0 menu ratio
-            Config::Instance()->MenuScale = (float) ((int) (y / 100.0f)) / 10.0f;
+    // 1000p is minimum for 1.0 menu ratio
+    float result = (float) ((int) (y / 100.0f)) / 10.0f;
 
-            if (Config::Instance()->MenuScale.value() > 1.0f || Config::Instance()->MenuScale.value() <= 0.0f)
-                Config::Instance()->MenuScale.value() = 1.0f;
+    if (result < 0.5f)
+        result = 0.5f;
 
-            ImGuiStyle& style = ImGui::GetStyle();
-            style.ScaleAllSizes(Config::Instance()->MenuScale.value());
+    if (result > 2.0f)
+        result = 2.0f;
 
-            if (Config::Instance()->MenuScale.value() < 1.0f)
-                style.MouseCursorScale = 1.0f;
-        }
-
-        if (Config::Instance()->MenuScale.value() < 0.5f)
-            Config::Instance()->MenuScale = 0.5f;
-
-        if (Config::Instance()->MenuScale.value() > 2.0f)
-            Config::Instance()->MenuScale = 2.0f;
-    }
+    return result;
 }
 
 inline static std::string GetSourceString(UINT source)
@@ -1634,11 +1626,12 @@ bool MenuCommon::RenderMenu()
         }
 
         MenuHdrCheck(io);
-        MenuSizeCheck(io);
         ImGui::NewFrame();
 
         newFrame = true;
     }
+
+    float menuResScale = MenuResolutionScale(io);
 
     // Splash screen
     if (!config->DisableSplash.value_or_default())
@@ -1771,7 +1764,7 @@ bool MenuCommon::RenderMenu()
     }
 
     // FPS Overlay font
-    auto fpsScale = config->FpsScale.value_or(config->MenuScale.value_or_default());
+    auto fpsScale = config->FpsScale.value_or(menuResScale);
 
     // Update frame time & upscaler time averages
     float averageFrameTime = 0.0f;
@@ -1811,7 +1804,7 @@ bool MenuCommon::RenderMenu()
         static auto defaultStyle = ImGuiStyle();
 
         // Rescale the fps overlay every frame because it shares style with the main menu
-        if (config->FpsScale.has_value() && config->FpsScale.value() != config->MenuScale.value_or_default())
+        if (config->FpsScale.has_value() && config->FpsScale.value() != menuResScale)
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, defaultStyle.WindowPadding * fpsScale);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, defaultStyle.FramePadding * fpsScale);
@@ -2145,7 +2138,7 @@ bool MenuCommon::RenderMenu()
 
         // Overlay font
         if (config->UseHQFont.value_or_default())
-            ImGui::PushFontSize(std::round(config->MenuScale.value_or_default() * fontSize));
+            ImGui::PushFontSize(std::round(menuResScale * fontSize));
 
         // If overlay is not visible frame needs to be inited
         if (!frameTimesCalculated)
@@ -2170,11 +2163,11 @@ bool MenuCommon::RenderMenu()
         flags |= ImGuiWindowFlags_NoCollapse;
         flags |= ImGuiWindowFlags_AlwaysAutoResize;
 
-        // if UI scale is changed rescale the style
-        if (_mainWindowSizeUpdate)
+        if (lastMenuScale != menuResScale)
         {
-            _mainWindowSizeUpdate = false;
+            lastMenuScale = menuResScale;
 
+            // if UI scale is changed rescale the style
             ImGuiStyle& style = ImGui::GetStyle();
             ImGuiStyle styleold = style; // Backup colors
             style = ImGuiStyle();        // IMPORTANT: ScaleAllSizes will change the original size,
@@ -2192,7 +2185,7 @@ bool MenuCommon::RenderMenu()
             style.ScrollbarRounding = 0.0f;
             style.GrabRounding = 0.0f;
             style.TabRounding = 0.0f;
-            style.ScaleAllSizes(config->MenuScale.value_or_default());
+            style.ScaleAllSizes(menuResScale);
             style.MouseCursorScale = 1.0f;
             CopyMemory(style.Colors, styleold.Colors, sizeof(style.Colors)); // Restore colors
 
@@ -2215,7 +2208,14 @@ bool MenuCommon::RenderMenu()
             if (!_showMipmapCalcWindow && !_showHudlessWindow && !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
                 ImGui::SetWindowFocus();
 
-            _selectedScale = ((int) (config->MenuScale.value() * 10.0f)) - 5;
+            if (config->MenuScale.has_value())
+            {
+                _selectedScale = ((int) (menuResScale * 10.0f)) - 4;
+            }
+            else
+            {
+                _selectedScale = 0;
+            }
 
             if (versionStatus.completed)
             {
@@ -2247,9 +2247,9 @@ bool MenuCommon::RenderMenu()
                 ImGui::Spacing();
 
                 if (config->UseHQFont.value_or_default())
-                    ImGui::PushFontSize(std::round(fontSize * config->MenuScale.value_or_default() * 3.0f));
+                    ImGui::PushFontSize(std::round(fontSize * menuResScale * 3.0f));
                 else
-                    ImGui::SetWindowFontScale(config->MenuScale.value_or_default() * 3.0f);
+                    ImGui::SetWindowFontScale(menuResScale * 3.0f);
 
                 if (state.nvngxExists || state.nvngxReplacement.has_value() ||
                     (state.libxessExists || XeSSProxy::Module() != nullptr))
@@ -2278,7 +2278,7 @@ bool MenuCommon::RenderMenu()
                     if (config->UseHQFont.value_or_default())
                         ImGui::PopFontSize();
                     else
-                        ImGui::SetWindowFontScale(config->MenuScale.value_or_default());
+                        ImGui::SetWindowFontScale(menuResScale);
 
                     ImGui::Spacing();
 
@@ -2324,7 +2324,7 @@ bool MenuCommon::RenderMenu()
                     if (config->UseHQFont.value_or_default())
                         ImGui::PopFont();
                     else
-                        ImGui::SetWindowFontScale(config->MenuScale.value_or_default());
+                        ImGui::SetWindowFontScale(menuResScale);
                 }
             }
             else if (currentFeature->IsFrozen())
@@ -2332,9 +2332,9 @@ bool MenuCommon::RenderMenu()
                 ImGui::Spacing();
 
                 if (config->UseHQFont.value_or_default())
-                    ImGui::PushFontSize(std::round(fontSize * config->MenuScale.value_or_default() * 3.0f));
+                    ImGui::PushFontSize(std::round(fontSize * menuResScale * 3.0f));
                 else
-                    ImGui::SetWindowFontScale(config->MenuScale.value_or_default() * 3.0f);
+                    ImGui::SetWindowFontScale(menuResScale * 3.0f);
 
                 ImGui::Text("%s is active, but not currently used by the game\nPlease enter the game",
                             currentFeature->Name().c_str());
@@ -2342,7 +2342,7 @@ bool MenuCommon::RenderMenu()
                 if (config->UseHQFont.value_or_default())
                     ImGui::PopFont();
                 else
-                    ImGui::SetWindowFontScale(config->MenuScale.value_or_default());
+                    ImGui::SetWindowFontScale(menuResScale);
             }
 
             if (ImGui::BeginTable("main", 2, ImGuiTableFlags_SizingStretchSame))
@@ -2359,7 +2359,7 @@ bool MenuCommon::RenderMenu()
 
                     std::string spoofingText;
 
-                    ImGui::PushItemWidth(180.0f * config->MenuScale.value_or_default());
+                    ImGui::PushItemWidth(180.0f * menuResScale);
 
                     switch (state.api)
                     {
@@ -2554,7 +2554,7 @@ bool MenuCommon::RenderMenu()
                             ImGui::SameLine(0.0f, 6.0f);
                             int dbgCount = state.xessDebugFrames;
 
-                            ImGui::PushItemWidth(95.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(95.0f * menuResScale);
                             if (ImGui::InputInt("frames", &dbgCount))
                             {
                                 if (dbgCount < 4)
@@ -2584,7 +2584,7 @@ bool MenuCommon::RenderMenu()
                         if (currentBackend == "fsr31" ||
                             currentBackend == "fsr31_12" && state.ffxUpscalerVersionNames.size() > 0)
                         {
-                            ImGui::PushItemWidth(135.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(135.0f * menuResScale);
 
                             auto currentName = StrFmt("FSR %s", state.ffxUpscalerVersionNames[_ffxUpscalerIndex]);
                             if (ImGui::BeginCombo("FFX Upscaler", currentName.c_str()))
@@ -2722,8 +2722,6 @@ bool MenuCommon::RenderMenu()
 
                                 const char* selectedModel = models[configModes];
 
-                                // ImGui::PushItemWidth(135.0f * config->MenuScale.value_or_default());
-
                                 if (ImGui::BeginTable("nonLinear", 2, ImGuiTableFlags_SizingStretchProp))
                                 {
 
@@ -2828,7 +2826,7 @@ bool MenuCommon::RenderMenu()
                                     ImGui::Spacing();
                                     ImGui::Spacing();
 
-                                    ImGui::PushItemWidth(220.0f * config->MenuScale.value_or_default());
+                                    ImGui::PushItemWidth(220.0f * menuResScale);
 
                                     float velocity = config->FsrVelocity.value_or_default();
                                     if (ImGui::SliderFloat("Velocity Factor", &velocity, 0.00f, 1.0f, "%.2f"))
@@ -2927,7 +2925,7 @@ bool MenuCommon::RenderMenu()
                                            "Press apply after enable/disable");
 
                             ImGui::BeginDisabled(!config->DLSSDRenderPresetOverride.value_or_default() || overridden);
-                            ImGui::PushItemWidth(135.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(135.0f * menuResScale);
 
                             AddDLSSDRenderPreset("Override Preset", &config->DLSSDRenderPresetForAll);
 
@@ -2946,7 +2944,7 @@ bool MenuCommon::RenderMenu()
 
                             ImGui::BeginDisabled(!config->RenderPresetOverride.value_or_default() || overridden);
 
-                            ImGui::PushItemWidth(135.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(135.0f * menuResScale);
 
                             AddDLSSRenderPreset("Override Preset", &config->RenderPresetForAll);
 
@@ -2985,7 +2983,7 @@ bool MenuCommon::RenderMenu()
 
                             ImGui::BeginDisabled(!config->RenderPresetOverride.value_or_default() || overridden);
                             ImGui::Spacing();
-                            ImGui::PushItemWidth(135.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(135.0f * menuResScale);
 
                             if (usesDlssd)
                             {
@@ -3324,7 +3322,7 @@ bool MenuCommon::RenderMenu()
 
                                 ImGui::SameLine(0.0f, 16.0f);
 
-                                ImGui::PushItemWidth(95.0f * config->MenuScale.value_or_default());
+                                ImGui::PushItemWidth(95.0f * menuResScale);
 
                                 auto frameAhead = config->FGAllowedFrameAhead.value_or_default();
                                 if (ImGui::InputInt("Allowed Frame Ahead", &frameAhead, 1, 1) && frameAhead > 0 &&
@@ -3358,7 +3356,7 @@ bool MenuCommon::RenderMenu()
 
                         if (state.ffxFGVersionNames.size() > 0)
                         {
-                            ImGui::PushItemWidth(135.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(135.0f * menuResScale);
 
                             auto currentName = StrFmt("FSR %s", state.ffxFGVersionNames[_ffxFGIndex]);
                             if (ImGui::BeginCombo("FFX FG", currentName.c_str()))
@@ -3481,7 +3479,7 @@ bool MenuCommon::RenderMenu()
                             ImGui::Spacing();
                             if (ImGui::TreeNode("FG Rectangle Settings"))
                             {
-                                ImGui::PushItemWidth(95.0f * config->MenuScale.value_or_default());
+                                ImGui::PushItemWidth(95.0f * menuResScale);
                                 int rectLeft = config->FGRectLeft.value_or(0);
                                 if (ImGui::InputInt("Rect Left", &rectLeft))
                                     config->FGRectLeft = rectLeft;
@@ -3538,7 +3536,7 @@ bool MenuCommon::RenderMenu()
 
                                     ImGui::BeginDisabled(!config->FGFramePacingTuning.value_or_default());
 
-                                    ImGui::PushItemWidth(115.0f * config->MenuScale.value_or_default());
+                                    ImGui::PushItemWidth(115.0f * menuResScale);
                                     auto fptSafetyMargin = config->FGFPTSafetyMarginInMs.value_or_default();
                                     if (ImGui::InputFloat("Safety Margins in ms", &fptSafetyMargin, 0.01f, 0.1f,
                                                           "%.2f"))
@@ -3561,7 +3559,7 @@ bool MenuCommon::RenderMenu()
                                     ShowHelpMarker("Allows pacing spinlock to sleep, should reduce CPU usage\n"
                                                    "Might cause slow ramp up of FPS");
 
-                                    ImGui::PushItemWidth(115.0f * config->MenuScale.value_or_default());
+                                    ImGui::PushItemWidth(115.0f * menuResScale);
                                     auto fptHybridSpinTime = config->FGFPTHybridSpinTime.value_or_default();
                                     if (ImGui::SliderInt("Hybrid Spin Time", &fptHybridSpinTime, 0, 100))
                                         config->FGFPTHybridSpinTime = fptHybridSpinTime;
@@ -3675,8 +3673,7 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::SameLine(0.0f, 16.0f);
 
-                        auto maxInterpolationCount =
-                            Config::Instance()->FGXeFGMaxInterpolationCount.value_or(state.xefgMaxInterpolationCount);
+                        auto maxInterpolationCount = state.xefgMaxInterpolationCount;
 
                         if (maxInterpolationCount > 1)
                         {
@@ -3684,7 +3681,7 @@ bool MenuCommon::RenderMenu()
                             auto currentSet = config->FGXeFGInterpolationCount.value_or_default() - 1;
                             auto currentIntCount = intModes[currentSet];
 
-                            ImGui::PushItemWidth(95.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(95.0f * menuResScale);
 
                             if (ImGui::BeginCombo("MFG", currentIntCount))
                             {
@@ -3742,7 +3739,7 @@ bool MenuCommon::RenderMenu()
                             ImGui::Spacing();
                             if (ImGui::TreeNode("Rectangle Settings"))
                             {
-                                ImGui::PushItemWidth(95.0f * config->MenuScale.value_or_default());
+                                ImGui::PushItemWidth(95.0f * menuResScale);
                                 int rectLeft = config->FGRectLeft.value_or(0);
                                 if (ImGui::InputInt("Rect Left##2", &rectLeft))
                                     config->FGRectLeft = rectLeft;
@@ -3819,7 +3816,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::BeginDisabled(!config->FGHUDFix.value_or_default());
 
                         ImGui::SameLine(0.0f, 16.0f);
-                        ImGui::PushItemWidth(95.0f * config->MenuScale.value_or_default());
+                        ImGui::PushItemWidth(95.0f * menuResScale);
                         int hudFixLimit = config->FGHUDLimit.value_or_default();
                         if (ImGui::InputInt("Limit", &hudFixLimit))
                         {
@@ -3911,7 +3908,7 @@ bool MenuCommon::RenderMenu()
                                            "resolutions and screen ratios (e.g. Witcher 3)");
 
                             ImGui::BeginDisabled(state.FGresetCapturedResources);
-                            ImGui::PushItemWidth(95.0f * config->MenuScale.value_or_default());
+                            ImGui::PushItemWidth(95.0f * menuResScale);
                             if (ImGui::Checkbox("FG Create List", &state.FGcaptureResources))
                             {
                                 if (!state.FGcaptureResources)
@@ -4042,7 +4039,7 @@ bool MenuCommon::RenderMenu()
                                 ShowHelpMarker("Make a copy of depth to use with OptiFG\n"
                                                "For preventing corruptions that might happen");
 
-                                ImGui::PushItemWidth(115.0f * config->MenuScale.value_or_default());
+                                ImGui::PushItemWidth(115.0f * menuResScale);
                                 float depthScaleMax = config->FGDepthScaleMax.value_or_default();
                                 if (ImGui::InputFloat("FG Scale Depth Max", &depthScaleMax, 10.0f, 100.0f, "%.1f"))
                                     config->FGDepthScaleMax = depthScaleMax;
@@ -4396,7 +4393,7 @@ bool MenuCommon::RenderMenu()
                         ScopedIndent indent {};
                         ImGui::Spacing();
 
-                        ImGui::PushItemWidth(105.0f * config->MenuScale.value());
+                        ImGui::PushItemWidth(105.0f * menuResScale);
                         ImGui::InputInt("Refresh Rate", &refreshRate, 1, 1, ImGuiInputTextFlags_None);
                         ImGui::PopItemWidth();
 
@@ -4688,7 +4685,7 @@ bool MenuCommon::RenderMenu()
 
                             ImGui::BeginDisabled(!_ssEnabled);
                             {
-                                ImGui::PushItemWidth(95.0f * config->MenuScale.value());
+                                ImGui::PushItemWidth(95.0f * menuResScale);
 
                                 // clang-format off
                                 std::vector<MenuOption<Scaler>> ds_options = {
@@ -5214,7 +5211,7 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::BeginDisabled(!forceVsyncOn);
 
-                        ImGui::PushItemWidth(50.0f * config->MenuScale.value_or_default());
+                        ImGui::PushItemWidth(50.0f * menuResScale);
 
                         auto vsyncBuf = StrFmt("%d", config->VsyncInterval.value_or_default());
                         if (ImGui::BeginCombo("Sync Int.", vsyncBuf.c_str()))
@@ -5376,7 +5373,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ScopedIndent indent {};
                         ImGui::Spacing();
-                        ImGui::PushItemWidth(65.0f * config->MenuScale.value());
+                        ImGui::PushItemWidth(65.0f * menuResScale);
 
                         auto selectedAF = config->AnisotropyOverride.has_value()
                                               ? std::to_string(config->AnisotropyOverride.value())
@@ -5501,25 +5498,28 @@ bool MenuCommon::RenderMenu()
                     ImGui::SameLine(0.0f, 10.0f);
                 }
 
-                ImGui::PushItemWidth(55.0f * config->MenuScale.value());
+                ImGui::PushItemWidth(100.0f * menuResScale);
 
-                const char* uiScales[] = { "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1", "1.2",
-                                           "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0" };
+                auto autoText = config->MenuScale.has_value() ? "Auto" : StrFmt("Auto (%3.1f)", menuResScale);
+                // clang-format off
+                const char* uiScales[] = { autoText.c_str(), "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1",
+                                           "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0" };
+                // clang-format on
+
                 const char* selectedScaleName = uiScales[_selectedScale];
 
-                if (ImGui::BeginCombo("Menu UI Scale", selectedScaleName))
+                if (ImGui::BeginCombo("Menu Scale", selectedScaleName))
                 {
                     for (int n = 0; n < 16; n++)
                     {
                         if (ImGui::Selectable(uiScales[n], (_selectedScale == n)))
                         {
                             _selectedScale = n;
-                            config->MenuScale = 0.5f + (float) n / 10.0f;
 
-                            if (config->MenuScale.value() < 1.0f)
-                                ImGui::GetStyle().MouseCursorScale = 1.0f;
-
-                            _mainWindowSizeUpdate = true;
+                            if (n == 0)
+                                config->MenuScale.reset();
+                            else
+                                config->MenuScale = 0.4f + (float) n / 10.0f;
                         }
                     }
 
@@ -5884,7 +5884,6 @@ void MenuCommon::Init(HWND InHwnd, bool isUWP)
 
     if (!Config::Instance()->OverlayMenu.value_or_default())
     {
-        _mainWindowSizeUpdate = true;
         _hdrTonemapApplied = false;
     }
 

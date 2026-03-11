@@ -113,8 +113,7 @@ class MenuCommon
     inline static Scaler _ssDownsampler = Scaler::FSR1;
 
     // ui scale
-    inline static int _selectedScale = 5;
-    inline static bool _mainWindowSizeUpdate = true;
+    inline static int _selectedScale = 0;
 
     // overlay states
     inline static bool _dx11Ready = false;

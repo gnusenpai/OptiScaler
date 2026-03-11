@@ -260,7 +260,7 @@ class Config
     CustomOptional<float> Contrast { 0.0f };
 
     // Menu
-    CustomOptional<float> MenuScale { 1.0f };
+    CustomOptional<float, NoDefault> MenuScale;
     CustomOptional<bool> OverlayMenu { true };
     CustomOptional<int> ShortcutKey { VK_INSERT };
     CustomOptional<bool> ExtendedLimits { false };
