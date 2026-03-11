@@ -112,6 +112,14 @@ struct feature_version
     unsigned int minor;
     unsigned int patch;
 
+    feature_version() : major(0), minor(0), patch(0) {}
+
+    explicit feature_version(const char* version_str) : major(0), minor(0), patch(0) { parse_version(version_str); }
+
+    constexpr feature_version(unsigned int maj, unsigned int min, unsigned int pat) : major(maj), minor(min), patch(pat)
+    {
+    }
+
     bool operator==(const feature_version& other) const
     {
         return major == other.major && minor == other.minor && patch == other.patch;
@@ -133,6 +141,24 @@ struct feature_version
     bool operator<=(const feature_version& other) const { return !(other < *this); }
 
     bool operator>=(const feature_version& other) const { return !(*this < other); }
+
+    void parse_version(const char* version_str)
+    {
+        const char* p = version_str;
+
+        // Skip non-digits at front
+        while (*p)
+        {
+            if (isdigit((unsigned char) p[0]))
+            {
+                if (sscanf(p, "%u.%u.%u", &major, &minor, &patch) == 3)
+                    return;
+            }
+            ++p;
+        }
+
+        LOG_WARN("can't parse {0}", version_str);
+    }
 };
 
 namespace VendorId

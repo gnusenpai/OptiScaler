@@ -82,24 +82,6 @@ class FfxApiProxy
 
     inline static bool _skipDestroyCalls = false;
 
-    static inline void parse_version(const char* version_str, feature_version* _version)
-    {
-        const char* p = version_str;
-
-        // Skip non-digits at front
-        while (*p)
-        {
-            if (isdigit((unsigned char) p[0]))
-            {
-                if (sscanf(p, "%u.%u.%u", &_version->major, &_version->minor, &_version->patch) == 3)
-                    return;
-            }
-            ++p;
-        }
-
-        LOG_WARN("can't parse {0}", version_str);
-    }
-
     static bool IsLoader(const std::wstring& filePath)
     {
         auto size = std::filesystem::file_size(filePath);
@@ -520,7 +502,7 @@ class FfxApiProxy
 
                 if (queryResult == FFX_API_RETURN_OK)
                 {
-                    parse_version(versionNames[0], &main_dx12.version);
+                    main_dx12.version.parse_version(versionNames[0]);
                     LOG_INFO("FfxApi Dx12 version: {}.{}.{}", main_dx12.version.major, main_dx12.version.minor,
                              main_dx12.version.patch);
                 }
@@ -575,7 +557,7 @@ class FfxApiProxy
 
                 if (queryResult == FFX_API_RETURN_OK)
                 {
-                    parse_version(versionNames[0], &upscaling_dx12.version);
+                    upscaling_dx12.version.parse_version(versionNames[0]);
                     LOG_INFO("FfxApi Dx12 SR version: {}.{}.{}", upscaling_dx12.version.major,
                              upscaling_dx12.version.minor, upscaling_dx12.version.patch);
                 }
@@ -624,7 +606,7 @@ class FfxApiProxy
 
                 if (queryResult == FFX_API_RETURN_OK)
                 {
-                    parse_version(versionNames[0], &fg_dx12.version);
+                    fg_dx12.version.parse_version(versionNames[0]);
                     LOG_INFO("FfxApi Dx12 FG version: {}.{}.{}", fg_dx12.version.major, fg_dx12.version.minor,
                              fg_dx12.version.patch);
                 }
@@ -979,7 +961,7 @@ class FfxApiProxy
 
                 if (queryResult == FFX_API_RETURN_OK)
                 {
-                    parse_version(versionNames[0], &main_vk.version);
+                    main_vk.version.parse_version(versionNames[0]);
                     LOG_INFO("FfxApi Vulkan version: {}.{}.{}", main_vk.version.major, main_vk.version.minor,
                              main_vk.version.patch);
                 }
