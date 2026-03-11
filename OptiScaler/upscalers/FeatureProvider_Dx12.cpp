@@ -66,8 +66,10 @@ bool FeatureProvider_Dx12::GetFeature(std::string upscalerName, UINT handleId, N
 
     } while (false);
 
+    // Fail after the constructor
     if (!(*feature)->ModuleLoaded())
     {
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
         (*feature).reset();
         *feature = std::make_unique<FSR2FeatureDx12_212>(handleId, parameters);
         upscalerName = "fsr21";
@@ -203,12 +205,12 @@ bool FeatureProvider_Dx12::ChangeFeature(std::string upscalerName, ID3D12Device*
                 if (Config::Instance()->VulkanUpscaler == "dlss")
                 {
                     State::Instance().newBackend = "xess";
-                    ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Falling back to XeSS" });
+                    ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to XeSS" });
                 }
                 else
                 {
                     State::Instance().newBackend = "fsr21";
-                    ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Falling back to FSR 2.1" });
+                    ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
                 }
             }
             else
