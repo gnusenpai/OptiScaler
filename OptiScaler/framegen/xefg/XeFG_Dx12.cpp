@@ -1481,7 +1481,7 @@ bool XeFG_Dx12::SetResource(Dx12Resource* inputResource)
             indexDiff += BUFFER_COUNT;
 
         // We will us UI color later with Render UI
-        if (type != FG_ResourceType::UIColor || Config::Instance()->FGXeFGUIComposition.value_or_default())
+        // if (type != FG_ResourceType::UIColor || Config::Instance()->FGXeFGUIComposition.value_or_default())
         {
             auto frameId = static_cast<uint32_t>(_frameCount - indexDiff);
             auto result =
