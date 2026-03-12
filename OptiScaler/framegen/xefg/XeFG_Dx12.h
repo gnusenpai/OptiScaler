@@ -23,6 +23,7 @@ class XeFG_Dx12 : public virtual IFGFeature_Dx12
     uint32_t _height = 0;
     bool _infiniteDepth = false;
     std::optional<bool> _haveHudless = std::nullopt;
+    bool _uiComposition = false;
 
     std::unique_ptr<DI_Dx12> _depthInvert;
 
@@ -69,7 +70,7 @@ class XeFG_Dx12 : public virtual IFGFeature_Dx12
     void* FrameGenerationContext() override final;
     void* SwapchainContext() override final;
 
-    XeFG_Dx12(UINT framesToInterpolate = 1) : IFGFeature_Dx12(), IFGFeature(framesToInterpolate)
+    XeFG_Dx12() : IFGFeature_Dx12(), IFGFeature()
     {
         if (XeFGProxy::Module() == nullptr)
             XeFGProxy::InitXeFG();

@@ -88,8 +88,7 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         }
         else if (State::Instance().activeFgOutput == FGOutput::XeFG)
         {
-            State::Instance().currentFG =
-                new XeFG_Dx12(Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+            State::Instance().currentFG = new XeFG_Dx12();
         }
     }
 
@@ -214,8 +213,7 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
         }
         else if (State::Instance().activeFgOutput == FGOutput::XeFG)
         {
-            State::Instance().currentFG =
-                new XeFG_Dx12(Config::Instance()->FGXeFGInterpolationCount.value_or_default());
+            State::Instance().currentFG = new XeFG_Dx12();
         }
     }
 

@@ -156,5 +156,5 @@ class IFGFeature
     UINT64 TargetFrame();
     UINT64 LastDispatchedFrame();
 
-    IFGFeature(UINT framesToInterpolate) { _framesToInterpolate = framesToInterpolate; }
+    IFGFeature() {}
 };
