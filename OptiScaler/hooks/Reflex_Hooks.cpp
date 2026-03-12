@@ -366,12 +366,15 @@ void ReflexHooks::update(bool optiFg_FgState, bool isVulkan)
 
     // Disable reflex fps limiting when reflex is force disabled
     // TODO: It changes without pressing apply, XeLL with XeFG can't actually be disabled so this is wrong
-    // Can't be bothered to fix for now so will need to wait until fakenvapi is merged into Opti for better integration
-    if (State::Instance().reflexLimitsFps && (fakenvapi::isUsingFakenvapi() || fakenvapi::isUsingFakenvapiOnNvidia()) &&
-        Config::Instance()->FN_ForceReflex.value_or_default() == 1)
-    {
-        State::Instance().reflexLimitsFps = false;
-    }
+    //
+    // Wait for fakenvapi to be merged into Opti for better integration
+    //
+    // if (State::Instance().reflexLimitsFps && (fakenvapi::isUsingFakenvapi() || fakenvapi::isUsingFakenvapiOnNvidia())
+    // &&
+    //    Config::Instance()->FN_ForceReflex.value_or_default() == 1)
+    //{
+    //    State::Instance().reflexLimitsFps = false;
+    //}
 
     static float lastFps = 0;
     static bool lastReflexLimitsFps = State::Instance().reflexLimitsFps;
