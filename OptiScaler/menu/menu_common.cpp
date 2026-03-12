@@ -3703,7 +3703,8 @@ bool MenuCommon::RenderMenu()
                         }
 
                         ImGui::SameLine(0.0f, 16.0f);
-                        ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny());
+                        ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny() ||
+                                             XeFGProxy::SetUiCompositionState() == nullptr);
                         bool fgCompositeUI = config->FGXeFGUIComposition.value_or_default();
                         if (ImGui::Checkbox("UI Composition", &fgCompositeUI))
                             config->FGXeFGUIComposition = fgCompositeUI;
