@@ -3702,6 +3702,15 @@ bool MenuCommon::RenderMenu()
                             ShowHelpMarker("Set XeFG interpolation count");
                         }
 
+                        ImGui::SameLine(0.0f, 16.0f);
+                        ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny());
+                        bool fgCompositeUI = config->FGXeFGUIComposition.value_or_default();
+                        if (ImGui::Checkbox("UI Composition", &fgCompositeUI))
+                            config->FGXeFGUIComposition = fgCompositeUI;
+
+                        ShowHelpMarker("Instead of interpolation\nComposite the UI");
+                        ImGui::EndDisabled();
+
                         bool fgDV = config->FGXeFGDebugView.value_or_default();
                         if (ImGui::Checkbox("Debug View##2", &fgDV))
                         {

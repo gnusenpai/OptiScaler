@@ -751,6 +751,21 @@ bool XeFG_Dx12::Dispatch()
         return false;
     }
 
+    if (XeFGProxy::SetUiCompositionState() != nullptr &&
+        Config::Instance()->FGXeFGUIComposition.value_or_default() != _uiComposition && IsUsingHudless(fIndex))
+    {
+        _uiComposition = Config::Instance()->FGXeFGUIComposition.value_or_default();
+
+        auto uiState =
+            _uiComposition ? XEFG_SWAPCHAIN_UI_COMPOSITION_STATE_ENABLED : XEFG_SWAPCHAIN_UI_COMPOSITION_STATE_DISABLED;
+
+        ScopedSkipSpoofing skipSpoofing {};
+        auto uiResult = XeFGProxy::SetUiCompositionState()(_swapChainContext, uiState);
+
+        if (uiResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+            LOG_ERROR("SetUiCompositionState error: {} ({})", magic_enum::enum_name(uiResult), (UINT) uiResult);
+    }
+
     if (XeFGProxy::SetNumInterpolatedFrames() != nullptr)
     {
         if (Config::Instance()->FGXeFGInterpolationCount.value_or_default() >
@@ -1506,7 +1521,7 @@ bool XeFG_Dx12::SetResource(Dx12Resource* inputResource)
             indexDiff += BUFFER_COUNT;
 
         // We will us UI color later with Render UI
-        if (type != FG_ResourceType::UIColor)
+        if (type != FG_ResourceType::UIColor || Config::Instance()->FGXeFGUIComposition.value_or_default())
         {
             auto frameId = static_cast<uint32_t>(_frameCount - indexDiff);
             auto result =
