@@ -1033,9 +1033,6 @@ void StreamlineHooks::unhookInterposer()
 // Call it just after sl.interposer's load or if sl.interposer is already loaded
 void StreamlineHooks::hookInterposer(HMODULE slInterposer)
 {
-    if (!Config::Instance()->StreamlineSpoofing.value_or_default() && State::Instance().activeFgInput != FGInput::DLSSG)
-        return;
-
     LOG_FUNC();
 
     if (!slInterposer)
@@ -1173,9 +1170,6 @@ void StreamlineHooks::unhookDlss()
 
 void StreamlineHooks::hookDlss(HMODULE slDlss)
 {
-    if (!Config::Instance()->StreamlineSpoofing.value_or_default() && State::Instance().activeFgInput != FGInput::DLSSG)
-        return;
-
     LOG_FUNC();
 
     if (!slDlss)
@@ -1222,9 +1216,6 @@ void StreamlineHooks::unhookDlssg()
 
 void StreamlineHooks::hookDlssg(HMODULE slDlssg)
 {
-    if (!Config::Instance()->StreamlineSpoofing.value_or_default() && State::Instance().activeFgInput != FGInput::DLSSG)
-        return;
-
     LOG_FUNC();
 
     if (!slDlssg)
@@ -1271,9 +1262,6 @@ void StreamlineHooks::unhookReflex()
 
 void StreamlineHooks::hookReflex(HMODULE slReflex)
 {
-    if (!Config::Instance()->StreamlineSpoofing.value_or_default() && State::Instance().activeFgInput != FGInput::DLSSG)
-        return;
-
     LOG_FUNC();
 
     if (!slReflex)
@@ -1320,9 +1308,6 @@ void StreamlineHooks::unhookPcl()
 
 void StreamlineHooks::hookPcl(HMODULE slPcl)
 {
-    if (!Config::Instance()->StreamlineSpoofing.value_or_default() && State::Instance().activeFgInput != FGInput::DLSSG)
-        return;
-
     LOG_FUNC();
 
     if (!slPcl)
@@ -1372,9 +1357,6 @@ void StreamlineHooks::unhookCommon()
 
 void StreamlineHooks::hookCommon(HMODULE slCommon)
 {
-    if (!Config::Instance()->StreamlineSpoofing.value_or_default() && State::Instance().activeFgInput != FGInput::DLSSG)
-        return;
-
     LOG_FUNC();
 
     if (!slCommon)
