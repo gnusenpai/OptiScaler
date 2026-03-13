@@ -335,7 +335,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
 {
     if (resource == nullptr || resource->buffer == nullptr || State::Instance().isShuttingDown)
     {
-        LOG_TRACE("Resource is null or shutting down!");
+        // LOG_TRACE("Resource is null or shutting down!");
         return false;
     }
 
@@ -353,7 +353,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     // Compare aganist stored info first
     if (resource->width == 0 || resource->height == 0)
     {
-        LOG_TRACE("Resource has invalid dimensions!");
+        // LOG_TRACE("Resource has invalid dimensions!");
         return false;
     }
 
@@ -375,8 +375,9 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
               resDesc.Height >= height - toleranceY && resDesc.Height <= height + toleranceY &&
               resDesc.Width >= width - toleranceX && resDesc.Width <= width + toleranceX))
         {
-            LOG_TRACE("Resource dimensions do not match! Resource: {}x{}, Swapchain: {}x{}", resDesc.Width,
-                      resDesc.Height, width, height);
+            // LOG_TRACE("Resource dimensions do not match! Resource: {}x{}, Swapchain: {}x{}", resDesc.Width,
+            //           resDesc.Height, width, height);
+
             return false;
         }
 
@@ -389,7 +390,8 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
                           D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE | D3D12_RESOURCE_FLAG_VIDEO_ENCODE_REFERENCE_ONLY)) >
         0)
     {
-        LOG_TRACE("Resource has unsupported flags! Flags: {:X}", (UINT) resDesc.Flags);
+        // LOG_TRACE("Resource has unsupported flags! Flags: {:X}", (UINT) resDesc.Flags);
+
         return false;
     }
 
@@ -411,26 +413,27 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     // extended not active
     if (!Config::Instance()->FGHUDFixExtended.value_or_default())
     {
-        LOG_TRACE(
-            "{}->{} Resource format does not match and extended check is not active! Format: {}/{}, Resource: {:X}",
-            GetSourceString(source), GetDispatchString(dispatcher), (UINT) resDesc.Format,
-            (UINT) s.currentSwapchainDesc.BufferDesc.Format, (size_t) resource->buffer);
+        // LOG_TRACE(
+        //     "{}->{} Resource format does not match and extended check is not active! Format: {}/{}, Resource: {:X}",
+        //     GetSourceString(source), GetDispatchString(dispatcher), (UINT) resDesc.Format,
+        //     (UINT) s.currentSwapchainDesc.BufferDesc.Format, (size_t) resource->buffer);
+
         return false;
     }
 
     // resource format is one of supported formats
-    if (resDesc.Format == DXGI_FORMAT_R32G32B32A32_TYPELESS || resDesc.Format == DXGI_FORMAT_R32G32B32A32_FLOAT ||
-        resDesc.Format == DXGI_FORMAT_R32G32B32A32_UINT || resDesc.Format == DXGI_FORMAT_R32G32B32A32_SINT ||
-        resDesc.Format == DXGI_FORMAT_R32G32B32_TYPELESS || resDesc.Format == DXGI_FORMAT_R32G32B32_FLOAT ||
-        resDesc.Format == DXGI_FORMAT_R32G32B32_UINT || resDesc.Format == DXGI_FORMAT_R32G32B32_SINT ||
-        resDesc.Format == DXGI_FORMAT_R16G16B16A16_TYPELESS || resDesc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT ||
-        resDesc.Format == DXGI_FORMAT_R16G16B16A16_UNORM || resDesc.Format == DXGI_FORMAT_R16G16B16A16_UINT ||
-        resDesc.Format == DXGI_FORMAT_R16G16B16A16_SNORM || resDesc.Format == DXGI_FORMAT_R16G16B16A16_SINT ||
-        resDesc.Format == DXGI_FORMAT_R10G10B10A2_TYPELESS || resDesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM ||
-        resDesc.Format == DXGI_FORMAT_R10G10B10A2_UINT || resDesc.Format == DXGI_FORMAT_R11G11B10_FLOAT ||
-        resDesc.Format == DXGI_FORMAT_R8G8B8A8_TYPELESS || resDesc.Format == DXGI_FORMAT_R8G8B8A8_UNORM ||
-        resDesc.Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB || resDesc.Format == DXGI_FORMAT_R8G8B8A8_UINT ||
-        resDesc.Format == DXGI_FORMAT_R8G8B8A8_SNORM || resDesc.Format == DXGI_FORMAT_R8G8B8A8_SINT)
+    // if (resDesc.Format == DXGI_FORMAT_R32G32B32A32_TYPELESS || resDesc.Format == DXGI_FORMAT_R32G32B32A32_FLOAT ||
+    //    resDesc.Format == DXGI_FORMAT_R32G32B32A32_UINT || resDesc.Format == DXGI_FORMAT_R32G32B32A32_SINT ||
+    //    resDesc.Format == DXGI_FORMAT_R32G32B32_TYPELESS || resDesc.Format == DXGI_FORMAT_R32G32B32_FLOAT ||
+    //    resDesc.Format == DXGI_FORMAT_R32G32B32_UINT || resDesc.Format == DXGI_FORMAT_R32G32B32_SINT ||
+    //    resDesc.Format == DXGI_FORMAT_R16G16B16A16_TYPELESS || resDesc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT ||
+    //    resDesc.Format == DXGI_FORMAT_R16G16B16A16_UNORM || resDesc.Format == DXGI_FORMAT_R16G16B16A16_UINT ||
+    //    resDesc.Format == DXGI_FORMAT_R16G16B16A16_SNORM || resDesc.Format == DXGI_FORMAT_R16G16B16A16_SINT ||
+    //    resDesc.Format == DXGI_FORMAT_R10G10B10A2_TYPELESS || resDesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM ||
+    //    resDesc.Format == DXGI_FORMAT_R10G10B10A2_UINT || resDesc.Format == DXGI_FORMAT_R11G11B10_FLOAT ||
+    //    resDesc.Format == DXGI_FORMAT_R8G8B8A8_TYPELESS || resDesc.Format == DXGI_FORMAT_R8G8B8A8_UNORM ||
+    //    resDesc.Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB || resDesc.Format == DXGI_FORMAT_R8G8B8A8_UINT ||
+    //    resDesc.Format == DXGI_FORMAT_R8G8B8A8_SNORM || resDesc.Format == DXGI_FORMAT_R8G8B8A8_SINT)
     {
         LOG_DEBUG("{}->{} Width: {}/{}, Height: {}/{}, Format: {}/{}, Resource: {:X}, convertFormat: {} -> TRUE",
                   GetSourceString(source), GetDispatchString(dispatcher), resDesc.Width, width, resDesc.Height, height,
@@ -440,12 +443,12 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
         return true;
     }
 
-    LOG_TRACE(
-        "Last {}->{} Resource format does not match and extended check is not active! Format: {}/{}, Resource: {:X}",
-        GetSourceString(source), GetDispatchString(dispatcher), (UINT) resDesc.Format,
-        (UINT) s.currentSwapchainDesc.BufferDesc.Format, (size_t) resource->buffer);
+    // LOG_TRACE(
+    //     "Last {}->{} Resource format does not match and extended check is not active! Format: {}/{}, Resource: {:X}",
+    //     GetSourceString(source), GetDispatchString(dispatcher), (UINT) resDesc.Format,
+    //     (UINT) s.currentSwapchainDesc.BufferDesc.Format, (size_t) resource->buffer);
 
-    return false;
+    // return false;
 }
 
 int Hudfix_Dx12::GetIndex() { return _upscaleCounter % BUFFER_COUNT; }
