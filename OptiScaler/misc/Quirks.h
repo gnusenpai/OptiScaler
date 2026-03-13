@@ -118,8 +118,9 @@ static const QuirkEntry quirkTable[] = {
     // Trails in the Sky 1st Chapter
     QUIRK_ENTRY("sora_1st.exe", GameQuirk::UseFsr2Dx11Inputs, GameQuirk::DisableDxgiSpoofing),
 
-    // Ninja Gaiden 4 (Steam)
+    // Ninja Gaiden 4
     QUIRK_ENTRY("ninjagaiden4-steam.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain),
+    QUIRK_ENTRY("ninjagaiden4-wingdk.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain),
 
     // The Last of Us Part I
     QUIRK_ENTRY("tlou-i.exe", GameQuirk::AllowedFrameAhead2),
