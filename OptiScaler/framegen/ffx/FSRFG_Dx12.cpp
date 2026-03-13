@@ -8,46 +8,6 @@
 
 #include <magic_enum.hpp>
 
-static inline int GetFormatIndex(DXGI_FORMAT format)
-{
-    switch (format)
-    {
-
-    case DXGI_FORMAT_R32G32B32A32_TYPELESS:
-        return 0;
-
-    case DXGI_FORMAT_R32G32B32A32_FLOAT:
-    case DXGI_FORMAT_R32G32B32A32_UINT:
-        return 1;
-
-    case DXGI_FORMAT_R16G16B16A16_TYPELESS:
-        return 20;
-
-    case DXGI_FORMAT_R16G16B16A16_FLOAT:
-        return 21;
-
-    case DXGI_FORMAT_R10G10B10A2_TYPELESS:
-        return 30;
-
-    case DXGI_FORMAT_R10G10B10A2_UNORM:
-        return 31;
-
-    case DXGI_FORMAT_R11G11B10_FLOAT:
-        return 41;
-
-    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
-        return 50;
-
-    case DXGI_FORMAT_R8G8B8A8_UNORM:
-    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-    case DXGI_FORMAT_R8G8B8A8_SNORM:
-    case DXGI_FORMAT_R8G8B8A8_SINT:
-        return 51;
-    }
-
-    return -1;
-}
-
 static D3D12_RESOURCE_STATES GetD3D12State(FfxApiResourceState state)
 {
     switch (state)
@@ -77,26 +37,79 @@ static D3D12_RESOURCE_STATES GetD3D12State(FfxApiResourceState state)
     }
 }
 
-static inline bool FormatsCompatible(DXGI_FORMAT format1, DXGI_FORMAT format2)
+inline static int GetFormatGroup(DXGI_FORMAT format)
 {
-    if (format1 == format2)
+    switch (format)
+    {
+
+    case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+    case DXGI_FORMAT_R32G32B32A32_FLOAT:
+    case DXGI_FORMAT_R32G32B32A32_UINT:
+    case DXGI_FORMAT_R32G32B32A32_SINT:
+        return 1;
+
+    case DXGI_FORMAT_R32G32B32_TYPELESS:
+    case DXGI_FORMAT_R32G32B32_FLOAT:
+    case DXGI_FORMAT_R32G32B32_UINT:
+    case DXGI_FORMAT_R32G32B32_SINT:
+        return 2;
+
+    case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+    case DXGI_FORMAT_R16G16B16A16_FLOAT:
+    case DXGI_FORMAT_R16G16B16A16_UNORM:
+    case DXGI_FORMAT_R16G16B16A16_UINT:
+    case DXGI_FORMAT_R16G16B16A16_SNORM:
+    case DXGI_FORMAT_R16G16B16A16_SINT:
+        return 3;
+
+    case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+    case DXGI_FORMAT_R10G10B10A2_UNORM:
+    case DXGI_FORMAT_R10G10B10A2_UINT:
+        return 4;
+
+    case DXGI_FORMAT_R11G11B10_FLOAT:
+        return 5;
+
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+    case DXGI_FORMAT_R8G8B8A8_UNORM:
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_R8G8B8A8_UINT:
+    case DXGI_FORMAT_R8G8B8A8_SNORM:
+    case DXGI_FORMAT_R8G8B8A8_SINT:
+        return 6;
+
+    case DXGI_FORMAT_B5G6R5_UNORM:
+        return 7;
+
+    case DXGI_FORMAT_B5G5R5A1_UNORM:
+        return 8;
+
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+        return 9;
+
+    case DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM:
+        return 10;
+
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+        return 11;
+
+    default:
+        return -1;
+    }
+}
+
+inline static bool CompareResourceFormats(DXGI_FORMAT sc, DXGI_FORMAT hudless)
+{
+    if (sc == hudless)
         return true;
 
-    auto fi1 = GetFormatIndex(format1);
-    if (fi1 < 0)
-        return false;
-
-    auto fi2 = GetFormatIndex(format2);
-    if (fi2 < 0)
-        return false;
-
-    if (fi1 == fi2)
-        return true;
-
-    if ((fi1 - 1 == fi2) || (fi2 - 1 == fi1))
-        return true;
-
-    return false;
+    auto scGroup = GetFormatGroup(sc);
+    auto hudlessGroup = GetFormatGroup(hudless);
+    return scGroup == hudlessGroup;
 }
 
 static inline void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Resource* InResource,
@@ -1368,7 +1381,7 @@ bool FSRFG_Dx12::SetResource(Dx12Resource* inputResource)
         auto resFormat = fResource->GetResource()->GetDesc().Format;
         _lastHudlessFormat = (FfxApiSurfaceFormat) ffxApiGetSurfaceFormatDX12(resFormat);
 
-        if (_lastHudlessFormat != FFX_API_SURFACE_FORMAT_UNKNOWN && !FormatsCompatible(resFormat, scFormat))
+        if (_lastHudlessFormat != FFX_API_SURFACE_FORMAT_UNKNOWN && !CompareResourceFormats(resFormat, scFormat))
         {
             if (!HudlessFormatTransfer(fIndex, _device, scFormat, fResource))
             {

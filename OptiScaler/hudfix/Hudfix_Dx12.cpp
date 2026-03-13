@@ -817,7 +817,7 @@ bool Hudfix_Dx12::CheckForHudless(ID3D12GraphicsCommandList* cmdList, ResourceIn
         auto fg = s.currentFG;
 
         // needs conversion?
-        if (resource->format != s.currentSwapchainDesc.BufferDesc.Format)
+        if (!CompareResourceFormats(resource->format, s.currentSwapchainDesc.BufferDesc.Format))
         {
             if (_formatTransfer[fIndex] == nullptr ||
                 !_formatTransfer[fIndex]->IsFormatCompatible(s.currentSwapchainDesc.BufferDesc.Format))
