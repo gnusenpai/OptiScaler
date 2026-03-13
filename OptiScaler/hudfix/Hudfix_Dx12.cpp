@@ -7,6 +7,81 @@
 
 #include <framegen/IFGFeature_Dx12.h>
 
+inline static int GetFormatGroup(DXGI_FORMAT format)
+{
+    switch (format)
+    {
+
+    case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+    case DXGI_FORMAT_R32G32B32A32_FLOAT:
+    case DXGI_FORMAT_R32G32B32A32_UINT:
+    case DXGI_FORMAT_R32G32B32A32_SINT:
+        return 1;
+
+    case DXGI_FORMAT_R32G32B32_TYPELESS:
+    case DXGI_FORMAT_R32G32B32_FLOAT:
+    case DXGI_FORMAT_R32G32B32_UINT:
+    case DXGI_FORMAT_R32G32B32_SINT:
+        return 2;
+
+    case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+    case DXGI_FORMAT_R16G16B16A16_FLOAT:
+    case DXGI_FORMAT_R16G16B16A16_UNORM:
+    case DXGI_FORMAT_R16G16B16A16_UINT:
+    case DXGI_FORMAT_R16G16B16A16_SNORM:
+    case DXGI_FORMAT_R16G16B16A16_SINT:
+        return 3;
+
+    case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+    case DXGI_FORMAT_R10G10B10A2_UNORM:
+    case DXGI_FORMAT_R10G10B10A2_UINT:
+        return 4;
+
+    case DXGI_FORMAT_R11G11B10_FLOAT:
+        return 5;
+
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+    case DXGI_FORMAT_R8G8B8A8_UNORM:
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_R8G8B8A8_UINT:
+    case DXGI_FORMAT_R8G8B8A8_SNORM:
+    case DXGI_FORMAT_R8G8B8A8_SINT:
+        return 6;
+
+    case DXGI_FORMAT_B5G6R5_UNORM:
+        return 7;
+
+    case DXGI_FORMAT_B5G5R5A1_UNORM:
+        return 8;
+
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+        return 9;
+
+    case DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM:
+        return 10;
+
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+        return 11;
+
+    default:
+        return -1;
+    }
+}
+
+inline static bool CompareResourceFormats(DXGI_FORMAT sc, DXGI_FORMAT hudless)
+{
+    if (sc == hudless)
+        return true;
+
+    auto scGroup = GetFormatGroup(sc);
+    auto hudlessGroup = GetFormatGroup(hudless);
+    return scGroup == hudlessGroup;
+}
+
 bool Hudfix_Dx12::CreateObjects()
 {
     if (_commandQueue != nullptr)
@@ -259,7 +334,10 @@ inline static std::string GetDispatchString(UINT source)
 bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
 {
     if (resource == nullptr || resource->buffer == nullptr || State::Instance().isShuttingDown)
+    {
+        LOG_TRACE("Resource is null or shutting down!");
         return false;
+    }
 
     if (State::Instance().FGonlyUseCapturedResources)
     {
@@ -273,8 +351,11 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     // Need check more docs about D3D12 resource/heap usage
 
     // Compare aganist stored info first
-    if (resource->width == 0 || resource->height == 0 || resource->buffer == nullptr)
+    if (resource->width == 0 || resource->height == 0)
+    {
+        LOG_TRACE("Resource has invalid dimensions!");
         return false;
+    }
 
     // Get resource info
     auto resDesc = resource->buffer->GetDesc();
@@ -294,6 +375,8 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
               resDesc.Height >= height - toleranceY && resDesc.Height <= height + toleranceY &&
               resDesc.Width >= width - toleranceX && resDesc.Width <= width + toleranceX))
         {
+            LOG_TRACE("Resource dimensions do not match! Resource: {}x{}, Swapchain: {}x{}", resDesc.Width,
+                      resDesc.Height, width, height);
             return false;
         }
 
@@ -306,6 +389,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
                           D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE | D3D12_RESOURCE_FLAG_VIDEO_ENCODE_REFERENCE_ONLY)) >
         0)
     {
+        LOG_TRACE("Resource has unsupported flags! Flags: {:X}", (UINT) resDesc.Flags);
         return false;
     }
 
@@ -314,7 +398,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     auto dispatcher = resource->captureInfo & 0xFF00;
 
     // format match
-    if (resDesc.Format == s.currentSwapchainDesc.BufferDesc.Format)
+    if (CompareResourceFormats(resDesc.Format, s.currentSwapchainDesc.BufferDesc.Format))
     {
         LOG_DEBUG("{}->{} Width: {}/{}, Height: {}/{}, Format: {}/{}, Resource: {:X}, convertFormat: {} -> TRUE",
                   GetSourceString(source), GetDispatchString(dispatcher), resDesc.Width, width, resDesc.Height, height,
@@ -327,6 +411,10 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     // extended not active
     if (!Config::Instance()->FGHUDFixExtended.value_or_default())
     {
+        LOG_TRACE(
+            "{}->{} Resource format does not match and extended check is not active! Format: {}/{}, Resource: {:X}",
+            GetSourceString(source), GetDispatchString(dispatcher), (UINT) resDesc.Format,
+            (UINT) s.currentSwapchainDesc.BufferDesc.Format, (size_t) resource->buffer);
         return false;
     }
 
@@ -351,6 +439,11 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
 
         return true;
     }
+
+    LOG_TRACE(
+        "Last {}->{} Resource format does not match and extended check is not active! Format: {}/{}, Resource: {:X}",
+        GetSourceString(source), GetDispatchString(dispatcher), (UINT) resDesc.Format,
+        (UINT) s.currentSwapchainDesc.BufferDesc.Format, (size_t) resource->buffer);
 
     return false;
 }
@@ -508,7 +601,10 @@ bool Hudfix_Dx12::CheckForHudless(ID3D12GraphicsCommandList* cmdList, ResourceIn
     do
     {
         if (!CheckResource(resource))
+        {
+            LOG_TRACE("Resource {:X} didn't pass basic checks!", (size_t) resource->buffer);
             break;
+        }
 
         CapturedHudlessInfo* capturedHudlessInfo = &s.CapturedHudlesses[resource->buffer];
         if (capturedHudlessInfo != nullptr && !capturedHudlessInfo->enabled)
