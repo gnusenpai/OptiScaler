@@ -3163,7 +3163,8 @@ bool MenuCommon::RenderMenu()
                         ImGui::TableNextColumn();
 
                         PopulateCombo("FG Input", config->FGInput, inputOptions);
-                        ShowTooltip("The data source to be used for FG");
+                        ShowTooltip("The data source to be used for FG\n"
+                                    "The native FG which the game supports");
 
                         ImGui::TableNextColumn();
 
@@ -3210,7 +3211,7 @@ bool MenuCommon::RenderMenu()
                         fgOutput)
                     {
                         ImGui::Checkbox("Show Detected UI", &state.FGHudlessCompare);
-                        ShowHelpMarker("Needs Hudless texture to compare with final image.\n"
+                        ShowHelpMarker("Needs HUDless texture to compare with final image.\n"
                                        "UI elements and ONLY UI elements should have a pink tint!");
 
                         const auto isUsingUIAny = fgOutput->IsUsingUIAny();
@@ -3223,7 +3224,7 @@ bool MenuCommon::RenderMenu()
                             config->FGDrawUIOverFG = drawUIOverFG;
                         }
                         ShowHelpMarker("Draws UI resource over the final image\n"
-                                       "If no UI visible enable this!");
+                                       "If no UI visible, enable this!");
 
                         ImGui::EndDisabled();
 
@@ -3236,7 +3237,7 @@ bool MenuCommon::RenderMenu()
                         {
                             config->FGUIPremultipliedAlpha = uiPremultipliedAlpha;
                         }
-                        ShowHelpMarker("If UI is too faint disable this option");
+                        ShowHelpMarker("If UI is too faint, disable this option");
 
                         ImGui::EndDisabled();
                     }
@@ -3277,12 +3278,12 @@ bool MenuCommon::RenderMenu()
                                 bool disableHudless = config->FGDisableHudless.value_or_default();
                                 ImGui::BeginDisabled(!isUsingHudlessAny && !disableHudless);
 
-                                if (ImGui::Checkbox("Disable hudless", &disableHudless))
+                                if (ImGui::Checkbox("Disable HUDless", &disableHudless))
                                 {
                                     config->FGDisableHudless = disableHudless;
                                 }
 
-                                ShowHelpMarker("For when the game sends Hudless, but you want to disable it");
+                                ShowHelpMarker("For when the game sends HUDless, but you want to disable it");
 
                                 ImGui::EndDisabled();
 
@@ -3303,7 +3304,7 @@ bool MenuCommon::RenderMenu()
                                                "Maybe some other games might need too");
 
                                 bool hudlessValidNow = config->FGHudlessValidNow.value_or_default();
-                                if (ImGui::Checkbox("Hudless as ValidNow", &hudlessValidNow))
+                                if (ImGui::Checkbox("HUDless as ValidNow", &hudlessValidNow))
                                     config->FGHudlessValidNow = hudlessValidNow;
 
                                 ShowHelpMarker("Will use more VRAM, but some games might need this");
@@ -3311,10 +3312,10 @@ bool MenuCommon::RenderMenu()
                                 ImGui::SameLine(0.0f, 16.0f);
 
                                 bool firstHudless = config->FGOnlyAcceptFirstHudless.value_or_default();
-                                if (ImGui::Checkbox("Accept First Hudless", &firstHudless))
+                                if (ImGui::Checkbox("Accept First HUDless", &firstHudless))
                                     config->FGOnlyAcceptFirstHudless = firstHudless;
 
-                                ShowHelpMarker("If source tags more than one Hudless only use the first one");
+                                ShowHelpMarker("If source tags more than one HUDless, only use the first one");
 
                                 if (bool skipReset = config->FGSkipReset.value_or_default();
                                     ImGui::Checkbox("Skip Reset", &skipReset))
@@ -3749,7 +3750,9 @@ bool MenuCommon::RenderMenu()
                         if (ImGui::Checkbox("UI Composition", &fgCompositeUI))
                             config->FGXeFGUIComposition = fgCompositeUI;
 
-                        ShowHelpMarker("Instead of interpolation\nComposite the UI");
+                        ShowHelpMarker("Disable HUD/UI interpolation\n"
+                                       "Reverts back to previous XeFG 2 behaviour\n\n"
+                                       "Fixes artifacting transparent HUD/UI");
                         ImGui::EndDisabled();
 
                         bool fgDV = config->FGXeFGDebugView.value_or_default();
@@ -3773,7 +3776,7 @@ bool MenuCommon::RenderMenu()
                             config->FGXeFGForceBorderless = fgBorderless;
 
                         ShowHelpMarker("Forces Borderless display mode\n\n"
-                                       "For best results set fullscreen \n"
+                                       "For best results, set fullscreen \n"
                                        "resolution to your display resolution\n"
                                        "Might cause some instability issues.\n\n"
                                        "NEEDS GAME RESTART TO BE ACTIVE!");
