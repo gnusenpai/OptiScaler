@@ -2058,13 +2058,13 @@ bool MenuCommon::RenderMenu()
 
                     const auto& rangeInNs = timingData[TimingType::TimeRange].value().length;
 
-                    UINT64 frameCount = 0;
+                    UINT64 localFrameCount = 0;
 
                     if (fg != nullptr)
-                        frameCount = fg->FrameCount();
+                        localFrameCount = fg->FrameCount();
 
-                    ImGui::Text("Reflex timings, whole frame: %.1fms, FGId: %llu, RfxId: %llu", rangeInNs / 1000.0,
-                                frameCount, state.reflexFrameId);
+                    ImGui::Text("FGId: %llu, RfxId: %llu", localFrameCount, state.reflexFrameId);
+                    ImGui::Text("Reflex timings, whole frame: %.1fms", rangeInNs / 1000.0);
 
                     const auto maxWidth =
                         config->FpsOverlayHorizontal.value_or_default() ? ImGui::GetWindowWidth() : plotSize.x;
