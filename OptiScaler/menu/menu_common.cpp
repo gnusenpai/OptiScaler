@@ -3245,6 +3245,9 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::PopItemWidth();
 
+                        ShowHelpMarker("Select source for frametime\n"
+                                       "Might help frame pacing and stutter issues");
+
                         const auto isUsingUIAny = fgOutput->IsUsingUIAny();
 
                         ImGui::BeginDisabled(!isUsingUIAny);
