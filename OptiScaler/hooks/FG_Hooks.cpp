@@ -521,25 +521,28 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         }
     }
 
-    for (UINT i = 0; i < 8; i++)
+    if (State::Instance().activeFgOutput == FGOutput::XeFG)
     {
-        ID3D12Resource* backBuffer = nullptr;
-        auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+        for (UINT i = 0; i < 8; i++)
+        {
+            ID3D12Resource* backBuffer = nullptr;
+            auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
 
-        if (bbResult == S_OK)
-        {
-            LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
-            auto refCount = backBuffer->Release();
-            while (refCount > 1)
+            if (bbResult == S_OK)
             {
-                LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
-                refCount = backBuffer->Release();
+                LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
+                auto refCount = backBuffer->Release();
+                while (refCount > 1)
+                {
+                    LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
+                    refCount = backBuffer->Release();
+                }
             }
-        }
-        else
-        {
-            LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
-            break;
+            else
+            {
+                LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
+                break;
+            }
         }
     }
 
@@ -750,25 +753,28 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
         }
     }
 
-    for (UINT i = 0; i < 8; i++)
+    if (State::Instance().activeFgOutput == FGOutput::XeFG)
     {
-        ID3D12Resource* backBuffer = nullptr;
-        auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+        for (UINT i = 0; i < 8; i++)
+        {
+            ID3D12Resource* backBuffer = nullptr;
+            auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
 
-        if (bbResult == S_OK)
-        {
-            LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
-            auto refCount = backBuffer->Release();
-            while (refCount > 1)
+            if (bbResult == S_OK)
             {
-                LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
-                refCount = backBuffer->Release();
+                LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
+                auto refCount = backBuffer->Release();
+                while (refCount > 1)
+                {
+                    LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
+                    refCount = backBuffer->Release();
+                }
             }
-        }
-        else
-        {
-            LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
-            break;
+            else
+            {
+                LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
+                break;
+            }
         }
     }
 
