@@ -521,6 +521,28 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         }
     }
 
+    for (UINT i = 0; i < 8; i++)
+    {
+        ID3D12Resource* backBuffer = nullptr;
+        auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+
+        if (bbResult == S_OK)
+        {
+            LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
+            auto refCount = backBuffer->Release();
+            while (refCount > 1)
+            {
+                LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
+                refCount = backBuffer->Release();
+            }
+        }
+        else
+        {
+            LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
+            break;
+        }
+    }
+
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
     {
         if (Config::Instance()->FGXeFGForceBorderless.value_or_default())
@@ -725,6 +747,28 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
             // Max 5 sec
             auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
             LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
+        }
+    }
+
+    for (UINT i = 0; i < 8; i++)
+    {
+        ID3D12Resource* backBuffer = nullptr;
+        auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+
+        if (bbResult == S_OK)
+        {
+            LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
+            auto refCount = backBuffer->Release();
+            while (refCount > 1)
+            {
+                LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
+                refCount = backBuffer->Release();
+            }
+        }
+        else
+        {
+            LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
+            break;
         }
     }
 
