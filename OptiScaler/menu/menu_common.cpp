@@ -3213,41 +3213,6 @@ bool MenuCommon::RenderMenu()
                         ShowHelpMarker("Needs Hudless texture to compare with final image.\n"
                                        "UI elements and ONLY UI elements should have a pink tint!");
 
-                        ImGui::SameLine(0.0f, 16.0f);
-
-                        const char* ftSources[] = { "Input", "Opti", "Zero" };
-                        const char* ftSourceInfos[] = { "Uses frametimes provided by\nDLSSG or FSR-FG ",
-                                                        "Uses frametimes calculated by Opti",
-                                                        "Uses 0 to let XeFG handle" };
-
-                        auto currentSet = (int) config->FTInput.value_or_default();
-                        auto currentSourceCount = state.activeFgOutput == FGOutput::XeFG ? 3 : 2;
-
-                        ImGui::PushItemWidth(105.0f * menuResScale);
-
-                        if (ImGui::BeginCombo("FT Input", ftSources[currentSet]))
-                        {
-                            for (size_t i = 0; i < currentSourceCount; i++)
-                            {
-
-                                if (ImGui::Selectable(ftSources[i], currentSet == i))
-                                {
-                                    LOG_DEBUG("FTInput has changed {} -> {}", ftSources[currentSet], ftSources[i]);
-                                    config->FTInput = (FrameTimeSource) i;
-                                }
-
-                                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                                    ImGui::SetTooltip(ftSourceInfos[i]);
-                            }
-
-                            ImGui::EndCombo();
-                        }
-
-                        ImGui::PopItemWidth();
-
-                        ShowHelpMarker("Select source for frametime\n"
-                                       "Might help frame pacing and stutter issues");
-
                         const auto isUsingUIAny = fgOutput->IsUsingUIAny();
 
                         ImGui::BeginDisabled(!isUsingUIAny);
@@ -3322,7 +3287,7 @@ bool MenuCommon::RenderMenu()
                                 ImGui::EndDisabled();
 
                                 bool depthValidNow = config->FGDepthValidNow.value_or_default();
-                                if (ImGui::Checkbox("Set Depth as ValidNow", &depthValidNow))
+                                if (ImGui::Checkbox("Depth as ValidNow", &depthValidNow))
                                     config->FGDepthValidNow = depthValidNow;
 
                                 ShowHelpMarker("Will use more VRAM, but Uniscaler needs this\n"
@@ -3331,14 +3296,14 @@ bool MenuCommon::RenderMenu()
                                 ImGui::SameLine(0.0f, 16.0f);
 
                                 bool velocityValidNow = config->FGVelocityValidNow.value_or_default();
-                                if (ImGui::Checkbox("Set Velocity as ValidNow", &velocityValidNow))
+                                if (ImGui::Checkbox("Velocity as ValidNow", &velocityValidNow))
                                     config->FGVelocityValidNow = velocityValidNow;
 
                                 ShowHelpMarker("Will use more VRAM, but Uniscaler needs this\n"
                                                "Maybe some other games might need too");
 
                                 bool hudlessValidNow = config->FGHudlessValidNow.value_or_default();
-                                if (ImGui::Checkbox("Set Hudless as ValidNow", &hudlessValidNow))
+                                if (ImGui::Checkbox("Hudless as ValidNow", &hudlessValidNow))
                                     config->FGHudlessValidNow = hudlessValidNow;
 
                                 ShowHelpMarker("Will use more VRAM, but some games might need this");
@@ -3346,7 +3311,7 @@ bool MenuCommon::RenderMenu()
                                 ImGui::SameLine(0.0f, 16.0f);
 
                                 bool firstHudless = config->FGOnlyAcceptFirstHudless.value_or_default();
-                                if (ImGui::Checkbox("Only Accept First Hudless", &firstHudless))
+                                if (ImGui::Checkbox("Accept First Hudless", &firstHudless))
                                     config->FGOnlyAcceptFirstHudless = firstHudless;
 
                                 ShowHelpMarker("If source tags more than one Hudless only use the first one");
@@ -3361,12 +3326,10 @@ bool MenuCommon::RenderMenu()
 
                                 ImGui::EndDisabled();
 
-                                ImGui::SameLine(0.0f, 16.0f);
-
-                                ImGui::PushItemWidth(95.0f * menuResScale);
+                                ImGui::PushItemWidth(80.0f * menuResScale);
 
                                 auto frameAhead = config->FGAllowedFrameAhead.value_or_default();
-                                if (ImGui::InputInt("Allowed Frame Ahead", &frameAhead, 1, 1) && frameAhead > 0 &&
+                                if (ImGui::InputInt("Frame Ahead", &frameAhead, 1, 1) && frameAhead > 0 &&
                                     frameAhead < 4)
                                 {
                                     config->FGAllowedFrameAhead = frameAhead;
@@ -3376,6 +3339,42 @@ bool MenuCommon::RenderMenu()
                                                "Might prevent FG on/off switching, but also might cause issues");
 
                                 ImGui::PopItemWidth();
+
+                                ImGui::SameLine(0.0f, 16.0f);
+
+                                const char* ftSources[] = { "Input", "Opti", "Zero" };
+                                const char* ftSourceInfos[] = { "Uses frametimes provided by\nDLSSG or FSR-FG ",
+                                                                "Uses frametimes calculated by Opti",
+                                                                "Let XeFG to handle frametimes" };
+
+                                auto currentSet = (int) config->FTInput.value_or_default();
+                                auto currentSourceCount = state.activeFgOutput == FGOutput::XeFG ? 3 : 2;
+
+                                ImGui::PushItemWidth(95.0f * menuResScale);
+
+                                if (ImGui::BeginCombo("FT Input", ftSources[currentSet]))
+                                {
+                                    for (size_t i = 0; i < currentSourceCount; i++)
+                                    {
+
+                                        if (ImGui::Selectable(ftSources[i], currentSet == i))
+                                        {
+                                            LOG_DEBUG("FTInput has changed {} -> {}", ftSources[currentSet],
+                                                      ftSources[i]);
+                                            config->FTInput = (FrameTimeSource) i;
+                                        }
+
+                                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                                            ImGui::SetTooltip(ftSourceInfos[i]);
+                                    }
+
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::PopItemWidth();
+
+                                ShowHelpMarker("Select source for frametime\n"
+                                               "Might help frame pacing and stutter issues");
                             }
                         }
                     }
