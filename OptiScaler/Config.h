@@ -398,6 +398,7 @@ class Config
 
     // NVAPI Override
     CustomOptional<bool> OverrideNvapiDll { false };
+    CustomOptional<bool> DontUseFakenvapiForXeLLOnNvidia { false };
     CustomOptional<std::wstring, NoDefault> NvapiDllPath;
     CustomOptional<bool> DisableFlipMetering { false };
 

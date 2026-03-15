@@ -91,7 +91,7 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
 bool fakenvapi::updateModeAndContext()
 {
     if (!isUsingFakenvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
-        (!Config::Instance()->OverrideNvapiDll.has_value() || Config::Instance()->OverrideNvapiDll.value()))
+        !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
     {
         auto loaded = fakenvapi::loadForNvidia();
     }
@@ -133,7 +133,7 @@ bool fakenvapi::updateModeAndContext()
 bool fakenvapi::setModeAndContext(void* context, Mode mode)
 {
     if (!isUsingFakenvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
-        (!Config::Instance()->OverrideNvapiDll.has_value() || Config::Instance()->OverrideNvapiDll.value()))
+        !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
     {
         auto loaded = fakenvapi::loadForNvidia();
     }
