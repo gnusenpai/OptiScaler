@@ -57,7 +57,7 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
         _lastFrameTime = now;
         State::Instance().presentFrameTime = ftDelta;
 
-        if (State::Instance().currentFG != nullptr)
+        if (State::Instance().currentFG == nullptr)
             State::Instance().lastFGFrameTime = ftDelta;
 
         LOG_DEBUG("SyncInterval: {}, Flags: {:X}, Frametime: {:0.3f} ms", SyncInterval, Flags, ftDelta);

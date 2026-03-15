@@ -964,7 +964,7 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
         double ftDelta = 0.0f;
         auto now = Util::MillisecondsNow();
 
-        if (_lastFGFrameTime != 0)
+        if (_lastFGFrameTime > 0.0)
             ftDelta = now - _lastFGFrameTime;
 
         _lastFGFrameTime = now;
