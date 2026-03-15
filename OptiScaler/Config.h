@@ -420,7 +420,7 @@ class Config
     CustomOptional<bool> UESpoofIntelAtomics64 { false };
     CustomOptional<bool> SpoofRegistry { false };
     CustomOptional<bool> SpoofUser32 { false };
-    CustomOptional<std::wstring> SpoofedDriver { L"32.0.15.7302" };
+    CustomOptional<std::wstring> SpoofedDriver { L"32.0.15.9155" };
 
     // Plugins
     CustomOptional<std::wstring> PluginPath { L"plugins" };
@@ -441,6 +441,11 @@ class Config
     CustomOptional<bool> FGVelocityValidNow { false };
     CustomOptional<bool> FGHudlessValidNow { false };
     CustomOptional<bool> FGOnlyAcceptFirstHudless { false };
+    CustomOptional<bool> FGPreserveSwapChain { true };
+    CustomOptional<bool> FGSkipResizeBuffers { true };
+    CustomOptional<bool> FGModifyBufferState { false };
+    CustomOptional<bool> FGModifySCIndex { false };
+    CustomOptional<FrameTimeSource> FTInput { FrameTimeSource::Input };
 
     // OptiFG
     CustomOptional<bool> FGEnabled { false };
@@ -508,12 +513,6 @@ class Config
     CustomOptional<bool> FGXeFGHighResMV { false };
     CustomOptional<bool> FGXeFGDebugView { false };
     CustomOptional<bool> FGXeFGForceBorderless { false };
-
-    // FG
-    CustomOptional<bool> FGPreserveSwapChain { true };
-    CustomOptional<bool> FGSkipResizeBuffers { true };
-    CustomOptional<bool> FGModifyBufferState { false };
-    CustomOptional<bool> FGModifySCIndex { false };
 
     // fakenvapi
     CustomOptional<bool> FN_EnableLogs { true };

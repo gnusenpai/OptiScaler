@@ -533,7 +533,11 @@ bool FSRFG_Dx12::Dispatch()
         dfgPrepare.cameraFar = _cameraFar[fIndex];
         dfgPrepare.cameraNear = _cameraNear[fIndex];
         dfgPrepare.cameraFovAngleVertical = _cameraVFov[fIndex];
-        dfgPrepare.frameTimeDelta = static_cast<float>(state.lastFGFrameTime); // _ftDelta[fIndex];
+
+        dfgPrepare.frameTimeDelta = config->FTInput.value_or_default() == FrameTimeSource::Input
+                                        ? (float) _ftDelta[fIndex]
+                                        : static_cast<float>(state.lastFGFrameTime);
+
         dfgPrepare.viewSpaceToMetersFactor = _meterFactor[fIndex];
 
         retCode = FfxApiProxy::D3D12_Dispatch(&_fgContext, &dfgPrepare.header);

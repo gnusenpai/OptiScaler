@@ -3207,6 +3207,38 @@ bool MenuCommon::RenderMenu()
                         ShowHelpMarker("Needs Hudless texture to compare with final image.\n"
                                        "UI elements and ONLY UI elements should have a pink tint!");
 
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        const char* ftSources[] = { "Input", "Opti", "Zero" };
+                        const char* ftSourceInfos[] = { "Uses frametimes provided by\nDLSSG or FSR-FG ",
+                                                        "Uses frametimes calculated by Opti",
+                                                        "Uses 0 to let XeFG handle" };
+
+                        auto currentSet = (int) config->FTInput.value_or_default();
+                        auto currentSourceCount = state.activeFgOutput == FGOutput::XeFG ? 3 : 2;
+
+                        ImGui::PushItemWidth(105.0f * menuResScale);
+
+                        if (ImGui::BeginCombo("FT Input", ftSources[currentSet]))
+                        {
+                            for (size_t i = 0; i < currentSourceCount; i++)
+                            {
+
+                                if (ImGui::Selectable(ftSources[i], currentSet == i))
+                                {
+                                    LOG_DEBUG("FTInput has changed {} -> {}", ftSources[currentSet], ftSources[i]);
+                                    config->FTInput = (FrameTimeSource) i;
+                                }
+
+                                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                                    ImGui::SetTooltip(ftSourceInfos[i]);
+                            }
+
+                            ImGui::EndCombo();
+                        }
+
+                        ImGui::PopItemWidth();
+
                         const auto isUsingUIAny = fgOutput->IsUsingUIAny();
 
                         ImGui::BeginDisabled(!isUsingUIAny);

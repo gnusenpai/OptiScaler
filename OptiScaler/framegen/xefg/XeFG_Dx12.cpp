@@ -867,9 +867,24 @@ bool XeFG_Dx12::Dispatch()
     else
         constData.resetHistory = false;
 
-    constData.frameRenderTime = static_cast<float>(state.lastFGFrameTime);
+    switch (Config::Instance()->FTInput.value_or_default())
+    {
+    case FrameTimeSource::Input:
+        constData.frameRenderTime = (float) _ftDelta[fIndex];
+        break;
 
-    LOG_DEBUG("Reset: {}, FTDelta: {}", _reset[fIndex], constData.frameRenderTime);
+    case FrameTimeSource::Opti:
+        constData.frameRenderTime = static_cast<float>(state.lastFGFrameTime);
+        break;
+
+    case FrameTimeSource::Zero:
+        constData.frameRenderTime = 0.0f;
+        break;
+    }
+
+    LOG_DEBUG("Reset: {}, Opti FT: {}, Source FT: {}, Set FT: {}, Opti Id: {}, Reflex Id: {}", _reset[fIndex],
+              constData.frameRenderTime, _ftDelta[fIndex], constData.frameRenderTime, _frameCount,
+              State::Instance().reflexFrameId);
 
     auto frameId = static_cast<uint32_t>(willDispatchFrame);
 
