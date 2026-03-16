@@ -23,6 +23,9 @@ inline static UINT64 resizeFenceValue = 0;
 inline static HANDLE resizeFenceEvent = nullptr;
 inline static bool readyToRelease = false;
 inline static IUnknown* oldSwapChain = nullptr;
+inline static std::vector<void*> oldBackBuffers;
+
+#define XEFG_RESOURCE_REF_LIMIT 1
 
 static bool CheckForFGStatus()
 {
@@ -521,32 +524,6 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         }
     }
 
-    // Release swapchain backbuffers to prevent errors when resizing
-    if (State::Instance().activeFgOutput == FGOutput::XeFG)
-    {
-        for (UINT i = 0; i < 8; i++)
-        {
-            ID3D12Resource* backBuffer = nullptr;
-            auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
-
-            if (bbResult == S_OK)
-            {
-                LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
-                auto refCount = backBuffer->Release();
-                while (refCount > 1)
-                {
-                    LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
-                    refCount = backBuffer->Release();
-                }
-            }
-            else
-            {
-                LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
-                break;
-            }
-        }
-    }
-
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
     {
         if (Config::Instance()->FGXeFGForceBorderless.value_or_default())
@@ -655,6 +632,35 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
 
     _skipResize1 = true;
 
+    // Release swapchain backbuffers to prevent errors when resizing
+    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+    {
+        for (UINT i = 0; i < 8; i++)
+        {
+            ID3D12Resource* backBuffer = nullptr;
+            auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+
+            if (bbResult == S_OK)
+            {
+                LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
+                auto refCount = backBuffer->Release();
+                while (refCount > XEFG_RESOURCE_REF_LIMIT)
+                {
+                    LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
+                    refCount = backBuffer->Release();
+                }
+
+                if (XEFG_RESOURCE_REF_LIMIT == 0)
+                    oldBackBuffers.push_back(backBuffer);
+            }
+            else
+            {
+                LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
+                break;
+            }
+        }
+    }
+
     HRESULT result;
     {
         ScopedSkipSpoofing skipSpoofing {};
@@ -751,32 +757,6 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
             // Max 5 sec
             auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
             LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
-        }
-    }
-
-    // Release swapchain backbuffers to prevent errors when resizing
-    if (State::Instance().activeFgOutput == FGOutput::XeFG)
-    {
-        for (UINT i = 0; i < 8; i++)
-        {
-            ID3D12Resource* backBuffer = nullptr;
-            auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
-
-            if (bbResult == S_OK)
-            {
-                LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
-                auto refCount = backBuffer->Release();
-                while (refCount > 1)
-                {
-                    LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
-                    refCount = backBuffer->Release();
-                }
-            }
-            else
-            {
-                LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
-                break;
-            }
         }
     }
 
@@ -882,6 +862,35 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
         State::Instance().FGchanged = true;
         fg->UpdateTarget();
         fg->Deactivate();
+    }
+
+    // Release swapchain backbuffers to prevent errors when resizing
+    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+    {
+        for (UINT i = 0; i < 8; i++)
+        {
+            ID3D12Resource* backBuffer = nullptr;
+            auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+
+            if (bbResult == S_OK)
+            {
+                LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
+                auto refCount = backBuffer->Release();
+                while (refCount > XEFG_RESOURCE_REF_LIMIT)
+                {
+                    LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
+                    refCount = backBuffer->Release();
+                }
+
+                if (XEFG_RESOURCE_REF_LIMIT == 0)
+                    oldBackBuffers.push_back(backBuffer);
+            }
+            else
+            {
+                LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
+                break;
+            }
+        }
     }
 
     HRESULT result;
@@ -1126,6 +1135,16 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
         return 0;
     }
 
+    // find if this resource in oldBackBuffers, if it is, skip release and return 0
+    for (auto it = oldBackBuffers.begin(); it != oldBackBuffers.end(); ++it)
+    {
+        if (*it == This)
+        {
+            LOG_DEBUG("Release called on old backbuffer, skipping release and returning 0");
+            return 0;
+        }
+    }
+
     static bool skipReleaseChecks = false;
 
     if (skipReleaseChecks || State::Instance().currentFGSwapchain != This || State::Instance().isShuttingDown)
@@ -1168,11 +1187,14 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
                     {
                         LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
                         auto refCount = backBuffer->Release();
-                        while (refCount > 1)
+                        while (refCount > XEFG_RESOURCE_REF_LIMIT)
                         {
                             LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
                             refCount = backBuffer->Release();
                         }
+
+                        if (XEFG_RESOURCE_REF_LIMIT == 0)
+                            oldBackBuffers.push_back(backBuffer);
                     }
                     else
                     {
