@@ -132,7 +132,8 @@ static const QuirkEntry quirkTable[] = {
     // Crapcom Games, DLSS without dxgi spoofing needs restore compute in those
     //
     // Kunitsu-Gami: Path of the Goddess, Monster Hunter Wilds, MONSTER HUNTER RISE, Dead Rising Deluxe Remaster
-    // (including the demo), Dragon's Dogma 2, Pragmata Demo, Resident Evil Requiem
+    // (including the demo), Dragon's Dogma 2, Pragmata Demo, Resident Evil Requiem, Monster Hunter Stories 3: Twisted
+    // Reflection
     QUIRK_ENTRY("kunitsugami.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("kunitsugamidemo.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
@@ -145,6 +146,8 @@ static const QuirkEntry quirkTable[] = {
                 GameQuirk::AllowedFrameAhead2),
     QUIRK_ENTRY("re9.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
                 GameQuirk::RestoreComputeSigOnNvidia),
+    QUIRK_ENTRY("monster_hunter_stories_3_twisted_reflection.exe", GameQuirk::RestoreComputeSigOnNonNvidia,
+                GameQuirk::DisableDxgiSpoofing, GameQuirk::RestoreComputeSigOnNvidia),
 
     // Cyberpunk 2077
     // SL spoof enough to unlock everything DLSS
