@@ -521,6 +521,7 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         }
     }
 
+    // Release swapchain backbuffers to prevent errors when resizing
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
     {
         for (UINT i = 0; i < 8; i++)
@@ -753,6 +754,7 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
         }
     }
 
+    // Release swapchain backbuffers to prevent errors when resizing
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
     {
         for (UINT i = 0; i < 8; i++)
@@ -1151,6 +1153,32 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
                     // Max 5 sec
                     auto waitResult = WaitForSingleObject(resizeFenceEvent, 5000);
                     LOG_DEBUG("WaitForSingleObject result: {:X}", waitResult);
+                }
+            }
+
+            // Release swapchain backbuffers to prevent errors when releasing FG swapchain
+            if (State::Instance().activeFgOutput == FGOutput::XeFG)
+            {
+                for (UINT i = 0; i < 8; i++)
+                {
+                    ID3D12Resource* backBuffer = nullptr;
+                    auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+
+                    if (bbResult == S_OK)
+                    {
+                        LOG_DEBUG("Backbuffer {}: {:X}", i, (size_t) backBuffer);
+                        auto refCount = backBuffer->Release();
+                        while (refCount > 1)
+                        {
+                            LOG_DEBUG("Releasing backbuffer {}: RefCount {}", i, refCount);
+                            refCount = backBuffer->Release();
+                        }
+                    }
+                    else
+                    {
+                        LOG_DEBUG("GetBuffer failed for index {}: {:X}", i, (UINT) bbResult);
+                        break;
+                    }
                 }
             }
 
