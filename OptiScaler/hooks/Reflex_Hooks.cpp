@@ -71,6 +71,8 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
         _dlssgDetected = false;
 
     State::Instance().rtssReflexInjection = pSetLatencyMarkerParams->frameID >> 32;
+
+    // TODO: reflexFrameId gets constantly changed, up and down depending on the marker
     State::Instance().reflexFrameId = pSetLatencyMarkerParams->frameID;
 
     if (State::Instance().gameQuirks & GameQuirk::HitmanReflexHacks)
