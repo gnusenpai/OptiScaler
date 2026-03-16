@@ -18,14 +18,17 @@
 
 #include <d3d12.h>
 
+#define XEFG_RESOURCE_REF_LIMIT 1
+
 inline static ID3D12Fence* resizeFence = nullptr;
 inline static UINT64 resizeFenceValue = 0;
 inline static HANDLE resizeFenceEvent = nullptr;
 inline static bool readyToRelease = false;
 inline static IUnknown* oldSwapChain = nullptr;
-inline static std::vector<void*> oldBackBuffers;
 
-#define XEFG_RESOURCE_REF_LIMIT 1
+#if (XEFG_RESOURCE_REF_LIMIT == 0)
+inline static std::vector<void*> oldBackBuffers;
+#endif
 
 static bool CheckForFGStatus()
 {
@@ -650,8 +653,9 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
                     refCount = backBuffer->Release();
                 }
 
-                if (XEFG_RESOURCE_REF_LIMIT == 0)
-                    oldBackBuffers.push_back(backBuffer);
+#if (XEFG_RESOURCE_REF_LIMIT == 0)
+                oldBackBuffers.push_back(backBuffer);
+#endif
             }
             else
             {
@@ -882,8 +886,9 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
                     refCount = backBuffer->Release();
                 }
 
-                if (XEFG_RESOURCE_REF_LIMIT == 0)
-                    oldBackBuffers.push_back(backBuffer);
+#if (XEFG_RESOURCE_REF_LIMIT == 0)
+                oldBackBuffers.push_back(backBuffer);
+#endif
             }
             else
             {
@@ -1135,15 +1140,20 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
         return 0;
     }
 
+#if (XEFG_RESOURCE_REF_LIMIT == 0)
     // find if this resource in oldBackBuffers, if it is, skip release and return 0
-    for (auto it = oldBackBuffers.begin(); it != oldBackBuffers.end(); ++it)
+    if (oldBackBuffers.size() > 0)
     {
-        if (*it == This)
+        for (auto it = oldBackBuffers.begin(); it != oldBackBuffers.end(); ++it)
         {
-            LOG_DEBUG("Release called on old backbuffer, skipping release and returning 0");
-            return 0;
+            if (*it == This)
+            {
+                LOG_DEBUG("Release called on old backbuffer, skipping release and returning 0");
+                return 0;
+            }
         }
     }
+#endif // (XEFG_RESOURCE_REF_LIMIT == 0)
 
     static bool skipReleaseChecks = false;
 
@@ -1193,8 +1203,9 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
                             refCount = backBuffer->Release();
                         }
 
-                        if (XEFG_RESOURCE_REF_LIMIT == 0)
-                            oldBackBuffers.push_back(backBuffer);
+#if (XEFG_RESOURCE_REF_LIMIT == 0)
+                        oldBackBuffers.push_back(backBuffer);
+#endif
                     }
                     else
                     {
