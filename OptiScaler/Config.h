@@ -411,9 +411,8 @@ class Config
     CustomOptional<bool> VulkanUseCopyForOutput { false };
 
     // NVAPI Override
-    CustomOptional<bool> OverrideNvapiDll { false };
+    CustomOptional<bool> UseFakenvapi { true };
     CustomOptional<bool> DontUseFakenvapiForXeLLOnNvidia { false };
-    CustomOptional<std::wstring, NoDefault> NvapiDllPath;
     CustomOptional<bool> DisableFlipMetering { false };
 
     // Spoofing

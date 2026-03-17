@@ -354,16 +354,16 @@ void ReflexHooks::update(bool optiFg_FgState, bool isVulkan)
     if (isVulkan)
     {
         // optiFg_FgState doesn't matter for vulkan
-        // isUsingFakenvapi() because fakenvapi might override the reflex' setting and we don't know it
-        State::Instance().reflexLimitsFps = fakenvapi::isUsingFakenvapi() || _lastVkSleepParams.bLowLatencyMode;
+        // isUsingAsMainNvapi() because fakenvapi might override the reflex' setting and we don't know it
+        State::Instance().reflexLimitsFps = fakenvapi::isUsingAsMainNvapi() || _lastVkSleepParams.bLowLatencyMode;
     }
     else
     {
         // Don't use when: Real Reflex markers + OptiFG + Reflex disabled, causes huge input latency
         State::Instance().reflexLimitsFps =
-            fakenvapi::isUsingFakenvapi() || !optiFg_FgState || _lastSleepParams.bLowLatencyMode;
+            fakenvapi::isUsingAsMainNvapi() || !optiFg_FgState || _lastSleepParams.bLowLatencyMode;
         State::Instance().reflexShowWarning = State::Instance().activeFgOutput != FGOutput::XeFG &&
-                                              !fakenvapi::isUsingFakenvapi() && optiFg_FgState &&
+                                              !fakenvapi::isUsingAsMainNvapi() && optiFg_FgState &&
                                               _lastSleepParams.bLowLatencyMode;
     }
 
@@ -372,7 +372,8 @@ void ReflexHooks::update(bool optiFg_FgState, bool isVulkan)
     //
     // Wait for fakenvapi to be merged into Opti for better integration
     //
-    // if (State::Instance().reflexLimitsFps && (fakenvapi::isUsingFakenvapi() || fakenvapi::isUsingFakenvapiOnNvidia())
+    // if (State::Instance().reflexLimitsFps && (fakenvapi::isUsingAsMainNvapi() ||
+    // fakenvapi::isUsingFakenvapiOnNvidia())
     // &&
     //    Config::Instance()->FN_ForceReflex.value_or_default() == 1)
     //{
@@ -408,7 +409,7 @@ void ReflexHooks::update(bool optiFg_FgState, bool isVulkan)
     }
 
     if ((optiFg_FgState && State::Instance().activeFgOutput == FGOutput::FSRFG) ||
-        (_dlssgDetected && fakenvapi::isUsingFakenvapi()))
+        (_dlssgDetected && fakenvapi::isUsingAsMainNvapi()))
         currentFps /= 2;
 
     if (currentFps != lastFps)

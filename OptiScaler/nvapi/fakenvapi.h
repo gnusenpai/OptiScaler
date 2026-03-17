@@ -13,6 +13,7 @@ class fakenvapi
         bool enabled;
     } antilag2_data;
 
+    inline static bool _usingFakenvapiAsMainNvapi = false;
     inline static bool _initedForNvidia = false;
     inline static void* _lowLatencyContext = nullptr;
     inline static LowLatencyMode _lowLatencyMode = LowLatencyMode::LatencyFlex;
@@ -46,6 +47,7 @@ class fakenvapi
     static bool setModeAndContext(void* context, LowLatencyMode mode);
     static bool loadForNvidia();
     static LowLatencyMode getCurrentMode();
-    static bool isUsingFakenvapi();
+    static bool isUsingAsMainNvapi();
+    static void setUsingAsMainNvapi(bool usingAsMain);
     static bool isUsingFakenvapiOnNvidia();
 };

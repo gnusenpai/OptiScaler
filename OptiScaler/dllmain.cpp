@@ -1364,9 +1364,9 @@ static void CheckQuirks()
         Config::Instance()->SpoofRegistry.set_volatile_value(true);
     }
 
-    if (quirks & GameQuirk::DisableFakenvapi && !Config::Instance()->OverrideNvapiDll.has_value())
+    if (quirks & GameQuirk::DisableFakenvapi && !Config::Instance()->UseFakenvapi.has_value())
     {
-        Config::Instance()->OverrideNvapiDll.set_volatile_value(false);
+        Config::Instance()->UseFakenvapi.set_volatile_value(false);
     }
 
     if (quirks & GameQuirk::DoNotPreserveFGSwapChain && !Config::Instance()->FGPreserveSwapChain.has_value())
@@ -1769,17 +1769,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         // Hook FSR4 stuff as early as possible
         spdlog::info("");
         InitFSR4Update();
-
-        if (!Config::Instance()->OverrideNvapiDll.has_value())
-        {
-            spdlog::info("OverrideNvapiDll not set, setting it to: {}",
-                         !State::Instance().isRunningOnNvidia ? "true" : "false");
-            Config::Instance()->OverrideNvapiDll.set_volatile_value(!State::Instance().isRunningOnNvidia);
-
-            // Try to load fakenvapi.dll as the main nvapi if not on Nvidia
-            if (!State::Instance().isRunningOnNvidia && !Config::Instance()->NvapiDllPath.has_value())
-                Config::Instance()->NvapiDllPath.set_volatile_value(L"fakenvapi.dll");
-        }
 
         // Asi plugins
         if (State::Instance().workingMode != WorkingMode::Nvngx &&

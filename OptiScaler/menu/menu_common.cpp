@@ -4471,7 +4471,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // FAKENVAPI ---------------------------
-                if (fakenvapi::isUsingFakenvapi())
+                if (fakenvapi::isUsingAsMainNvapi())
                 {
                     ImGui::SeparatorText("fakenvapi");
 

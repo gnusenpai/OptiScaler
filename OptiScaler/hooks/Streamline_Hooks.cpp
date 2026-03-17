@@ -355,7 +355,7 @@ uint32_t StreamlineHooks::getSystemCapsArch()
 {
     uint32_t highestArch = 0;
 
-    if (!fakenvapi::isUsingFakenvapi() && State::Instance().isRunningOnNvidia)
+    if (!fakenvapi::isUsingAsMainNvapi() && State::Instance().isRunningOnNvidia)
     {
         if (State::Instance().streamlineVersion.major > 1)
         {
@@ -401,7 +401,7 @@ void StreamlineHooks::setArch(uint32_t arch)
                 systemCaps->adapters[i].vendor = VendorId::Nvidia;
             }
 
-            if (fakenvapi::isUsingFakenvapi() || !State::Instance().isRunningOnNvidia)
+            if (fakenvapi::isUsingAsMainNvapi() || !State::Instance().isRunningOnNvidia)
                 systemCaps->driverVersionMajor = 999;
 
             systemCaps->hwsSupported = true;
@@ -414,7 +414,7 @@ void StreamlineHooks::setArch(uint32_t arch)
             for (uint32_t i = 0; i < systemCapsSl15->gpuCount; i++)
                 systemCapsSl15->architecture[i] = arch;
 
-            if (fakenvapi::isUsingFakenvapi() || !State::Instance().isRunningOnNvidia)
+            if (fakenvapi::isUsingAsMainNvapi() || !State::Instance().isRunningOnNvidia)
                 systemCapsSl15->driverVersionMajor = 999;
 
             systemCapsSl15->hwSchedulingEnabled = true;
@@ -449,7 +449,7 @@ void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature)
 
     else if (feature == sl::kFeatureReflex || feature == sl::kFeaturePCL)
     {
-        if (fakenvapi::isUsingFakenvapi())
+        if (fakenvapi::isUsingAsMainNvapi())
             return setArch(maxArch);
     }
 }

@@ -575,9 +575,8 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // NvApi
         {
-            OverrideNvapiDll.set_from_config(readBool("NvApi", "OverrideNvapiDll"));
+            UseFakenvapi.set_from_config(readBool("NvApi", "UseFakenvapi"));
             DontUseFakenvapiForXeLLOnNvidia.set_from_config(readBool("NvApi", "DontUseFakenvapiForXeLLOnNvidia"));
-            NvapiDllPath.set_from_config(readWString("NvApi", "NvapiDllPath", true));
             DisableFlipMetering.set_from_config(readBool("NvApi", "DisableFlipMetering"));
         }
 
@@ -1227,12 +1226,9 @@ bool Config::SaveIni()
 
     // NvApi
     {
-        ini.SetValue("NvApi", "OverrideNvapiDll",
-                     GetBoolValue(Instance()->OverrideNvapiDll.value_for_config()).c_str());
+        ini.SetValue("NvApi", "UseFakenvapi", GetBoolValue(Instance()->UseFakenvapi.value_for_config()).c_str());
         ini.SetValue("NvApi", "DontUseFakenvapiForXeLLOnNvidia",
                      GetBoolValue(Instance()->DontUseFakenvapiForXeLLOnNvidia.value_for_config()).c_str());
-        ini.SetValue("NvApi", "NvapiDllPath",
-                     wstring_to_string(Instance()->NvapiDllPath.value_for_config_or(L"auto")).c_str());
         ini.SetValue("NvApi", "DisableFlipMetering",
                      GetBoolValue(Instance()->DisableFlipMetering.value_for_config()).c_str());
     }

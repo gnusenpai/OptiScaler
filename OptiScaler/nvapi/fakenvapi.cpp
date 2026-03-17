@@ -72,6 +72,8 @@ static NVAPI_INTERFACE_TABLE fakenvapi_interface_table[] = {
     { "Fake_GetLowLatencyCtx", 0x21412141 }, { "Fake_SetLowLatencyCtx", 0x21422142 }
 };
 
+extern "C" __declspec(dllexport) void* nvapi_QueryInterface(NvU32 id) { return fakenvapi::queryInterface(id); }
+
 void* __cdecl fakenvapi::queryInterface(NvU32 id)
 {
     auto entry = idToFuncMapping.find(id);
@@ -197,7 +199,7 @@ void* __cdecl fakenvapi::queryInterface(NvU32 id)
 // Inform AntiLag 2 when present of interpolated frames starts
 void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool frame_interpolated)
 {
-    if (!isUsingFakenvapi())
+    if (!isUsingAsMainNvapi())
         return;
 
     // Lets fakenvapi log and reset correctly
@@ -246,13 +248,13 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
 
 bool fakenvapi::updateModeAndContext()
 {
-    if (!isUsingFakenvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
+    if (!isUsingAsMainNvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
         !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
     {
         auto loaded = fakenvapi::loadForNvidia();
     }
 
-    if (!isUsingFakenvapi() && !isUsingFakenvapiOnNvidia())
+    if (!isUsingAsMainNvapi() && !isUsingFakenvapiOnNvidia())
         return false;
 
     LOG_FUNC();
@@ -288,13 +290,13 @@ bool fakenvapi::updateModeAndContext()
 
 bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
 {
-    if (!isUsingFakenvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
+    if (!isUsingAsMainNvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
         !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
     {
         auto loaded = fakenvapi::loadForNvidia();
     }
 
-    if (!isUsingFakenvapi() && !isUsingFakenvapiOnNvidia())
+    if (!isUsingAsMainNvapi() && !isUsingFakenvapiOnNvidia())
         return false;
 
     LOG_FUNC();
@@ -354,7 +356,8 @@ bool fakenvapi::loadForNvidia()
 // updateModeAndContext needs to be called before that
 LowLatencyMode fakenvapi::getCurrentMode() { return _lowLatencyMode; }
 
-// TODO: remove
-bool fakenvapi::isUsingFakenvapi() { return true; }
+bool fakenvapi::isUsingAsMainNvapi() { return _usingFakenvapiAsMainNvapi; }
+
+void fakenvapi::setUsingAsMainNvapi(bool usingAsMain) { _usingFakenvapiAsMainNvapi = usingAsMain; }
 
 bool fakenvapi::isUsingFakenvapiOnNvidia() { return _initedForNvidia; }

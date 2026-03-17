@@ -18,7 +18,7 @@ void tonvss(NvAPI_ShortString nvss, std::string str);
 
 #define INSERT_AND_RETURN_WHEN_EQUALS(method)                                                                          \
     if (std::string(it->func) == #method)                                                                              \
-        return idToFuncMapping.insert({ id, (void*) nvapi_calls::method }).first->second;
+        return fakenvapi::idToFuncMapping.insert({ id, (void*) nvapi_calls::method }).first->second;
 
 static inline uint64_t get_timestamp()
 {

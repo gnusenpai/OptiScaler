@@ -84,11 +84,8 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_DRS_GetSetting(NvDRSSessionHandle hSe
 
 void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
 {
-    // TODO: make configurable
-    constexpr bool useFakenvapi = true;
-
     if (!o_NvAPI_QueryInterface)
-        if (useFakenvapi)
+        if (Config::Instance()->UseFakenvapi.value_or_default())
             o_NvAPI_QueryInterface = (PFN_NvApi_QueryInterface) fakenvapi::queryInterface;
         else
             return nullptr;
