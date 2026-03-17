@@ -33,11 +33,11 @@ void fakenvapi::init()
         vulkan_module = LoadLibraryA("vulkan-1.dll");
         if (!vulkan_module)
         {
-            spdlog::warn("Failed to load vulkan-1.dll");
+            LOG_WARN("Failed to load vulkan-1.dll");
         }
         else
         {
-            spdlog::info("vulkan-1.dll loaded");
+            LOG_INFO("vulkan-1.dll loaded");
         }
     }
 
@@ -101,7 +101,7 @@ void* __cdecl fakenvapi::queryInterface(NvU32 id)
 
     if (it == std::end(extended_interface_table))
     {
-        spdlog::debug("NvAPI_QueryInterface (0x{:x}): Unknown interface ID", id);
+        LOG_DEBUG("NvAPI_QueryInterface (0x{:x}): Unknown interface ID", id);
         return idToFuncMapping.insert({ id, nullptr }).first->second;
     }
 
@@ -184,7 +184,7 @@ void* __cdecl fakenvapi::queryInterface(NvU32 id)
     INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLowLatencyCtx)
     INSERT_AND_RETURN_WHEN_EQUALS(Fake_SetLowLatencyCtx)
 
-    spdlog::debug("{}: not implemented, placeholder given", it->func);
+    LOG_DEBUG("{}: not implemented, placeholder given", it->func);
     return idToFuncMapping.insert({ id, (void*) placeholder }).first->second;
     // return registry.insert({ id, nullptr }).first->second;
 }

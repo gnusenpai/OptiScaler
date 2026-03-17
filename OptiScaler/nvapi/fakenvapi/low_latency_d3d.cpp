@@ -20,7 +20,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             currently_active_tech = new AntiLag2();
             if (currently_active_tech->init_using_ctx(forced_low_latency_context))
             {
-                spdlog::info("LowLatency algo: AntiLag 2 (via context)");
+                LOG_INFO("LowLatency algo: AntiLag 2 (via context)");
                 active_tech_mutex.unlock();
                 return true;
             }
@@ -32,7 +32,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             currently_active_tech = new XeLL();
             if (currently_active_tech->init_using_ctx(forced_low_latency_context))
             {
-                spdlog::info("LowLatency algo: XeLL (via context)");
+                LOG_INFO("LowLatency algo: XeLL (via context)");
                 active_tech_mutex.unlock();
                 return true;
             }
@@ -45,7 +45,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             currently_active_tech = new AntiLag2();
             if (currently_active_tech->init(pDevice))
             {
-                spdlog::info("LowLatency algo: AntiLag 2");
+                LOG_INFO("LowLatency algo: AntiLag 2");
                 active_tech_mutex.unlock();
                 return true;
             }
@@ -55,7 +55,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             currently_active_tech = new XeLL();
             if (currently_active_tech->init(pDevice))
             {
-                spdlog::info("LowLatency algo: XeLL");
+                LOG_INFO("LowLatency algo: XeLL");
                 active_tech_mutex.unlock();
                 return true;
             }
@@ -66,7 +66,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
         currently_active_tech = new LatencyFlex();
         if (currently_active_tech->init(pDevice))
         {
-            spdlog::info("LowLatency algo: LatencyFlex");
+            LOG_INFO("LowLatency algo: LatencyFlex");
             active_tech_mutex.unlock();
             return true;
         }
@@ -83,7 +83,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
     {
         if (!deinit_current_tech())
         {
-            spdlog::error("Couldn't deinitialize low latency tech");
+            LOG_ERROR("Couldn't deinitialize low latency tech");
             return false;
         }
         return update_low_latency_tech(pDevice);
@@ -115,7 +115,7 @@ void LowLatency::get_latency_result(NV_LATENCY_RESULT_PARAMS* pGetLatencyParams)
 {
     if (pGetLatencyParams->version != NV_LATENCY_RESULT_PARAMS_VER1)
     {
-        spdlog::error("GetLatency: Unsupported version {}", pGetLatencyParams->version);
+        LOG_ERROR("GetLatency: Unsupported version {}", pGetLatencyParams->version);
         return;
     }
 
@@ -123,7 +123,7 @@ void LowLatency::get_latency_result(NV_LATENCY_RESULT_PARAMS* pGetLatencyParams)
     if (frame_reports[FRAME_REPORTS_BUFFER_SIZE - 1].frameID == 0)
     {
         std::memset(pGetLatencyParams->frameReport, 0, sizeof(pGetLatencyParams->frameReport));
-        spdlog::warn("GetLatency: Not enough data to report");
+        //spdlog::warn("GetLatency: Not enough data to report");
         return;
     }
 
@@ -264,7 +264,7 @@ NvAPI_Status LowLatency::SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARA
 
     currently_active_tech->set_marker(pDev, &marker_params);
 
-    spdlog::trace("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
+    LOG_TRACE_FAKENVAPI("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
     return NVAPI_OK;
 }
@@ -310,7 +310,7 @@ NvAPI_Status LowLatency::SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue,
 
     currently_active_tech->set_async_marker(&marker_params);
 
-    spdlog::trace("Async {}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
+    LOG_TRACE_FAKENVAPI("Async {}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
     return NVAPI_OK;
 }

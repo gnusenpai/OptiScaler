@@ -12,7 +12,7 @@ HRESULT AL2Proxy::hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void
 
     if (riid == IID_IAmdExtAntiLagApi && !disableAl2Kill)
     {
-        spdlog::info("Killing native AL2");
+        LOG_INFO("Killing native AL2");
         return E_NOINTERFACE;
     }
 
@@ -30,7 +30,7 @@ void AL2Proxy::hookAntiLag()
 
         if (o_AmdExtD3DCreateInterface)
         {
-            spdlog::info("AmdExtD3DCreateInterface hooked");
+            LOG_INFO("AmdExtD3DCreateInterface hooked");
 
             DetourTransactionBegin();
             DetourUpdateThread(GetCurrentThread());

@@ -13,14 +13,14 @@ bool Init()
         IDXGIFactory1* factory = nullptr;
         if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**) &factory)))
         {
-            spdlog::error("Failed to create DXGI Factory");
+            LOG_ERROR("Failed to create DXGI Factory");
             return false;
         }
 
         IDXGIAdapter1* adapter = nullptr;
         if (FAILED(factory->EnumAdapters1(0, &adapter)))
         {
-            spdlog::error("Failed to enumerate adapters");
+            LOG_ERROR("Failed to enumerate adapters");
             factory->Release();
             return false;
         }
@@ -28,7 +28,7 @@ bool Init()
         DXGI_ADAPTER_DESC1 adapter_desc;
         if (FAILED(adapter->GetDesc1(&adapter_desc)))
         {
-            spdlog::error("Failed to get adapter description");
+            LOG_ERROR("Failed to get adapter description");
             adapter->Release();
             factory->Release();
             return false;
@@ -133,7 +133,7 @@ NvAPI_Status __cdecl NvAPI_GetPhysicalGPUsFromLogicalGPU(NvLogicalGpuHandle hLog
 NvAPI_Status __cdecl NvAPI_GetErrorMessage(NvAPI_Status status, NvAPI_ShortString szMsg)
 {
     std::string error = from_error_nr(status);
-    spdlog::error("NvAPI_GetErrorMessage gave this error: {}", error);
+    LOG_ERROR("NvAPI_GetErrorMessage gave this error: {}", error);
     tonvss(szMsg, error);
     return OK();
 }
@@ -593,16 +593,16 @@ static bool ConvertBuildRaytracingAccelerationStructureInputs(
                 break;
             case NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES_EX: // GetRaytracingCaps reports no OMM caps, we
                                                                         // shouldn't reach this
-                spdlog::error(
+                LOG_ERROR(
                     "Triangles with OMM attachment passed to acceleration structure build when OMM is not supported");
                 return false;
             case NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_DMM_TRIANGLES_EX: // GetRaytracingCaps reports no DMM caps, we
                                                                         // shouldn't reach this
-                spdlog::error(
+                LOG_ERROR(
                     "Triangles with DMM attachment passed to acceleration structure build when DMM is not supported");
                 return false;
             default:
-                spdlog::error("Unknown NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_EX");
+                LOG_ERROR("Unknown NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_EX");
                 return false;
             }
         }
@@ -799,14 +799,14 @@ NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSP
 NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId,
                                           NVDRS_SETTING* pSetting)
 {
-    spdlog::debug("Missing get setting: {}", settingId);
+    LOG_DEBUG("Missing get setting: {}", settingId);
     return OK();
 }
 
 NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile,
                                           NVDRS_SETTING* pSetting)
 {
-    spdlog::debug("Missing set setting: {}", pSetting->settingId);
+    LOG_DEBUG("Missing set setting: {}", pSetting->settingId);
     return OK();
 }
 

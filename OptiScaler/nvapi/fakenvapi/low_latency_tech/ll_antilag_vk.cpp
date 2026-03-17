@@ -7,7 +7,7 @@ bool AntiLagVk::init(IUnknown* pDevice) { return FnVulkanHooks::o_vkAntiLagUpdat
 // Unsupported
 bool AntiLagVk::init_using_ctx(void* context)
 {
-    spdlog::error("AntiLagVk init_using_ctx is not supported");
+    LOG_ERROR("AntiLagVk init_using_ctx is not supported");
     inited_using_context = false;
     return false;
 }
@@ -75,7 +75,7 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 
         if (FnVulkanHooks::o_vkAntiLagUpdateAMD)
         {
-            spdlog::trace("AntiLag Input: {}, status: {}", marker_params->frame_id, is_enabled());
+            LOG_TRACE_FAKENVAPI("AntiLag Input: {}, status: {}", marker_params->frame_id, is_enabled());
 
             FnVulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataInput);
         }
@@ -98,7 +98,7 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 
         if (FnVulkanHooks::o_vkAntiLagUpdateAMD)
         {
-            spdlog::trace("AntiLag Present: {}, status: {}", marker_params->frame_id, is_enabled());
+            LOG_TRACE_FAKENVAPI("AntiLag Present: {}, status: {}", marker_params->frame_id, is_enabled());
 
             FnVulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataPresent);
         }

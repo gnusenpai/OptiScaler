@@ -12,13 +12,13 @@ static bool spoof_intel = false;
 
 HRESULT STDMETHODCALLTYPE hk_GetDesc1(IDXGIAdapter1* pThis, DXGI_ADAPTER_DESC1* pDesc)
 {
-    spdlog::debug("GetDesc1 called");
+    LOG_DEBUG("GetDesc1 called");
 
     HRESULT hr = o_GetDesc1(pThis, pDesc);
 
     if (SUCCEEDED(hr) && spoof_intel)
     {
-        spdlog::debug("GetDesc1 spoofing Intel");
+        LOG_DEBUG("GetDesc1 spoofing Intel");
 
         pDesc->VendorId = 0x8086;
         pDesc->DeviceId = 0x56A0;

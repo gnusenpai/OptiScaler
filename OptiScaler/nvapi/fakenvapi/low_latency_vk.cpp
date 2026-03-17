@@ -19,7 +19,7 @@ bool LowLatency::update_low_latency_tech(HANDLE vkDevice)
             currently_active_tech = new AntiLagVk();
             if (currently_active_tech->init(nullptr))
             {
-                spdlog::info("LowLatency algo: AntiLag Vulkan");
+                LOG_INFO("LowLatency algo: AntiLag Vulkan");
                 active_tech_mutex.unlock();
                 return true;
             }
@@ -30,7 +30,7 @@ bool LowLatency::update_low_latency_tech(HANDLE vkDevice)
         currently_active_tech = new LatencyFlex();
         if (currently_active_tech->init(nullptr))
         {
-            spdlog::info("LowLatency algo: LatencyFlex");
+            LOG_INFO("LowLatency algo: LatencyFlex");
             active_tech_mutex.unlock();
             return true;
         }
@@ -51,7 +51,7 @@ bool LowLatency::update_low_latency_tech(HANDLE vkDevice)
         }
         else
         {
-            spdlog::error("Couldn't deinitialize low latency tech");
+            LOG_ERROR("Couldn't deinitialize low latency tech");
             return false;
         }
     }
@@ -63,7 +63,7 @@ void LowLatency::get_latency_result(NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatency
 {
     if (pGetLatencyParams->version != NV_VULKAN_LATENCY_RESULT_PARAMS_VER1)
     {
-        spdlog::error("GetLatency: Unsupported version {}", pGetLatencyParams->version);
+        LOG_ERROR("GetLatency: Unsupported version {}", pGetLatencyParams->version);
         return;
     }
 
@@ -71,7 +71,7 @@ void LowLatency::get_latency_result(NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatency
     if (frame_reports[FRAME_REPORTS_BUFFER_SIZE - 1].frameID == 0)
     {
         std::memset(pGetLatencyParams->frameReport, 0, sizeof(pGetLatencyParams->frameReport));
-        spdlog::warn("GetLatency: Not enough data to report");
+        //spdlog::warn("GetLatency: Not enough data to report");
         return;
     }
 
@@ -218,7 +218,7 @@ NvAPI_Status LowLatency::SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MAR
     // This cast is not ideal as it needs to be cast to VkDevice while knowing it's vulkan
     currently_active_tech->set_marker((IUnknown*) vkDevice, &marker_params);
 
-    spdlog::trace("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
+    LOG_TRACE_FAKENVAPI("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
     return NVAPI_OK;
 }

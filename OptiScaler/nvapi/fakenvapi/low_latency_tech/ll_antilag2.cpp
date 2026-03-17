@@ -16,7 +16,7 @@ inline HRESULT AntiLag2::al2_sleep()
     //     uint64_t frame_time = current_time - previous_frame_time;
     //     if (frame_time < 1000 * minimum_interval_us) {
     //         if (auto res = eepy(minimum_interval_us * 1000 - frame_time); res)
-    //             spdlog::error("Sleep command failed: {}", res);
+    //             LOG_ERROR("Sleep command failed: {}", res);
     //     }
     //     previous_frame_time = get_timestamp();
     // } else {
@@ -35,7 +35,7 @@ inline HRESULT AntiLag2::al2_sleep()
 
     // log_event("al2_sleep", "{}", get_timestamp() - pre_sleep);
 
-    spdlog::trace("AntiLag 2 Call Spot: {}",
+    LOG_TRACE_FAKENVAPI("AntiLag 2 Call Spot: {}",
                   current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
 
     return result;
@@ -71,12 +71,12 @@ bool AntiLag2::init(IUnknown* pDevice)
             AL2Proxy::disableAl2Kill = false;
             if (init_return == S_OK)
             {
-                spdlog::info("AntiLag 2 DX12 initialized");
+                LOG_INFO("AntiLag 2 DX12 initialized");
                 return true;
             }
             else
             {
-                spdlog::info("AntiLag 2 DX12 initialization failed");
+                LOG_INFO("AntiLag 2 DX12 initialization failed");
             }
         }
         else
@@ -84,18 +84,18 @@ bool AntiLag2::init(IUnknown* pDevice)
             HRESULT init_return = AMD::AntiLag2DX11::Initialize(&dx11_ctx);
             if (init_return == S_OK)
             {
-                spdlog::info("AntiLag 2 DX11 initialized");
+                LOG_INFO("AntiLag 2 DX11 initialized");
                 return true;
             }
             else
             {
-                spdlog::info("AntiLag 2 DX11 initialization failed");
+                LOG_INFO("AntiLag 2 DX11 initialization failed");
             }
         }
     }
     else
     {
-        spdlog::warn("Initialization of AntiLag 2 was attempted while the context is not null");
+        LOG_WARN("Initialization of AntiLag 2 was attempted while the context is not null");
     }
 
     return false;
@@ -106,7 +106,7 @@ bool AntiLag2::init_using_ctx(void* context)
 {
     if (!context)
     {
-        spdlog::error("AntiLag 2 init_using_ctx called with null context");
+        LOG_ERROR("AntiLag 2 init_using_ctx called with null context");
         return false;
     }
 
@@ -116,7 +116,7 @@ bool AntiLag2::init_using_ctx(void* context)
     if (dx12_ctx.m_pAntiLagAPI)
     {
         inited_using_context = true;
-        spdlog::info("AntiLag 2 DX12 initialized using existing context");
+        LOG_INFO("AntiLag 2 DX12 initialized using existing context");
         return true;
     }
 
@@ -130,7 +130,7 @@ void AntiLag2::deinit()
 
     if (inited_using_context)
     {
-        spdlog::info("AntiLag 2 DX12 deinit called while inited using context, skipping deinitialization");
+        LOG_INFO("AntiLag 2 DX12 deinit called while inited using context, skipping deinitialization");
         inited_using_context = false;
         return;
     }
@@ -146,10 +146,10 @@ void AntiLag2::deinit()
     }
 
     if (dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&dx12_ctx))
-        spdlog::info("AntiLag 2 DX12 deinitialized");
+        LOG_INFO("AntiLag 2 DX12 deinitialized");
 
     if (dx11_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX11::DeInitialize(&dx11_ctx))
-        spdlog::info("AntiLag 2 DX11 deinitialized");
+        LOG_INFO("AntiLag 2 DX11 deinitialized");
 }
 
 void* AntiLag2::get_tech_context()

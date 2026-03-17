@@ -20,7 +20,7 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id)
 
     if (needs_reset)
     {
-        spdlog::info("LFX Reset");
+        LOG_INFO("LFX Reset");
         eepy(200000000ULL);
         frame_id = 1;
         needs_reset = false;
@@ -63,14 +63,14 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id)
         }
         // log_event("lfx_sleep", "{}", timestamp - current_timestamp);
         if (auto res = eepy(timestamp - current_timestamp); res)
-            spdlog::error("Sleep command failed: {}", res);
+            LOG_ERROR("Sleep command failed: {}", res);
     }
     else
     {
         timestamp = current_timestamp;
     }
 
-    spdlog::trace("LatencyFlex Call Spot: {}",
+    LOG_TRACE_FAKENVAPI("LatencyFlex Call Spot: {}",
                   current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
 
     mutex.lock();
@@ -94,7 +94,7 @@ void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id)
     if (ctx)
         ctx->EndFrame(frame_id, current_timestamp, &latency, &frame_time);
     mutex.unlock();
-    spdlog::trace("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time, current_timestamp);
+    LOG_TRACE_FAKENVAPI("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time, current_timestamp);
 }
 
 bool LatencyFlex::init(IUnknown* pDevice)
@@ -102,18 +102,18 @@ bool LatencyFlex::init(IUnknown* pDevice)
     if (!ctx)
     {
         ctx = new lfx::LatencyFleX();
-        spdlog::info("LatencyFleX initialized");
+        LOG_INFO("LatencyFleX initialized");
         return true;
     }
 
-    spdlog::error("LatencyFleX already initialized, this should not happen");
+    LOG_ERROR("LatencyFleX already initialized, this should not happen");
     return false;
 };
 
 // Unsupported
 bool LatencyFlex::init_using_ctx(void* context)
 {
-    spdlog::error("LatencyFleX init_using_ctx is not supported");
+    LOG_ERROR("LatencyFleX init_using_ctx is not supported");
     inited_using_context = false;
     return false;
 }
@@ -126,7 +126,7 @@ void LatencyFlex::deinit()
     {
         delete ctx;
         ctx = nullptr;
-        spdlog::info("LatencyFlex deinitialized");
+        LOG_INFO("LatencyFlex deinitialized");
     }
 
     deinit_mutex.unlock();

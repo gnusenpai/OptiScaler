@@ -15,7 +15,7 @@ PFN_vkAntiLagUpdateAMD FnVulkanHooks::o_vkAntiLagUpdateAMD = nullptr;
 VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo,
                                          const VkAllocationCallbacks* pAllocator, VkDevice* pDevice)
 {
-    spdlog::debug("hkvkCreateDevice");
+    LOG_DEBUG("hkvkCreateDevice");
 
     std::vector<const char*> extensions(pCreateInfo->ppEnabledExtensionNames,
                                         pCreateInfo->ppEnabledExtensionNames + pCreateInfo->enabledExtensionCount);
@@ -37,7 +37,7 @@ VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevi
         if (antiLagFeatures.antiLag)
         {
             antiLagSupported = true;
-            spdlog::info("Adding AntiLag extension");
+            LOG_INFO("Adding AntiLag extension");
             extensions.push_back(VK_AMD_ANTI_LAG_EXTENSION_NAME);
         }
     }
@@ -61,14 +61,14 @@ VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevi
     }
     else
     {
-        spdlog::info("Vulkan AntiLag can't be enabled");
+        LOG_INFO("Vulkan AntiLag can't be enabled");
     }
 
     return result;
 }
 void FnVulkanHooks::hook_vulkan(HMODULE vulkanModule)
 {
-    spdlog::debug("Trying to hook Vulkan");
+    LOG_DEBUG("Trying to hook Vulkan");
 
     o_vkCreateDevice = (PFN_vkCreateDevice) GetProcAddress(vulkanModule, "vkCreateDevice");
     o_vkGetPhysicalDeviceFeatures2 =

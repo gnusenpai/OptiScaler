@@ -15,7 +15,7 @@ void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
 {
     if (!sent_sleep_frame_ids[frame_id % 64])
     {
-        spdlog::debug("Skipping reporting {} for XeLL because sleep wasn't sent for frame id: {}",
+        LOG_DEBUG("Skipping reporting {} for XeLL because sleep wasn't sent for frame id: {}",
                       magic_enum::enum_name(marker), frame_id);
         return;
     }
@@ -33,42 +33,50 @@ bool XeLL::init(IUnknown* pDevice)
     if (hr != S_OK)
         return false;
 
-    return XeLLProxy::CreateContext(dx12_pDevice);
+    auto result = XeLLProxy::CreateContext(dx12_pDevice);
+
+    if (result)
+        XellHooks::blockExternalContexts(true);
+
+    return result;
 }
 
 bool XeLL::init_using_ctx(void* context)
 {
     if (!XeLLProxy::InitXeLL())
     {
-        spdlog::error("XeLL init_using_ctx failed to load libxell.dll");
+        LOG_ERROR("XeLL init_using_ctx failed to load libxell.dll");
         return false;
     }
 
     if (!XeLLProxy::Context())
     {
-        spdlog::error("XeLL handed over to fakenvapi but the context is null");
+        LOG_ERROR("XeLL handed over to fakenvapi but the context is null");
         return false;
     }
 
     // Context is handled and held inside XeLLProxy
     inited_using_context = true;
-    spdlog::info("XeLL initialized using existing context: {:X}", (uint64_t) XeLLProxy::Context());
+    XellHooks::blockExternalContexts(true);
+    LOG_INFO("XeLL initialized using existing context: {:X}", (uint64_t) XeLLProxy::Context());
 
     return true;
 }
 
 void XeLL::deinit()
 {
+    XellHooks::blockExternalContexts(false);
+
     if (inited_using_context)
     {
         // Let XeFG handle the context as XeLL can't be destroyed before XeFG
-        spdlog::info("XeLL deinit called while inited using context, skipping deinitialization");
+        LOG_INFO("XeLL deinit called while inited using context, skipping deinitialization");
         inited_using_context = false;
     }
     else
     {
         XeLLProxy::DestroyXeLLContext();
-        spdlog::info("XeLL deinitialized");
+        LOG_INFO("XeLL deinitialized");
     }
 }
 
