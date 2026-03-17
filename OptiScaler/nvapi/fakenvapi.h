@@ -14,7 +14,7 @@ class fakenvapi
     } antilag2_data;
 
     inline static bool _usingFakenvapiAsMainNvapi = false;
-    inline static bool _initedForNvidia = false;
+    inline static bool _usingOnNvidia = false;
     inline static void* _lowLatencyContext = nullptr;
     inline static LowLatencyMode _lowLatencyMode = LowLatencyMode::LatencyFlex;
     inline static HMODULE _dllForNvidia = nullptr;
@@ -45,9 +45,10 @@ class fakenvapi
     static void reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool frame_interpolated);
     static bool updateModeAndContext();
     static bool setModeAndContext(void* context, LowLatencyMode mode);
-    static bool loadForNvidia();
     static LowLatencyMode getCurrentMode();
+
     static bool isUsingAsMainNvapi();
     static void setUsingAsMainNvapi(bool usingAsMain);
-    static bool isUsingFakenvapiOnNvidia();
+    static bool isUsingOnNvidia();
+    static void setUsingOnNvidia(bool usingOnNvidia);
 };

@@ -322,8 +322,8 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="hooks\FG_Hooks.h" />
     <ClInclude Include="hooks\LibraryLoad_Hooks.h" />
     <ClInclude Include="hooks\CommandBuffer_StateTracker.h" />
+    <ClInclude Include="hooks\Xell_Hooks.h" />
     <ClInclude Include="nvapi\fakenvapi\al2_proxy.h" />
-    <ClInclude Include="nvapi\fakenvapi\fakexell.h" />
     <ClInclude Include="nvapi\fakenvapi\fn_util.h" />
     <ClInclude Include="nvapi\fakenvapi\fn_vulkan_hooks.h" />
     <ClInclude Include="nvapi\fakenvapi\log.h" />
@@ -566,11 +566,11 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="hooks\Kernel_Hooks.cpp" />
     <ClCompile Include="hooks\LibraryLoad_Hooks.cpp" />
     <ClCompile Include="hooks\VulkanwDx12_Hooks.cpp" />
+    <ClCompile Include="hooks\Xell_Hooks.cpp" />
     <ClCompile Include="inputs\FSR2_Dx11.cpp" />
     <ClCompile Include="inputs\FSR2_Vk.cpp" />
     <ClCompile Include="inputs\XeSS_Dx11.cpp" />
     <ClCompile Include="nvapi\fakenvapi\al2_proxy.cpp" />
-    <ClCompile Include="nvapi\fakenvapi\fakexell.cpp" />
     <ClCompile Include="nvapi\fakenvapi\fn_util.cpp" />
     <ClCompile Include="nvapi\fakenvapi\fn_vulkan_hooks.cpp" />
     <ClCompile Include="nvapi\fakenvapi\log.cpp" />

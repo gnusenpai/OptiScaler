@@ -6,7 +6,6 @@
 #include "fakenvapi.h"
 #include "NvApiTypes.h"
 #include "fakenvapi/nvapi_calls.h"
-#include "fakenvapi/fakexell.h"
 #include "fakenvapi/al2_proxy.h"
 #include "fakenvapi/fn_vulkan_hooks.h"
 
@@ -19,7 +18,6 @@ std::unordered_map<NvU32, void*> fakenvapi::idToFuncMapping;
 void fakenvapi::init()
 {
     LowLatencyCtx::init();
-    LowLatencyCtxXell::init();
 
     auto exe_path = State::Instance().GameExe;
     to_lower_in_place(exe_path);
@@ -51,9 +49,7 @@ void fakenvapi::init()
 void fakenvapi::deinit()
 {
     LowLatencyCtx::get()->deinit_current_tech();
-    LowLatencyCtxXell::get()->deinit_current_tech();
     LowLatencyCtx::shutdown();
-    LowLatencyCtxXell::shutdown();
 }
 
 // names from: https://github.com/SveSop/nvapi_standalone/blob/master/dlls/nvapi/nvapi.c
@@ -66,11 +62,10 @@ static NVAPI_INTERFACE_TABLE additional_interface_table[] = { { "NvAPI_Diag_Repo
                                                               { "NvAPI_SK_4", 0xdf0dfcdd },
                                                               { "NvAPI_SK_5", 0x932ac8fb } };
 
-static NVAPI_INTERFACE_TABLE fakenvapi_interface_table[] = {
-    { "Fake_GetLatency", 0x21372137 },       { "Fake_InformFGState", 0x21382138 },
-    { "Fake_InformPresentFG", 0x21392139 },  { "Fake_GetAntiLagCtx", 0x21402140 },
-    { "Fake_GetLowLatencyCtx", 0x21412141 }, { "Fake_SetLowLatencyCtx", 0x21422142 }
-};
+static NVAPI_INTERFACE_TABLE fakenvapi_interface_table[] = { { "Fake_InformFGState", 0x21382138 },
+                                                             { "Fake_InformPresentFG", 0x21392139 },
+                                                             { "Fake_GetLowLatencyCtx", 0x21412141 },
+                                                             { "Fake_SetLowLatencyCtx", 0x21422142 } };
 
 extern "C" __declspec(dllexport) void* nvapi_QueryInterface(NvU32 id) { return fakenvapi::queryInterface(id); }
 
@@ -184,10 +179,8 @@ void* __cdecl fakenvapi::queryInterface(NvU32 id)
     INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_4)
     INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_5)
     INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
-    INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLatency)
     INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformFGState)
     INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformPresentFG)
-    INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetAntiLagCtx)
     INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLowLatencyCtx)
     INSERT_AND_RETURN_WHEN_EQUALS(Fake_SetLowLatencyCtx)
 
@@ -251,41 +244,20 @@ bool fakenvapi::updateModeAndContext()
     if (!isUsingAsMainNvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
         !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
     {
-        auto loaded = fakenvapi::loadForNvidia();
+        setUsingOnNvidia(true);
     }
 
-    if (!isUsingAsMainNvapi() && !isUsingFakenvapiOnNvidia())
+    if (!isUsingAsMainNvapi() && !isUsingOnNvidia())
         return false;
 
     LOG_FUNC();
 
-    if (nvapi_calls::Fake_GetLowLatencyCtx)
-    {
-        auto result = nvapi_calls::Fake_GetLowLatencyCtx(&_lowLatencyContext, &_lowLatencyMode);
+    auto result = nvapi_calls::Fake_GetLowLatencyCtx(&_lowLatencyContext, &_lowLatencyMode);
 
-        if (result != NVAPI_OK)
-            LOG_ERROR("Can't get Low Latency context from fakenvapi");
+    if (result != NVAPI_OK)
+        LOG_ERROR("Can't get Low Latency context from fakenvapi");
 
-        return result == NVAPI_OK;
-    }
-
-    // fallback for older fakenvapi builds
-    if (nvapi_calls::Fake_GetAntiLagCtx)
-    {
-        auto result = nvapi_calls::Fake_GetAntiLagCtx(&_lowLatencyContext);
-
-        if (result != NVAPI_OK)
-            _lowLatencyMode = LowLatencyMode::LatencyFlex;
-        else
-            _lowLatencyMode = LowLatencyMode::AntiLag2;
-
-        return result == NVAPI_OK;
-    }
-
-    _lowLatencyContext = nullptr;
-    _lowLatencyMode = LowLatencyMode::LatencyFlex;
-
-    return false;
+    return result == NVAPI_OK;
 }
 
 bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
@@ -293,64 +265,20 @@ bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
     if (!isUsingAsMainNvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
         !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
     {
-        auto loaded = fakenvapi::loadForNvidia();
+        setUsingOnNvidia(true);
     }
 
-    if (!isUsingAsMainNvapi() && !isUsingFakenvapiOnNvidia())
+    if (!isUsingAsMainNvapi() && !isUsingOnNvidia())
         return false;
 
     LOG_FUNC();
 
-    if (nvapi_calls::Fake_SetLowLatencyCtx)
-    {
-        auto result = nvapi_calls::Fake_SetLowLatencyCtx(context, mode);
+    auto result = nvapi_calls::Fake_SetLowLatencyCtx(context, mode);
 
-        if (result != NVAPI_OK)
-            LOG_ERROR("Can't set Low Latency context from fakenvapi");
+    if (result != NVAPI_OK)
+        LOG_ERROR("Can't set Low Latency context from fakenvapi");
 
-        return result == NVAPI_OK;
-    }
-
-    return false;
-}
-
-bool fakenvapi::loadForNvidia()
-{
-    if (!State::Instance().isRunningOnNvidia)
-        return false;
-
-    if (_dllForNvidia != nullptr)
-        return true;
-
-    _dllForNvidia = NtdllProxy::LoadLibraryExW_Ldr(L"fakenvapi.dll", NULL, 0);
-
-    if (!_dllForNvidia)
-        return false;
-
-    auto queryInterface =
-        (PFN_NvApi_QueryInterface) KernelBaseProxy::GetProcAddress_()(_dllForNvidia, "nvapi_QueryInterface");
-
-    if (queryInterface == nullptr)
-    {
-        _dllForNvidia = nullptr;
-        return false;
-    }
-
-    ForNvidia_SetSleepMode = GET_INTERFACE(NvAPI_D3D_SetSleepMode, queryInterface);
-    ForNvidia_Sleep = GET_INTERFACE(NvAPI_D3D_Sleep, queryInterface);
-    ForNvidia_GetLatency = GET_INTERFACE(NvAPI_D3D_GetLatency, queryInterface);
-    ForNvidia_SetLatencyMarker = GET_INTERFACE(NvAPI_D3D_SetLatencyMarker, queryInterface);
-    ForNvidia_SetAsyncFrameMarker = GET_INTERFACE(NvAPI_D3D12_SetAsyncFrameMarker, queryInterface);
-
-    if (nvapi_calls::Fake_SetLowLatencyCtx)
-    {
-        _initedForNvidia = true;
-        LOG_INFO("fakenvapi initialized for Nvidia");
-        return true;
-    }
-
-    LOG_INFO("Failed to initialize fakenvapi for Nvidia");
-    return false;
+    return result == NVAPI_OK;
 }
 
 // updateModeAndContext needs to be called before that
@@ -360,4 +288,6 @@ bool fakenvapi::isUsingAsMainNvapi() { return _usingFakenvapiAsMainNvapi; }
 
 void fakenvapi::setUsingAsMainNvapi(bool usingAsMain) { _usingFakenvapiAsMainNvapi = usingAsMain; }
 
-bool fakenvapi::isUsingFakenvapiOnNvidia() { return _initedForNvidia; }
+bool fakenvapi::isUsingOnNvidia() { return _usingOnNvidia; }
+
+void fakenvapi::setUsingOnNvidia(bool usingOnNvidia) { _usingOnNvidia = usingOnNvidia; }

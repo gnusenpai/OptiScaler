@@ -4,6 +4,8 @@
 
 inline HRESULT AntiLag2::al2_sleep()
 {
+    std::scoped_lock lock(sleep_mutex);
+
     int max_fps = 0;
 
     // TODO: test more, config for this?
@@ -123,6 +125,9 @@ bool AntiLag2::init_using_ctx(void* context)
 
 void AntiLag2::deinit()
 {
+    // Wait for sleep to finish
+    std::scoped_lock lock(sleep_mutex);
+
     if (inited_using_context)
     {
         spdlog::info("AntiLag 2 DX12 deinit called while inited using context, skipping deinitialization");

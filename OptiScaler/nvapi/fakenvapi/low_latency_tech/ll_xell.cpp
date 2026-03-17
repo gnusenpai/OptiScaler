@@ -2,53 +2,13 @@
 #include "ll_xell.h"
 
 #include <magic_enum.hpp>
-
-bool XeLL::load_dll()
-{
-    if (!xell_dll)
-        xell_dll = LoadLibraryA("libxell.dll");
-
-    o_xellD3D12CreateContext = (decltype(&xellD3D12CreateContext)) GetProcAddress(xell_dll, "xellD3D12CreateContext");
-    o_xellDestroyContext = (decltype(&xellDestroyContext)) GetProcAddress(xell_dll, "xellDestroyContext");
-    o_xellSetSleepMode = (decltype(&xellSetSleepMode)) GetProcAddress(xell_dll, "xellSetSleepMode");
-    o_xellGetSleepMode = (decltype(&xellGetSleepMode)) GetProcAddress(xell_dll, "xellGetSleepMode");
-    o_xellSleep = (decltype(&xellSleep)) GetProcAddress(xell_dll, "xellSleep");
-    o_xellAddMarkerData = (decltype(&xellAddMarkerData)) GetProcAddress(xell_dll, "xellAddMarkerData");
-    o_xellGetVersion = (decltype(&xellGetVersion)) GetProcAddress(xell_dll, "xellGetVersion");
-    o_xellSetLoggingCallback = (decltype(&xellSetLoggingCallback)) GetProcAddress(xell_dll, "xellSetLoggingCallback");
-    o_xellGetFramesReports = (decltype(&xellGetFramesReports)) GetProcAddress(xell_dll, "xellGetFramesReports");
-
-    if (o_xellD3D12CreateContext && o_xellDestroyContext && o_xellSetSleepMode && o_xellGetSleepMode && o_xellSleep &&
-        o_xellAddMarkerData && o_xellGetVersion && o_xellSetLoggingCallback && o_xellGetFramesReports)
-        return true;
-
-    spdlog::info("Couldn't load libxell.dll");
-    return false;
-}
-
-bool XeLL::unload_dll()
-{
-    if (xell_dll)
-        FreeLibrary(xell_dll);
-
-    o_xellD3D12CreateContext = nullptr;
-    o_xellDestroyContext = nullptr;
-    o_xellSetSleepMode = nullptr;
-    o_xellGetSleepMode = nullptr;
-    o_xellSleep = nullptr;
-    o_xellAddMarkerData = nullptr;
-    o_xellGetVersion = nullptr;
-    o_xellSetLoggingCallback = nullptr;
-    o_xellGetFramesReports = nullptr;
-
-    return !xell_dll;
-}
+#include <proxies/XeLL_Proxy.h>
 
 void XeLL::xell_sleep(uint32_t frame_id)
 {
     sent_sleep_frame_ids[frame_id % 64] = true;
 
-    o_xellSleep(ctx, frame_id);
+    XeLLProxy::Sleep()(XeLLProxy::Context(), frame_id);
 }
 
 void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
@@ -60,12 +20,12 @@ void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
         return;
     }
 
-    o_xellAddMarkerData(ctx, frame_id, marker);
+    XeLLProxy::AddMarkerData()(XeLLProxy::Context(), frame_id, marker);
 }
 
 bool XeLL::init(IUnknown* pDevice)
 {
-    if (!load_dll() || !pDevice || ctx)
+    if (!pDevice)
         return false;
 
     ID3D12Device* dx12_pDevice = nullptr;
@@ -73,82 +33,26 @@ bool XeLL::init(IUnknown* pDevice)
     if (hr != S_OK)
         return false;
 
-    auto result = XELL_RESULT_ERROR_UNKNOWN;
-    {
-        ScopedSkipSpoofing forIntel;
-        result = o_xellD3D12CreateContext(dx12_pDevice, &ctx);
-    }
-
-    if (result == XELL_RESULT_SUCCESS && ctx)
-    {
-        o_xellSetLoggingCallback(ctx, XELL_LOGGING_LEVEL_DEBUG,
-                                 [](const char* message, xell_logging_level_t loggingLevel)
-                                 {
-                                     switch (loggingLevel)
-                                     {
-                                     case XELL_LOGGING_LEVEL_DEBUG:
-                                         spdlog::debug("XeLL: {}", message);
-                                         break;
-                                     case XELL_LOGGING_LEVEL_INFO:
-                                         spdlog::info("XeLL: {}", message);
-                                         break;
-                                     case XELL_LOGGING_LEVEL_WARNING:
-                                         spdlog::warn("XeLL: {}", message);
-                                         break;
-                                     case XELL_LOGGING_LEVEL_ERROR:
-                                         spdlog::error("XeLL: {}", message);
-                                         break;
-                                     }
-                                 });
-        spdlog::info("XeLL initialized");
-    }
-    else
-    {
-        spdlog::info("XeLL initialization failed: {}", (int32_t) result);
-        deinit();
-    }
-
-    return result == XELL_RESULT_SUCCESS;
+    return XeLLProxy::CreateContext(dx12_pDevice);
 }
 
 bool XeLL::init_using_ctx(void* context)
 {
-    // XeLL logging won't work
-    if (!load_dll())
+    if (!XeLLProxy::InitXeLL())
     {
         spdlog::error("XeLL init_using_ctx failed to load libxell.dll");
         return false;
     }
 
-    if (!context)
+    if (!XeLLProxy::Context())
     {
-        spdlog::error("XeLL init_using_ctx called with null context");
+        spdlog::error("XeLL handed over to fakenvapi but the context is null");
         return false;
     }
 
-    ctx = reinterpret_cast<xell_context_handle_t>(context);
+    // Context is handled and held inside XeLLProxy
     inited_using_context = true;
-    spdlog::info("XeLL initialized using existing context: {:X}", (uint64_t) ctx);
-
-    o_xellSetLoggingCallback(ctx, XELL_LOGGING_LEVEL_DEBUG,
-                             [](const char* message, xell_logging_level_t loggingLevel)
-                             {
-                                 switch (loggingLevel)
-                                 {
-                                 case XELL_LOGGING_LEVEL_DEBUG:
-                                     spdlog::debug("XeLL: {}", message);
-                                     break;
-                                 case XELL_LOGGING_LEVEL_INFO:
-                                     spdlog::info("XeLL: {}", message);
-                                     break;
-                                 case XELL_LOGGING_LEVEL_WARNING:
-                                     spdlog::warn("XeLL: {}", message);
-                                     break;
-                                 case XELL_LOGGING_LEVEL_ERROR:
-                                     spdlog::error("XeLL: {}", message);
-                                     break;
-                                 }
-                             });
+    spdlog::info("XeLL initialized using existing context: {:X}", (uint64_t) XeLLProxy::Context());
 
     return true;
 }
@@ -157,25 +61,23 @@ void XeLL::deinit()
 {
     if (inited_using_context)
     {
+        // Let XeFG handle the context as XeLL can't be destroyed before XeFG
         spdlog::info("XeLL deinit called while inited using context, skipping deinitialization");
         inited_using_context = false;
     }
-    else if (ctx)
+    else
     {
-        o_xellDestroyContext(ctx);
-        ctx = nullptr;
+        XeLLProxy::DestroyXeLLContext();
         spdlog::info("XeLL deinitialized");
     }
-
-    unload_dll();
 }
 
-void* XeLL::get_tech_context() { return &ctx; }
+void* XeLL::get_tech_context() { return XeLLProxy::Context(); }
 
 void XeLL::get_sleep_status(SleepParams* sleep_params)
 {
     xell_sleep_params_t xell_sleep_params {};
-    auto result = o_xellGetSleepMode(ctx, &xell_sleep_params);
+    auto result = XeLLProxy::GetSleepMode()(XeLLProxy::Context(), &xell_sleep_params);
 
     sleep_params->low_latency_enabled = xell_sleep_params.bLowLatencyMode;
     sleep_params->fullscreen_vrr = true;
@@ -200,7 +102,7 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode)
         xell_sleep_params.minimumIntervalUs != last_minimumIntervalUs ||
         xell_sleep_params.bLowLatencyBoost != last_bLowLatencyBoost)
     {
-        auto result = o_xellSetSleepMode(ctx, &xell_sleep_params);
+        auto result = XeLLProxy::SetSleepMode()(XeLLProxy::Context(), &xell_sleep_params);
 
         last_bLowLatencyMode = xell_sleep_params.bLowLatencyMode;
         last_minimumIntervalUs = xell_sleep_params.minimumIntervalUs;

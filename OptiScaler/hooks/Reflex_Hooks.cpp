@@ -373,7 +373,7 @@ void ReflexHooks::update(bool optiFg_FgState, bool isVulkan)
     // Wait for fakenvapi to be merged into Opti for better integration
     //
     // if (State::Instance().reflexLimitsFps && (fakenvapi::isUsingAsMainNvapi() ||
-    // fakenvapi::isUsingFakenvapiOnNvidia())
+    // fakenvapi::isUsingOnNvidia())
     // &&
     //    Config::Instance()->FN_ForceReflex.value_or_default() == 1)
     //{

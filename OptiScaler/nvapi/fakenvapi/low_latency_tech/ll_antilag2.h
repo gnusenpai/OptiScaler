@@ -12,6 +12,7 @@ class AntiLag2 : public virtual LowLatencyTech
     AMD::AntiLag2DX11::Context dx11_ctx = {};
 
     std::mutex amdxc64_load_mutex;
+    std::mutex sleep_mutex;
     uint64_t amdxc64_load_times = 0;
 
     uint32_t minimum_interval_us = 0;

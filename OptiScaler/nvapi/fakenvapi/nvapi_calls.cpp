@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "nvapi_calls.h"
-#include "fakexell.h"
 
 LowLatency* LowLatencyCtx::lowlatency_ctx = nullptr;
 static auto init_mutex = std::mutex {};
@@ -844,12 +843,6 @@ NvAPI_Status __cdecl NvAPI_Unload()
     return OK();
 }
 
-// Removed
-NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time)
-{
-    return ERROR_VALUE(NVAPI_NO_IMPLEMENTATION);
-}
-
 NvAPI_Status __cdecl Fake_InformFGState(bool fg_state)
 {
     LowLatencyCtx::get()->set_forced_fg(fg_state);
@@ -862,32 +855,10 @@ NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t refl
     return OK();
 }
 
-// Deprecated
-NvAPI_Status __cdecl Fake_GetAntiLagCtx(void** antilag2_context)
-{
-    if (!antilag2_context)
-        return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
-
-    LowLatencyMode mode {};
-    bool result = LowLatencyCtx::get()->get_low_latency_context(antilag2_context, &mode);
-
-    if (result && *antilag2_context && mode == LowLatencyMode::AntiLag2)
-    {
-        return OK();
-    }
-
-    *antilag2_context = nullptr;
-    return ERROR();
-}
-
 NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, LowLatencyMode* mode)
 {
     if (!low_latency_context || !mode)
         return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
-
-    // Random place that I know Opti will call
-    if (GetModuleHandleA("libxell.dll"))
-        fakexell::Init();
 
     bool result = LowLatencyCtx::get()->get_low_latency_context(low_latency_context, mode);
 

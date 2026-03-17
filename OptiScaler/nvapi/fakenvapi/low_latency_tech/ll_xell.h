@@ -6,24 +6,9 @@
 
 class XeLL : public virtual LowLatencyTech
 {
-    HMODULE xell_dll = nullptr;
-    decltype(&xellD3D12CreateContext) o_xellD3D12CreateContext = nullptr;
-    decltype(&xellDestroyContext) o_xellDestroyContext = nullptr;
-    decltype(&xellSetSleepMode) o_xellSetSleepMode = nullptr;
-    decltype(&xellGetSleepMode) o_xellGetSleepMode = nullptr;
-    decltype(&xellSleep) o_xellSleep = nullptr;
-    decltype(&xellAddMarkerData) o_xellAddMarkerData = nullptr;
-    decltype(&xellGetVersion) o_xellGetVersion = nullptr;
-    decltype(&xellSetLoggingCallback) o_xellSetLoggingCallback = nullptr;
-    decltype(&xellGetFramesReports) o_xellGetFramesReports = nullptr;
-
-    xell_context_handle_t ctx = nullptr;
     bool sent_sleep_frame_ids[64] {};
     uint64_t simulation_start_last_id {};
     uint64_t sleep_last_id {};
-
-    bool load_dll();
-    bool unload_dll();
 
     void xell_sleep(uint32_t frame_id);
     void add_marker(uint32_t frame_id, xell_latency_marker_type_t marker);
@@ -33,7 +18,7 @@ class XeLL : public virtual LowLatencyTech
 
     // From LowLatencyTech
     bool init(IUnknown* pDevice) override;
-    bool init_using_ctx(void* context) override;
+    bool init_using_ctx(void* context) override; // Context is always held by XeLLProxy
     void deinit() override;
 
     LowLatencyMode get_mode() override { return LowLatencyMode::XeLL; };
