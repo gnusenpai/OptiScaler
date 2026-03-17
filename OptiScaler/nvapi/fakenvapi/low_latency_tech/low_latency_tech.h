@@ -8,19 +8,22 @@
 
 #define INVALID_ID 0xFFFFFFFFFFFFFFFF
 
-enum class CallSpot {
+enum class CallSpot
+{
     SleepCall = 0,
     InputSample = 1,
     SimulationStart = 2
 };
 
-struct SleepParams {
+struct SleepParams
+{
     bool low_latency_enabled;
     bool fullscreen_vrr;
     bool control_panel_vsync_override;
 };
 
-struct SleepMode {
+struct SleepMode
+{
     bool low_latency_enabled;
     bool low_latency_boost;
     uint32_t minimum_interval_us; // 0 -> no fps limit
@@ -44,26 +47,27 @@ enum class MarkerType
     OUT_OF_BAND_PRESENT_END = 12,
 };
 
-struct MarkerParams {
+struct MarkerParams
+{
     uint64_t frame_id;
     MarkerType marker_type;
 };
 
-class LowLatencyTech {
-protected:
+class LowLatencyTech
+{
+  protected:
     CallSpot current_call_spot = CallSpot::SimulationStart;
     ForceReflex low_latency_override = ForceReflex::InGame;
     bool low_latency_enabled = false;
     bool effective_fg_state = false;
     bool inited_using_context = false;
 
-public:
-    LowLatencyTech():
-        current_call_spot(CallSpot::SimulationStart), 
-        low_latency_override(ForceReflex::InGame), 
-        low_latency_enabled(false), 
-        effective_fg_state(false),
-        inited_using_context(false) {}
+  public:
+    LowLatencyTech()
+        : current_call_spot(CallSpot::SimulationStart), low_latency_override(ForceReflex::InGame),
+          low_latency_enabled(false), effective_fg_state(false), inited_using_context(false)
+    {
+    }
     virtual ~LowLatencyTech() {}
 
     virtual bool init(IUnknown* pDevice) = 0;

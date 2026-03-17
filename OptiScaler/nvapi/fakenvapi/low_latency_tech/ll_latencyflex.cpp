@@ -3,7 +3,8 @@
 #include "config.h"
 #include <nvapi/fakenvapi/log.h>
 
-void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
+void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id)
+{
     if (!is_enabled())
         return;
 
@@ -17,7 +18,8 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
 
     previous_lfx_mode = lfx_mode;
 
-    if (needs_reset) {
+    if (needs_reset)
+    {
         spdlog::info("LFX Reset");
         eepy(200000000ULL);
         frame_id = 1;
@@ -33,7 +35,8 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
     // Set FPS Limiter
     ctx->target_frame_time = 1000 * minimum_interval_us;
 
-    if (lfx_mode == LFXMode::Conservative) lfx_end_frame(INVALID_ID); // it should not be using this frame id in the conservative mode
+    if (lfx_mode == LFXMode::Conservative)
+        lfx_end_frame(INVALID_ID); // it should not be using this frame id in the conservative mode
 
     mutex.lock();
     auto local_frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : this->frame_id + 1;
@@ -42,26 +45,33 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
         target = ctx->GetWaitTarget(local_frame_id);
     mutex.unlock();
 
-    if (target > current_timestamp) {
+    if (target > current_timestamp)
+    {
         static uint64_t timeout_events = 0;
         uint64_t timeout_timestamp = current_timestamp + 50000000ULL;
-        if (target > timeout_timestamp) {
+        if (target > timeout_timestamp)
+        {
             // log_event("lfx_target_high", "{}", target - timeout_timestamp);
             timestamp = timeout_timestamp;
             timeout_events++;
             needs_reset = timeout_events > 5;
-        } else {
+        }
+        else
+        {
             timestamp = target;
             timeout_events = 0;
         }
         // log_event("lfx_sleep", "{}", timestamp - current_timestamp);
         if (auto res = eepy(timestamp - current_timestamp); res)
             spdlog::error("Sleep command failed: {}", res);
-    } else {
+    }
+    else
+    {
         timestamp = current_timestamp;
     }
 
-    spdlog::trace("LatencyFlex Call Spot: {}", current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
+    spdlog::trace("LatencyFlex Call Spot: {}",
+                  current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
 
     mutex.lock();
     this->frame_id++;
@@ -73,7 +83,8 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
     deinit_mutex.unlock();
 }
 
-void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id) {
+void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id)
+{
     auto current_timestamp = get_timestamp();
     mutex.lock();
     auto frame_id = (LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() == LFXMode::ReflexIDs
@@ -86,8 +97,10 @@ void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id) {
     spdlog::trace("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time, current_timestamp);
 }
 
-bool LatencyFlex::init(IUnknown *pDevice) {
-    if (!ctx) {
+bool LatencyFlex::init(IUnknown* pDevice)
+{
+    if (!ctx)
+    {
         ctx = new lfx::LatencyFleX();
         spdlog::info("LatencyFleX initialized");
         return true;
@@ -98,16 +111,19 @@ bool LatencyFlex::init(IUnknown *pDevice) {
 };
 
 // Unsupported
-bool LatencyFlex::init_using_ctx(void* context) {
+bool LatencyFlex::init_using_ctx(void* context)
+{
     spdlog::error("LatencyFleX init_using_ctx is not supported");
     inited_using_context = false;
     return false;
 }
 
-void LatencyFlex::deinit() {
+void LatencyFlex::deinit()
+{
     deinit_mutex.lock();
 
-    if (ctx) {
+    if (ctx)
+    {
         delete ctx;
         ctx = nullptr;
         spdlog::info("LatencyFlex deinitialized");
@@ -116,18 +132,17 @@ void LatencyFlex::deinit() {
     deinit_mutex.unlock();
 };
 
-void* LatencyFlex::get_tech_context() {
-    return ctx;
-};
+void* LatencyFlex::get_tech_context() { return ctx; };
 
-void LatencyFlex::get_sleep_status(SleepParams *sleep_params)
+void LatencyFlex::get_sleep_status(SleepParams* sleep_params)
 {
     sleep_params->low_latency_enabled = is_enabled();
     sleep_params->fullscreen_vrr = true;
     sleep_params->control_panel_vsync_override = false;
 };
 
-void LatencyFlex::set_sleep_mode(SleepMode* sleep_mode) {
+void LatencyFlex::set_sleep_mode(SleepMode* sleep_mode)
+{
     // UNUSED:
     // low_latency_boost
     // use_markers_to_optimize
@@ -136,33 +151,36 @@ void LatencyFlex::set_sleep_mode(SleepMode* sleep_mode) {
     minimum_interval_us = sleep_mode->minimum_interval_us;
 };
 
-void LatencyFlex::sleep() {
+void LatencyFlex::sleep()
+{
     if ((LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() != LFXMode::ReflexIDs)
     {
         last_sleep_framecount = simulation_framecount;
-        
+
         if (current_call_spot == CallSpot::SleepCall)
             lfx_sleep(INVALID_ID);
     }
 };
 
-void LatencyFlex::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
-    switch(marker_params->marker_type) {
-        case MarkerType::SIMULATION_START:
-            simulation_framecount++;
-            
-            if (last_sleep_framecount + call_spot_switch_threshold < simulation_framecount)
-                current_call_spot = CallSpot::SimulationStart;
-            else
-                current_call_spot = CallSpot::SleepCall;
-                
-            if (current_call_spot == CallSpot::SimulationStart)
-                lfx_sleep(marker_params->frame_id);
+void LatencyFlex::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
+{
+    switch (marker_params->marker_type)
+    {
+    case MarkerType::SIMULATION_START:
+        simulation_framecount++;
+
+        if (last_sleep_framecount + call_spot_switch_threshold < simulation_framecount)
+            current_call_spot = CallSpot::SimulationStart;
+        else
+            current_call_spot = CallSpot::SleepCall;
+
+        if (current_call_spot == CallSpot::SimulationStart)
+            lfx_sleep(marker_params->frame_id);
         break;
 
-        case MarkerType::RENDERSUBMIT_END:
-            if ((LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() != LFXMode::Conservative)
-                lfx_end_frame(marker_params->frame_id);
+    case MarkerType::RENDERSUBMIT_END:
+        if ((LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() != LFXMode::Conservative)
+            lfx_end_frame(marker_params->frame_id);
         break;
     }
 };

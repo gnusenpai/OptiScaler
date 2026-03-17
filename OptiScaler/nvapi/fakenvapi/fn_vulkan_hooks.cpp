@@ -12,10 +12,13 @@ PFN_vkCreateSemaphore FnVulkanHooks::o_vkCreateSemaphore = nullptr;
 PFN_vkSignalSemaphore FnVulkanHooks::o_vkSignalSemaphore = nullptr;
 PFN_vkAntiLagUpdateAMD FnVulkanHooks::o_vkAntiLagUpdateAMD = nullptr;
 
-VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
+VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo,
+                                         const VkAllocationCallbacks* pAllocator, VkDevice* pDevice)
+{
     spdlog::debug("hkvkCreateDevice");
 
-    std::vector<const char*> extensions(pCreateInfo->ppEnabledExtensionNames, pCreateInfo->ppEnabledExtensionNames + pCreateInfo->enabledExtensionCount);
+    std::vector<const char*> extensions(pCreateInfo->ppEnabledExtensionNames,
+                                        pCreateInfo->ppEnabledExtensionNames + pCreateInfo->enabledExtensionCount);
 
     // AntiLag
     bool antiLagSupported = false;
@@ -27,10 +30,12 @@ VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevi
 
     features2.pNext = &antiLagFeatures;
 
-    if (o_vkGetPhysicalDeviceFeatures2) {
+    if (o_vkGetPhysicalDeviceFeatures2)
+    {
         o_vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
 
-        if (antiLagFeatures.antiLag) {
+        if (antiLagFeatures.antiLag)
+        {
             antiLagSupported = true;
             spdlog::info("Adding AntiLag extension");
             extensions.push_back(VK_AMD_ANTI_LAG_EXTENSION_NAME);
@@ -38,31 +43,36 @@ VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevi
     }
 
     // TODO add check for VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME as AntiLag doesn't support it
-    
+
     pCreateInfo->enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     pCreateInfo->ppEnabledExtensionNames = extensions.data();
 
     VkDeviceCreateInfo modifiedCreateInfo = *pCreateInfo;
-    
-    antiLagFeatures.pNext = (void*)modifiedCreateInfo.pNext;
+
+    antiLagFeatures.pNext = (void*) modifiedCreateInfo.pNext;
     modifiedCreateInfo.pNext = &antiLagFeatures;
 
     auto result = o_vkCreateDevice(physicalDevice, &modifiedCreateInfo, pAllocator, pDevice);
 
     // Can ask for a function from an extension after the device creation
-    if (antiLagSupported && o_vkGetDeviceProcAddr) {
+    if (antiLagSupported && o_vkGetDeviceProcAddr)
+    {
         o_vkAntiLagUpdateAMD = (PFN_vkAntiLagUpdateAMD) o_vkGetDeviceProcAddr(*pDevice, "vkAntiLagUpdateAMD");
-    } else {
+    }
+    else
+    {
         spdlog::info("Vulkan AntiLag can't be enabled");
     }
 
     return result;
 }
-void FnVulkanHooks::hook_vulkan(HMODULE vulkanModule) {
+void FnVulkanHooks::hook_vulkan(HMODULE vulkanModule)
+{
     spdlog::debug("Trying to hook Vulkan");
 
     o_vkCreateDevice = (PFN_vkCreateDevice) GetProcAddress(vulkanModule, "vkCreateDevice");
-    o_vkGetPhysicalDeviceFeatures2 = (PFN_vkGetPhysicalDeviceFeatures2) GetProcAddress(vulkanModule, "vkGetPhysicalDeviceFeatures2");
+    o_vkGetPhysicalDeviceFeatures2 =
+        (PFN_vkGetPhysicalDeviceFeatures2) GetProcAddress(vulkanModule, "vkGetPhysicalDeviceFeatures2");
     o_vkGetDeviceProcAddr = (PFN_vkGetDeviceProcAddr) GetProcAddress(vulkanModule, "vkGetDeviceProcAddr");
     o_vkCreateSemaphore = (PFN_vkCreateSemaphore) GetProcAddress(vulkanModule, "vkCreateSemaphore");
     o_vkSignalSemaphore = (PFN_vkSignalSemaphore) GetProcAddress(vulkanModule, "vkSignalSemaphore");

@@ -14,10 +14,9 @@
 #include <nvapi_interface.h>
 #undef nvapi_interface_table
 
-
 std::unordered_map<NvU32, void*> fakenvapi::idToFuncMapping;
 
-void fakenvapi::init() 
+void fakenvapi::init()
 {
     LowLatencyCtx::init();
     LowLatencyCtxXell::init();
@@ -59,13 +58,13 @@ void fakenvapi::deinit()
 
 // names from: https://github.com/SveSop/nvapi_standalone/blob/master/dlls/nvapi/nvapi.c
 static NVAPI_INTERFACE_TABLE additional_interface_table[] = { { "NvAPI_Diag_ReportCallStart", 0x33c7358c },
-                                                       { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
-                                                       { "NvAPI_Unknown_1", 0xe9b009b9 },
-                                                       { "NvAPI_SK_1", 0x57f7caac },
-                                                       { "NvAPI_SK_2", 0x11104158 },
-                                                       { "NvAPI_SK_3", 0xe3795199 },
-                                                       { "NvAPI_SK_4", 0xdf0dfcdd },
-                                                       { "NvAPI_SK_5", 0x932ac8fb } };
+                                                              { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
+                                                              { "NvAPI_Unknown_1", 0xe9b009b9 },
+                                                              { "NvAPI_SK_1", 0x57f7caac },
+                                                              { "NvAPI_SK_2", 0x11104158 },
+                                                              { "NvAPI_SK_3", 0xe3795199 },
+                                                              { "NvAPI_SK_4", 0xdf0dfcdd },
+                                                              { "NvAPI_SK_5", 0x932ac8fb } };
 
 static NVAPI_INTERFACE_TABLE fakenvapi_interface_table[] = {
     { "Fake_GetLatency", 0x21372137 },       { "Fake_InformFGState", 0x21382138 },

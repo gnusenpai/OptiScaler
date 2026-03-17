@@ -18,6 +18,8 @@
 NvAPI_Status Ok(const char* function_name);
 NvAPI_Status Error(const char* function_name, NvAPI_Status status = NVAPI_ERROR);
 template <typename... _Args>
-void log_event(const char* event_name, std::format_string<_Args...> __fmt, _Args&&... __args) {
-    spdlog::trace("EVENT,{},{},{}", event_name, get_timestamp(), std::vformat(__fmt.get(), std::make_format_args(__args...)));
+void log_event(const char* event_name, std::format_string<_Args...> __fmt, _Args&&... __args)
+{
+    spdlog::trace("EVENT,{},{},{}", event_name, get_timestamp(),
+                  std::vformat(__fmt.get(), std::make_format_args(__args...)));
 }

@@ -6,17 +6,19 @@
 #include <vulkan/vulkan_core.h>
 #include <vector>
 
-class FnVulkanHooks {
-private:
+class FnVulkanHooks
+{
+  private:
     static PFN_vkCreateDevice o_vkCreateDevice;
     static PFN_vkGetPhysicalDeviceFeatures2 o_vkGetPhysicalDeviceFeatures2;
     static PFN_vkGetDeviceProcAddr o_vkGetDeviceProcAddr;
 
-public:
+  public:
     static PFN_vkAntiLagUpdateAMD o_vkAntiLagUpdateAMD;
     static PFN_vkCreateSemaphore o_vkCreateSemaphore;
     static PFN_vkSignalSemaphore o_vkSignalSemaphore;
 
     static void hook_vulkan(HMODULE vulkanModule);
-    static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDevice *pDevice);
+    static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo,
+                                     const VkAllocationCallbacks* pAllocator, VkDevice* pDevice);
 };

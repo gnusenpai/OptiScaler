@@ -11,7 +11,8 @@
 #define FRAME_REPORTS_BUFFER_SIZE 70
 #define NVAPI_BUFFER_SIZE 64
 
-struct FrameReport {
+struct FrameReport
+{
     uint64_t frameID;
     uint64_t inputSampleTime;
     uint64_t simStartTime;
@@ -31,11 +32,12 @@ struct FrameReport {
     uint8_t rsvd[120];
 };
 
-class LowLatency {
-private:
+class LowLatency
+{
+  private:
     std::mutex active_tech_mutex;
     LowLatencyTech* currently_active_tech;
-    FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE]{};
+    FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
     std::optional<bool> forced_fg;
     bool fg;
     uint32_t delay_deinit = 0;
@@ -75,14 +77,15 @@ private:
     NvAPI_Status Sleep(IUnknown* pDevice);
     NvAPI_Status SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams);
     NvAPI_Status GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams);
-    NvAPI_Status SetLatencyMarker(IUnknown *pDev, NV_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
-    NvAPI_Status SetAsyncFrameMarker(ID3D12CommandQueue *pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS *pSetAsyncFrameMarkerParams);
+    NvAPI_Status SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
+    NvAPI_Status SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue,
+                                     NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams);
     NvAPI_Status GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams);
 
     // Vulkan
     NvAPI_Status Sleep(HANDLE vkDevice);
     NvAPI_Status SetSleepMode(HANDLE vkDevice, NV_VULKAN_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams);
     NvAPI_Status GetSleepStatus(HANDLE vkDevice, NV_VULKAN_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams);
-    NvAPI_Status SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
+    NvAPI_Status SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
     NvAPI_Status GetLatency(HANDLE vkDevice, NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams);
 };

@@ -2,7 +2,8 @@
 #include "low_latency.h"
 
 // private
-void LowLatency::update_effective_fg_state() {
+void LowLatency::update_effective_fg_state()
+{
     std::scoped_lock lock(active_tech_mutex);
 
     if (!currently_active_tech)
@@ -14,18 +15,22 @@ void LowLatency::update_effective_fg_state() {
         currently_active_tech->set_effective_fg_state(fg);
 }
 
-void LowLatency::update_enabled_override() {
+void LowLatency::update_enabled_override()
+{
     if (!currently_active_tech)
         return;
 
-    currently_active_tech->set_low_latency_override((ForceReflex) Config::Instance()->FN_ForceReflex.value_or_default());
+    currently_active_tech->set_low_latency_override(
+        (ForceReflex) Config::Instance()->FN_ForceReflex.value_or_default());
 }
 
 // public
-bool LowLatency::deinit_current_tech() {
+bool LowLatency::deinit_current_tech()
+{
     std::scoped_lock lock(active_tech_mutex);
 
-    if (currently_active_tech) {
+    if (currently_active_tech)
+    {
         currently_active_tech->deinit();
 
         delete currently_active_tech;
@@ -50,7 +55,8 @@ bool LowLatency::get_low_latency_context(void** low_latency_context, LowLatencyM
     *low_latency_tech = currently_active_tech->get_mode();
 
     // We are during deinit, don't let app use the context
-    if (delay_deinit > 0) {
+    if (delay_deinit > 0)
+    {
         *low_latency_context = nullptr;
         delay_deinit = 1;
     }
