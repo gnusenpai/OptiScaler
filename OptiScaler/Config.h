@@ -411,8 +411,6 @@ class Config
     CustomOptional<bool> VulkanUseCopyForOutput { false };
 
     // NVAPI Override
-    CustomOptional<bool> UseFakenvapi { true };
-    CustomOptional<bool> DontUseFakenvapiForXeLLOnNvidia { false };
     CustomOptional<bool> DisableFlipMetering { false };
 
     // Spoofing
@@ -530,6 +528,8 @@ class Config
 
     // fakenvapi
     // TODO: convert to enums
+    CustomOptional<bool> UseFakenvapi { true };
+    CustomOptional<bool> DontUseFakenvapiForXeLLOnNvidia { false };
     CustomOptional<bool> FN_ForceLatencyFlex { false };
     CustomOptional<uint32_t> FN_LatencyFlexMode { 0 }; // conservative - aggressive - reflex ids
     CustomOptional<uint32_t> FN_ForceReflex { 0 };     // in-game - force disable - force enable

@@ -10,7 +10,6 @@
 #include <SimpleIni.h>
 
 static CSimpleIniA ini;
-static CSimpleIniA fakenvapiIni;
 
 static inline int64_t GetTicks()
 {
@@ -575,8 +574,6 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // NvApi
         {
-            UseFakenvapi.set_from_config(readBool("NvApi", "UseFakenvapi"));
-            DontUseFakenvapiForXeLLOnNvidia.set_from_config(readBool("NvApi", "DontUseFakenvapiForXeLLOnNvidia"));
             DisableFlipMetering.set_from_config(readBool("NvApi", "DisableFlipMetering"));
         }
 
@@ -605,9 +602,11 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // fakenvapi
         {
-            FN_ForceLatencyFlex.set_from_config(readBool("fakenvapi", "force_latencyflex"));
-            FN_LatencyFlexMode.set_from_config(readUInt("fakenvapi", "latencyflex_mode"));
-            FN_ForceReflex.set_from_config(readUInt("force_reflex", "force_latencyflex"));
+            UseFakenvapi.set_from_config(readBool("fakenvapi", "UseFakenvapi"));
+            DontUseFakenvapiForXeLLOnNvidia.set_from_config(readBool("fakenvapi", "DontUseFakenvapiForXeLLOnNvidia"));
+            FN_ForceLatencyFlex.set_from_config(readBool("fakenvapi", "ForceLatencyFlex"));
+            FN_LatencyFlexMode.set_from_config(readUInt("fakenvapi", "LatencyFlexMode"));
+            FN_ForceReflex.set_from_config(readUInt("fakenvapi", "ForceReflex"));
         }
 
         // Inputs
@@ -1226,9 +1225,6 @@ bool Config::SaveIni()
 
     // NvApi
     {
-        ini.SetValue("NvApi", "UseFakenvapi", GetBoolValue(Instance()->UseFakenvapi.value_for_config()).c_str());
-        ini.SetValue("NvApi", "DontUseFakenvapiForXeLLOnNvidia",
-                     GetBoolValue(Instance()->DontUseFakenvapiForXeLLOnNvidia.value_for_config()).c_str());
         ini.SetValue("NvApi", "DisableFlipMetering",
                      GetBoolValue(Instance()->DisableFlipMetering.value_for_config()).c_str());
     }
@@ -1299,11 +1295,14 @@ bool Config::SaveIni()
 
     // fakenvapi
     {
-        ini.SetValue("fakenvapi", "force_latencyflex",
+        ini.SetValue("fakenvapi", "UseFakenvapi", GetBoolValue(Instance()->UseFakenvapi.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "DontUseFakenvapiForXeLLOnNvidia",
+                     GetBoolValue(Instance()->DontUseFakenvapiForXeLLOnNvidia.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "ForceLatencyFlex",
                      GetBoolValue(Instance()->FN_ForceLatencyFlex.value_for_config()).c_str());
-        ini.SetValue("fakenvapi", "latencyflex_mode",
+        ini.SetValue("fakenvapi", "LatencyFlexMode",
                      GetIntValue(Instance()->FN_LatencyFlexMode.value_for_config()).c_str());
-        ini.SetValue("fakenvapi", "force_reflex", GetIntValue(Instance()->FN_ForceReflex.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "ForceReflex", GetIntValue(Instance()->FN_ForceReflex.value_for_config()).c_str());
     }
 
     // inputs
