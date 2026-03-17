@@ -1531,7 +1531,6 @@ bool MenuCommon::RenderMenu()
             if (_isVisible)
             {
                 refreshRate = Util::GetActiveRefreshRate(_handle);
-                config->ReloadFakenvapi();
                 auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
                 state.NukemsFilesAvailable = gExists.Get(dllPath);
 
@@ -4383,16 +4382,16 @@ bool MenuCommon::RenderMenu()
                         {
                             auto mode = fakenvapi::getCurrentMode();
 
-                            if (mode == Mode::AntiLag2)
+                            if (mode == LowLatencyMode::AntiLag2)
                                 currentMethod = "AntiLag 2";
-                            else if (mode == Mode::LatencyFlex)
+                            else if (mode == LowLatencyMode::LatencyFlex)
                                 currentMethod = "LatencyFlex";
-                            else if (mode == Mode::XeLL)
+                            else if (mode == LowLatencyMode::XeLL)
                                 currentMethod = "XeLL";
-                            else if (mode == Mode::AntiLagVk)
+                            else if (mode == LowLatencyMode::AntiLagVk)
                                 currentMethod = "Vulkan AntiLag";
 
-                            if (state.rtssReflexInjection && mode == Mode::AntiLag2 &&
+                            if (state.rtssReflexInjection && mode == LowLatencyMode::AntiLag2 &&
                                 config->FGOutput == FGOutput::FSRFG)
                                 ImGui::TextColored(
                                     ImVec4(1.f, 0.8f, 0.f, 1.f),
@@ -4456,7 +4455,7 @@ bool MenuCommon::RenderMenu()
                         constexpr float margin = 0.3f; // in ms
                         float frameCap = std::round(10000.f / (1000.f / refreshRateF + margin)) / 10.f;
 
-                        if (fpsLimitTech == Mode::AntiLag2 || fpsLimitTech == Mode::AntiLagVk)
+                        if (fpsLimitTech == LowLatencyMode::AntiLag2 || fpsLimitTech == LowLatencyMode::AntiLagVk)
                             frameCap = std::round(frameCap);
 
                         ImGui::Text("Calculated Cap: %.1f", frameCap);
@@ -4475,19 +4474,6 @@ bool MenuCommon::RenderMenu()
                 if (fakenvapi::isUsingFakenvapi())
                 {
                     ImGui::SeparatorText("fakenvapi");
-
-                    if (bool logs = config->FN_EnableLogs.value_or_default();
-                        ImGui::Checkbox("Enable Logging To File", &logs))
-                        config->FN_EnableLogs = logs;
-
-                    ImGui::BeginDisabled(!config->FN_EnableLogs.value_or_default());
-
-                    ImGui::SameLine(0.0f, 6.0f);
-                    if (bool traceLogs = config->FN_EnableTraceLogs.value_or_default();
-                        ImGui::Checkbox("Enable Trace Logs", &traceLogs))
-                        config->FN_EnableTraceLogs = traceLogs;
-
-                    ImGui::EndDisabled();
 
                     if (bool forceLFX = config->FN_ForceLatencyFlex.value_or_default();
                         ImGui::Checkbox("Force LatencyFlex", &forceLFX))
@@ -4513,11 +4499,6 @@ bool MenuCommon::RenderMenu()
 
                     PopulateCombo("Force Reflex", config->FN_ForceReflex, reflex_modes);
                     // clang-format on
-
-                    if (ImGui::Button("Apply##2"))
-                    {
-                        config->SaveFakenvapiIni();
-                    }
                 }
 
                 // NEXT COLUMN -----------------

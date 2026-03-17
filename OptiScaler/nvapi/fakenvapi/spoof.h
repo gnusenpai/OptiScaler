@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SysUtils.h"
 #include <dxgi.h>
 #include <dxgi1_2.h>
 #include <windows.h>

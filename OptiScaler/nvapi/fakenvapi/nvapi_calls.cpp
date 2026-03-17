@@ -1,10 +1,12 @@
-#include "fakenvapi.h"
+#include "pch.h"
+#include "nvapi_calls.h"
 #include "fakexell.h"
 
 LowLatency* LowLatencyCtx::lowlatency_ctx = nullptr;
 static auto init_mutex = std::mutex{};
 
-namespace fakenvapi {
+namespace nvapi_calls
+{
     bool Init() {
         if (!device_id) {
             IDXGIFactory1* factory = nullptr;
@@ -563,7 +565,7 @@ namespace fakenvapi {
         return LowLatencyCtx::get()->SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_InitLowLatencyDevice(__in HANDLE vkDevice, __out HANDLE *signalSemaphoreHandle) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_InitLowLatencyDevice(HANDLE vkDevice, HANDLE *signalSemaphoreHandle) {
         if (!vkDevice || !signalSemaphoreHandle)
             return ERROR();
 
@@ -582,8 +584,8 @@ namespace fakenvapi {
 
         VkResult res = VK_ERROR_UNKNOWN;
 
-        if (VulkanHooks::o_vkCreateSemaphore && low_latency_semaphore == VK_NULL_HANDLE)
-            res = VulkanHooks::o_vkCreateSemaphore(device, &createInfo, nullptr, &low_latency_semaphore);
+        if (FnVulkanHooks::o_vkCreateSemaphore && low_latency_semaphore == VK_NULL_HANDLE)
+            res = FnVulkanHooks::o_vkCreateSemaphore(device, &createInfo, nullptr, &low_latency_semaphore);
 
         if (res != VK_SUCCESS)
             return NVAPI_ERROR;
@@ -594,12 +596,12 @@ namespace fakenvapi {
         return OK();
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_DestroyLowLatencyDevice(__in HANDLE vkDevice) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_DestroyLowLatencyDevice(HANDLE vkDevice) {
         LowLatencyCtx::get()->deinit_current_tech();
         return OK();
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_GetSleepStatus(__in HANDLE vkDevice, __inout NV_VULKAN_GET_SLEEP_STATUS_PARAMS *pGetSleepStatusParams) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_GetSleepStatus(HANDLE vkDevice, NV_VULKAN_GET_SLEEP_STATUS_PARAMS *pGetSleepStatusParams) {
         if (!Init())
             return ERROR();
 
@@ -609,7 +611,7 @@ namespace fakenvapi {
         return LowLatencyCtx::get()->GetSleepStatus(vkDevice, pGetSleepStatusParams);
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_SetSleepMode(__in HANDLE vkDevice, __in NV_VULKAN_SET_SLEEP_MODE_PARAMS *pSetSleepModeParams) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_SetSleepMode(HANDLE vkDevice, NV_VULKAN_SET_SLEEP_MODE_PARAMS *pSetSleepModeParams) {
         if (!Init())
             return ERROR();
 
@@ -619,7 +621,7 @@ namespace fakenvapi {
         return LowLatencyCtx::get()->SetSleepMode(vkDevice, pSetSleepModeParams);
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_Sleep(__in HANDLE vkDevice, __in NvU64 signalValue) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_Sleep(HANDLE vkDevice, NvU64 signalValue) {
         if (!Init())
             return ERROR();
             
@@ -634,13 +636,13 @@ namespace fakenvapi {
 
         VkDevice device = reinterpret_cast<VkDevice>(vkDevice);
 
-        if (VulkanHooks::o_vkSignalSemaphore)
-            VulkanHooks::o_vkSignalSemaphore(device, &signalInfo);
+        if (FnVulkanHooks::o_vkSignalSemaphore)
+            FnVulkanHooks::o_vkSignalSemaphore(device, &signalInfo);
 
         return LowLatencyCtx::get()->Sleep(vkDevice);
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_GetLatency(__in HANDLE vkDevice, __inout NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_GetLatency(HANDLE vkDevice, NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
         if (!Init())
             return ERROR();
 
@@ -650,7 +652,7 @@ namespace fakenvapi {
         return LowLatencyCtx::get()->GetLatency(vkDevice, pGetLatencyParams);
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_SetLatencyMarker(__in HANDLE vkDevice, __in NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
         if (!Init())
             return ERROR();
 
@@ -660,7 +662,7 @@ namespace fakenvapi {
         return LowLatencyCtx::get()->SetLatencyMarker(vkDevice, pSetLatencyMarkerParams);
     }
 
-    NvAPI_Status __cdecl NvAPI_Vulkan_NotifyOutOfBandVkQueue(__in HANDLE vkDevice, __in HANDLE queueHandle, __in NV_VULKAN_OUT_OF_BAND_QUEUE_TYPE queueType) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_NotifyOutOfBandVkQueue(HANDLE vkDevice, HANDLE queueHandle, NV_VULKAN_OUT_OF_BAND_QUEUE_TYPE queueType) {
         return OK();
     }
 
@@ -729,7 +731,6 @@ namespace fakenvapi {
 
         if(--ref_count == 0) {
             LowLatencyCtx::get()->deinit_current_tech();
-            Config::get().kill_config_monitoring();
         }
 
         return OK();
@@ -755,10 +756,11 @@ namespace fakenvapi {
         if (!antilag2_context)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        Mode mode {};
+        LowLatencyMode mode {};
         bool result = LowLatencyCtx::get()->get_low_latency_context(antilag2_context, &mode);
 
-        if (result && *antilag2_context && mode == Mode::AntiLag2) {
+        if (result && *antilag2_context && mode == LowLatencyMode::AntiLag2)
+        {
             return OK();
         }
 
@@ -766,7 +768,8 @@ namespace fakenvapi {
         return ERROR();
     }
 
-    NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, Mode* mode) {
+    NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, LowLatencyMode* mode)
+    {
         if (!low_latency_context || !mode)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
@@ -779,7 +782,8 @@ namespace fakenvapi {
         return result ? OK() : ERROR();
     }
 
-    NvAPI_Status __cdecl Fake_SetLowLatencyCtx(void* low_latency_context, Mode mode) {
+    NvAPI_Status __cdecl Fake_SetLowLatencyCtx(void* low_latency_context, LowLatencyMode mode)
+    {
         if (!low_latency_context)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 

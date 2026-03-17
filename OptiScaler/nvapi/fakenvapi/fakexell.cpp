@@ -1,5 +1,6 @@
+#include "pch.h"
 #include "fakexell.h"
-#include <detours.h>
+#include <detours/detours.h>
 #include <magic_enum.hpp>
 
 #define HOOK(name) if (o_##name) DetourAttach(&(PVOID&) o_##name, hk##name)
@@ -56,6 +57,7 @@ namespace fakexell
         return hModule;
     }
 
+    // TODO: fix game recreating a context
     bool is_game_context(xell_context_handle_t context, void* returnAddress) {
         if (gameNativeContext == context)
             return true;

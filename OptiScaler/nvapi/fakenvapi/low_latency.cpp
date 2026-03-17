@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "low_latency.h"
 
 // private
@@ -17,7 +18,7 @@ void LowLatency::update_enabled_override() {
     if (!currently_active_tech)
         return;
 
-    currently_active_tech->set_low_latency_override(Config::get().get_force_reflex());
+    currently_active_tech->set_low_latency_override((ForceReflex) Config::Instance()->FN_ForceReflex.value_or_default());
 }
 
 // public
@@ -38,7 +39,8 @@ bool LowLatency::deinit_current_tech() {
     return false;
 }
 
-bool LowLatency::get_low_latency_context(void** low_latency_context, Mode* low_latency_tech) {
+bool LowLatency::get_low_latency_context(void** low_latency_context, LowLatencyMode* low_latency_tech)
+{
     std::scoped_lock lock(active_tech_mutex);
 
     if (!currently_active_tech || !low_latency_context || !low_latency_tech)
@@ -56,7 +58,8 @@ bool LowLatency::get_low_latency_context(void** low_latency_context, Mode* low_l
     return true;
 }
 
-bool LowLatency::set_low_latency_context(void* low_latency_context, Mode low_latency_tech) {
+bool LowLatency::set_low_latency_context(void* low_latency_context, LowLatencyMode low_latency_tech)
+{
     forced_low_latency_context = low_latency_context;
     forced_low_latency_tech = low_latency_tech;
 

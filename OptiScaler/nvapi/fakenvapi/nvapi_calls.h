@@ -1,18 +1,14 @@
 #pragma once
 
 #include <dxgi.h>
-#if _MSC_VER
 #include <d3d12.h>
-#else
-#include "../external/d3d12.h"
-#endif
 #include <vector>
 
 #include "low_latency.h"
 
-#include "util.h"
+#include "fn_util.h"
 #include "log.h"
-#include "vulkan_hooks.h"
+#include "fn_vulkan_hooks.h"
 
 class LowLatencyCtx {
 public:
@@ -33,7 +29,7 @@ private:
     static LowLatency* lowlatency_ctx;
 };
 
-namespace fakenvapi {
+namespace nvapi_calls {
     static auto drs = 1U;
     static auto drs_session = reinterpret_cast<NvDRSSessionHandle>(&drs);
     static auto drs_profile = reinterpret_cast<NvDRSProfileHandle>(&drs);
@@ -126,6 +122,6 @@ namespace fakenvapi {
     NvAPI_Status __cdecl Fake_InformFGState(bool fg_state);
     NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t reflex_frame_id);
     NvAPI_Status __cdecl Fake_GetAntiLagCtx(void** antilag2_context);
-    NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, Mode* mode);
-    NvAPI_Status __cdecl Fake_SetLowLatencyCtx(void* low_latency_context, Mode mode);
+    NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, LowLatencyMode* mode);
+    NvAPI_Status __cdecl Fake_SetLowLatencyCtx(void* low_latency_context, LowLatencyMode mode);
 }

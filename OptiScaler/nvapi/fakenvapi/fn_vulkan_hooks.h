@@ -2,11 +2,11 @@
 
 #include "log.h"
 
-#include <detours.h>
+#include <detours/detours.h>
 #include <vulkan/vulkan_core.h>
 #include <vector>
 
-class VulkanHooks {
+class FnVulkanHooks {
 private:
     static PFN_vkCreateDevice o_vkCreateDevice;
     static PFN_vkGetPhysicalDeviceFeatures2 o_vkGetPhysicalDeviceFeatures2;

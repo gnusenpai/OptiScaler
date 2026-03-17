@@ -2,8 +2,8 @@
 
 #include <dxgi.h>
 #include <d3d12.h>
-#include <fakenvapi_inc.h>
-#include "NvApiTypes.h"
+#include <unordered_map>
+#include "fakenvapi/fn_util.h"
 
 class fakenvapi
 {
@@ -13,17 +13,19 @@ class fakenvapi
         bool enabled;
     } antilag2_data;
 
-    inline static decltype(&Fake_InformFGState) Fake_InformFGState = nullptr;
-    inline static decltype(&Fake_InformPresentFG) Fake_InformPresentFG = nullptr;
-    inline static decltype(&Fake_GetAntiLagCtx) Fake_GetAntiLagCtx = nullptr;
-    inline static decltype(&Fake_GetLowLatencyCtx) Fake_GetLowLatencyCtx = nullptr;
-    inline static decltype(&Fake_SetLowLatencyCtx) Fake_SetLowLatencyCtx = nullptr;
-
-    inline static bool _inited = false;
     inline static bool _initedForNvidia = false;
     inline static void* _lowLatencyContext = nullptr;
-    inline static Mode _lowLatencyMode = Mode::LatencyFlex;
+    inline static LowLatencyMode _lowLatencyMode = LowLatencyMode::LatencyFlex;
     inline static HMODULE _dllForNvidia = nullptr;
+
+    static std::unordered_map<NvU32, void*> idToFuncMapping;
+
+    static NvAPI_Status __cdecl placeholder()
+    {
+        // return OK();
+        // return ERROR(NVAPI_NO_IMPLEMENTATION);
+        return NVAPI_NO_IMPLEMENTATION; // no logging
+    }
 
   public:
     inline static const GUID IID_IFfxAntiLag2Data = {
@@ -36,12 +38,14 @@ class fakenvapi
     inline static decltype(&NvAPI_D3D_SetLatencyMarker) ForNvidia_SetLatencyMarker = nullptr;
     inline static decltype(&NvAPI_D3D12_SetAsyncFrameMarker) ForNvidia_SetAsyncFrameMarker = nullptr;
 
-    static void Init(PFN_NvApi_QueryInterface& queryInterface);
+    static void init();
+    static void deinit();
+    static void* queryInterface(NvU32 id);
     static void reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool frame_interpolated);
     static bool updateModeAndContext();
-    static bool setModeAndContext(void* context, Mode mode);
+    static bool setModeAndContext(void* context, LowLatencyMode mode);
     static bool loadForNvidia();
-    static Mode getCurrentMode();
+    static LowLatencyMode getCurrentMode();
     static bool isUsingFakenvapi();
     static bool isUsingFakenvapiOnNvidia();
 };

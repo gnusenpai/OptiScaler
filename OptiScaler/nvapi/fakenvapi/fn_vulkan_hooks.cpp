@@ -1,17 +1,18 @@
-#include "vulkan_hooks.h"
+#include "pch.h"
+#include "fn_vulkan_hooks.h"
 
-#include <detours.h>
+#include <detours/detours.h>
 #include <vulkan/vulkan_core.h>
 #include <vector>
 
-PFN_vkCreateDevice VulkanHooks::o_vkCreateDevice = nullptr;
-PFN_vkGetPhysicalDeviceFeatures2 VulkanHooks::o_vkGetPhysicalDeviceFeatures2 = nullptr;
-PFN_vkGetDeviceProcAddr VulkanHooks::o_vkGetDeviceProcAddr = nullptr;
-PFN_vkCreateSemaphore VulkanHooks::o_vkCreateSemaphore = nullptr;
-PFN_vkSignalSemaphore VulkanHooks::o_vkSignalSemaphore = nullptr;
-PFN_vkAntiLagUpdateAMD VulkanHooks::o_vkAntiLagUpdateAMD = nullptr;
+PFN_vkCreateDevice FnVulkanHooks::o_vkCreateDevice = nullptr;
+PFN_vkGetPhysicalDeviceFeatures2 FnVulkanHooks::o_vkGetPhysicalDeviceFeatures2 = nullptr;
+PFN_vkGetDeviceProcAddr FnVulkanHooks::o_vkGetDeviceProcAddr = nullptr;
+PFN_vkCreateSemaphore FnVulkanHooks::o_vkCreateSemaphore = nullptr;
+PFN_vkSignalSemaphore FnVulkanHooks::o_vkSignalSemaphore = nullptr;
+PFN_vkAntiLagUpdateAMD FnVulkanHooks::o_vkAntiLagUpdateAMD = nullptr;
 
-VkResult VulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
+VkResult FnVulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
     spdlog::debug("hkvkCreateDevice");
 
     std::vector<const char*> extensions(pCreateInfo->ppEnabledExtensionNames, pCreateInfo->ppEnabledExtensionNames + pCreateInfo->enabledExtensionCount);
@@ -57,7 +58,7 @@ VkResult VulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevice
 
     return result;
 }
-void VulkanHooks::hook_vulkan(HMODULE vulkanModule) {
+void FnVulkanHooks::hook_vulkan(HMODULE vulkanModule) {
     spdlog::debug("Trying to hook Vulkan");
 
     o_vkCreateDevice = (PFN_vkCreateDevice) GetProcAddress(vulkanModule, "vkCreateDevice");

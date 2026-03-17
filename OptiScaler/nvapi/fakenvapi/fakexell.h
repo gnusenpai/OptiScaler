@@ -1,15 +1,11 @@
 #pragma once
 
 #include <dxgi.h>
-#if _MSC_VER
 #include <d3d12.h>
-#else
-#include "../external/d3d12.h"
-#endif
 
 #include "low_latency.h"
 
-#include "util.h"
+#include "fn_util.h"
 #include "log.h"
 #include <xell.h>
 #include <xell_d3d12.h>

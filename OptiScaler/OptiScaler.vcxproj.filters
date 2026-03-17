@@ -767,6 +767,45 @@
     <ClInclude Include="spoofing\User32_Spoofing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\al2_proxy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\fakexell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\low_latency.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\low_latency_tech\ll_antilag2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\low_latency_tech\ll_antilag_vk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\low_latency_tech\ll_latencyflex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\low_latency_tech\ll_xell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\low_latency_tech\low_latency_tech.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\nvapi_calls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\spoof.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\fn_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="nvapi\fakenvapi\fn_vulkan_hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1173,6 +1212,45 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="spoofing\User32_Spoofing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\al2_proxy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\fakexell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\low_latency.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\low_latency_d3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\low_latency_tech\ll_antilag2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\low_latency_tech\ll_antilag_vk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\low_latency_tech\ll_latencyflex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\low_latency_tech\ll_xell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\low_latency_vk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\nvapi_calls.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\fn_util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi\fakenvapi\fn_vulkan_hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

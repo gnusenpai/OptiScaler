@@ -1,6 +1,7 @@
+#include "pch.h"
 #include "ll_latencyflex.h"
 #include "config.h"
-#include "log.h"
+#include <nvapi/fakenvapi/log.h>
 
 void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
     if (!is_enabled())
@@ -8,8 +9,8 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
 
     deinit_mutex.lock();
 
-    static LFXMode previous_lfx_mode = Config::get().get_latencyflex_mode();
-    LFXMode lfx_mode = Config::get().get_latencyflex_mode();
+    static LFXMode previous_lfx_mode = (LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default();
+    LFXMode lfx_mode = (LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default();
 
     if (previous_lfx_mode != lfx_mode)
         needs_reset = true;
@@ -75,7 +76,9 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
 void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id) {
     auto current_timestamp = get_timestamp();
     mutex.lock();
-    auto frame_id = Config::get().get_latencyflex_mode() == LFXMode::ReflexIDs ? reflex_frame_id : this->frame_id;
+    auto frame_id = (LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() == LFXMode::ReflexIDs
+                        ? reflex_frame_id
+                        : this->frame_id;
     // log_event("lfx_endframe", "{}", frame_id);
     if (ctx)
         ctx->EndFrame(frame_id, current_timestamp, &latency, &frame_time);
@@ -134,7 +137,8 @@ void LatencyFlex::set_sleep_mode(SleepMode* sleep_mode) {
 };
 
 void LatencyFlex::sleep() {
-    if (Config::get().get_latencyflex_mode() != LFXMode::ReflexIDs) {
+    if ((LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() != LFXMode::ReflexIDs)
+    {
         last_sleep_framecount = simulation_framecount;
         
         if (current_call_spot == CallSpot::SleepCall)
@@ -157,7 +161,7 @@ void LatencyFlex::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
         break;
 
         case MarkerType::RENDERSUBMIT_END:
-            if (Config::get().get_latencyflex_mode() != LFXMode::Conservative)
+            if ((LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() != LFXMode::Conservative)
                 lfx_end_frame(marker_params->frame_id);
         break;
     }

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "low_latency.h"
 
 #include "low_latency_tech/ll_antilag_vk.h"
@@ -11,7 +12,8 @@ bool LowLatency::update_low_latency_tech(HANDLE vkDevice) {
     active_tech_mutex.lock();
 
     if (!currently_active_tech) {
-        if (!Config::get().get_force_latencyflex()) {
+        if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default())
+        {
             currently_active_tech = new AntiLagVk();
             if (currently_active_tech->init(nullptr)) {
                 spdlog::info("LowLatency algo: AntiLag Vulkan");
@@ -32,8 +34,8 @@ bool LowLatency::update_low_latency_tech(HANDLE vkDevice) {
 
     active_tech_mutex.unlock();
     
-    static bool last_force_latencyflex = Config::get().get_force_latencyflex();
-    bool force_latencyflex = Config::get().get_force_latencyflex();
+    static bool last_force_latencyflex = Config::Instance()->FN_ForceLatencyFlex.value_or_default();
+    bool force_latencyflex = Config::Instance()->FN_ForceLatencyFlex.value_or_default();
     bool change_detected = last_force_latencyflex != force_latencyflex;
     last_force_latencyflex = force_latencyflex;
     

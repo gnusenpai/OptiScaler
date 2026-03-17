@@ -1,17 +1,24 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "SysUtils.h"
 #include <nvapi.h>
 #include <string>
 #include <map>
 #include <cstdint>
 
+enum class LowLatencyMode
+{
+    LatencyFlex,
+    AntiLag2,
+    XeLL,
+    AntiLagVk
+};
+
 void tonvss(NvAPI_ShortString nvss, std::string str);
 
 #define INSERT_AND_RETURN_WHEN_EQUALS(method) \
     if (std::string(it->func) == #method)     \
-        return registry.insert({id, (void *)method}).first->second;
+        return idToFuncMapping.insert({ id, (void*) nvapi_calls::method }).first->second;
 
 static inline uint64_t get_timestamp() {
     FILETIME fileTime;

@@ -1,5 +1,6 @@
+#include "pch.h"
 #include "ll_antilag2.h"
-#include <al2_proxy.h>
+#include <nvapi/fakenvapi/al2_proxy.h>
 
 inline HRESULT AntiLag2::al2_sleep() {
     int max_fps = 0;

@@ -14,7 +14,7 @@ public:
     bool init_using_ctx(void* context) override;
     void deinit() override {}; // Not used by AntiLag VK
 
-    Mode get_mode() override { return Mode::AntiLagVk; };
+    LowLatencyMode get_mode() override { return LowLatencyMode::AntiLagVk; };
     void* get_tech_context() override;
     void set_fg_type(bool interpolated, uint64_t frame_id) override {}; // Not used by AntiLag VK
     void set_low_latency_override(ForceReflex low_latency_override) override { this->low_latency_override = low_latency_override; };

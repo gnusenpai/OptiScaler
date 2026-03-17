@@ -2,8 +2,8 @@
 
 #include "low_latency_tech.h"
 
-#include "../external/ffx_antilag2_dx12.h"
-#include "../external/ffx_antilag2_dx11.h"
+#include <ffx_antilag2_dx12.h>
+#include <ffx_antilag2_dx11.h>
 
 class AntiLag2 : public virtual LowLatencyTech {
 private:
@@ -29,7 +29,7 @@ public:
     bool init_using_ctx(void* context) override;
     void deinit() override;
 
-    Mode get_mode() override { return Mode::AntiLag2; };
+    LowLatencyMode get_mode() override { return LowLatencyMode::AntiLag2; };
     void* get_tech_context() override;
     void set_fg_type(bool interpolated, uint64_t frame_id) override;
     void set_low_latency_override(ForceReflex low_latency_override) override { this->low_latency_override = low_latency_override; };

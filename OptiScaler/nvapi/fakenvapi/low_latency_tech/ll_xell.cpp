@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "ll_xell.h"
 
-#include "spoof.h"
 #include <magic_enum.hpp>
 
 bool XeLL::load_dll() {
@@ -65,13 +65,11 @@ bool XeLL::init(IUnknown *pDevice) {
     if (hr != S_OK)
         return false;
 
-    hook_GetDesc1();
-
-    spoof(true);
-    auto result = o_xellD3D12CreateContext(dx12_pDevice, &ctx);
-    spoof(false);
-
-    unhook_GetDesc1();
+    auto result = XELL_RESULT_ERROR_UNKNOWN;
+    {
+        ScopedSkipSpoofing forIntel;
+        result = o_xellD3D12CreateContext(dx12_pDevice, &ctx);
+    }
 
     if (result == XELL_RESULT_SUCCESS && ctx) {
         o_xellSetLoggingCallback(ctx, XELL_LOGGING_LEVEL_DEBUG, [](const char* message, xell_logging_level_t loggingLevel) {

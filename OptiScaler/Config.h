@@ -184,6 +184,20 @@ enum class Scaler : uint32_t
     Count
 };
 
+enum class ForceReflex
+{
+    InGame,
+    ForceDisable,
+    ForceEnable
+};
+
+enum class LFXMode
+{
+    Conservative,
+    Aggressive,
+    ReflexIDs
+};
+
 class Config
 {
   public:
@@ -516,8 +530,7 @@ class Config
     CustomOptional<bool> FGXeFGForceBorderless { false };
 
     // fakenvapi
-    CustomOptional<bool> FN_EnableLogs { true };
-    CustomOptional<bool> FN_EnableTraceLogs { false };
+    // TODO: convert to enums
     CustomOptional<bool> FN_ForceLatencyFlex { false };
     CustomOptional<uint32_t> FN_LatencyFlexMode { 0 }; // conservative - aggressive - reflex ids
     CustomOptional<uint32_t> FN_ForceReflex { 0 };     // in-game - force disable - force enable
@@ -553,9 +566,6 @@ class Config
     bool LoadFromPath(const wchar_t* InPath);
     bool SaveIni();
     bool SaveXeFG();
-
-    bool ReloadFakenvapi();
-    bool SaveFakenvapiIni();
 
     void CheckUpscalerFiles();
 

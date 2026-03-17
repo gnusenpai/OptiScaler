@@ -1,14 +1,9 @@
 #pragma once
 
 #include <dxgi.h>
-#if _MSC_VER
 #include <d3d12.h>
-#else
-#include "../../external/d3d12.h"
-#endif
 
-#include "log.h"
-#include <fakenvapi_inc.h>
+#include "../log.h"
 #include <magic_enum.hpp>
 
 #define INVALID_ID 0xFFFFFFFFFFFFFFFF
@@ -75,7 +70,7 @@ public:
     virtual bool init_using_ctx(void* context) = 0;
     virtual void deinit() = 0;
 
-    virtual Mode get_mode() = 0;
+    virtual LowLatencyMode get_mode() = 0;
     virtual void* get_tech_context() = 0;
     virtual void set_fg_type(bool interpolated, uint64_t frame_id) = 0;
     virtual void set_low_latency_override(ForceReflex low_latency_override) = 0;

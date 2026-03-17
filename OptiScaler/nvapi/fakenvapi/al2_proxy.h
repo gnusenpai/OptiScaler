@@ -1,8 +1,8 @@
 #pragma once
 
 #include <d3d12.h>
-#include "../external/ffx_antilag2_dx12.h"
-#include <detours.h>
+#include <ffx_antilag2_dx12.h>
+#include <detours/detours.h>
 
 class AL2Proxy {
     public:

@@ -2,15 +2,10 @@
 #include "NvApiTypes.h"
 
 #include <nvapi_interface.h>
-#include <fakenvapi_inc.h>
 
 NvApiTypes::NvApiTypes()
 {
     for (const auto& entry : nvapi_interface_table)
-    {
-        lookupTable[entry.func] = entry.id;
-    }
-    for (const auto& entry : fakenvapi_interface_table)
     {
         lookupTable[entry.func] = entry.id;
     }

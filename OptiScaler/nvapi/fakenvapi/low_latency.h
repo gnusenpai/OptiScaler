@@ -3,13 +3,9 @@
 #include "low_latency_tech/low_latency_tech.h"
 
 #include <dxgi.h>
-#if _MSC_VER
 #include <d3d12.h>
-#else
-#include "../external/d3d12.h"
-#endif
 
-#include "util.h"
+#include "fn_util.h"
 #include <optional>
 
 #define FRAME_REPORTS_BUFFER_SIZE 70
@@ -46,7 +42,7 @@ private:
 
     // Once set, it will be used for all init attempts
     void* forced_low_latency_context = nullptr;
-    Mode forced_low_latency_tech = Mode::LatencyFlex;
+    LowLatencyMode forced_low_latency_tech = LowLatencyMode::LatencyFlex;
 
     void update_effective_fg_state();
     void update_enabled_override();
@@ -54,25 +50,26 @@ private:
     // D3D
     bool update_low_latency_tech(IUnknown* pDevice);
     void get_latency_result(NV_LATENCY_RESULT_PARAMS* pGetLatencyParams);
-    void add_marker_to_report(NV_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
-    
+    void add_marker_to_report(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
+
     // Vulkan
     bool update_low_latency_tech(HANDLE vkDevice);
-    void get_latency_result(NV_VULKAN_LATENCY_RESULT_PARAMS *pGetLatencyParams);
-    void add_marker_to_report(NV_VULKAN_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
+    void get_latency_result(NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams);
+    void add_marker_to_report(NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
 
-public:
+  public:
     LowLatency() = default;
     ~LowLatency() { deinit_current_tech(); };
 
     bool deinit_current_tech();
     void set_forced_fg(std::optional<bool> forced_fg) { this->forced_fg = forced_fg; };
-    void set_fg_type(bool interpolated, uint64_t frame_id) {
+    void set_fg_type(bool interpolated, uint64_t frame_id)
+    {
         if (currently_active_tech)
-            currently_active_tech->set_fg_type(interpolated, frame_id); 
+            currently_active_tech->set_fg_type(interpolated, frame_id);
     }
-    bool get_low_latency_context(void** low_latency_context, Mode* low_latency_tech);
-    bool set_low_latency_context(void* low_latency_context, Mode low_latency_tech);
+    bool get_low_latency_context(void** low_latency_context, LowLatencyMode* low_latency_tech);
+    bool set_low_latency_context(void* low_latency_context, LowLatencyMode low_latency_tech);
 
     // D3D
     NvAPI_Status Sleep(IUnknown* pDevice);
