@@ -71,7 +71,7 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id)
     }
 
     LOG_TRACE_FAKENVAPI("LatencyFlex Call Spot: {}",
-                  current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
+                        current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
 
     mutex.lock();
     this->frame_id++;
@@ -94,7 +94,8 @@ void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id)
     if (ctx)
         ctx->EndFrame(frame_id, current_timestamp, &latency, &frame_time);
     mutex.unlock();
-    LOG_TRACE_FAKENVAPI("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time, current_timestamp);
+    LOG_TRACE_FAKENVAPI("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time,
+                        current_timestamp);
 }
 
 bool LatencyFlex::init(IUnknown* pDevice)

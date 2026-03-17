@@ -71,7 +71,7 @@ void LowLatency::get_latency_result(NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatency
     if (frame_reports[FRAME_REPORTS_BUFFER_SIZE - 1].frameID == 0)
     {
         std::memset(pGetLatencyParams->frameReport, 0, sizeof(pGetLatencyParams->frameReport));
-        //spdlog::warn("GetLatency: Not enough data to report");
+        // spdlog::warn("GetLatency: Not enough data to report");
         return;
     }
 

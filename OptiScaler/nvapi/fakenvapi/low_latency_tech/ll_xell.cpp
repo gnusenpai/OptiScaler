@@ -16,7 +16,7 @@ void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
     if (!sent_sleep_frame_ids[frame_id % 64])
     {
         LOG_DEBUG("Skipping reporting {} for XeLL because sleep wasn't sent for frame id: {}",
-                      magic_enum::enum_name(marker), frame_id);
+                  magic_enum::enum_name(marker), frame_id);
         return;
     }
 

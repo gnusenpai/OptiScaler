@@ -36,7 +36,7 @@ inline HRESULT AntiLag2::al2_sleep()
     // log_event("al2_sleep", "{}", get_timestamp() - pre_sleep);
 
     LOG_TRACE_FAKENVAPI("AntiLag 2 Call Spot: {}",
-                  current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
+                        current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
 
     return result;
 }
