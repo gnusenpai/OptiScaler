@@ -228,42 +228,34 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
 
 bool fakenvapi::updateModeAndContext()
 {
-    if (!isUsingAsMainNvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
-        !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && Config::Instance()->XeFGWithoutXeLL.value_or_default())
     {
-        setUsingOnNvidia(true);
-    }
-
-    if (!isUsingAsMainNvapi() && !isUsingOnNvidia())
         return false;
+    }
 
     LOG_FUNC();
 
     auto result = nvapi_calls::Fake_GetLowLatencyCtx(&_lowLatencyContext, &_lowLatencyMode);
 
     if (result != NVAPI_OK)
-        LOG_ERROR("Can't get Low Latency context from fakenvapi");
+        LOG_TRACE_FAKENVAPI("Can't get Low Latency context from fakenvapi");
 
     return result == NVAPI_OK;
 }
 
 bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
 {
-    if (!isUsingAsMainNvapi() && State::Instance().activeFgOutput == FGOutput::XeFG &&
-        !Config::Instance()->DontUseFakenvapiForXeLLOnNvidia.value_or_default())
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && Config::Instance()->XeFGWithoutXeLL.value_or_default())
     {
-        setUsingOnNvidia(true);
-    }
-
-    if (!isUsingAsMainNvapi() && !isUsingOnNvidia())
         return false;
+    }
 
     LOG_FUNC();
 
     auto result = nvapi_calls::Fake_SetLowLatencyCtx(context, mode);
 
     if (result != NVAPI_OK)
-        LOG_ERROR("Can't set Low Latency context from fakenvapi");
+        LOG_TRACE_FAKENVAPI("Can't set Low Latency context from fakenvapi");
 
     return result == NVAPI_OK;
 }
@@ -274,7 +266,3 @@ LowLatencyMode fakenvapi::getCurrentMode() { return _lowLatencyMode; }
 bool fakenvapi::isUsingAsMainNvapi() { return _usingFakenvapiAsMainNvapi; }
 
 void fakenvapi::setUsingAsMainNvapi(bool usingAsMain) { _usingFakenvapiAsMainNvapi = usingAsMain; }
-
-bool fakenvapi::isUsingOnNvidia() { return _usingOnNvidia; }
-
-void fakenvapi::setUsingOnNvidia(bool usingOnNvidia) { _usingOnNvidia = usingOnNvidia; }

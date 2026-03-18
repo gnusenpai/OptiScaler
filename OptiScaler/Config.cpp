@@ -603,7 +603,7 @@ bool Config::Reload(std::filesystem::path iniPath)
         // fakenvapi
         {
             UseFakenvapi.set_from_config(readBool("fakenvapi", "UseFakenvapi"));
-            DontUseFakenvapiForXeLLOnNvidia.set_from_config(readBool("fakenvapi", "DontUseFakenvapiForXeLLOnNvidia"));
+            XeFGWithoutXeLL.set_from_config(readBool("fakenvapi", "XeFGWithoutXeLL"));
             FN_ForceLatencyFlex.set_from_config(readBool("fakenvapi", "ForceLatencyFlex"));
             FN_LatencyFlexMode.set_from_config(readUInt("fakenvapi", "LatencyFlexMode"));
             FN_ForceReflex.set_from_config(readUInt("fakenvapi", "ForceReflex"));
@@ -1296,8 +1296,8 @@ bool Config::SaveIni()
     // fakenvapi
     {
         ini.SetValue("fakenvapi", "UseFakenvapi", GetBoolValue(Instance()->UseFakenvapi.value_for_config()).c_str());
-        ini.SetValue("fakenvapi", "DontUseFakenvapiForXeLLOnNvidia",
-                     GetBoolValue(Instance()->DontUseFakenvapiForXeLLOnNvidia.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "XeFGWithoutXeLL",
+                     GetBoolValue(Instance()->XeFGWithoutXeLL.value_for_config()).c_str());
         ini.SetValue("fakenvapi", "ForceLatencyFlex",
                      GetBoolValue(Instance()->FN_ForceLatencyFlex.value_for_config()).c_str());
         ini.SetValue("fakenvapi", "LatencyFlexMode",

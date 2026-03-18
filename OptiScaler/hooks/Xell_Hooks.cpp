@@ -49,6 +49,7 @@ void XellHooks::setOurContext(xell_context_handle_t context) { ourContext = cont
 
 void XellHooks::blockExternalContexts(bool state) { blockExternal = state; }
 
+// Use context to determine blocking, otherwise just block calls from exe
 bool XellHooks::shouldBlock(xell_context_handle_t context)
 {
     if (context)

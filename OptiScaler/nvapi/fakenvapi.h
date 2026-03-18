@@ -33,12 +33,6 @@ class fakenvapi
         0x5083ae5b, 0x8070, 0x4fca, { 0x8e, 0xe5, 0x35, 0x82, 0xdd, 0x36, 0x7d, 0x13 }
     };
 
-    inline static decltype(&NvAPI_D3D_SetSleepMode) ForNvidia_SetSleepMode = nullptr;
-    inline static decltype(&NvAPI_D3D_Sleep) ForNvidia_Sleep = nullptr;
-    inline static decltype(&NvAPI_D3D_GetLatency) ForNvidia_GetLatency = nullptr;
-    inline static decltype(&NvAPI_D3D_SetLatencyMarker) ForNvidia_SetLatencyMarker = nullptr;
-    inline static decltype(&NvAPI_D3D12_SetAsyncFrameMarker) ForNvidia_SetAsyncFrameMarker = nullptr;
-
     static void init();
     static void deinit();
     static void* queryInterface(NvU32 id);
@@ -49,6 +43,4 @@ class fakenvapi
 
     static bool isUsingAsMainNvapi();
     static void setUsingAsMainNvapi(bool usingAsMain);
-    static bool isUsingOnNvidia();
-    static void setUsingOnNvidia(bool usingOnNvidia);
 };

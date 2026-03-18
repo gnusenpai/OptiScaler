@@ -5,6 +5,7 @@
 #include <nvapi/fakenvapi.h>
 
 #include <magic_enum.hpp>
+#include <nvapi/fakenvapi/nvapi_calls.h>
 
 // #define LOG_REFLEX_CALLS
 
@@ -25,8 +26,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_
     if (_minimumIntervalUs != 0)
         pSetSleepModeParams->minimumIntervalUs = _minimumIntervalUs;
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_SetSleepMode)
-        return fakenvapi::ForNvidia_SetSleepMode(pDev, pSetSleepModeParams);
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
+        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
+        return nvapi_calls::NvAPI_D3D_SetSleepMode(pDev, pSetSleepModeParams);
     else
         return o_NvAPI_D3D_SetSleepMode(pDev, pSetSleepModeParams);
 }
@@ -37,8 +39,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
     LOG_FUNC();
 #endif
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_Sleep)
-        return fakenvapi::ForNvidia_Sleep(pDev);
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
+        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
+        return nvapi_calls::NvAPI_D3D_Sleep(pDev);
     else
         return o_NvAPI_D3D_Sleep(pDev);
 }
@@ -49,8 +52,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESU
     LOG_FUNC();
 #endif
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_GetLatency)
-        return fakenvapi::ForNvidia_GetLatency(pDev, pGetLatencyParams);
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
+        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
+        return nvapi_calls::NvAPI_D3D_GetLatency(pDev, pGetLatencyParams);
     else
         return o_NvAPI_D3D_GetLatency(pDev, pGetLatencyParams);
 }
@@ -128,8 +132,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     if (pSetLatencyMarkerParams->markerType == PRESENT_START && State::Instance().activeFgInput == FGInput::DLSSG)
         State::Instance().slFGInputs.markPresent(pSetLatencyMarkerParams->frameID);
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_SetLatencyMarker)
-        return fakenvapi::ForNvidia_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
+        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
+        return nvapi_calls::NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
     else
         return o_NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
 }
@@ -175,8 +180,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
         }
     }
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_SetAsyncFrameMarker)
-        return fakenvapi::ForNvidia_SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
+    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
+        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
+        return nvapi_calls::NvAPI_D3D12_SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
     else
         return o_NvAPI_D3D12_SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
 }
@@ -287,7 +293,8 @@ void* ReflexHooks::getHookedReflex(unsigned int InterfaceId)
 
 bool ReflexHooks::updateTimingData()
 {
-    bool canCall = ((State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_GetLatency) ||
+    bool canCall = ((State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
+                     !Config::Instance()->XeFGWithoutXeLL.value_or_default()) ||
                     o_NvAPI_D3D_GetLatency);
 
     if (!canCall || !_lastSleepDev)
@@ -434,8 +441,9 @@ void ReflexHooks::setFPSLimit(float fps)
         memcpy(&temp, &_lastSleepParams, sizeof(NV_SET_SLEEP_MODE_PARAMS));
         temp.minimumIntervalUs = _minimumIntervalUs;
 
-        if (State::Instance().activeFgOutput == FGOutput::XeFG && fakenvapi::ForNvidia_SetSleepMode)
-            fakenvapi::ForNvidia_SetSleepMode(_lastSleepDev, &temp);
+        if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
+            !Config::Instance()->XeFGWithoutXeLL.value_or_default())
+            nvapi_calls::NvAPI_D3D_SetSleepMode(_lastSleepDev, &temp);
         else
             o_NvAPI_D3D_SetSleepMode(_lastSleepDev, &temp);
     }

@@ -4392,14 +4392,17 @@ bool MenuCommon::RenderMenu()
                                 currentMethod = "Vulkan AntiLag";
 
                             if (state.rtssReflexInjection && mode == LowLatencyMode::AntiLag2 &&
-                                config->FGOutput == FGOutput::FSRFG)
+                                config->FGOutput.value_or_default() == FGOutput::FSRFG)
                                 ImGui::TextColored(
                                     ImVec4(1.f, 0.8f, 0.f, 1.f),
                                     "Using RTSS Reflex injection with AntiLag 2 and FSR FG might cause issues");
                         }
                         else
                         {
-                            currentMethod = "Reflex";
+                            if (fakenvapi::isUsingAsMainNvapi())
+                                currentMethod = "Fallback";
+                            else
+                                currentMethod = "Reflex";
                         }
                     }
                     else
@@ -4409,6 +4412,9 @@ bool MenuCommon::RenderMenu()
 
                     if (state.rtssReflexInjection)
                         currentMethod.append(" (RTSS)");
+
+                    if (config->FGOutput == FGOutput::XeFG && config->XeFGWithoutXeLL.value_or_default())
+                        currentMethod.append(" (no XeLL)");
 
                     ImGui::Text("Current method: %s", currentMethod.c_str());
 
