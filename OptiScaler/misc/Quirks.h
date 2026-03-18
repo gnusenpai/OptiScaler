@@ -228,11 +228,12 @@ static const QuirkEntry quirkTable[] = {
     // Nixxes Sony ports - Dxgi spoofing disabled due to RT crashes
     //
     // Ratchet & Clank: Rift Apart, Marvel’s Spider-Man Remastered, Marvel’s Spider-Man: Miles Morales, Marvel's
-    // Spider-Man 2
+    // Spider-Man 2, DEATH STRANDING 2: ON THE BEACH
     QUIRK_ENTRY("riftapart.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("spider-man.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("milesmorales.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("spider-man2.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("ds2.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Dead Space Remake
     // Override Vsync required to avoid crash on boot
