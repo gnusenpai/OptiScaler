@@ -229,11 +229,6 @@ bool fakenvapi::updateModeAndContext()
 
 bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
 {
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && Config::Instance()->XeFGWithoutXeLL.value_or_default())
-    {
-        return false;
-    }
-
     LOG_FUNC();
 
     auto result = nvapi_calls::Fake_SetLowLatencyCtx(context, mode);

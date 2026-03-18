@@ -9,6 +9,22 @@
 
 // #define LOG_REFLEX_CALLS
 
+#define CALL_XEFG_NVAPI(FuncName, ...)                                                                                 \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (State::Instance().activeFgOutput == FGOutput::XeFG)                                                        \
+        {                                                                                                              \
+            const bool isMainNvapi = fakenvapi::isUsingAsMainNvapi();                                                  \
+            const bool xeFGWithoutXeLL = Config::Instance()->XeFGWithoutXeLL.value_or_default();                       \
+                                                                                                                       \
+            if (!isMainNvapi && !xeFGWithoutXeLL)                                                                      \
+                return nvapi_calls::FuncName(__VA_ARGS__);                                                             \
+                                                                                                                       \
+            if (isMainNvapi && xeFGWithoutXeLL)                                                                        \
+                return NVAPI_OK;                                                                                       \
+        }                                                                                                              \
+    } while (0)
+
 std::optional<TimingEntry> ReflexHooks::timingData[TimingType::TimingTypeCOUNT] {};
 
 NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams)
@@ -26,11 +42,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_
     if (_minimumIntervalUs != 0)
         pSetSleepModeParams->minimumIntervalUs = _minimumIntervalUs;
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
-        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
-        return nvapi_calls::NvAPI_D3D_SetSleepMode(pDev, pSetSleepModeParams);
-    else
-        return o_NvAPI_D3D_SetSleepMode(pDev, pSetSleepModeParams);
+    CALL_XEFG_NVAPI(NvAPI_D3D_SetSleepMode, pDev, pSetSleepModeParams);
+
+    return o_NvAPI_D3D_SetSleepMode(pDev, pSetSleepModeParams);
 }
 
 NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
@@ -39,11 +53,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
     LOG_FUNC();
 #endif
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
-        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
-        return nvapi_calls::NvAPI_D3D_Sleep(pDev);
-    else
-        return o_NvAPI_D3D_Sleep(pDev);
+    CALL_XEFG_NVAPI(NvAPI_D3D_Sleep, pDev);
+
+    return o_NvAPI_D3D_Sleep(pDev);
 }
 
 NvAPI_Status ReflexHooks::hkNvAPI_D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams)
@@ -52,11 +64,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESU
     LOG_FUNC();
 #endif
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
-        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
-        return nvapi_calls::NvAPI_D3D_GetLatency(pDev, pGetLatencyParams);
-    else
-        return o_NvAPI_D3D_GetLatency(pDev, pGetLatencyParams);
+    CALL_XEFG_NVAPI(NvAPI_D3D_GetLatency, pDev, pGetLatencyParams);
+
+    return o_NvAPI_D3D_GetLatency(pDev, pGetLatencyParams);
 }
 
 NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
@@ -132,11 +142,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     if (pSetLatencyMarkerParams->markerType == PRESENT_START && State::Instance().activeFgInput == FGInput::DLSSG)
         State::Instance().slFGInputs.markPresent(pSetLatencyMarkerParams->frameID);
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
-        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
-        return nvapi_calls::NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
-    else
-        return o_NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
+    CALL_XEFG_NVAPI(NvAPI_D3D_SetLatencyMarker, pDev, pSetLatencyMarkerParams);
+
+    return o_NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
 }
 
 NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue,
@@ -180,11 +188,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
         }
     }
 
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && !fakenvapi::isUsingAsMainNvapi() &&
-        !Config::Instance()->XeFGWithoutXeLL.value_or_default())
-        return nvapi_calls::NvAPI_D3D12_SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
-    else
-        return o_NvAPI_D3D12_SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
+    CALL_XEFG_NVAPI(NvAPI_D3D12_SetAsyncFrameMarker, pCommandQueue, pSetAsyncFrameMarkerParams);
+
+    return o_NvAPI_D3D12_SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
 }
 
 NvAPI_Status ReflexHooks::hkNvAPI_Vulkan_SetLatencyMarker(HANDLE vkDevice,

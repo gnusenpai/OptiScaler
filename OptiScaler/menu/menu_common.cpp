@@ -4477,15 +4477,33 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // FAKENVAPI ---------------------------
-                if (fakenvapi::isUsingAsMainNvapi())
+                if (fakenvapi::isUsingAsMainNvapi() ||
+                    (state.activeFgOutput == FGOutput::XeFG && state.reflexLimitsFps))
                 {
+                    // Using state.reflexLimitsFps as a detection for Reflex being used on Nvidia
+
                     ImGui::SeparatorText("fakenvapi");
 
                     if (bool forceLFX = config->FN_ForceLatencyFlex.value_or_default();
                         ImGui::Checkbox("Force LatencyFlex", &forceLFX))
+                    {
                         config->FN_ForceLatencyFlex = forceLFX;
+                    }
                     ShowHelpMarker(
                         "AntiLag 2 / XeLL is used when available, this setting lets you force LatencyFlex instead");
+
+                    ImGui::SameLine(0.0f, 16.0f);
+
+                    ImGui::BeginDisabled(state.activeFgOutput != FGOutput::XeFG);
+
+                    if (bool xeFGWithoutXeLL = config->XeFGWithoutXeLL.value_or_default();
+                        ImGui::Checkbox("XeFG Without XeLL", &xeFGWithoutXeLL))
+                    {
+                        config->XeFGWithoutXeLL = xeFGWithoutXeLL;
+                    }
+                    ShowHelpMarker("If you hate having low latency");
+
+                    ImGui::EndDisabled();
 
                     // clang-format off
                     static const std::vector<MenuOption<uint32_t>> lfx_modes = {
@@ -4497,11 +4515,21 @@ bool MenuCommon::RenderMenu()
                             "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to Aggressive" }
                     };
 
-                    PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
+                    bool usingLFX =
+                        fakenvapi::updateModeAndContext() && fakenvapi::getCurrentMode() == LowLatencyMode::LatencyFlex;
 
-                    static const std::vector<MenuOption<uint32_t>> reflex_modes = { { 0, "Follow in-game" },
-                                                                                    { 1, "Force Disable" },
-                                                                                    { 2, "Force Enable" } };
+                    ImGui::BeginDisabled(!usingLFX);
+                    PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
+                    ImGui::EndDisabled();
+
+                    static std::vector<MenuOption<uint32_t>> reflex_modes = { { 0, "Follow in-game" },
+                                                                            { 1, "Force Disable" },
+                                                                            { 2, "Force Enable" } };
+
+                    if (state.activeFgOutput == FGOutput::XeFG)
+                        reflex_modes[1].set_disabled(true);
+                    else
+                        reflex_modes[1].set_disabled(false);
 
                     PopulateCombo("Force Reflex", config->FN_ForceReflex, reflex_modes);
                     // clang-format on
