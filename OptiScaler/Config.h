@@ -157,6 +157,7 @@ template <class T, HasDefaultValue defaultState = WithDefault> class CustomOptio
 };
 
 constexpr inline int UnboundKey = -1;
+constexpr uint32_t NV_PRESET_LATEST = 0x00FFFFFF;
 
 enum FpsOverlay : uint32_t
 {
@@ -181,6 +182,22 @@ enum class Scaler : uint32_t
     Kaiser2 = 5,
     Kaiser3 = 6,
     Magic = 7,
+    Count
+};
+
+enum class ForceReflex : uint32_t
+{
+    InGame,
+    ForceDisable,
+    ForceEnable,
+    Count
+};
+
+enum class LFXMode : uint32_t
+{
+    Conservative,
+    Aggressive,
+    ReflexIDs,
     Count
 };
 
@@ -397,9 +414,6 @@ class Config
     CustomOptional<bool> VulkanUseCopyForOutput { false };
 
     // NVAPI Override
-    CustomOptional<bool> OverrideNvapiDll { false };
-    CustomOptional<bool> DontUseFakenvapiForXeLLOnNvidia { false };
-    CustomOptional<std::wstring, NoDefault> NvapiDllPath;
     CustomOptional<bool> DisableFlipMetering { false };
 
     // Spoofing
@@ -516,11 +530,12 @@ class Config
     CustomOptional<bool> FGXeFGForceBorderless { false };
 
     // fakenvapi
-    CustomOptional<bool> FN_EnableLogs { true };
-    CustomOptional<bool> FN_EnableTraceLogs { false };
+    // TODO: convert to enums
+    CustomOptional<bool> UseFakenvapi { true };
+    CustomOptional<bool> XeFGWithoutXeLL { false };
     CustomOptional<bool> FN_ForceLatencyFlex { false };
-    CustomOptional<uint32_t> FN_LatencyFlexMode { 0 }; // conservative - aggressive - reflex ids
-    CustomOptional<uint32_t> FN_ForceReflex { 0 };     // in-game - force disable - force enable
+    CustomOptional<LFXMode> FN_LatencyFlexMode { LFXMode::Conservative };
+    CustomOptional<ForceReflex> FN_ForceReflex { ForceReflex::InGame };
 
     // Inputs
     CustomOptional<bool> EnableDlssInputs { true };
@@ -554,9 +569,6 @@ class Config
     bool SaveIni();
     bool SaveXeFG();
 
-    bool ReloadFakenvapi();
-    bool SaveFakenvapiIni();
-
     void CheckUpscalerFiles();
 
     std::vector<std::string> GetConfigLog();
@@ -578,4 +590,6 @@ class Config
     std::optional<int> readInt(std::string section, std::string key);
     std::optional<uint32_t> readUInt(std::string section, std::string key);
     std::optional<bool> readBool(std::string section, std::string key);
+
+    template <typename Enum> std::optional<Enum> readEnum(std::string section, std::string key);
 };

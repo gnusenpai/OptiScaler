@@ -152,7 +152,6 @@ inline std::vector<std::string> skipDxgiWrappingNames = { "eosovh-win32-shipping
                                                           "d3d12.dll",
                                                           "d3d12core.dll" }; // directx ended
 /*
-                                                          "fakenvapi.dll", // fakenvapi
                                                           "libxell.dll",
                                                           "libxess.dll",
                                                           "libxess_dx11.dll",

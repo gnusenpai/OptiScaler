@@ -7,6 +7,7 @@
 
 #include <proxies/Ntdll_Proxy.h>
 #include <proxies/KernelBase_Proxy.h>
+#include <hooks/Xell_Hooks.h>
 
 #include <xell.h>
 #include <xell_d3d12.h>
@@ -177,12 +178,12 @@ class XeLLProxy
         } while (false);
 
         if (mainModule != nullptr)
-            return HookXeLL(mainModule);
+            return GetFunctions(mainModule);
 
         return false;
     }
 
-    static bool HookXeLL(HMODULE libxellModule)
+    static bool GetFunctions(HMODULE libxellModule)
     {
         // if dll already loaded
         if (_dll != nullptr && _xellDestroyContext != nullptr)
@@ -228,7 +229,6 @@ class XeLLProxy
         if (_xellVersion.major == 0 && _xellGetVersion != nullptr)
         {
             if (auto result = _xellGetVersion((xell_version_t*) &_xellVersion); result == XESS_RESULT_SUCCESS)
-
                 LOG_INFO("XeLL Version: v{}.{}.{}", _xellVersion.major, _xellVersion.minor, _xellVersion.patch);
             else
                 LOG_ERROR("Can't get XeLL version: {}", (UINT) result);
@@ -283,6 +283,12 @@ class XeLLProxy
             return false;
         }
 
+        if (!XellHooks::Hook())
+        {
+            LOG_ERROR("Couldn't detour XeLL");
+            return false;
+        }
+
         if (_xellContext != nullptr)
             DestroyXeLLContext();
 
@@ -300,6 +306,7 @@ class XeLLProxy
         else
         {
             LOG_INFO("XeLL context created");
+            XellHooks::setOurContext(_xellContext);
         }
 
         xellResult = SetLoggingCallback()(_xellContext, XELL_LOGGING_LEVEL_DEBUG, xellLogCallback);

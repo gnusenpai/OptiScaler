@@ -85,7 +85,10 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_DRS_GetSetting(NvDRSSessionHandle hSe
 void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
 {
     if (!o_NvAPI_QueryInterface)
-        return nullptr;
+        if (Config::Instance()->UseFakenvapi.value_or_default())
+            o_NvAPI_QueryInterface = (PFN_NvApi_QueryInterface) fakenvapi::queryInterface;
+        else
+            return nullptr;
 
     // Disable flip metering
     if (InterfaceId == 0xF3148C42 &&
@@ -150,7 +153,7 @@ void NvApiHooks::Hook(HMODULE nvapiModule)
     if (o_NvAPI_QueryInterface != nullptr)
     {
         LOG_INFO("NvAPI_QueryInterface found, hooking!");
-        fakenvapi::Init(o_NvAPI_QueryInterface);
+        fakenvapi::init();
 
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());

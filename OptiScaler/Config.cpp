@@ -10,7 +10,6 @@
 #include <SimpleIni.h>
 
 static CSimpleIniA ini;
-static CSimpleIniA fakenvapiIni;
 
 static inline int64_t GetTicks()
 {
@@ -275,31 +274,31 @@ bool Config::Reload(std::filesystem::path iniPath)
             constexpr size_t presetCount = 17;
 
             if (auto setting = readInt("DLSS", "RenderPresetForAll");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetForAll.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetDLAA");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetDLAA.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetUltraQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetUltraQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetBalanced");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetBalanced.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetPerformance.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetUltraPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetUltraPerformance.set_from_config(setting);
         }
         // DLSSD
@@ -310,31 +309,31 @@ bool Config::Reload(std::filesystem::path iniPath)
             constexpr size_t presetCount = 6;
 
             if (auto setting = readInt("DLSSD", "RenderPresetForAll");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetForAll.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetDLAA");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetDLAA.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetUltraQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetUltraQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetBalanced");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetBalanced.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetPerformance.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetUltraPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetUltraPerformance.set_from_config(setting);
         }
 
@@ -462,13 +461,11 @@ bool Config::Reload(std::filesystem::path iniPath)
         // Output Scaling
         {
             OutputScalingEnabled.set_from_config(readBool("OutputScaling", "Enabled"));
-            if (auto setting = readInt("OutputScaling", "Downscaler"); setting.has_value())
-            {
-                if (setting.value() >= 0 && setting.value() < static_cast<int>(Scaler::Count))
-                    OutputScalingDownscaler.set_from_config(static_cast<Scaler>(setting.value()));
-                else
-                    OutputScalingDownscaler.reset();
-            }
+
+            if (auto v = readEnum<Scaler>("OutputScaling", "Downscaler"))
+                OutputScalingDownscaler.set_from_config(*v);
+            else
+                OutputScalingDownscaler.reset();
 
             if (auto setting = readFloat("OutputScaling", "Multiplier"); setting.has_value())
                 OutputScalingMultiplier.set_from_config(std::clamp(setting.value(), 0.5f, 3.0f));
@@ -575,9 +572,6 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // NvApi
         {
-            OverrideNvapiDll.set_from_config(readBool("NvApi", "OverrideNvapiDll"));
-            DontUseFakenvapiForXeLLOnNvidia.set_from_config(readBool("NvApi", "DontUseFakenvapiForXeLLOnNvidia"));
-            NvapiDllPath.set_from_config(readWString("NvApi", "NvapiDllPath", true));
             DisableFlipMetering.set_from_config(readBool("NvApi", "DisableFlipMetering"));
         }
 
@@ -602,6 +596,23 @@ bool Config::Reload(std::filesystem::path iniPath)
             SpoofRegistry.set_from_config(readBool("Spoofing", "Registry"));
             SpoofedDriver.set_from_config(readWString("Spoofing", "RegistryDriver"));
             SpoofUser32.set_from_config(readBool("Spoofing", "User32"));
+        }
+
+        // fakenvapi
+        {
+            UseFakenvapi.set_from_config(readBool("fakenvapi", "UseFakenvapi"));
+            XeFGWithoutXeLL.set_from_config(readBool("fakenvapi", "XeFGWithoutXeLL"));
+            FN_ForceLatencyFlex.set_from_config(readBool("fakenvapi", "ForceLatencyFlex"));
+
+            if (auto v = readEnum<LFXMode>("fakenvapi", "LatencyFlexMode"))
+                FN_LatencyFlexMode.set_from_config(*v);
+            else
+                FN_LatencyFlexMode.reset();
+
+            if (auto v = readEnum<ForceReflex>("fakenvapi", "ForceReflex"))
+                FN_ForceReflex.set_from_config(*v);
+            else
+                FN_ForceReflex.reset();
         }
 
         // Inputs
@@ -668,9 +679,6 @@ bool Config::Reload(std::filesystem::path iniPath)
             VsyncInterval.set_from_config(readInt("V-Sync", "SyncInterval"));
         }
 
-        if (fakenvapi::isUsingFakenvapi())
-            return ReloadFakenvapi();
-
         return true;
     }
 
@@ -699,23 +707,28 @@ std::string GetBoolValue(std::optional<bool> value)
     return value.value() ? "true" : "false";
 }
 
-std::string GetIntValue(std::optional<int> value, bool getHex = false)
+template <typename T> std::string GetIntValue(std::optional<T> value, bool getHex = false)
 {
     if (!value.has_value())
         return "auto";
 
-    if (getHex)
-        return std::format("{:#x}", value.value());
+    if constexpr (std::is_enum_v<T>)
+    {
+        using Underlying = std::underlying_type_t<T>;
+        Underlying v = static_cast<Underlying>(value.value());
 
-    return std::to_string(value.value());
-}
+        if (getHex)
+            return std::format("{:#x}", v);
 
-std::string GetIntValue(std::optional<Scaler> value)
-{
-    if (!value.has_value())
-        return "auto";
+        return std::to_string(v);
+    }
+    else
+    {
+        if (getHex)
+            return std::format("{:#x}", value.value());
 
-    return std::to_string(static_cast<int>(value.value()));
+        return std::to_string(value.value());
+    }
 }
 
 std::string GetFloatValue(std::optional<float> value)
@@ -1223,12 +1236,6 @@ bool Config::SaveIni()
 
     // NvApi
     {
-        ini.SetValue("NvApi", "OverrideNvapiDll",
-                     GetBoolValue(Instance()->OverrideNvapiDll.value_for_config()).c_str());
-        ini.SetValue("NvApi", "DontUseFakenvapiForXeLLOnNvidia",
-                     GetBoolValue(Instance()->DontUseFakenvapiForXeLLOnNvidia.value_for_config()).c_str());
-        ini.SetValue("NvApi", "NvapiDllPath",
-                     wstring_to_string(Instance()->NvapiDllPath.value_for_config_or(L"auto")).c_str());
         ini.SetValue("NvApi", "DisableFlipMetering",
                      GetBoolValue(Instance()->DisableFlipMetering.value_for_config()).c_str());
     }
@@ -1297,6 +1304,18 @@ bool Config::SaveIni()
         ini.SetValue("Plugins", "LoadAsiPlugins", GetBoolValue(Instance()->LoadAsiPlugins.value_for_config()).c_str());
     }
 
+    // fakenvapi
+    {
+        ini.SetValue("fakenvapi", "UseFakenvapi", GetBoolValue(Instance()->UseFakenvapi.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "XeFGWithoutXeLL",
+                     GetBoolValue(Instance()->XeFGWithoutXeLL.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "ForceLatencyFlex",
+                     GetBoolValue(Instance()->FN_ForceLatencyFlex.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "LatencyFlexMode",
+                     GetIntValue(Instance()->FN_LatencyFlexMode.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "ForceReflex", GetIntValue(Instance()->FN_ForceReflex.value_for_config()).c_str());
+    }
+
     // inputs
     {
         ini.SetValue("Inputs", "EnableDlssInputs",
@@ -1340,51 +1359,6 @@ bool Config::SaveIni()
     LOG_INFO("Trying to save ini to: {0}", wstring_to_string(pathWStr));
 
     return ini.SaveFile(absoluteFileName.wstring().c_str()) >= 0;
-}
-
-bool Config::ReloadFakenvapi()
-{
-    auto FN_iniPath = Util::DllPath().parent_path() / L"fakenvapi.ini";
-    if (NvapiDllPath.has_value())
-        FN_iniPath = std::filesystem::path(NvapiDllPath.value()).parent_path() / L"fakenvapi.ini";
-
-    auto pathWStr = FN_iniPath.wstring();
-
-    LOG_INFO("Trying to load fakenvapi's ini from: {0}", wstring_to_string(pathWStr));
-
-    if (fakenvapiIni.LoadFile(FN_iniPath.c_str()) == SI_OK)
-    {
-        FN_EnableLogs = fakenvapiIni.GetLongValue("fakenvapi", "enable_logs", true);
-        FN_EnableTraceLogs = fakenvapiIni.GetLongValue("fakenvapi", "enable_trace_logs", false);
-        FN_ForceLatencyFlex = fakenvapiIni.GetLongValue("fakenvapi", "force_latencyflex", false);
-        FN_LatencyFlexMode = fakenvapiIni.GetLongValue("fakenvapi", "latencyflex_mode", 0);
-        FN_ForceReflex = fakenvapiIni.GetLongValue("fakenvapi", "force_reflex", 0);
-
-        return true;
-    }
-
-    return false;
-}
-
-bool Config::SaveFakenvapiIni()
-{
-    auto FN_iniPath = Util::DllPath().parent_path() / L"fakenvapi.ini";
-    if (NvapiDllPath.has_value())
-        FN_iniPath = std::filesystem::path(NvapiDllPath.value()).parent_path() / L"fakenvapi.ini";
-
-    auto pathWStr = FN_iniPath.wstring();
-
-    LOG_INFO("Trying to save fakenvapi's ini to: {0}", wstring_to_string(pathWStr));
-
-    fakenvapiIni.SetLongValue("fakenvapi", "enable_logs", FN_EnableLogs.value_or(true));
-    fakenvapiIni.SetLongValue("fakenvapi", "enable_trace_logs", FN_EnableTraceLogs.value_or(false));
-    fakenvapiIni.SetLongValue("fakenvapi", "force_latencyflex", FN_ForceLatencyFlex.value_or(false));
-    fakenvapiIni.SetLongValue("fakenvapi", "latencyflex_mode", FN_LatencyFlexMode.value_or(0));
-    fakenvapiIni.SetLongValue("fakenvapi", "force_reflex", FN_ForceReflex.value_or(0));
-
-    StreamlineHooks::updateForceReflex();
-
-    return fakenvapiIni.SaveFile(FN_iniPath.wstring().c_str()) >= 0;
 }
 
 bool Config::SaveXeFG()
@@ -1596,6 +1570,23 @@ std::optional<bool> Config::readBool(std::string section, std::string key)
         return true;
     else if (value == "false")
         return false;
+
+    return std::nullopt;
+}
+
+// Only use for unsigned enums that have Enum::Count as the last entry
+template <typename Enum> std::optional<Enum> Config::readEnum(std::string section, std::string key)
+{
+    static_assert(std::is_enum_v<Enum>, "Enum type required");
+
+    auto value = readUInt(section, key);
+    if (!value.has_value())
+        return std::nullopt;
+
+    using Underlying = std::underlying_type_t<Enum>;
+
+    if (*value < static_cast<Underlying>(Enum::Count))
+        return static_cast<Enum>(*value);
 
     return std::nullopt;
 }

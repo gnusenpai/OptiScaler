@@ -123,38 +123,25 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     // NvApi64.dll
     if (CheckDllNameW(&libName, &nvapiNamesW))
     {
-        if (Config::Instance()->OverrideNvapiDll.value_or_default())
+        LOG_INFO("{} call!", libNameA);
+
+        auto nvapi = GetModuleHandleW(libName.c_str());
+
+        // Try to load nvapi only from system32, like the original call would
+        if (nvapi == nullptr)
+            nvapi = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+
+        // Opti exports a query function that nvapi would export
+        if (nvapi == nullptr && Config::Instance()->UseFakenvapi.value_or_default())
         {
-            LOG_INFO("Overrided {} call!", libNameA);
-
-            auto nvapi = LoadNvApi();
-
-            // Nvapihooks intentionally won't load nvapi so have to make sure it's loaded
-            if (nvapi != nullptr)
-            {
-                NvApiHooks::Hook(nvapi);
-                return nvapi;
-            }
-
-            LOG_DEBUG("Not loaded");
+            nvapi = dllModule;
+            fakenvapi::setUsingAsMainNvapi(true);
         }
-        else
-        {
-            LOG_INFO("{} call!", libNameA);
 
-            auto nvapi = GetModuleHandleW(libName.c_str());
+        if (nvapi != nullptr)
+            NvApiHooks::Hook(nvapi);
 
-            // Try to load nvapi only from system32, like the original call would
-            if (nvapi == nullptr)
-            {
-                nvapi = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-            }
-
-            if (nvapi != nullptr)
-                NvApiHooks::Hook(nvapi);
-
-            // AMD without nvapi override should fall through
-        }
+        return nvapi;
     }
 
     // sl.interposer.dll
@@ -593,49 +580,23 @@ HMODULE LibraryLoadHooks::LoadNvApi()
 {
     LOG_FUNC();
 
-    HMODULE nvapi = nullptr;
+    auto nvapi = GetModuleHandleW(L"nvapi64.dll");
 
-    if (Config::Instance()->NvapiDllPath.has_value())
-    {
-        LOG_DEBUG("Load NvapiDllPath");
-
-        nvapi = NtdllProxy::LoadLibraryExW_Ldr(Config::Instance()->NvapiDllPath->c_str(), NULL, 0);
-
-        if (nvapi != nullptr)
-        {
-            LOG_INFO("nvapi64.dll loaded from {0}", wstring_to_string(Config::Instance()->NvapiDllPath.value()));
-            return nvapi;
-        }
-    }
-
+    // Try to load nvapi only from system32, like the original call would
     if (nvapi == nullptr)
+        nvapi = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+
+    // Opti exports a query function that nvapi would export
+    if (nvapi == nullptr && Config::Instance()->UseFakenvapi.value_or_default())
     {
-        LOG_DEBUG("Load nvapi64.dll");
-
-        auto localPath = Util::DllPath().parent_path() / L"nvapi64.dll";
-        nvapi = NtdllProxy::LoadLibraryExW_Ldr(localPath.wstring().c_str(), NULL, 0);
-
-        if (nvapi != nullptr)
-        {
-            LOG_INFO("nvapi64.dll loaded from {0}", wstring_to_string(localPath.wstring()));
-            return nvapi;
-        }
+        nvapi = dllModule;
+        fakenvapi::setUsingAsMainNvapi(true);
     }
 
-    if (nvapi == nullptr)
-    {
-        LOG_DEBUG("Load nvapi64.dll 2");
+    if (nvapi != nullptr)
+        NvApiHooks::Hook(nvapi);
 
-        nvapi = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, 0);
-
-        if (nvapi != nullptr)
-        {
-            LOG_WARN("nvapi64.dll loaded from system!");
-            return nvapi;
-        }
-    }
-
-    return nullptr;
+    return nvapi;
 }
 
 HMODULE LibraryLoadHooks::LoadNvngxDlss(std::wstring originalPath)

@@ -1230,8 +1230,6 @@ template <HasDefaultValue B> void MenuCommon::AddResourceBarrier(std::string nam
     }
 }
 
-constexpr uint32_t NV_PRESET_LATEST = 0x00FFFFFF;
-
 // TODO: disable presets based on the detected DLSS version
 template <HasDefaultValue B> void MenuCommon::AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value)
 {
@@ -1531,7 +1529,6 @@ bool MenuCommon::RenderMenu()
             if (_isVisible)
             {
                 refreshRate = Util::GetActiveRefreshRate(_handle);
-                config->ReloadFakenvapi();
                 auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
                 state.NukemsFilesAvailable = gExists.Get(dllPath);
 
@@ -4383,24 +4380,27 @@ bool MenuCommon::RenderMenu()
                         {
                             auto mode = fakenvapi::getCurrentMode();
 
-                            if (mode == Mode::AntiLag2)
+                            if (mode == LowLatencyMode::AntiLag2)
                                 currentMethod = "AntiLag 2";
-                            else if (mode == Mode::LatencyFlex)
+                            else if (mode == LowLatencyMode::LatencyFlex)
                                 currentMethod = "LatencyFlex";
-                            else if (mode == Mode::XeLL)
+                            else if (mode == LowLatencyMode::XeLL)
                                 currentMethod = "XeLL";
-                            else if (mode == Mode::AntiLagVk)
+                            else if (mode == LowLatencyMode::AntiLagVk)
                                 currentMethod = "Vulkan AntiLag";
 
-                            if (state.rtssReflexInjection && mode == Mode::AntiLag2 &&
-                                config->FGOutput == FGOutput::FSRFG)
+                            if (state.rtssReflexInjection && mode == LowLatencyMode::AntiLag2 &&
+                                config->FGOutput.value_or_default() == FGOutput::FSRFG)
                                 ImGui::TextColored(
                                     ImVec4(1.f, 0.8f, 0.f, 1.f),
                                     "Using RTSS Reflex injection with AntiLag 2 and FSR FG might cause issues");
                         }
                         else
                         {
-                            currentMethod = "Reflex";
+                            if (fakenvapi::isUsingAsMainNvapi())
+                                currentMethod = "Fallback";
+                            else
+                                currentMethod = "Reflex";
                         }
                     }
                     else
@@ -4410,6 +4410,9 @@ bool MenuCommon::RenderMenu()
 
                     if (state.rtssReflexInjection)
                         currentMethod.append(" (RTSS)");
+
+                    if (config->FGOutput == FGOutput::XeFG && config->XeFGWithoutXeLL.value_or_default())
+                        currentMethod.append(" (no XeLL)");
 
                     ImGui::Text("Current method: %s", currentMethod.c_str());
 
@@ -4456,7 +4459,7 @@ bool MenuCommon::RenderMenu()
                         constexpr float margin = 0.3f; // in ms
                         float frameCap = std::round(10000.f / (1000.f / refreshRateF + margin)) / 10.f;
 
-                        if (fpsLimitTech == Mode::AntiLag2 || fpsLimitTech == Mode::AntiLagVk)
+                        if (fpsLimitTech == LowLatencyMode::AntiLag2 || fpsLimitTech == LowLatencyMode::AntiLagVk)
                             frameCap = std::round(frameCap);
 
                         ImGui::Text("Calculated Cap: %.1f", frameCap);
@@ -4472,52 +4475,62 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // FAKENVAPI ---------------------------
-                if (fakenvapi::isUsingFakenvapi())
+                if (fakenvapi::isUsingAsMainNvapi() ||
+                    (state.activeFgOutput == FGOutput::XeFG && state.reflexLimitsFps))
                 {
+                    // Using state.reflexLimitsFps as a detection for Reflex being used on Nvidia
+
                     ImGui::SeparatorText("fakenvapi");
-
-                    if (bool logs = config->FN_EnableLogs.value_or_default();
-                        ImGui::Checkbox("Enable Logging To File", &logs))
-                        config->FN_EnableLogs = logs;
-
-                    ImGui::BeginDisabled(!config->FN_EnableLogs.value_or_default());
-
-                    ImGui::SameLine(0.0f, 6.0f);
-                    if (bool traceLogs = config->FN_EnableTraceLogs.value_or_default();
-                        ImGui::Checkbox("Enable Trace Logs", &traceLogs))
-                        config->FN_EnableTraceLogs = traceLogs;
-
-                    ImGui::EndDisabled();
 
                     if (bool forceLFX = config->FN_ForceLatencyFlex.value_or_default();
                         ImGui::Checkbox("Force LatencyFlex", &forceLFX))
+                    {
                         config->FN_ForceLatencyFlex = forceLFX;
+                    }
                     ShowHelpMarker(
                         "AntiLag 2 / XeLL is used when available, this setting lets you force LatencyFlex instead");
 
+                    ImGui::SameLine(0.0f, 16.0f);
+
+                    ImGui::BeginDisabled(state.activeFgOutput != FGOutput::XeFG);
+
+                    if (bool xeFGWithoutXeLL = config->XeFGWithoutXeLL.value_or_default();
+                        ImGui::Checkbox("XeFG Without XeLL", &xeFGWithoutXeLL))
+                    {
+                        config->XeFGWithoutXeLL = xeFGWithoutXeLL;
+                    }
+                    ShowHelpMarker("If you hate having low latency");
+
+                    ImGui::EndDisabled();
+
                     // clang-format off
-                    static const std::vector<MenuOption<uint32_t>> lfx_modes = {
-                        { 0, "Conservative",
+                    static const std::vector<MenuOption<LFXMode>> lfx_modes = {
+                        { LFXMode::Conservative, "Conservative",
                             "The safest, but might not reduce latency well" },
-                        { 1, "Aggressive",
+                        { LFXMode::Aggressive, "Aggressive",
                             "Improves latency, but in some cases will lower FPS more than expected" },
-                        { 2, "Reflex ID",
+                        { LFXMode::ReflexIDs, "Reflex ID",
                             "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to Aggressive" }
                     };
 
-                    PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
+                    bool usingLFX =
+                        fakenvapi::updateModeAndContext() && fakenvapi::getCurrentMode() == LowLatencyMode::LatencyFlex;
 
-                    static const std::vector<MenuOption<uint32_t>> reflex_modes = { { 0, "Follow in-game" },
-                                                                                    { 1, "Force Disable" },
-                                                                                    { 2, "Force Enable" } };
+                    ImGui::BeginDisabled(!usingLFX);
+                    PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
+                    ImGui::EndDisabled();
+
+                    static std::vector<MenuOption<ForceReflex>> reflex_modes = { { ForceReflex::InGame, "Follow in-game" },
+                                                                            { ForceReflex::ForceDisable, "Force Disable" },
+                                                                            { ForceReflex::ForceEnable, "Force Enable" } };
+
+                    if (state.activeFgOutput == FGOutput::XeFG)
+                        reflex_modes[1].set_disabled(true);
+                    else
+                        reflex_modes[1].set_disabled(false);
 
                     PopulateCombo("Force Reflex", config->FN_ForceReflex, reflex_modes);
                     // clang-format on
-
-                    if (ImGui::Button("Apply##2"))
-                    {
-                        config->SaveFakenvapiIni();
-                    }
                 }
 
                 // NEXT COLUMN -----------------
