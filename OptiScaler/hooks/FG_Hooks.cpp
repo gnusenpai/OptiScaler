@@ -1119,7 +1119,7 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
     Hudfix_Dx12::PresentEnd();
 
     if (willPresent && !State::Instance().reflexLimitsFps && State::Instance().activeFgOutput != FGOutput::NoFG &&
-        !State::Instance().isRunningOnDXVK)
+        !IdentifyGpu::getPrimaryGpu().usesDxvk)
         FrameLimit::sleep(fg != nullptr ? fg->IsActive() : false);
 
     if (mutexUsed && fg != nullptr)

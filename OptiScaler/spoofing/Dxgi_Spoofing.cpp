@@ -8,6 +8,7 @@
 #include <string>
 #include <algorithm>
 #include <cctype>
+#include <misc/IdentifyGpu.h>
 
 typedef HRESULT (*PFN_GetDesc)(IDXGIAdapter* This, DXGI_ADAPTER_DESC* pDesc);
 typedef HRESULT (*PFN_GetDesc1)(IDXGIAdapter1* This, DXGI_ADAPTER_DESC1* pDesc);
@@ -60,18 +61,6 @@ HRESULT DxgiSpoofing::hkGetDesc3(IDXGIAdapter4* This, DXGI_ADAPTER_DESC3* pDesc)
 
     if (result == S_OK)
     {
-        if (pDesc->VendorId != VendorId::Microsoft &&
-            !State::Instance().adapterDescs.contains(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart))
-        {
-            std::wstring szName(pDesc->Description);
-            std::string descStr =
-                std::format("Adapter: {}, VRAM: {} MB, VendorId: {:#x}, DeviceId: {:#x}", wstring_to_string(szName),
-                            pDesc->DedicatedVideoMemory / (1024.0 * 1024.0), pDesc->VendorId, pDesc->DeviceId);
-            LOG_INFO("{}", descStr);
-            State::Instance().adapterDescs.insert_or_assign(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart,
-                                                            descStr);
-        }
-
         if (Config::Instance()->DxgiVRAM.has_value())
         {
             uint64_t newMemSize = (uint64_t) Config::Instance()->DxgiVRAM.value() * 1073741824; // 1024 * 1024 * 1024
@@ -121,29 +110,19 @@ HRESULT DxgiSpoofing::hkGetDesc2(IDXGIAdapter2* This, DXGI_ADAPTER_DESC2* pDesc)
 
     if (result == S_OK)
     {
-        if (pDesc->VendorId != VendorId::Microsoft &&
-            !State::Instance().adapterDescs.contains(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart))
-        {
-            std::wstring szName(pDesc->Description);
-            std::string descStr =
-                std::format("Adapter: {}, VRAM: {} MB, VendorId: {:#x}, DeviceId: {:#x}", wstring_to_string(szName),
-                            pDesc->DedicatedVideoMemory / (1024.0 * 1024.0), pDesc->VendorId, pDesc->DeviceId);
-            LOG_INFO("{}", descStr);
-            State::Instance().adapterDescs.insert_or_assign(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart,
-                                                            descStr);
-        }
-
         if (Config::Instance()->DxgiVRAM.has_value())
         {
             uint64_t newMemSize = (uint64_t) Config::Instance()->DxgiVRAM.value() * 1073741824; // 1024 * 1024 * 1024
             pDesc->DedicatedVideoMemory = newMemSize;
         }
 
-        if (pDesc->VendorId != VendorId::Microsoft &&
-            (!Config::Instance()->TargetVendorId.has_value() ||
-             Config::Instance()->TargetVendorId.value() == pDesc->VendorId) &&
-            (!Config::Instance()->TargetDeviceId.has_value() ||
-             Config::Instance()->TargetDeviceId.value() == pDesc->DeviceId) &&
+        auto targetVendorIdMatches = !Config::Instance()->TargetVendorId.has_value() ||
+                                     Config::Instance()->TargetVendorId.value() == pDesc->VendorId;
+
+        auto targetDeviceIdMatches = !Config::Instance()->TargetDeviceId.has_value() ||
+                                     Config::Instance()->TargetDeviceId.value() == pDesc->DeviceId;
+
+        if (pDesc->VendorId != VendorId::Microsoft && targetVendorIdMatches && targetDeviceIdMatches &&
             Config::Instance()->DxgiSpoofing.value_or_default() && !SkipSpoofing())
         {
             pDesc->VendorId = Config::Instance()->SpoofedVendorId.value_or_default();
@@ -182,29 +161,19 @@ HRESULT DxgiSpoofing::hkGetDesc1(IDXGIAdapter1* This, DXGI_ADAPTER_DESC1* pDesc)
 
     if (result == S_OK)
     {
-        if (pDesc->VendorId != VendorId::Microsoft &&
-            !State::Instance().adapterDescs.contains(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart))
-        {
-            std::wstring szName(pDesc->Description);
-            std::string descStr =
-                std::format("Adapter: {}, VRAM: {} MB, VendorId: {:#x}, DeviceId: {:#x}", wstring_to_string(szName),
-                            pDesc->DedicatedVideoMemory / (1024.0 * 1024.0), pDesc->VendorId, pDesc->DeviceId);
-            LOG_INFO("{}", descStr);
-            State::Instance().adapterDescs.insert_or_assign(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart,
-                                                            descStr);
-        }
-
         if (Config::Instance()->DxgiVRAM.has_value())
         {
             uint64_t newMemSize = (uint64_t) Config::Instance()->DxgiVRAM.value() * 1073741824; // 1024 * 1024 * 1024
             pDesc->DedicatedVideoMemory = newMemSize;
         }
 
-        if (pDesc->VendorId != VendorId::Microsoft &&
-            (!Config::Instance()->TargetVendorId.has_value() ||
-             Config::Instance()->TargetVendorId.value() == pDesc->VendorId) &&
-            (!Config::Instance()->TargetDeviceId.has_value() ||
-             Config::Instance()->TargetDeviceId.value() == pDesc->DeviceId) &&
+        auto targetVendorIdMatches = !Config::Instance()->TargetVendorId.has_value() ||
+                                     Config::Instance()->TargetVendorId.value() == pDesc->VendorId;
+
+        auto targetDeviceIdMatches = !Config::Instance()->TargetDeviceId.has_value() ||
+                                     Config::Instance()->TargetDeviceId.value() == pDesc->DeviceId;
+
+        if (pDesc->VendorId != VendorId::Microsoft && targetVendorIdMatches && targetDeviceIdMatches &&
             Config::Instance()->DxgiSpoofing.value_or_default() && !SkipSpoofing())
         {
             pDesc->VendorId = Config::Instance()->SpoofedVendorId.value_or_default();
@@ -243,29 +212,19 @@ HRESULT DxgiSpoofing::hkGetDesc(IDXGIAdapter* This, DXGI_ADAPTER_DESC* pDesc)
 
     if (result == S_OK)
     {
-        if (pDesc->VendorId != VendorId::Microsoft &&
-            !State::Instance().adapterDescs.contains(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart))
-        {
-            std::wstring szName(pDesc->Description);
-            std::string descStr =
-                std::format("Adapter: {}, VRAM: {} MB, VendorId: {:#x}, DeviceId: {:#x}", wstring_to_string(szName),
-                            pDesc->DedicatedVideoMemory / (1024.0 * 1024.0), pDesc->VendorId, pDesc->DeviceId);
-            LOG_INFO("{}", descStr);
-            State::Instance().adapterDescs.insert_or_assign(pDesc->AdapterLuid.HighPart | pDesc->AdapterLuid.LowPart,
-                                                            descStr);
-        }
-
         if (Config::Instance()->DxgiVRAM.has_value())
         {
             uint64_t newMemSize = (uint64_t) Config::Instance()->DxgiVRAM.value() * 1073741824; // 1024 * 1024 * 1024
             pDesc->DedicatedVideoMemory = newMemSize;
         }
 
-        if (pDesc->VendorId != VendorId::Microsoft &&
-            (!Config::Instance()->TargetVendorId.has_value() ||
-             Config::Instance()->TargetVendorId.value() == pDesc->VendorId) &&
-            (!Config::Instance()->TargetDeviceId.has_value() ||
-             Config::Instance()->TargetDeviceId.value() == pDesc->DeviceId) &&
+        auto targetVendorIdMatches = !Config::Instance()->TargetVendorId.has_value() ||
+                                     Config::Instance()->TargetVendorId.value() == pDesc->VendorId;
+
+        auto targetDeviceIdMatches = !Config::Instance()->TargetDeviceId.has_value() ||
+                                     Config::Instance()->TargetDeviceId.value() == pDesc->DeviceId;
+
+        if (pDesc->VendorId != VendorId::Microsoft && targetVendorIdMatches && targetDeviceIdMatches &&
             Config::Instance()->DxgiSpoofing.value_or_default() && !SkipSpoofing())
         {
             pDesc->VendorId = Config::Instance()->SpoofedVendorId.value_or_default();

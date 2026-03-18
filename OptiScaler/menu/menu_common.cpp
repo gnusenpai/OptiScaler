@@ -23,6 +23,7 @@
 
 #include <array>
 #include <chrono>
+#include <misc/IdentifyGpu.h>
 
 #define MARK_ALL_BACKENDS_CHANGED()                                                                                    \
     for (auto& singleChangeBackend : State::Instance().changeBackend)                                                  \
@@ -1026,9 +1027,8 @@ void MenuCommon::GetCurrentBackendInfo(const API api, std::string* code, std::st
 void MenuCommon::AddDx11Backends(std::string* code, std::string* name)
 {
     std::string selectedUpscalerName = "";
-    bool fsr4Possible =
-        Config::Instance()->Fsr4Update.value_or_default() || State::Instance().isRunningOnRDNA4.value_or(false);
-    std::string fsr3xName = fsr4Possible ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
 
     if (State::Instance().newBackend == "fsr22" || (State::Instance().newBackend == "" && *code == "fsr22"))
         selectedUpscalerName = "FSR 2.2.1";
@@ -1081,9 +1081,8 @@ void MenuCommon::AddDx11Backends(std::string* code, std::string* name)
 void MenuCommon::AddDx12Backends(std::string* code, std::string* name)
 {
     std::string selectedUpscalerName = "";
-    bool fsr4Possible =
-        Config::Instance()->Fsr4Update.value_or_default() || State::Instance().isRunningOnRDNA4.value_or(false);
-    std::string fsr3xName = fsr4Possible ? "FSR 3.X/4" : "FSR 3.X";
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4" : "FSR 3.X";
 
     if (State::Instance().newBackend == "fsr21" || (State::Instance().newBackend == "" && *code == "fsr21"))
         selectedUpscalerName = "FSR 2.1.2";
@@ -1121,9 +1120,8 @@ void MenuCommon::AddDx12Backends(std::string* code, std::string* name)
 void MenuCommon::AddVulkanBackends(std::string* code, std::string* name)
 {
     std::string selectedUpscalerName = "";
-    bool fsr4Possible =
-        Config::Instance()->Fsr4Update.value_or_default() || State::Instance().isRunningOnRDNA4.value_or(false);
-    std::string fsr3xName = fsr4Possible ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
 
     if (State::Instance().newBackend == "fsr21" || (State::Instance().newBackend == "" && *code == "fsr21"))
         selectedUpscalerName = "FSR 2.1.2";
@@ -1835,7 +1833,11 @@ bool MenuCommon::RenderMenu()
                              ImGuiWindowFlags_NoNav))
         {
             std::string api;
-            if (state.isRunningOnDXVK || state.isRunningOnLinux)
+            if (IdentifyGpu::getPrimaryGpu().usesDxvk && state.api == DX11)
+            {
+                api = "DXVK";
+            }
+            else if (IdentifyGpu::getPrimaryGpu().usesVkd3dProton && state.api == DX12)
             {
                 api = "VKD3D";
             }
@@ -2133,11 +2135,10 @@ bool MenuCommon::RenderMenu()
     if (_isVisible)
     {
         // Check for gpu support
-        {
-            // DXVK might call vulkan device creation which would destroy our objects
-            ScopedSkipVulkanHooks skipVulkanHooks;
-            CheckForGPU();
-        }
+        // DXVK might call vulkan device creation which would destroy our objects
+        State::Instance().vulkanSkipHooks = true;
+        static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+        State::Instance().vulkanSkipHooks = false;
 
         // Overlay font
         if (config->UseHQFont.value_or_default())
@@ -2264,7 +2265,7 @@ bool MenuCommon::RenderMenu()
                     if (state.fsrHooks)
                         upscalers.push_back("FSR");
 
-                    if (state.nvngxExists || state.nvngxReplacement.has_value() || state.isRunningOnNvidia)
+                    if (state.nvngxExists || state.nvngxReplacement.has_value() || primaryGpu.dlssCapable)
                         upscalers.push_back("DLSS");
 
                     if (state.libxessExists || XeSSProxy::Module() != nullptr)
@@ -2285,12 +2286,7 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::Spacing();
 
-                    if (!state.isRunningOnNvidia)
-                    {
-                        ImGui::Text("nvngx.dll: %s", state.nvngxExists ? "Exists" : "Doesn't Exist");
-                    }
-
-                    if (state.isRunningOnNvidia)
+                    if (primaryGpu.dlssCapable)
                     {
                         ImGui::Text("nvngx_dlss : %s", state.NVNGX_DLSS_Path.has_value() ? "Exists" : "Doesn't Exist");
                         ImGui::SameLine(0.0f, 16.0f);
@@ -2299,6 +2295,7 @@ bool MenuCommon::RenderMenu()
                     }
                     else
                     {
+                        ImGui::Text("nvngx.dll: %s", state.nvngxExists ? "Exists" : "Doesn't Exist");
                         ImGui::SameLine(0.0f, 16.0f);
                         ImGui::Text("nvngx replacement: %s",
                                     state.nvngxReplacement.has_value() ? "Exists" : "Doesn't Exist");
@@ -2364,15 +2361,14 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::PushItemWidth(180.0f * menuResScale);
 
+                    auto primaryGpuVulkan = IdentifyGpu::getPrimaryGpuNoDxgi();
+
                     switch (state.api)
                     {
                     case DX11:
-                        if (state.DeviceAdapterNames.contains(state.currentD3D11Device))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D11Device].c_str());
-                        else if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
+                        ImGui::Text(primaryGpu.name.c_str());
 
-                        ImGui::Text("D3D11 %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                        ImGui::Text("D3D11 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2388,10 +2384,9 @@ bool MenuCommon::RenderMenu()
                         break;
 
                     case DX12:
-                        if (state.DeviceAdapterNames.contains(state.currentD3D12Device))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentD3D12Device].c_str());
+                        ImGui::Text(primaryGpu.name.c_str());
 
-                        ImGui::Text("D3D12 %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                        ImGui::Text("D3D12 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2407,10 +2402,9 @@ bool MenuCommon::RenderMenu()
                         break;
 
                     default:
-                        if (state.DeviceAdapterNames.contains(state.currentVkDevice))
-                            ImGui::Text(state.DeviceAdapterNames[state.currentVkDevice].c_str());
+                        ImGui::Text(primaryGpuVulkan.name.c_str());
 
-                        ImGui::Text("Vulkan %s| %s %d.%d.%d", state.isRunningOnDXVK ? "(DXVK) " : "",
+                        ImGui::Text("Vulkan %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
                                     currentFeature->Name().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2466,7 +2460,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::EndDisabled();
                     }
 
-                    if (state.isRunningOnNvidia && !state.NVNGX_DLSS_Path.has_value())
+                    if (primaryGpu.dlssCapable && !state.NVNGX_DLSS_Path.has_value())
                     {
                         ImGui::Spacing();
                         ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "nvngx_dlss.dll not found, DLSS disabled!");
@@ -3047,8 +3041,6 @@ bool MenuCommon::RenderMenu()
                 auto constexpr optiFgIndex = (uint32_t) FGInput::Upscaler;
                 inputOptions[optiFgIndex].set_disabled(state.api == API::DX11 || state.api == API::Vulkan,
                                                        "Unsupported API");
-                inputOptions[optiFgIndex].set_disabled(state.workingMode == WorkingMode::Nvngx,
-                                                       "Unsupported Opti working mode");
 
                 if (!inputOptions[optiFgIndex].disabled && state.activeFgOutput == FGOutput::FSRFG &&
                     !FfxApiProxy::IsFGReady() && !fsr31InitTried)
@@ -3112,12 +3104,7 @@ bool MenuCommon::RenderMenu()
                 // Nukem's FG mod requirements
                 auto constexpr nukemsInputIndex = (uint32_t) FGInput::Nukems;
                 auto constexpr nukemsOutputIndex = (uint32_t) FGOutput::Nukems;
-                if (state.workingMode == WorkingMode::Nvngx)
-                {
-                    inputOptions[nukemsInputIndex].set_disabled(true, "Unsupported Opti working mode");
-                    outputOptions[nukemsOutputIndex].set_disabled(true, "Unsupported Opti working mode");
-                }
-                else if (!state.NukemsFilesAvailable)
+                if (!state.NukemsFilesAvailable)
                 {
                     inputOptions[nukemsInputIndex].set_disabled(true,
                                                                 "Missing the dlssg_to_fsr3_amd_is_better.dll file");
@@ -3382,7 +3369,7 @@ bool MenuCommon::RenderMenu()
 
                 // FSR FG controls
                 if (state.activeFgOutput == FGOutput::FSRFG && state.activeFgInput != FGInput::NoFG &&
-                    state.workingMode != WorkingMode::Nvngx && state.currentFGSwapchain != nullptr)
+                    state.currentFGSwapchain != nullptr)
                 {
                     if (state.activeFgInput != FGInput::Upscaler ||
                         (currentFeature != nullptr && !currentFeature->IsFrozen()) && FfxApiProxy::IsFGReady())
@@ -3629,7 +3616,7 @@ bool MenuCommon::RenderMenu()
 
                 // XeFG controls
                 if (state.activeFgOutput == FGOutput::XeFG && state.activeFgInput != FGInput::NoFG &&
-                    state.workingMode != WorkingMode::Nvngx && state.currentFGSwapchain != nullptr)
+                    state.currentFGSwapchain != nullptr)
                 {
                     if (XeFGProxy::InitXeFG() && currentFeature != nullptr && !currentFeature->IsFrozen())
                     {
@@ -3837,7 +3824,7 @@ bool MenuCommon::RenderMenu()
 
                 // OptiFG
                 if (state.api == DX12 && state.currentFGSwapchain != nullptr &&
-                    state.workingMode != WorkingMode::Nvngx && state.activeFgInput == FGInput::Upscaler)
+                    state.activeFgInput == FGInput::Upscaler)
                 {
                     SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
 
@@ -4132,8 +4119,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Nukems Mod
-                if (state.workingMode != WorkingMode::Nvngx && state.activeFgInput == FGInput::Nukems &&
-                    state.activeFgOutput == FGOutput::Nukems)
+                if (state.activeFgInput == FGInput::Nukems && state.activeFgOutput == FGOutput::Nukems)
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR3-FG via Nukem's DLSSG)",
                                             "Requires Nukem's dlssg_to_fsr3 dll\nSelect DLSS-FG in-game");
@@ -4199,7 +4185,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // FSR-FG Inputs
-                if (state.currentFGSwapchain != nullptr && state.workingMode != WorkingMode::Nvngx &&
+                if (state.currentFGSwapchain != nullptr &&
                     (state.activeFgInput == FGInput::FSRFG || state.activeFgInput == FGInput::FSRFG30))
                 {
                     SeparatorWithHelpMarker("Frame Generation (FSR-FG Inputs)", "Select FSR-FG in-game");
@@ -4240,8 +4226,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Streamline FG Inputs
-                if (state.currentFGSwapchain != nullptr && state.workingMode != WorkingMode::Nvngx &&
-                    state.activeFgInput == FGInput::DLSSG)
+                if (state.currentFGSwapchain != nullptr && state.activeFgInput == FGInput::DLSSG)
                 {
                     SeparatorWithHelpMarker("Frame Generation (Streamline FG Inputs)", "Select DLSS-FG in-game");
 

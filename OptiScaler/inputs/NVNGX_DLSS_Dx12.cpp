@@ -118,10 +118,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
     State::Instance().currentD3D12Device = InDevice;
     D3D12Hooks::HookDevice(InDevice);
 
-    if (State::Instance().workingMode != WorkingMode::Nvngx)
-    {
-        UpscalerTimeDx12::Init(InDevice);
-    }
+    UpscalerTimeDx12::Init(InDevice);
 
     State::Instance().NvngxDx12Inited = true;
 
@@ -570,7 +567,7 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
         if (shouldRestore)
             D3D12Hooks::SetRootSignatureTracking(true);
 
-        // Partial cleanup – handle is allocated but context is incomplete
+        // Partial cleanup ï¿½ handle is allocated but context is incomplete
         Dx12Contexts.erase(handleId);
         return NVSDK_NGX_Result_Fail;
     }
@@ -900,8 +897,8 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     UpscalerInputsDx12::UpscaleStart(InCmdList, InParameters, feature);
     FSR3FG::SetUpscalerInputs(InCmdList, InParameters, feature);
 
-    if (State::Instance().workingMode != WorkingMode::Nvngx)
-        UpscalerTimeDx12::UpscaleStart(InCmdList);
+    // Record the first timestamp
+    UpscalerTimeDx12::UpscaleStart(InCmdList);
 
     // Evaluate the feature
     bool evalSuccess = false;
@@ -913,8 +910,9 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     // Cleanup on success
     if (evalSuccess)
     {
-        if (State::Instance().workingMode != WorkingMode::Nvngx)
-            UpscalerTimeDx12::UpscaleEnd(InCmdList);
+        // Upscaler time calc
+        // Record the second timestamp
+        UpscalerTimeDx12::UpscaleEnd(InCmdList);
 
         UpscalerInputsDx12::UpscaleEnd(InCmdList, InParameters, feature);
     }

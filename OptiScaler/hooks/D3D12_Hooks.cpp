@@ -17,6 +17,7 @@
 #include <detours/detours.h>
 
 #include <dxgi1_6.h>
+#include <misc/IdentifyGpu.h>
 
 #pragma intrinsic(_ReturnAddress)
 
@@ -372,6 +373,10 @@ static HRESULT hkD3D12CreateDevice(IDXGIAdapter* pAdapter, D3D_FEATURE_LEVEL Min
         {
             szName = desc.Description;
             LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
+
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            if (!IsEqualLUID(desc.AdapterLuid, primaryGpu.luid))
+                LOG_WARN("D3D12Device created with non-primary GPU");
         }
     }
 
@@ -410,9 +415,6 @@ static HRESULT hkD3D12CreateDevice(IDXGIAdapter* pAdapter, D3D_FEATURE_LEVEL Min
     {
         LOG_DEBUG("Device captured: {0:X}", (size_t) *ppDevice);
         State::Instance().currentD3D12Device = (ID3D12Device*) *ppDevice;
-
-        if (szName.size() > 0)
-            State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
 
         if (desc.VendorId == VendorId::Intel && Config::Instance()->UESpoofIntelAtomics64.value_or_default())
         {
@@ -504,6 +506,10 @@ static HRESULT hkCreateDevice(ID3D12DeviceFactory* pFactory, IDXGIAdapter* pAdap
         {
             szName = desc.Description;
             LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
+
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            if (!IsEqualLUID(desc.AdapterLuid, primaryGpu.luid))
+                LOG_WARN("D3D12Device created with non-primary GPU");
         }
     }
 
@@ -537,9 +543,6 @@ static HRESULT hkCreateDevice(ID3D12DeviceFactory* pFactory, IDXGIAdapter* pAdap
     {
         LOG_DEBUG("Device captured: {0:X}", (size_t) *ppDevice);
         State::Instance().currentD3D12Device = (ID3D12Device*) *ppDevice;
-
-        if (szName.size() > 0)
-            State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
 
         if (desc.VendorId == VendorId::Intel && Config::Instance()->UESpoofIntelAtomics64.value_or_default())
         {

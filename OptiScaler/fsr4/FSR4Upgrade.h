@@ -23,10 +23,10 @@ typedef HRESULT(STDMETHODCALLTYPE* PFN_UpdateFfxApiProviderEx)(void* pData, uint
 void InitFSR4Update();
 HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject);
 
-void CheckForGPU();
 std::vector<std::filesystem::path> GetDriverStore();
 HMODULE GetFSR4Module();
 
+// Based on the PDBs provided with FFX 2.1.0
 enum AmdExtWaveMatrixPropertiesType : int32_t
 {
     float16 = 0x0,

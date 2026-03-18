@@ -47,31 +47,26 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     // C:\\Path\\like\\this.dll
     auto normalizedPath = std::filesystem::path(libName).lexically_normal().wstring();
 
-    // If Opti is not loading as nvngx.dll
-    if (State::Instance().workingMode != WorkingMode::Nvngx)
+    // exe path
+    auto exePath = Util::ExePath().parent_path().wstring();
+
+    for (size_t i = 0; i < exePath.size(); i++)
+        exePath[i] = std::tolower(exePath[i]);
+
+    auto pos = libName.rfind(exePath);
+
+    if (Config::Instance()->EnableDlssInputs.value_or_default() && CheckDllNameW(&libName, &nvngxNamesW) &&
+        (!Config::Instance()->HookOriginalNvngxOnly.value_or_default() || pos == std::string::npos))
     {
-        // exe path
-        auto exePath = Util::ExePath().parent_path().wstring();
+        LOG_INFO("nvngx call: {0}, returning this dll!", libNameA);
 
-        for (size_t i = 0; i < exePath.size(); i++)
-            exePath[i] = std::tolower(exePath[i]);
+        // if (!dontCount)
+        // loadCount++;
 
-        auto pos = libName.rfind(exePath);
-
-        if (Config::Instance()->EnableDlssInputs.value_or_default() && CheckDllNameW(&libName, &nvngxNamesW) &&
-            (!Config::Instance()->HookOriginalNvngxOnly.value_or_default() || pos == std::string::npos))
-        {
-            LOG_INFO("nvngx call: {0}, returning this dll!", libNameA);
-
-            // if (!dontCount)
-            // loadCount++;
-
-            return dllModule;
-        }
+        return dllModule;
     }
 
-    if (State::Instance().workingMode != WorkingMode::Nvngx &&
-        (State::Instance().workingMode != WorkingMode::Dxgi || !State::Instance().skipDxgiLoadChecks) &&
+    if ((State::Instance().workingMode != WorkingMode::Dxgi || !State::Instance().skipDxgiLoadChecks) &&
         CheckDllNameW(&libName, &dllNamesW))
     {
         if (!State::Instance().ServeOriginal())

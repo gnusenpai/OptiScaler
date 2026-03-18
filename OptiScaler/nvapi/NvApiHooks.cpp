@@ -8,6 +8,7 @@
 #include <proxies/KernelBase_Proxy.h>
 
 #include <detours/detours.h>
+#include <misc/IdentifyGpu.h>
 
 NvAPI_Status __stdcall NvApiHooks::hkNvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle hPhysicalGpu,
                                                            NV_GPU_ARCH_INFO* pGpuArchInfo)
@@ -24,8 +25,6 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle h
     {
         if (pGpuArchInfo->architecture_id <= NV_GPU_ARCHITECTURE_GP100)
         {
-            State::Instance().isPascalOrOlder = true;
-
             // Check if values were volatile, override them if so
             // if (!Config::Instance()->StreamlineSpoofing.value_for_config().has_value())
             //    Config::Instance()->StreamlineSpoofing.set_volatile_value(true);
@@ -90,9 +89,11 @@ void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
         else
             return nullptr;
 
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+
     // Disable flip metering
     if (InterfaceId == 0xF3148C42 &&
-        Config::Instance()->DisableFlipMetering.value_or(!State::Instance().isRunningOnNvidia))
+        Config::Instance()->DisableFlipMetering.value_or(primaryGpu.vendorId != VendorId::Nvidia))
     {
         LOG_INFO("FlipMetering is disabled!");
         return nullptr;

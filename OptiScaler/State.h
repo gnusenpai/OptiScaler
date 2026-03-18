@@ -56,7 +56,6 @@ enum class WorkingMode : uint32_t
 {
     Dxgi,
     D3d12,
-    Nvngx,
     Other,
 };
 
@@ -78,7 +77,6 @@ class State
 
     std::string GameName;
     std::string GameExe;
-    ankerl::unordered_dense::map<void*, std::string> DeviceAdapterNames;
 
     bool NvngxDx11Inited = false;
     bool NvngxDx12Inited = false;
@@ -210,12 +208,8 @@ class State
 
     // Linux checks
     bool isRunningOnLinux = false;
-    bool isRunningOnDXVK = false;
 
     // Other checks
-    bool isRunningOnNvidia = false;
-    std::optional<bool> isRunningOnRDNA4;
-    bool isPascalOrOlder = false;
     WorkingMode workingMode = WorkingMode::Other;
 
     // Vulkan stuff
@@ -282,7 +276,6 @@ class State
 
     std::vector<ID3D12Device*> d3d12Devices;
     std::vector<ID3D11Device*> d3d11Devices;
-    std::unordered_map<UINT64, std::string> adapterDescs;
 
     // Moved checks here to prevent circular includes
     /// <summary>

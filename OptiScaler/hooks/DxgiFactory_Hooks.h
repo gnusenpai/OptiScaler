@@ -51,9 +51,6 @@ class DxgiFactoryHooks
 
     // To prevent recursive FG swapchain creation
     inline static bool _skipFGSwapChainCreation = false;
-    inline static bool _skipHighPerfCheck = false;
-
-    static void CheckAdapter(IUnknown* unkAdapter);
 
     class ScopedSkipFGSCCreation
     {
@@ -67,19 +64,5 @@ class DxgiFactoryHooks
             DxgiFactoryHooks::_skipFGSwapChainCreation = true;
         }
         ~ScopedSkipFGSCCreation() { DxgiFactoryHooks::_skipFGSwapChainCreation = previousState; }
-    };
-
-    class ScopedSkipHighPerfCheck
-    {
-      private:
-        bool previousState;
-
-      public:
-        ScopedSkipHighPerfCheck()
-        {
-            previousState = DxgiFactoryHooks::_skipHighPerfCheck;
-            DxgiFactoryHooks::_skipHighPerfCheck = true;
-        }
-        ~ScopedSkipHighPerfCheck() { DxgiFactoryHooks::_skipHighPerfCheck = previousState; }
     };
 };

@@ -244,10 +244,6 @@ static HRESULT hkD3D11CreateDevice(IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE Drive
     if (result == S_OK && *ppDevice != nullptr && State::Instance().currentD3D12Device == nullptr)
     {
         LOG_INFO("Device captured");
-
-        if (szName.size() > 0)
-            State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
-
         HookToDeviceLocal(*ppDevice);
     }
 

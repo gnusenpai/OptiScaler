@@ -18,6 +18,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include <detours/detours.h>
+#include <misc/IdentifyGpu.h>
 
 // for menu rendering
 static VkDevice _device = VK_NULL_HANDLE;
@@ -145,7 +146,8 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
 
     auto result = o_vkCreateDevice(physicalDevice, &localCreteInfo, pAllocator, pDevice);
 
-    if (result == VK_SUCCESS && !State::Instance().vulkanSkipHooks && Config::Instance()->OverlayMenu.value())
+    if (result == VK_SUCCESS && !State::Instance().vulkanSkipHooks &&
+        Config::Instance()->OverlayMenu.value_or_default())
     {
         MenuOverlayVk::DestroyVulkanObjects(false);
 
@@ -157,13 +159,22 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
 
         ScopedSkipSpoofing skipSpoofing {};
 
-        VkPhysicalDeviceProperties prop {};
-        vkGetPhysicalDeviceProperties(physicalDevice, &prop);
+        VkPhysicalDeviceIDProperties idProps {};
+        idProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
 
-        auto szName = std::string(prop.deviceName);
+        VkPhysicalDeviceProperties2 props2 {};
+        props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        props2.pNext = &idProps;
 
-        if (szName.size() > 0)
-            State::Instance().DeviceAdapterNames[*pDevice] = szName;
+        vkGetPhysicalDeviceProperties2(physicalDevice, &props2);
+
+        if (idProps.deviceLUIDValid == VK_TRUE)
+        {
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            auto luid = (PLUID) idProps.deviceLUID;
+            if (!IsEqualLUID(*luid, primaryGpu.luid))
+                LOG_WARN("VkDevice created with non-primary GPU");
+        }
     }
 
 #ifdef USE_QUEUE_SUBMIT_2_KHR
@@ -183,7 +194,9 @@ static VkResult hkvkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPres
     // get upscaler time
     UpscalerTimeVk::ReadUpscalingTime(_device);
 
-    if (!State::Instance().isRunningOnDXVK)
+    // ??? TODO: if we are hooking dxvk's vulkan calls then this present call could be either coming from dxvk or from a
+    // native vk game
+    if (!IdentifyGpu::getPrimaryGpu().usesDxvk)
         State::Instance().swapchainApi = Vulkan;
 
     // Tick feature to let it know if it's frozen

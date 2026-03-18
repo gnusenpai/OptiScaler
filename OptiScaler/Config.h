@@ -104,7 +104,7 @@ template <class T, HasDefaultValue defaultState = WithDefault> class CustomOptio
             return this->has_value() ? std::move(this->value()) : std::move(_defaultValue);
         }
 
-        constexpr std::optional<T> value_for_config(bool forceSave = false)
+        constexpr std::optional<T> value_for_config()
             requires(defaultState == WithDefault)
     {
         if (_volatile)
@@ -115,22 +115,10 @@ template <class T, HasDefaultValue defaultState = WithDefault> class CustomOptio
             return std::nullopt;
         }
 
-        if (!this->has_value() || (!forceSave && *this == _defaultValue))
+        if (!this->has_value() || *this == _defaultValue)
             return std::nullopt;
 
         return this->value();
-    }
-
-    constexpr std::optional<T> value_for_config_ignore_default()
-        requires(defaultState == WithDefault)
-    {
-        if (_volatile)
-            return _configIni;
-
-        if (this->has_value())
-            return this->value();
-
-        return std::nullopt;
     }
 
     constexpr std::optional<T> value_for_config()
@@ -381,7 +369,7 @@ class Config
     CustomOptional<int> FfxUpscalerIndex { 0 };
     CustomOptional<int> FfxFGIndex { 0 };
     CustomOptional<bool> FsrUseMaskForTransparency { true };
-    CustomOptional<bool> Fsr4Update { false };
+    CustomOptional<bool> Fsr4ForceCapable { false };
     CustomOptional<uint32_t, NoDefault> Fsr4Model;
     CustomOptional<bool> Fsr4EnableDebugView { false };
     CustomOptional<bool> Fsr4EnableWatermark { false };

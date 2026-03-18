@@ -19,28 +19,7 @@
 #ifdef DETAILED_SC_LOGS
 #include <magic_enum.hpp>
 #endif
-
-void DxgiFactoryHooks::CheckAdapter(IUnknown* unkAdapter)
-{
-    if (State::Instance().isRunningOnDXVK)
-        return;
-
-    // DXVK VkInterface GUID
-    const GUID guid = { 0x907bf281, 0xea3c, 0x43b4, { 0xa8, 0xe4, 0x9f, 0x23, 0x11, 0x07, 0xb4, 0xff } };
-
-    IDXGIAdapter* adapter = nullptr;
-    bool adapterOk = unkAdapter->QueryInterface(IID_PPV_ARGS(&adapter)) == S_OK;
-
-    void* dxvkAdapter = nullptr;
-    if (adapterOk && adapter->QueryInterface(guid, &dxvkAdapter) == S_OK)
-    {
-        State::Instance().isRunningOnDXVK = dxvkAdapter != nullptr;
-        ((IDXGIAdapter*) dxvkAdapter)->Release();
-    }
-
-    if (adapterOk)
-        adapter->Release();
-}
+#include <misc/IdentifyGpu.h>
 
 void DxgiFactoryHooks::HookToFactory(IDXGIFactory* pFactory)
 {
@@ -859,71 +838,41 @@ HRESULT DxgiFactoryHooks::CreateSwapChainForCoreWindow(IDXGIFactory2* realFactor
 
 HRESULT DxgiFactoryHooks::EnumAdapters(IDXGIFactory* realFactory, UINT Adapter, IDXGIAdapter** ppAdapter)
 {
-    HRESULT result = S_OK;
+    HRESULT result = S_FALSE;
 
-    if (!_skipHighPerfCheck && Config::Instance()->PreferDedicatedGpu.value_or_default())
+    if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
     {
-        if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
+        LOG_DEBUG("{}, returning not found", Adapter);
+        return DXGI_ERROR_NOT_FOUND;
+    }
+
+    IDXGIFactory6* factory6 = nullptr;
+    if (realFactory->QueryInterface(IID_PPV_ARGS(&factory6)) == S_OK && factory6 != nullptr)
+    {
+        auto allGpus = IdentifyGpu::getAllGpus();
+        if (Adapter < allGpus.size())
         {
-            LOG_DEBUG("{}, returning not found", Adapter);
-            return DXGI_ERROR_NOT_FOUND;
-        }
+            LOG_DEBUG("Trying to select: {}", allGpus[Adapter].name);
 
-        IDXGIFactory6* factory6 = nullptr;
-        if (realFactory->QueryInterface(IID_PPV_ARGS(&factory6)) == S_OK && factory6 != nullptr)
-        {
-            LOG_DEBUG("Trying to select high performance adapter ({})", Adapter);
+            auto gpuLuid = allGpus[Adapter].luid;
 
-            {
-                ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-                ScopedSkipHighPerfCheck skipHighPerfCheck {};
-
-                result = o_EnumAdapterByGpuPreference(factory6, Adapter, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                                      __uuidof(IDXGIAdapter1), (IUnknown**) ppAdapter);
-            }
-
-            if (result != S_OK)
-            {
-                LOG_ERROR("Can't get high performance adapter: {:X}, fallback to standard method", Adapter);
-                ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-                result = o_EnumAdapters(realFactory, Adapter, (IUnknown**) ppAdapter);
-            }
-
-            if (result == S_OK)
-            {
-                DXGI_ADAPTER_DESC desc;
-                ScopedSkipSpoofing skipSpoofing {};
-
-                if ((*ppAdapter)->GetDesc(&desc) == S_OK)
-                {
-                    std::wstring name(desc.Description);
-                    LOG_DEBUG("Adapter ({}) will be used", wstring_to_string(name));
-                }
-                else
-                {
-                    LOG_ERROR("Can't get adapter description!");
-                }
-            }
-
-            factory6->Release();
+            ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
+            result = o_EnumAdapterByLuid(factory6, gpuLuid, __uuidof(IDXGIAdapter), (IUnknown**) ppAdapter);
         }
         else
-        {
-            ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-            result = o_EnumAdapters(realFactory, Adapter, (IUnknown**) ppAdapter);
-        }
+            result = DXGI_ERROR_NOT_FOUND;
+
+        factory6->Release();
     }
-    else
+
+    if (result != S_OK && result != DXGI_ERROR_NOT_FOUND)
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
         result = o_EnumAdapters(realFactory, Adapter, (IUnknown**) ppAdapter);
     }
 
     if (result == S_OK)
-    {
-        CheckAdapter(*ppAdapter);
         DxgiSpoofing::AttachToAdapter(*ppAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppAdapter);
@@ -934,73 +883,41 @@ HRESULT DxgiFactoryHooks::EnumAdapters(IDXGIFactory* realFactory, UINT Adapter, 
 
 HRESULT DxgiFactoryHooks::EnumAdapters1(IDXGIFactory1* realFactory, UINT Adapter, IDXGIAdapter1** ppAdapter)
 {
-    HRESULT result = S_OK;
+    HRESULT result = S_FALSE;
 
-    if (!_skipHighPerfCheck && Config::Instance()->PreferDedicatedGpu.value_or_default())
+    if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
     {
-        LOG_WARN("High perf GPU selection");
+        LOG_DEBUG("{}, returning not found", Adapter);
+        return DXGI_ERROR_NOT_FOUND;
+    }
 
-        if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
+    IDXGIFactory6* factory6 = nullptr;
+    if (realFactory->QueryInterface(IID_PPV_ARGS(&factory6)) == S_OK && factory6 != nullptr)
+    {
+        auto allGpus = IdentifyGpu::getAllGpus();
+        if (Adapter < allGpus.size())
         {
-            LOG_DEBUG("{}, returning not found", Adapter);
-            return DXGI_ERROR_NOT_FOUND;
-        }
+            LOG_DEBUG("Trying to select: {}", allGpus[Adapter].name);
 
-        IDXGIFactory6* factory6 = nullptr;
-        if (realFactory->QueryInterface(IID_PPV_ARGS(&factory6)) == S_OK && factory6 != nullptr)
-        {
-            LOG_DEBUG("Trying to select high performance adapter ({})", Adapter);
+            auto gpuLuid = allGpus[Adapter].luid;
 
-            {
-                ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-                ScopedSkipHighPerfCheck skipHighPerfCheck {};
-
-                result = o_EnumAdapterByGpuPreference(factory6, Adapter, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                                      __uuidof(IDXGIAdapter1), (IUnknown**) ppAdapter);
-            }
-
-            if (result != S_OK)
-            {
-                LOG_ERROR("Can't get high performance adapter: {:X}, fallback to standard method", Adapter);
-                ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-                result = o_EnumAdapters1(realFactory, Adapter, (IUnknown**) ppAdapter);
-            }
-
-            if (result == S_OK)
-            {
-                DXGI_ADAPTER_DESC desc;
-                ScopedSkipSpoofing skipSpoofing {};
-
-                if ((*ppAdapter)->GetDesc(&desc) == S_OK)
-                {
-                    std::wstring name(desc.Description);
-                    LOG_DEBUG("High performance adapter ({}) will be used", wstring_to_string(name));
-                }
-                else
-                {
-                    LOG_DEBUG("High performance adapter (Can't get description!) will be used");
-                }
-            }
-
-            factory6->Release();
+            ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
+            result = o_EnumAdapterByLuid(factory6, gpuLuid, __uuidof(IDXGIAdapter), (IUnknown**) ppAdapter);
         }
         else
-        {
-            ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-            result = o_EnumAdapters1(realFactory, Adapter, (IUnknown**) ppAdapter);
-        }
+            result = DXGI_ERROR_NOT_FOUND;
+
+        factory6->Release();
     }
-    else
+
+    if (result != S_OK && result != DXGI_ERROR_NOT_FOUND)
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
         result = o_EnumAdapters1(realFactory, Adapter, (IUnknown**) ppAdapter);
     }
 
     if (result == S_OK)
-    {
-        CheckAdapter(*ppAdapter);
         DxgiSpoofing::AttachToAdapter(*ppAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppAdapter);
@@ -1019,10 +936,7 @@ HRESULT DxgiFactoryHooks::EnumAdapterByLuid(IDXGIFactory4* realFactory, LUID Ada
     }
 
     if (result == S_OK)
-    {
-        CheckAdapter((IUnknown*) *ppvAdapter);
         DxgiSpoofing::AttachToAdapter((IUnknown*) *ppvAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, pAdapter: {:X}", (UINT) result, (uintptr_t) *ppvAdapter);
@@ -1041,11 +955,12 @@ HRESULT DxgiFactoryHooks::EnumAdapterByGpuPreference(IDXGIFactory6* realFactory,
         result = o_EnumAdapterByGpuPreference(realFactory, Adapter, GpuPreference, riid, (IUnknown**) ppvAdapter);
     }
 
+    // Log because that's not something we usually expect
+    if (GpuPreference & DXGI_GPU_PREFERENCE_MINIMUM_POWER)
+        LOG_WARN("Game asked for minimum power GPU");
+
     if (result == S_OK)
-    {
-        CheckAdapter((IUnknown*) *ppvAdapter);
         DxgiSpoofing::AttachToAdapter((IUnknown*) *ppvAdapter);
-    }
 
 #if _DEBUG
     LOG_TRACE("result: {:X}, Adapter: {}, pAdapter: {:X}", (UINT) result, Adapter, (uintptr_t) *ppvAdapter);

@@ -16,6 +16,7 @@
 
 #include <d3d11.h>
 #include <d3d12.h>
+#include <misc/IdentifyGpu.h>
 
 #pragma intrinsic(_ReturnAddress)
 
@@ -82,52 +83,6 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
         _dx11Device = true;
         State::Instance().swapchainApi = DX11;
         State::Instance().currentD3D11Device = device;
-
-        if (!State::Instance().DeviceAdapterNames.contains(device))
-        {
-            IDXGIDevice* dxgiDevice = nullptr;
-            auto qResult = device->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
-
-            if (qResult == S_OK)
-            {
-                IDXGIAdapter* dxgiAdapter = nullptr;
-                qResult = dxgiDevice->GetAdapter(&dxgiAdapter);
-
-                if (qResult == S_OK)
-                {
-                    ScopedSkipSpoofing skipSpoofing {};
-
-                    std::wstring szName;
-                    DXGI_ADAPTER_DESC desc {};
-
-                    if (dxgiAdapter->GetDesc(&desc) == S_OK)
-                    {
-                        szName = desc.Description;
-                        auto adapterDesc = wstring_to_string(szName);
-                        LOG_INFO("Adapter Desc: {}", adapterDesc);
-                        State::Instance().DeviceAdapterNames[device] = adapterDesc;
-                    }
-                    else
-                    {
-                        LOG_ERROR("GetDesc: {:X}", (UINT) qResult);
-                    }
-                }
-                else
-                {
-                    LOG_ERROR("GetAdapter: {:X}", (UINT) qResult);
-                }
-
-                if (dxgiAdapter != nullptr)
-                    dxgiAdapter->Release();
-            }
-            else
-            {
-                LOG_ERROR("QueryInterface: {:X}", (UINT) qResult);
-            }
-
-            if (dxgiDevice != nullptr)
-                dxgiDevice->Release();
-        }
     }
     else if (pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
     {
@@ -214,7 +169,7 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
     }
 
     // DXVK check, it's here because of upscaler time calculations
-    if (State::Instance().isRunningOnDXVK)
+    if (IdentifyGpu::getPrimaryGpu().usesDxvk)
     {
         if (pPresentParameters == nullptr)
             presentResult = pSwapChain->Present(SyncInterval, Flags);
@@ -494,7 +449,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present(UINT SyncInterval, UIN
 
         // When Reflex can't be used to limit, sleep in present
         if (!State::Instance().reflexLimitsFps && State::Instance().activeFgOutput == FGOutput::NoFG &&
-            !State::Instance().isRunningOnDXVK)
+            !IdentifyGpu::getPrimaryGpu().usesDxvk)
             FrameLimit::sleep(false);
     }
     else
@@ -777,7 +732,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UI
 
         // When Reflex can't be used to limit, sleep in present
         if (!State::Instance().reflexLimitsFps && State::Instance().activeFgOutput == FGOutput::NoFG &&
-            !State::Instance().isRunningOnDXVK)
+            !IdentifyGpu::getPrimaryGpu().usesDxvk)
             FrameLimit::sleep(false);
     }
     else
