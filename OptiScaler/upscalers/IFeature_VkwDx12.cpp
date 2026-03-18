@@ -13,6 +13,7 @@
 #include <detours/detours.h>
 
 #include <magic_enum.hpp>
+#include <imgui/ImGuiNotify.hpp>
 #include <misc/IdentifyGpu.h>
 
 // Used Nukem's VKToDX as a base
@@ -692,6 +693,11 @@ bool IFeature_VkwDx12::CopyTextureFromVkToDx12(VkCommandBuffer InCmdBuffer, NVSD
         if (!CreateSharedTexture(imageCreateInfo, OutResource->VkSharedImage, OutResource->VkSharedMemory,
                                  OutResource->Dx12Resource, !InCopy))
         {
+            if (State::Instance().isRunningOnLinux)
+                ImGui::InsertNotification(
+                    { ImGuiToastType::Warning, 10000,
+                      "Failed to create a shared texture\nMake sure you are using at least Wine/Proton 11" });
+
             LOG_ERROR("Failed to create shared texture!");
             return false;
         }

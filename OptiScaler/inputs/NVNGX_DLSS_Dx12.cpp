@@ -14,6 +14,7 @@
 #include "FG/Upscaler_Inputs_Dx12.h"
 
 #include <upscaler_time/UpscalerTime_Dx12.h>
+#include <imgui/ImGuiNotify.hpp>
 
 #include <hooks/D3D12_Hooks.h>
 
@@ -878,6 +879,7 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     if (!feature->IsInited() && cfg.Dx12Upscaler.value_or_default() != "fsr21")
     {
         LOG_WARN("Feature '{}' failed to initialize. Falling back to FSR 2.1.2", feature->Name());
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
         state.newBackend = "fsr21";
         state.changeBackend[handleId] = true;
         return NVSDK_NGX_Result_Success;
@@ -919,6 +921,7 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     else
     {
         LOG_ERROR("Feature evaluation failed for '{}'", feature->Name());
+        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Upscaler failed to run!" });
     }
 
     // Restore root signatures

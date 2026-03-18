@@ -433,6 +433,7 @@ std::vector<GpuInformation> IdentifyGpu::getAllGpusNoDxgi()
 // !!! Use the NoDxgi variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
 GpuInformation IdentifyGpu::getPrimaryGpuNoDxgi()
 {
+    // return GpuInformation {};
     auto allGpus = getAllGpusNoDxgi();
     return allGpus.size() > 0 ? allGpus[0] : GpuInformation {};
 }

@@ -840,6 +840,9 @@ HRESULT DxgiFactoryHooks::EnumAdapters(IDXGIFactory* realFactory, UINT Adapter, 
 {
     HRESULT result = S_FALSE;
 
+    if (State::Instance().skipDxgiLoadChecks)
+        return o_EnumAdapters(realFactory, Adapter, (IUnknown**) ppAdapter);
+
     if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
     {
         LOG_DEBUG("{}, returning not found", Adapter);
@@ -884,6 +887,9 @@ HRESULT DxgiFactoryHooks::EnumAdapters(IDXGIFactory* realFactory, UINT Adapter, 
 HRESULT DxgiFactoryHooks::EnumAdapters1(IDXGIFactory1* realFactory, UINT Adapter, IDXGIAdapter1** ppAdapter)
 {
     HRESULT result = S_FALSE;
+
+    if (State::Instance().skipDxgiLoadChecks)
+        return o_EnumAdapters1(realFactory, Adapter, (IUnknown**) ppAdapter);
 
     if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
     {

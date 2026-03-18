@@ -6,6 +6,7 @@
 
 #include <include/detours/detours.h>
 #include <include/d3dx/d3dx12.h>
+#include <imgui/ImGuiNotify.hpp>
 
 inline void XeSSLogCallback(const char* Message, xess_logging_level_t Level)
 {
@@ -19,6 +20,8 @@ bool XeSSFeature::InitXeSS(ID3D12Device* device, const NVSDK_NGX_Parameter* InPa
 
     if (!_moduleLoaded)
     {
+        ImGui::InsertNotification(
+            { ImGuiToastType::Warning, 10000, "Couldn't load libxess.dll\nCheck if the dll is present" });
         LOG_ERROR("libxess.dll not loaded!");
         return false;
     }
@@ -39,7 +42,10 @@ bool XeSSFeature::InitXeSS(ID3D12Device* device, const NVSDK_NGX_Parameter* InPa
 
         if (ret != XESS_RESULT_SUCCESS)
         {
-            LOG_ERROR("xessD3D12CreateContext error: {0}", ResultToString(ret));
+            auto str = ResultToString(ret);
+            ImGui::InsertNotification(
+                { ImGuiToastType::Error, 10000, std::format("Couldn't create XeSS context\n{}", str).c_str() });
+            LOG_ERROR("xessD3D12CreateContext error: {0}", str);
             return false;
         }
 

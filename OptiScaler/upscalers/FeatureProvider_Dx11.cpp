@@ -84,8 +84,10 @@ bool FeatureProvider_Dx11::GetFeature(std::string upscalerName, UINT handleId, N
 
     } while (false);
 
+    // Fail after the constructor
     if (!(*feature)->ModuleLoaded())
     {
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.2" });
         (*feature).reset();
         *feature = std::make_unique<FSR2FeatureDx11>(handleId, parameters);
         upscalerName = "fsr22";
@@ -203,6 +205,7 @@ bool FeatureProvider_Dx11::ChangeFeature(std::string upscalerName, ID3D11Device*
             {
                 state.newBackend = "fsr22";
                 state.changeBackend[handleId] = true;
+                ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.2" });
             }
             else
             {

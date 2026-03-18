@@ -13,6 +13,7 @@
 #include <upscaler_time/UpscalerTime_Dx11.h>
 
 #include <ankerl/unordered_dense.h>
+#include <imgui/ImGuiNotify.hpp>
 
 inline ID3D11Device* D3D11Device = nullptr;
 static ankerl::unordered_dense::map<unsigned int, ContextData<IFeature_Dx11>> Dx11Contexts;
@@ -660,7 +661,14 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
 
     UpscalerTimeDx11::UpscaleStart(InDevCtx);
 
-    if (!deviceContext->Evaluate(InDevCtx, InParameters) && !deviceContext->IsInited() &&
+    auto upscaleResult = deviceContext->Evaluate(InDevCtx, InParameters);
+
+    if (!upscaleResult)
+    {
+        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Upscaler failed to run!" });
+    }
+
+    if (!upscaleResult && !deviceContext->IsInited() &&
         (deviceContext->Name() == "XeSS" || deviceContext->Name() == "DLSS" || deviceContext->Name() == "FSR3 w/Dx12"))
     {
         State::Instance().newBackend = "fsr22";

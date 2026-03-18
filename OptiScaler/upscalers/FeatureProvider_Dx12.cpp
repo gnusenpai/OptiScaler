@@ -62,8 +62,10 @@ bool FeatureProvider_Dx12::GetFeature(std::string_view upscalerName, UINT handle
 
     bool loaded = (*feature)->ModuleLoaded();
 
+    // Fail after the constructor
     if (!loaded)
     {
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
         *feature = std::make_unique<FSR2FeatureDx12_212>(handleId, parameters);
         config_upscaler = "fsr21";
         loaded = true; // Assuming the fallback always loads successfully
@@ -191,9 +193,15 @@ bool FeatureProvider_Dx12::ChangeFeature(std::string_view upscalerName, ID3D12De
             if (state.newBackend != "dlssd")
             {
                 if (cfg.Dx12Upscaler == "dlss")
+                {
                     state.newBackend = "xess";
+                    ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to XeSS" });
+                }
                 else
+                {
                     state.newBackend = "fsr21";
+                    ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
+                }
             }
             else
             {

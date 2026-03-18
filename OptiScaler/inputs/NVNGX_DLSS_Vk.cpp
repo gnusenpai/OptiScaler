@@ -14,6 +14,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include <ankerl/unordered_dense.h>
+#include <imgui/ImGuiNotify.hpp>
 
 VkInstance vkInstance;
 VkPhysicalDevice vkPD;
@@ -933,6 +934,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
     UpscalerTimeVk::UpscaleStart(InCmdList);
 
     auto upscaleResult = deviceContext->Evaluate(InCmdList, InParameters);
+
+    if (!upscaleResult)
+        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Upscaler failed to run!" });
 
     if ((!upscaleResult || !deviceContext->IsInited()) &&
         Config::Instance()->VulkanUpscaler.value_or_default() != "fsr22")

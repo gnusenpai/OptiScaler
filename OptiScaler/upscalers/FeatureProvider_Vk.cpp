@@ -78,8 +78,10 @@ bool FeatureProvider_Vk::GetFeature(std::string upscalerName, UINT handleId, NVS
 
     } while (false);
 
+    // Fail after the constructor
     if (!(*feature)->ModuleLoaded())
     {
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.2" });
         (*feature).reset();
         *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
         upscalerName = "fsr22";
@@ -204,10 +206,12 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
                 if (cfg.VulkanUpscaler == "dlss")
                 {
                     state.newBackend = "xess";
+                    ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to XeSS" });
                 }
                 else
                 {
                     state.newBackend = "fsr21";
+                    ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
                 }
             }
             else

@@ -756,7 +756,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters(IDXGIFactory* realFactory, UINT Ad
         factory6->Release();
     }
 
-    if (result != S_OK && result != result != DXGI_ERROR_NOT_FOUND)
+    if (result != S_OK && result != DXGI_ERROR_NOT_FOUND)
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
         result = realFactory->EnumAdapters(Adapter, ppAdapter);
@@ -801,7 +801,7 @@ HRESULT DxgiFactoryWrappedCalls::EnumAdapters1(IDXGIFactory1* realFactory, UINT 
         factory6->Release();
     }
 
-    if (result != S_OK && result != result != DXGI_ERROR_NOT_FOUND)
+    if (result != S_OK && result != DXGI_ERROR_NOT_FOUND)
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
         result = realFactory->EnumAdapters1(Adapter, ppAdapter);

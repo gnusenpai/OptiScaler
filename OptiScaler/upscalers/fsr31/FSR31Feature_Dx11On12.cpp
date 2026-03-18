@@ -106,7 +106,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
 
         if (!InitFSR3(InParameters))
         {
-            LOG_ERROR("InitFSR2 fail!");
+            LOG_ERROR("InitFSR3 fail!");
             return false;
         }
 
