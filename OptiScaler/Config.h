@@ -518,7 +518,6 @@ class Config
     CustomOptional<bool> FGXeFGForceBorderless { false };
 
     // fakenvapi
-    // TODO: convert to enums
     CustomOptional<bool> UseFakenvapi { true };
     CustomOptional<bool> XeFGWithoutXeLL { false };
     CustomOptional<bool> FN_ForceLatencyFlex { false };
