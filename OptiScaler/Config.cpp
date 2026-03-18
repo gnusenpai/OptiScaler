@@ -274,31 +274,31 @@ bool Config::Reload(std::filesystem::path iniPath)
             constexpr size_t presetCount = 17;
 
             if (auto setting = readInt("DLSS", "RenderPresetForAll");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetForAll.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetDLAA");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetDLAA.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetUltraQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetUltraQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetBalanced");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetBalanced.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetPerformance.set_from_config(setting);
 
             if (auto setting = readInt("DLSS", "RenderPresetUltraPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 RenderPresetUltraPerformance.set_from_config(setting);
         }
         // DLSSD
@@ -309,31 +309,31 @@ bool Config::Reload(std::filesystem::path iniPath)
             constexpr size_t presetCount = 6;
 
             if (auto setting = readInt("DLSSD", "RenderPresetForAll");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetForAll.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetDLAA");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetDLAA.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetUltraQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetUltraQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetQuality");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetQuality.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetBalanced");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetBalanced.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetPerformance.set_from_config(setting);
 
             if (auto setting = readInt("DLSSD", "RenderPresetUltraPerformance");
-                setting.has_value() && setting >= 0 && (setting < presetCount || setting == 0x00FFFFFF))
+                setting.has_value() && setting >= 0 && (setting < presetCount || setting == NV_PRESET_LATEST))
                 DLSSDRenderPresetUltraPerformance.set_from_config(setting);
         }
 
@@ -461,13 +461,11 @@ bool Config::Reload(std::filesystem::path iniPath)
         // Output Scaling
         {
             OutputScalingEnabled.set_from_config(readBool("OutputScaling", "Enabled"));
-            if (auto setting = readInt("OutputScaling", "Downscaler"); setting.has_value())
-            {
-                if (setting.value() >= 0 && setting.value() < static_cast<int>(Scaler::Count))
-                    OutputScalingDownscaler.set_from_config(static_cast<Scaler>(setting.value()));
-                else
-                    OutputScalingDownscaler.reset();
-            }
+
+            if (auto v = readEnum<Scaler>("OutputScaling", "Downscaler"))
+                OutputScalingDownscaler.set_from_config(*v);
+            else
+                OutputScalingDownscaler.reset();
 
             if (auto setting = readFloat("OutputScaling", "Multiplier"); setting.has_value())
                 OutputScalingMultiplier.set_from_config(std::clamp(setting.value(), 0.5f, 3.0f));
@@ -605,8 +603,16 @@ bool Config::Reload(std::filesystem::path iniPath)
             UseFakenvapi.set_from_config(readBool("fakenvapi", "UseFakenvapi"));
             XeFGWithoutXeLL.set_from_config(readBool("fakenvapi", "XeFGWithoutXeLL"));
             FN_ForceLatencyFlex.set_from_config(readBool("fakenvapi", "ForceLatencyFlex"));
-            FN_LatencyFlexMode.set_from_config(readUInt("fakenvapi", "LatencyFlexMode"));
-            FN_ForceReflex.set_from_config(readUInt("fakenvapi", "ForceReflex"));
+
+            if (auto v = readEnum<LFXMode>("fakenvapi", "LatencyFlexMode"))
+                FN_LatencyFlexMode.set_from_config(*v);
+            else
+                FN_LatencyFlexMode.reset();
+
+            if (auto v = readEnum<ForceReflex>("fakenvapi", "ForceReflex"))
+                FN_ForceReflex.set_from_config(*v);
+            else
+                FN_ForceReflex.reset();
         }
 
         // Inputs
@@ -701,23 +707,28 @@ std::string GetBoolValue(std::optional<bool> value)
     return value.value() ? "true" : "false";
 }
 
-std::string GetIntValue(std::optional<int> value, bool getHex = false)
+template <typename T> std::string GetIntValue(std::optional<T> value, bool getHex = false)
 {
     if (!value.has_value())
         return "auto";
 
-    if (getHex)
-        return std::format("{:#x}", value.value());
+    if constexpr (std::is_enum_v<T>)
+    {
+        using Underlying = std::underlying_type_t<T>;
+        Underlying v = static_cast<Underlying>(value.value());
 
-    return std::to_string(value.value());
-}
+        if (getHex)
+            return std::format("{:#x}", v);
 
-std::string GetIntValue(std::optional<Scaler> value)
-{
-    if (!value.has_value())
-        return "auto";
+        return std::to_string(v);
+    }
+    else
+    {
+        if (getHex)
+            return std::format("{:#x}", value.value());
 
-    return std::to_string(static_cast<int>(value.value()));
+        return std::to_string(value.value());
+    }
 }
 
 std::string GetFloatValue(std::optional<float> value)
@@ -1559,6 +1570,23 @@ std::optional<bool> Config::readBool(std::string section, std::string key)
         return true;
     else if (value == "false")
         return false;
+
+    return std::nullopt;
+}
+
+// Only use for unsigned enums that have Enum::Count as the last entry
+template <typename Enum> std::optional<Enum> Config::readEnum(std::string section, std::string key)
+{
+    static_assert(std::is_enum_v<Enum>, "Enum type required");
+
+    auto value = readUInt(section, key);
+    if (!value.has_value())
+        return std::nullopt;
+
+    using Underlying = std::underlying_type_t<Enum>;
+
+    if (*value < static_cast<Underlying>(Enum::Count))
+        return static_cast<Enum>(*value);
 
     return std::nullopt;
 }

@@ -1230,8 +1230,6 @@ template <HasDefaultValue B> void MenuCommon::AddResourceBarrier(std::string nam
     }
 }
 
-constexpr uint32_t NV_PRESET_LATEST = 0x00FFFFFF;
-
 // TODO: disable presets based on the detected DLSS version
 template <HasDefaultValue B> void MenuCommon::AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value)
 {
@@ -4506,12 +4504,12 @@ bool MenuCommon::RenderMenu()
                     ImGui::EndDisabled();
 
                     // clang-format off
-                    static const std::vector<MenuOption<uint32_t>> lfx_modes = {
-                        { 0, "Conservative",
+                    static const std::vector<MenuOption<LFXMode>> lfx_modes = {
+                        { LFXMode::Conservative, "Conservative",
                             "The safest, but might not reduce latency well" },
-                        { 1, "Aggressive",
+                        { LFXMode::Aggressive, "Aggressive",
                             "Improves latency, but in some cases will lower FPS more than expected" },
-                        { 2, "Reflex ID",
+                        { LFXMode::ReflexIDs, "Reflex ID",
                             "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to Aggressive" }
                     };
 
@@ -4522,9 +4520,9 @@ bool MenuCommon::RenderMenu()
                     PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
                     ImGui::EndDisabled();
 
-                    static std::vector<MenuOption<uint32_t>> reflex_modes = { { 0, "Follow in-game" },
-                                                                            { 1, "Force Disable" },
-                                                                            { 2, "Force Enable" } };
+                    static std::vector<MenuOption<ForceReflex>> reflex_modes = { { ForceReflex::InGame, "Follow in-game" },
+                                                                            { ForceReflex::ForceDisable, "Force Disable" },
+                                                                            { ForceReflex::ForceEnable, "Force Enable" } };
 
                     if (state.activeFgOutput == FGOutput::XeFG)
                         reflex_modes[1].set_disabled(true);

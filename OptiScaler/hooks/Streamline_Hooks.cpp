@@ -730,7 +730,7 @@ sl::Result StreamlineHooks::hkslReflexSetOptions(const sl::ReflexOptions& option
 
     sl::ReflexOptions newOptions = options;
 
-    if (Config::Instance()->FN_ForceReflex == 2)
+    if (Config::Instance()->FN_ForceReflex == ForceReflex::ForceEnable)
         newOptions.mode = sl::ReflexMode::eLowLatencyWithBoost;
 
     // Will cause a pink screen when used with DLSSG
@@ -808,7 +808,7 @@ bool StreamlineHooks::hkreflex_slSetConstants_sl1(const void* data, uint32_t fra
 
     LOG_DEBUG("mode: {}, frameIndex: {}, id: {}", (uint32_t) constants.mode, frameIndex, id);
 
-    if (Config::Instance()->FN_ForceReflex == 2)
+    if (Config::Instance()->FN_ForceReflex == ForceReflex::ForceEnable)
         constants.mode = sl1::ReflexMode::eReflexModeLowLatencyWithBoost;
 
     // Will cause a pink screen when used with DLSSG
@@ -986,11 +986,11 @@ void StreamlineHooks::updateForceReflex()
 
         auto forceReflex = Config::Instance()->FN_ForceReflex.value_or_default();
 
-        if (forceReflex == 2)
+        if (forceReflex == ForceReflex::ForceEnable)
             options.mode = sl::ReflexMode::eLowLatencyWithBoost;
-        else if (forceReflex == 1)
+        else if (forceReflex == ForceReflex::ForceDisable)
             options.mode = sl::ReflexMode::eOff;
-        else if (forceReflex == 0)
+        else if (forceReflex == ForceReflex::InGame)
             options.mode = reflexGamesLastMode;
 
         auto result = o_slReflexSetOptions(options);

@@ -157,6 +157,7 @@ template <class T, HasDefaultValue defaultState = WithDefault> class CustomOptio
 };
 
 constexpr inline int UnboundKey = -1;
+constexpr uint32_t NV_PRESET_LATEST = 0x00FFFFFF;
 
 enum FpsOverlay : uint32_t
 {
@@ -184,18 +185,20 @@ enum class Scaler : uint32_t
     Count
 };
 
-enum class ForceReflex
+enum class ForceReflex : uint32_t
 {
     InGame,
     ForceDisable,
-    ForceEnable
+    ForceEnable,
+    Count
 };
 
-enum class LFXMode
+enum class LFXMode : uint32_t
 {
     Conservative,
     Aggressive,
-    ReflexIDs
+    ReflexIDs,
+    Count
 };
 
 class Config
@@ -531,8 +534,8 @@ class Config
     CustomOptional<bool> UseFakenvapi { true };
     CustomOptional<bool> XeFGWithoutXeLL { false };
     CustomOptional<bool> FN_ForceLatencyFlex { false };
-    CustomOptional<uint32_t> FN_LatencyFlexMode { 0 }; // conservative - aggressive - reflex ids
-    CustomOptional<uint32_t> FN_ForceReflex { 0 };     // in-game - force disable - force enable
+    CustomOptional<LFXMode> FN_LatencyFlexMode { LFXMode::Conservative };
+    CustomOptional<ForceReflex> FN_ForceReflex { ForceReflex::InGame };
 
     // Inputs
     CustomOptional<bool> EnableDlssInputs { true };
@@ -587,4 +590,6 @@ class Config
     std::optional<int> readInt(std::string section, std::string key);
     std::optional<uint32_t> readUInt(std::string section, std::string key);
     std::optional<bool> readBool(std::string section, std::string key);
+
+    template <typename Enum> std::optional<Enum> readEnum(std::string section, std::string key);
 };
