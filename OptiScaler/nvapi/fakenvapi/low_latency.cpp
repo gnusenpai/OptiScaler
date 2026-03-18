@@ -17,6 +17,8 @@ void LowLatency::update_effective_fg_state()
 
 void LowLatency::update_enabled_override()
 {
+    std::scoped_lock lock(active_tech_mutex);
+
     if (!currently_active_tech)
         return;
 

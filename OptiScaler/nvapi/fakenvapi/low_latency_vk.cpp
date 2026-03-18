@@ -163,6 +163,8 @@ NvAPI_Status LowLatency::Sleep(HANDLE vkDevice)
     if (!update_low_latency_tech(vkDevice))
         return ERROR();
 
+    // Make deinit wait for sleep to finish
+    std::scoped_lock lock(active_tech_mutex);
     currently_active_tech->sleep();
 
     return OK();
@@ -214,6 +216,10 @@ NvAPI_Status LowLatency::SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MAR
 
     marker_params.frame_id = pSetLatencyMarkerParams->frameID;
     marker_params.marker_type = (MarkerType) pSetLatencyMarkerParams->markerType; // requires enums to match
+
+    // We can't mutex using the same one here as for sleep
+    // This would make for example Present markers unable to mark during sleep
+    // std::scoped_lock lock(active_tech_mutex);
 
     // This cast is not ideal as it needs to be cast to VkDevice while knowing it's vulkan
     currently_active_tech->set_marker((IUnknown*) vkDevice, &marker_params);
