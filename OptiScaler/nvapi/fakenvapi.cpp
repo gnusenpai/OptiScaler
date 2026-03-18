@@ -62,11 +62,6 @@ static NVAPI_INTERFACE_TABLE additional_interface_table[] = { { "NvAPI_Diag_Repo
                                                               { "NvAPI_SK_4", 0xdf0dfcdd },
                                                               { "NvAPI_SK_5", 0x932ac8fb } };
 
-static NVAPI_INTERFACE_TABLE fakenvapi_interface_table[] = { { "Fake_InformFGState", 0x21382138 },
-                                                             { "Fake_InformPresentFG", 0x21392139 },
-                                                             { "Fake_GetLowLatencyCtx", 0x21412141 },
-                                                             { "Fake_SetLowLatencyCtx", 0x21422142 } };
-
 extern "C" __declspec(dllexport) void* nvapi_QueryInterface(NvU32 id) { return fakenvapi::queryInterface(id); }
 
 void* __cdecl fakenvapi::queryInterface(NvU32 id)
@@ -77,9 +72,8 @@ void* __cdecl fakenvapi::queryInterface(NvU32 id)
 
     constexpr auto original_size = sizeof(nvapi_interface_table_extern) / sizeof(nvapi_interface_table_extern[0]);
     constexpr auto additional_size = sizeof(additional_interface_table) / sizeof(additional_interface_table[0]);
-    constexpr auto fakenvapi_size = sizeof(fakenvapi_interface_table) / sizeof(fakenvapi_interface_table[0]);
 
-    constexpr auto total_size = original_size + additional_size + fakenvapi_size;
+    constexpr auto total_size = original_size + additional_size;
 
     struct NVAPI_INTERFACE_TABLE extended_interface_table[total_size] {};
     memcpy(extended_interface_table, nvapi_interface_table_extern,
@@ -88,12 +82,6 @@ void* __cdecl fakenvapi::queryInterface(NvU32 id)
     for (unsigned int i = 0; i < additional_size; i++)
     {
         extended_interface_table[original_size + i] = additional_interface_table[i];
-    }
-
-    for (unsigned int i = 0; i < fakenvapi_size; i++)
-    {
-        extended_interface_table[original_size + additional_size + i].func = fakenvapi_interface_table[i].func;
-        extended_interface_table[original_size + additional_size + i].id = fakenvapi_interface_table[i].id;
     }
 
     auto it = std::find_if(std::begin(extended_interface_table), std::end(extended_interface_table),
@@ -179,10 +167,6 @@ void* __cdecl fakenvapi::queryInterface(NvU32 id)
     INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_4)
     INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_5)
     INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
-    INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformFGState)
-    INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformPresentFG)
-    INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLowLatencyCtx)
-    INSERT_AND_RETURN_WHEN_EQUALS(Fake_SetLowLatencyCtx)
 
     LOG_DEBUG("{}: not implemented, placeholder given", it->func);
     return idToFuncMapping.insert({ id, (void*) placeholder }).first->second;
