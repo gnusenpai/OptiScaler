@@ -355,9 +355,9 @@ class Config
     CustomOptional<bool> DontCreateD3D12DeviceForLuma { false };
 
     // Upscalers
-    CustomOptional<std::string, SoftDefault> Dx11Upscaler { std::string(OptiKeys::FSR22) };
-    CustomOptional<std::string, SoftDefault> Dx12Upscaler { std::string(OptiKeys::XeSS) };
-    CustomOptional<std::string, SoftDefault> VulkanUpscaler { std::string(OptiKeys::FSR22) };
+    CustomOptional<Upscaler, SoftDefault> Dx11Upscaler { Upscaler::FSR22 };
+    CustomOptional<Upscaler, SoftDefault> Dx12Upscaler { Upscaler::XeSS };
+    CustomOptional<Upscaler, SoftDefault> VulkanUpscaler { Upscaler::FSR22 };
 
     // Output Scaling
     CustomOptional<bool> OutputScalingEnabled { false };

@@ -45,7 +45,7 @@ static bool fsr31InitTried = false;
 static bool xefgInitTried = false;
 static std::string windowTitle;
 static std::string selectedUpscalerName = "";
-static std::string currentBackend = "";
+static Upscaler currentBackend = Upscaler::Reset;
 static std::string currentBackendName = "";
 static int refreshRate = 0;
 
@@ -233,7 +233,7 @@ void MenuCommon::ShowResetButton(CustomOptional<bool, NoDefault>* initFlag, std:
 inline void MenuCommon::ReInitUpscaler()
 {
     if (State::Instance().currentFeature->Name() == "DLSSD")
-        State::Instance().newBackend = "dlssd";
+        State::Instance().newBackend = Upscaler::DLSSD;
     else
         State::Instance().newBackend = currentBackend;
 
@@ -968,198 +968,90 @@ void KeyUp(UINT vKey)
     inputFpsCycle = vKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
 }
 
-std::string MenuCommon::GetBackendName(std::string* code)
+bool IsFsr(Upscaler upscaler)
 {
-    if (*code == "fsr21")
-        return "FSR 2.1.2";
-
-    if (*code == "fsr22")
-        return "FSR 2.2.1";
-
-    if (*code == "fsr31")
-        return "FSR 3.X";
-
-    if (*code == "fsr21_12")
-        return "FSR 2.1.2 w/Dx12";
-
-    if (*code == "fsr22_12")
-        return "FSR 2.2.1 w/Dx12";
-
-    if (*code == "fsr31_12")
-        return "FSR 3.X w/Dx12";
-
-    if (*code == "xess")
-        return "XeSS";
-
-    if (*code == "xess_12")
-        return "XeSS w/Dx12";
-
-    if (*code == "dlss")
-        return "DLSS";
-
-    return "????";
+    switch (upscaler)
+    {
+    case Upscaler::FSR21:
+    case Upscaler::FSR22:
+    case Upscaler::FSR31:
+    case Upscaler::FSR21_11on12:
+    case Upscaler::FSR22_11on12:
+    case Upscaler::FSR31_11on12:
+        return true;
+    default:
+        return false;
+    }
 }
 
-std::string MenuCommon::GetBackendCode(const API api)
+Upscaler MenuCommon::GetBackendCode(const API api)
 {
-    std::string code;
+    Upscaler upscaler;
 
     if (api == DX11)
-        code = Config::Instance()->Dx11Upscaler.value_or_default();
+        upscaler = Config::Instance()->Dx11Upscaler.value_or_default();
     else if (api == DX12)
-        code = Config::Instance()->Dx12Upscaler.value_or_default();
+        upscaler = Config::Instance()->Dx12Upscaler.value_or_default();
     else
-        code = Config::Instance()->VulkanUpscaler.value_or_default();
+        upscaler = Config::Instance()->VulkanUpscaler.value_or_default();
 
-    return code;
+    return upscaler;
 }
 
-void MenuCommon::GetCurrentBackendInfo(const API api, std::string* code, std::string* name)
+void MenuCommon::GetCurrentBackendInfo(const API api, Upscaler& upscaler, std::string* name)
 {
-    *code = GetBackendCode(api);
-    *name = GetBackendName(code);
+    upscaler = GetBackendCode(api);
+    *name = UpscalerDisplayName(upscaler, api);
 }
 
-void MenuCommon::AddDx11Backends(std::string* code, std::string* name)
+void MenuCommon::RenderUpscalerCombo(const API api, Upscaler currentUpscaler, const std::vector<Upscaler>& options)
 {
-    std::string selectedUpscalerName = "";
     static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
 
-    if (State::Instance().newBackend == "fsr22" || (State::Instance().newBackend == "" && *code == "fsr22"))
-        selectedUpscalerName = "FSR 2.2.1";
-    else if (State::Instance().newBackend == "fsr22_12" || (State::Instance().newBackend == "" && *code == "fsr22_12"))
-        selectedUpscalerName = "FSR 2.2.1 w/Dx12";
-    else if (State::Instance().newBackend == "fsr21_12" || (State::Instance().newBackend == "" && *code == "fsr21_12"))
-        selectedUpscalerName = "FSR 2.1.2 w/Dx12";
-    else if (State::Instance().newBackend == "fsr31" || (State::Instance().newBackend == "" && *code == "fsr31"))
-        selectedUpscalerName = "FSR 3.X";
-    else if (State::Instance().newBackend == "fsr31_12" || (State::Instance().newBackend == "" && *code == "fsr31_12"))
-        selectedUpscalerName = fsr3xName;
-    else if (Config::Instance()->DLSSEnabled.value_or_default() &&
-             (State::Instance().newBackend == "dlss" || (State::Instance().newBackend == "" && *code == "dlss")))
-        selectedUpscalerName = "DLSS";
-    else if (State::Instance().newBackend == "xess" || (State::Instance().newBackend == "" && *code == "xess"))
-        selectedUpscalerName = "XeSS";
-    else
-        selectedUpscalerName = "XeSS w/Dx12";
+    // Determine display name
+    Upscaler targetBackend = State::Instance().newBackend;
+    if (targetBackend == Upscaler::Reset)
+        targetBackend = currentUpscaler;
 
-    if (ImGui::BeginCombo("", selectedUpscalerName.c_str()))
+    std::string selectedName = UpscalerDisplayName(targetBackend, api);
+
+    if (ImGui::BeginCombo("##UpscalerCombo", selectedName.c_str()))
     {
-        if (ImGui::Selectable("XeSS", *code == "xess"))
-            State::Instance().newBackend = "xess";
+        for (auto opt : options)
+        {
+            // Check if GPU is capable of a given backend
+            bool isCapable = (opt == Upscaler::DLSS) ? primaryGpu.dlssCapable : true;
+            if (!isCapable)
+                continue;
 
-        if (ImGui::Selectable("FSR 2.2.1", *code == "fsr22"))
-            State::Instance().newBackend = "fsr22";
-
-        if (ImGui::Selectable("FSR 3.X", *code == "fsr31"))
-            State::Instance().newBackend = "fsr31";
-
-        if (ImGui::Selectable("XeSS w/Dx12", *code == "xess_12"))
-            State::Instance().newBackend = "xess_12";
-
-        if (ImGui::Selectable("FSR 2.1.2 w/Dx12", *code == "fsr21_12"))
-            State::Instance().newBackend = "fsr21_12";
-
-        if (ImGui::Selectable("FSR 2.2.1 w/Dx12", *code == "fsr22_12"))
-            State::Instance().newBackend = "fsr22_12";
-
-        if (ImGui::Selectable(fsr3xName.c_str(), *code == "fsr31_12"))
-            State::Instance().newBackend = "fsr31_12";
-
-        if (Config::Instance()->DLSSEnabled.value_or_default() && ImGui::Selectable("DLSS", *code == "dlss"))
-            State::Instance().newBackend = "dlss";
-
+            bool isSelected = (currentUpscaler == opt);
+            if (ImGui::Selectable(UpscalerDisplayName(opt, api).c_str(), isSelected))
+            {
+                State::Instance().newBackend = opt;
+            }
+        }
         ImGui::EndCombo();
     }
 }
 
-void MenuCommon::AddDx12Backends(std::string* code, std::string* name)
+void MenuCommon::AddDx11Backends(Upscaler upscaler)
 {
-    std::string selectedUpscalerName = "";
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4" : "FSR 3.X";
-
-    if (State::Instance().newBackend == "fsr21" || (State::Instance().newBackend == "" && *code == "fsr21"))
-        selectedUpscalerName = "FSR 2.1.2";
-    else if (State::Instance().newBackend == "fsr22" || (State::Instance().newBackend == "" && *code == "fsr22"))
-        selectedUpscalerName = "FSR 2.2.1";
-    else if (State::Instance().newBackend == "fsr31" || (State::Instance().newBackend == "" && *code == "fsr31"))
-        selectedUpscalerName = fsr3xName;
-    else if (Config::Instance()->DLSSEnabled.value_or_default() &&
-             (State::Instance().newBackend == "dlss" || (State::Instance().newBackend == "" && *code == "dlss")))
-        selectedUpscalerName = "DLSS";
-    else
-        selectedUpscalerName = "XeSS";
-
-    if (ImGui::BeginCombo("", selectedUpscalerName.c_str()))
-    {
-        if (ImGui::Selectable("XeSS", *code == "xess"))
-            State::Instance().newBackend = "xess";
-
-        if (ImGui::Selectable("FSR 2.1.2", *code == "fsr21"))
-            State::Instance().newBackend = "fsr21";
-
-        if (ImGui::Selectable("FSR 2.2.1", *code == "fsr22"))
-            State::Instance().newBackend = "fsr22";
-
-        if (ImGui::Selectable(fsr3xName.c_str(), *code == "fsr31"))
-            State::Instance().newBackend = "fsr31";
-
-        if (Config::Instance()->DLSSEnabled.value_or_default() && ImGui::Selectable("DLSS", *code == "dlss"))
-            State::Instance().newBackend = "dlss";
-
-        ImGui::EndCombo();
-    }
+    RenderUpscalerCombo(API::DX11, upscaler,
+                        { Upscaler::XeSS, Upscaler::FSR22, Upscaler::FSR31, Upscaler::XeSS_11on12,
+                          Upscaler::FSR21_11on12, Upscaler::FSR22_11on12, Upscaler::FSR31_11on12, Upscaler::DLSS });
 }
 
-void MenuCommon::AddVulkanBackends(std::string* code, std::string* name)
+void MenuCommon::AddDx12Backends(Upscaler upscaler)
 {
-    std::string selectedUpscalerName = "";
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-    std::string fsr3xName = primaryGpu.fsr4Capable ? "FSR 3.X/4 w/Dx12" : "FSR 3.X w/Dx12";
+    RenderUpscalerCombo(API::DX12, upscaler,
+                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FSR31, Upscaler::DLSS });
+}
 
-    if (State::Instance().newBackend == "fsr21" || (State::Instance().newBackend == "" && *code == "fsr21"))
-        selectedUpscalerName = "FSR 2.1.2";
-    else if (State::Instance().newBackend == "fsr31" || (State::Instance().newBackend == "" && *code == "fsr31"))
-        selectedUpscalerName = "FSR 3.X";
-    else if (State::Instance().newBackend == "xess" || (State::Instance().newBackend == "" && *code == "xess"))
-        selectedUpscalerName = "XeSS";
-    else if (Config::Instance()->DLSSEnabled.value_or_default() &&
-             (State::Instance().newBackend == "dlss" || (State::Instance().newBackend == "" && *code == "dlss")))
-        selectedUpscalerName = "DLSS";
-    else if (State::Instance().newBackend == "fsr31_12" || (State::Instance().newBackend == "" && *code == "fsr31_12"))
-        selectedUpscalerName = fsr3xName;
-    else if (State::Instance().newBackend == "fsr21_12" || (State::Instance().newBackend == "" && *code == "fsr21_12"))
-        selectedUpscalerName = "FSR 2.1.2 w/Dx12";
-    else
-        selectedUpscalerName = "FSR 2.2.1";
-
-    if (ImGui::BeginCombo("", selectedUpscalerName.c_str()))
-    {
-        if (ImGui::Selectable("XeSS", *code == "xess"))
-            State::Instance().newBackend = "xess";
-
-        if (ImGui::Selectable("FSR 2.1.2", *code == "fsr21"))
-            State::Instance().newBackend = "fsr21";
-
-        if (ImGui::Selectable("FSR 2.2.1", *code == "fsr22"))
-            State::Instance().newBackend = "fsr22";
-
-        if (ImGui::Selectable("FSR 3.X", *code == "fsr31"))
-            State::Instance().newBackend = "fsr31";
-
-        if (Config::Instance()->DLSSEnabled.value_or_default() && ImGui::Selectable("DLSS", *code == "dlss"))
-            State::Instance().newBackend = "dlss";
-
-        if (ImGui::Selectable("FSR 2.1.2 w/Dx12", *code == "fsr21_12"))
-            State::Instance().newBackend = "fsr21_12";
-
-        if (ImGui::Selectable("FSR 3.X w/Dx12", *code == "fsr31_12"))
-            State::Instance().newBackend = "fsr31_12";
-
-        ImGui::EndCombo();
-    }
+void MenuCommon::AddVulkanBackends(Upscaler upscaler)
+{
+    RenderUpscalerCombo(API::Vulkan, upscaler,
+                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FSR31, Upscaler::FSR21_11on12,
+                          Upscaler::FSR31_11on12, Upscaler::DLSS });
 }
 
 template <HasDefaultValue B> void MenuCommon::AddResourceBarrier(std::string name, CustomOptional<int32_t, B>* value)
@@ -2309,7 +2201,7 @@ bool MenuCommon::RenderMenu()
                     ImGui::SeparatorText("Upscalers");
                     ShowTooltip("Which copium do you choose?");
 
-                    GetCurrentBackendInfo(state.api, &currentBackend, &currentBackendName);
+                    GetCurrentBackendInfo(state.api, currentBackend, &currentBackendName);
 
                     std::string spoofingText;
 
@@ -2333,7 +2225,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
                         if (currentFeature->Name() != "DLSSD")
-                            AddDx11Backends(&currentBackend, &currentBackendName);
+                            AddDx11Backends(currentBackend);
 
                         break;
 
@@ -2351,7 +2243,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
                         if (currentFeature->Name() != "DLSSD")
-                            AddDx12Backends(&currentBackend, &currentBackendName);
+                            AddDx12Backends(currentBackend);
 
                         break;
 
@@ -2380,7 +2272,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
                         if (currentFeature->Name() != "DLSSD")
-                            AddVulkanBackends(&currentBackend, &currentBackendName);
+                            AddVulkanBackends(currentBackend);
                     }
 
                     ImGui::PopItemWidth();
@@ -2389,10 +2281,10 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::SameLine(0.0f, 6.0f);
 
-                        if (ImGui::Button("Change Upscaler##2") && state.newBackend != "" &&
+                        if (ImGui::Button("Change Upscaler##2") && state.newBackend != Upscaler::Reset &&
                             state.newBackend != currentBackend)
                         {
-                            if (state.newBackend == "xess")
+                            if (state.newBackend == Upscaler::XeSS)
                             {
                                 // Reseting them for xess
                                 config->DisableReactiveMask.reset();
@@ -2424,9 +2316,9 @@ bool MenuCommon::RenderMenu()
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                 {
                     // Dx11 with Dx12
-                    if (state.api == DX11 && config->Dx11Upscaler.value_or_default() != "fsr22" &&
-                        config->Dx11Upscaler.value_or_default() != "dlss" &&
-                        config->Dx11Upscaler.value_or_default() != "fsr31")
+                    if (state.api == DX11 && config->Dx11Upscaler.value_or_default() != Upscaler::FSR22 &&
+                        config->Dx11Upscaler.value_or_default() != Upscaler::DLSS &&
+                        config->Dx11Upscaler.value_or_default() != Upscaler::FSR31)
                     {
                         ImGui::Spacing();
                         if (auto ch = ScopedCollapsingHeader("Dx11 with Dx12 Settings"); ch.IsHeaderOpen())
@@ -2467,7 +2359,7 @@ bool MenuCommon::RenderMenu()
                     // UPSCALER SPECIFIC -----------------------------
 
                     // XeSS -----------------------------
-                    if (currentBackend == "xess" && currentFeature->Name() != "DLSSD")
+                    if (currentBackend == Upscaler::XeSS && currentFeature->Name() != "DLSSD")
                     {
                         ImGui::Spacing();
                         if (auto ch = ScopedCollapsingHeader("XeSS Settings"); ch.IsHeaderOpen())
@@ -2524,16 +2416,16 @@ bool MenuCommon::RenderMenu()
                     }
 
                     // FFX -----------------
-                    if (currentBackend.rfind("fsr", 0) == 0 && currentFeature->Name() != "DLSSD" &&
-                        (currentBackend == "fsr31" || currentBackend == "fsr31_12"))
+                    if (currentFeature->Name() != "DLSSD" &&
+                        (currentBackend == Upscaler::FSR31 || currentBackend == Upscaler::FSR31_11on12))
                     {
                         ImGui::SeparatorText("FFX Settings");
 
                         if (_ffxUpscalerIndex < 0)
                             _ffxUpscalerIndex = config->FfxUpscalerIndex.value_or_default();
 
-                        if (currentBackend == "fsr31" ||
-                            currentBackend == "fsr31_12" && state.ffxUpscalerVersionNames.size() > 0)
+                        if (currentBackend == Upscaler::FSR31 ||
+                            currentBackend == Upscaler::FSR31_11on12 && state.ffxUpscalerVersionNames.size() > 0)
                         {
                             ImGui::PushItemWidth(135.0f * menuResScale);
 
@@ -2840,7 +2732,7 @@ bool MenuCommon::RenderMenu()
                     }
 
                     // DLSS -----------------
-                    if ((config->DLSSEnabled.value_or_default() && currentBackend == "dlss" &&
+                    if ((config->DLSSEnabled.value_or_default() && currentBackend == Upscaler::DLSS &&
                          currentFeature->Version().major > 2) ||
                         currentFeature->Name() == "DLSSD")
                     {
@@ -2908,7 +2800,7 @@ bool MenuCommon::RenderMenu()
                         if (ImGui::Button("Apply Changes"))
                         {
                             if (usesDlssd)
-                                state.newBackend = "dlssd";
+                                state.newBackend = Upscaler::DLSSD;
                             else
                                 state.newBackend = currentBackend;
 
@@ -4215,7 +4107,7 @@ bool MenuCommon::RenderMenu()
                 {
                     // FSR Common -----------------
                     if (currentFeature != nullptr && !currentFeature->IsFrozen() &&
-                        (state.activeFgOutput == FGOutput::FSRFG || currentBackend.rfind("fsr", 0) == 0))
+                        (state.activeFgOutput == FGOutput::FSRFG || IsFsr(currentBackend)))
                     {
                         SeparatorWithHelpMarker("FSR Common Settings", "Affects both FSR-FG & Upscalers");
 
@@ -4485,7 +4377,7 @@ bool MenuCommon::RenderMenu()
                     {
                         config->OverrideSharpness = overrideSharpness;
 
-                        if (currentBackend == "dlss" && currentFeature->Version().major < 3)
+                        if (currentBackend == Upscaler::DLSS && currentFeature->Version().major < 3)
                         {
                             state.newBackend = currentBackend;
                             MARK_ALL_BACKENDS_CHANGED();
@@ -4511,8 +4403,9 @@ bool MenuCommon::RenderMenu()
                     {
                         // xess or dlss version >= 2.5.1
                         constexpr feature_version requiredDlssVersion = { 2, 5, 1 };
-                        rcasEnabled = (currentBackend == "xess" ||
-                                       (currentBackend == "dlss" && currentFeature->Version() >= requiredDlssVersion));
+                        rcasEnabled =
+                            (currentBackend == Upscaler::XeSS ||
+                             (currentBackend == Upscaler::DLSS && currentFeature->Version() >= requiredDlssVersion));
 
                         if (bool rcas = config->RcasEnabled.value_or(rcasEnabled);
                             ImGui::Checkbox("Enable RCAS", &rcas))
@@ -4674,8 +4567,9 @@ bool MenuCommon::RenderMenu()
                                 _ssDownsampler = config->OutputScalingDownscaler.value_or_default();
                             }
 
-                            ImGui::BeginDisabled((currentBackend == "xess" || currentBackend == "dlss") &&
-                                                 currentFeature->RenderWidth() > currentFeature->DisplayWidth());
+                            ImGui::BeginDisabled(
+                                (currentBackend == Upscaler::XeSS || currentBackend == Upscaler::DLSS) &&
+                                currentFeature->RenderWidth() > currentFeature->DisplayWidth());
                             ImGui::Checkbox("Enable", &_ssEnabled);
                             ImGui::EndDisabled();
 
@@ -4748,7 +4642,7 @@ bool MenuCommon::RenderMenu()
                                 config->OutputScalingDownscaler = _ssDownsampler;
 
                                 if (currentFeature->Name() == "DLSSD")
-                                    state.newBackend = "dlssd";
+                                    state.newBackend = Upscaler::DLSSD;
                                 else
                                     state.newBackend = currentBackend;
 
@@ -4783,7 +4677,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::TableNextColumn();
 
                         // AutoExposure is always enabled for XeSS with native Dx11
-                        bool autoExposureDisabled = state.api == API::DX11 && currentBackend == "xess";
+                        bool autoExposureDisabled = state.api == API::DX11 && currentBackend == Upscaler::XeSS;
                         ImGui::BeginDisabled(autoExposureDisabled);
 
                         if (bool autoExposure = currentFeature->AutoExposure();
@@ -4803,9 +4697,9 @@ bool MenuCommon::RenderMenu()
                         auto accessToReactiveMask = currentFeature->AccessToReactiveMask();
                         ImGui::BeginDisabled(!accessToReactiveMask);
 
-                        bool canUseReactiveMask =
-                            accessToReactiveMask && currentBackend != "dlss" &&
-                            (currentBackend != "xess" || currentFeature->Version() >= feature_version { 2, 0, 1 });
+                        bool canUseReactiveMask = accessToReactiveMask && currentBackend != Upscaler::DLSS &&
+                                                  (currentBackend != Upscaler::XeSS ||
+                                                   currentFeature->Version() >= feature_version { 2, 0, 1 });
 
                         bool disableReactiveMask = config->DisableReactiveMask.value_or(!canUseReactiveMask);
 
@@ -4813,7 +4707,7 @@ bool MenuCommon::RenderMenu()
                         {
                             config->DisableReactiveMask = disableReactiveMask;
 
-                            if (currentBackend == "xess")
+                            if (currentBackend == Upscaler::XeSS)
                             {
                                 state.newBackend = currentBackend;
                                 MARK_ALL_BACKENDS_CHANGED();
@@ -4892,11 +4786,12 @@ bool MenuCommon::RenderMenu()
                                 ImGui::EndTable();
                             }
 
-                            if (currentFeature->AccessToReactiveMask() && currentBackend != "dlss")
+                            if (currentFeature->AccessToReactiveMask() && currentBackend != Upscaler::DLSS)
                             {
-                                ImGui::BeginDisabled(config->DisableReactiveMask.value_or(currentBackend == "xess"));
+                                ImGui::BeginDisabled(
+                                    config->DisableReactiveMask.value_or(currentBackend == Upscaler::XeSS));
 
-                                bool binaryMask = state.api == Vulkan || currentBackend == "xess";
+                                bool binaryMask = state.api == Vulkan || currentBackend == Upscaler::XeSS;
                                 auto defaultBias = binaryMask ? 0.0f : 0.45f;
                                 auto maskBias = config->DlssReactiveMaskBias.value_or(defaultBias);
 
@@ -4987,7 +4882,7 @@ bool MenuCommon::RenderMenu()
                     }
 
                     // Non-DLSS hotfixes -----------------------------
-                    if (currentFeature != nullptr && !currentFeature->IsFrozen() && currentBackend != "dlss")
+                    if (currentFeature != nullptr && !currentFeature->IsFrozen() && currentBackend != Upscaler::DLSS)
                     {
                         // BARRIERS -----------------------------
                         ImGui::Spacing();

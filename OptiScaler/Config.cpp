@@ -58,9 +58,10 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // Upscalers
         {
-            Dx11Upscaler.set_from_config(readString("Upscalers", "Dx11Upscaler", true));
-            Dx12Upscaler.set_from_config(readString("Upscalers", "Dx12Upscaler", true));
-            VulkanUpscaler.set_from_config(readString("Upscalers", "VulkanUpscaler", true));
+            // transform converts only when optional has a  value
+            Dx11Upscaler.set_from_config(readString("Upscalers", "Dx11Upscaler", true).transform(CodeToUpscaler));
+            Dx12Upscaler.set_from_config(readString("Upscalers", "Dx12Upscaler", true).transform(CodeToUpscaler));
+            VulkanUpscaler.set_from_config(readString("Upscalers", "VulkanUpscaler", true).transform(CodeToUpscaler));
         }
 
         // Frame Generation
@@ -744,9 +745,18 @@ bool Config::SaveIni()
 {
     // Upscalers
     {
-        ini.SetValue("Upscalers", "Dx11Upscaler", Instance()->Dx11Upscaler.value_for_config_or("auto").c_str());
-        ini.SetValue("Upscalers", "Dx12Upscaler", Instance()->Dx12Upscaler.value_for_config_or("auto").c_str());
-        ini.SetValue("Upscalers", "VulkanUpscaler", Instance()->VulkanUpscaler.value_for_config_or("auto").c_str());
+        auto SaveUpscaler = [&](const char* key, auto& upscalerSetting)
+        {
+            std::string value = upscalerSetting.value_for_config()
+                                    .transform(UpscalerToCode) // Turn enum into string
+                                    .value_or("auto");
+
+            ini.SetValue("Upscalers", key, value.c_str());
+        };
+
+        SaveUpscaler("Dx11Upscaler", Instance()->Dx11Upscaler);
+        SaveUpscaler("Dx12Upscaler", Instance()->Dx12Upscaler);
+        SaveUpscaler("VulkanUpscaler", Instance()->VulkanUpscaler);
     }
 
     // Frame Generation

@@ -15,104 +15,101 @@
 #include "upscalers/xess/XeSSFeature_Vk.h"
 #include "upscalers/fsr31/FSR31Feature_VkOn12.h"
 
-bool FeatureProvider_Vk::GetFeature(std::string upscalerName, UINT handleId, NVSDK_NGX_Parameter* parameters,
+bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_Parameter* parameters,
                                     std::unique_ptr<IFeature_Vk>* feature)
 {
     State& state = State::Instance();
     Config& cfg = *Config::Instance();
+    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
-    do
+    switch (upscaler)
     {
-        if (upscalerName == "xess")
-        {
-            *feature = std::make_unique<XeSSFeature_Vk>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr21")
-        {
-            *feature = std::make_unique<FSR2FeatureVk212>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr21_12")
-        {
-            *feature = std::make_unique<FSR2FeatureVkOnDx12_212>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr22")
-        {
-            *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr31")
-        {
-            *feature = std::make_unique<FSR31FeatureVk>(handleId, parameters);
-            break;
-        }
-        else if (upscalerName == "fsr31_12")
-        {
-            *feature = std::make_unique<FSR31FeatureVkOn12>(handleId, parameters);
-            break;
-        }
+    case Upscaler::XeSS:
+        *feature = std::make_unique<XeSSFeature_Vk>(handleId, parameters);
+        break;
 
-        if (cfg.DLSSEnabled.value_or_default())
+    case Upscaler::FSR21:
+        *feature = std::make_unique<FSR2FeatureVk212>(handleId, parameters);
+        break;
+
+    case Upscaler::FSR21_11on12:
+        *feature = std::make_unique<FSR2FeatureVkOnDx12_212>(handleId, parameters);
+        break;
+
+    case Upscaler::FSR22:
+        *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
+        break;
+
+    case Upscaler::FSR31:
+        *feature = std::make_unique<FSR31FeatureVk>(handleId, parameters);
+        break;
+
+    case Upscaler::FSR31_11on12:
+        *feature = std::make_unique<FSR31FeatureVkOn12>(handleId, parameters);
+        break;
+
+    case Upscaler::DLSS:
+        if (primaryGpu.dlssCapable && state.NVNGX_DLSS_Path.has_value())
         {
-            if (upscalerName == "dlss" && state.NVNGX_DLSS_Path.has_value())
-            {
-                *feature = std::make_unique<DLSSFeatureVk>(handleId, parameters);
-                break;
-            }
-            else if (upscalerName == "dlssd" && state.NVNGX_DLSSD_Path.has_value())
-            {
-                *feature = std::make_unique<DLSSDFeatureVk>(handleId, parameters);
-                break;
-            }
-            else
-            {
-                *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
-            }
+            *feature = std::make_unique<DLSSFeatureVk>(handleId, parameters);
+            break;
         }
         else
         {
             *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
+            upscaler = Upscaler::FSR22;
+            break;
         }
 
-    } while (false);
+    case Upscaler::DLSSD:
+        if (primaryGpu.dlssCapable && state.NVNGX_DLSSD_Path.has_value())
+        {
+            *feature = std::make_unique<DLSSDFeatureVk>(handleId, parameters);
+            break;
+        }
+        else
+        {
+            *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
+            upscaler = Upscaler::FSR22;
+            break;
+        }
 
-    // Fail after the constructor
-    if (!(*feature)->ModuleLoaded())
-    {
-        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.2" });
-        (*feature).reset();
+    default:
         *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
-        upscalerName = "fsr22";
+        upscaler = Upscaler::FSR22;
+        break;
     }
-    else
+
+    bool loaded = (*feature)->ModuleLoaded();
+
+    if (!loaded)
     {
-        cfg.VulkanUpscaler = upscalerName;
+        // Fail after the constructor
+        ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.2" });
+        *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
+        upscaler = Upscaler::FSR22;
+        loaded = true; // Assuming the fallback always loads successfully
     }
 
-    auto result = (*feature)->ModuleLoaded();
+    // DLSSD is stored in the config as DLSS
+    if (upscaler == Upscaler::DLSSD)
+        upscaler = Upscaler::DLSS;
 
-    if (result)
-    {
-        if (upscalerName == "dlssd")
-            upscalerName = "dlss";
+    cfg.VulkanUpscaler = upscaler;
 
-        cfg.VulkanUpscaler = upscalerName;
-    }
-
-    return result;
+    return loaded;
 }
 
-bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance instance, VkPhysicalDevice pd,
-                                       VkDevice device, VkCommandBuffer cmdBuffer, PFN_vkGetInstanceProcAddr gipa,
+bool FeatureProvider_Vk::ChangeFeature(Upscaler upscaler, VkInstance instance, VkPhysicalDevice pd, VkDevice device,
+                                       VkCommandBuffer cmdBuffer, PFN_vkGetInstanceProcAddr gipa,
                                        PFN_vkGetDeviceProcAddr gdpa, UINT handleId, NVSDK_NGX_Parameter* parameters,
                                        ContextData<IFeature_Vk>* contextData)
 {
     State& state = State::Instance();
     Config& cfg = *Config::Instance();
 
-    if (state.newBackend == "" || (!cfg.DLSSEnabled.value_or_default() && state.newBackend == "dlss"))
+    const bool dlssOnNonCapable = !IdentifyGpu::getPrimaryGpu().dlssCapable && state.newBackend == Upscaler::DLSS;
+    if (state.newBackend == Upscaler::Reset || dlssOnNonCapable)
         state.newBackend = cfg.VulkanUpscaler.value_or_default();
 
     contextData->changeBackendCounter++;
@@ -124,12 +121,11 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
     {
         if (contextData->feature != nullptr)
         {
-            LOG_INFO("changing backend to {0}", state.newBackend);
+            LOG_INFO("changing backend to {0}", UpscalerDisplayName(state.newBackend));
 
             auto* dc = contextData->feature.get();
             // Use given params if using DLSS passthrough
-            const std::string_view backend = state.newBackend;
-            const bool isPassthrough = backend == "dlssd" || backend == "dlss";
+            const bool isPassthrough = state.newBackend == Upscaler::DLSSD || state.newBackend == Upscaler::DLSS;
 
             contextData->createParams = isPassthrough ? parameters : GetNGXParameters("OptiVk", false);
             contextData->createParams->Set(NVSDK_NGX_Parameter_DLSS_Feature_Create_Flags, dc->GetFeatureFlags());
@@ -155,7 +151,7 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
         {
             LOG_ERROR("can't find handle {0} in VkContexts!", handleId);
 
-            state.newBackend = "";
+            state.newBackend = Upscaler::Reset;
             state.changeBackend[handleId] = false;
 
             if (contextData->createParams != nullptr)
@@ -172,7 +168,7 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
 
     if (contextData->changeBackendCounter == 2)
     {
-        LOG_INFO("Creating new {} upscaler", state.newBackend);
+        LOG_INFO("Creating new {} upscaler", UpscalerDisplayName(state.newBackend));
 
         contextData->feature.reset();
 
@@ -199,25 +195,25 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
 
         if (!initResult || !contextData->feature->ModuleLoaded())
         {
-            LOG_ERROR("init failed with {0} feature", state.newBackend);
+            LOG_ERROR("init failed with {0} feature", UpscalerDisplayName(state.newBackend));
 
-            if (state.newBackend != "dlssd")
+            if (state.newBackend != Upscaler::DLSSD)
             {
-                if (cfg.VulkanUpscaler == "dlss")
+                if (cfg.VulkanUpscaler == Upscaler::DLSS)
                 {
-                    state.newBackend = "xess";
+                    state.newBackend = Upscaler::XeSS;
                     ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to XeSS" });
                 }
                 else
                 {
-                    state.newBackend = "fsr21";
+                    state.newBackend = Upscaler::FSR21;
                     ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
                 }
             }
             else
             {
                 // Retry DLSSD
-                state.newBackend = "dlssd";
+                state.newBackend = Upscaler::DLSSD;
             }
 
             state.changeBackend[handleId] = true;
@@ -225,9 +221,9 @@ bool FeatureProvider_Vk::ChangeFeature(std::string upscalerName, VkInstance inst
         }
         else
         {
-            LOG_INFO("init successful for {0}, upscaler changed", state.newBackend);
+            LOG_INFO("init successful for {0}, upscaler changed", UpscalerDisplayName(state.newBackend));
 
-            state.newBackend = "";
+            state.newBackend = Upscaler::Reset;
             state.changeBackend[handleId] = false;
         }
 

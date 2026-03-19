@@ -728,7 +728,7 @@
     <ClInclude Include="shaders\render_ui\RUI_Dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OptiTexts.h">
+    <ClInclude Include="OptiTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="shaders\output_scaling\precompile\bcds_kaiser2_Shader.h">
@@ -810,6 +810,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="misc\IdentifyGpu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\hud_copy\precompile\HudCopy_Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1260,6 +1263,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="misc\IdentifyGpu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OptiTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

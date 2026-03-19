@@ -175,12 +175,12 @@ class MenuCommon
 
 #pragma endregion
 
-    static std::string GetBackendName(std::string* code);
-    static std::string GetBackendCode(const API api);
-    static void GetCurrentBackendInfo(const API api, std::string* code, std::string* name);
-    static void AddDx11Backends(std::string* code, std::string* name);
-    static void AddDx12Backends(std::string* code, std::string* name);
-    static void AddVulkanBackends(std::string* code, std::string* name);
+    static Upscaler GetBackendCode(const API api);
+    static void GetCurrentBackendInfo(const API api, Upscaler& upscaler, std::string* name);
+    static void RenderUpscalerCombo(const API api, Upscaler currentUpscaler, const std::vector<Upscaler>& options);
+    static void AddDx11Backends(Upscaler upscaler);
+    static void AddDx12Backends(Upscaler upscaler);
+    static void AddVulkanBackends(Upscaler upscaler);
     template <HasDefaultValue B> static void AddResourceBarrier(std::string name, CustomOptional<int32_t, B>* value);
     template <HasDefaultValue B> static void AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value);
     template <HasDefaultValue B> static void AddDLSSDRenderPreset(std::string name, CustomOptional<uint32_t, B>* value);

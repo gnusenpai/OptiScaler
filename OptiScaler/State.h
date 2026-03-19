@@ -10,14 +10,6 @@
 #include <ankerl/unordered_dense.h>
 #include <mutex>
 
-typedef enum API
-{
-    NotSelected = 0,
-    DX11,
-    DX12,
-    Vulkan,
-} API;
-
 enum class FGPreset : uint32_t
 {
     NoFG,
@@ -160,7 +152,7 @@ class State
 
     // for realtime changes
     ankerl::unordered_dense::map<unsigned int, bool> changeBackend;
-    std::string newBackend = "";
+    Upscaler newBackend = Upscaler::Reset;
 
     // XeSS debug stuff
     bool xessDebug = false;

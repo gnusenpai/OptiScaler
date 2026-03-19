@@ -710,16 +710,16 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature1(VkDevice InDevice
 
     if (InFeatureID == NVSDK_NGX_Feature_SuperSampling)
     {
-        std::string upscalerChoice = "fsr22"; // Default XeSS
+        Upscaler upscalerChoice = Upscaler::FSR22; // Default FSR 2.2.1
 
         // If original NVNGX available use DLSS as base upscaler
-        if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::IsVulkanInited())
-            upscalerChoice = "dlss";
+        if (IdentifyGpu::getPrimaryGpu().dlssCapable && NVNGXProxy::IsVulkanInited())
+            upscalerChoice = Upscaler::DLSS;
 
         if (Config::Instance()->VulkanUpscaler.has_value())
             upscalerChoice = Config::Instance()->VulkanUpscaler.value();
 
-        LOG_INFO("Creating new {} upscaler", upscalerChoice);
+        LOG_INFO("Creating new {} upscaler", UpscalerDisplayName(upscalerChoice));
 
         VkContexts[handleId] = {};
 
@@ -735,7 +735,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature1(VkDevice InDevice
 
         VkContexts[handleId] = {};
 
-        if (!FeatureProvider_Vk::GetFeature("dlssd", handleId, InParameters, &VkContexts[handleId].feature))
+        if (!FeatureProvider_Vk::GetFeature(Upscaler::DLSSD, handleId, InParameters, &VkContexts[handleId].feature))
         {
             LOG_ERROR("DLSSD can't created");
             return NVSDK_NGX_Result_Fail;
@@ -939,9 +939,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
         ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Upscaler failed to run!" });
 
     if ((!upscaleResult || !deviceContext->IsInited()) &&
-        Config::Instance()->VulkanUpscaler.value_or_default() != "fsr22")
+        Config::Instance()->VulkanUpscaler.value_or_default() != Upscaler::FSR22)
     {
-        State::Instance().newBackend = "fsr22";
+        State::Instance().newBackend = Upscaler::FSR22;
         State::Instance().changeBackend[handleId] = true;
         return NVSDK_NGX_Result_Success;
     }
