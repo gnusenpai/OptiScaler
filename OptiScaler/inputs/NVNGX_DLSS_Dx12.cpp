@@ -486,10 +486,15 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_DestroyParameters(NVSDK_NGX_Param
 
 static std::string_view GetUpscalerBackend()
 {
-    std::string_view name = "xess"; // Default
+    std::string_view name = OptiKeys::XeSS; // Default
 
-    if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::IsDx12Inited())
-        name = "dlss";
+    auto static primaryGpu = IdentifyGpu::getPrimaryGpu();
+
+    if (NVNGXProxy::IsDx12Inited() && primaryGpu.dlssCapable)
+        name = OptiKeys::DLSS;
+
+    if (primaryGpu.fsr4Capable)
+        name = OptiKeys::FSR31;
 
     if (Config::Instance()->Dx12Upscaler.has_value())
         name = Config::Instance()->Dx12Upscaler.value();

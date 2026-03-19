@@ -53,7 +53,7 @@ struct GpuInformation
     bool fsr4Capable = false;
     ID3D12Device* d3d12device = nullptr;
 
-    bool dlssCapable = false; // assumes GTX16xx to be capable due to our spoofing
+    bool dlssCapable = false;
     NV_GPU_ARCH_INFO nvidiaArchInfo {};
     bool noDisplayConnected = false;
 };

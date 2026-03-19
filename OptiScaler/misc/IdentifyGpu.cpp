@@ -396,7 +396,9 @@ void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
     if (loadedHere)
         NtdllProxy::FreeLibrary_Ldr(nvapiModule);
 
-    gpuInfo.dlssCapable = gpuInfo.nvidiaArchInfo.architecture_id >= NV_GPU_ARCHITECTURE_TU100;
+    // assumes GTX16xx to be capable due to our spoofing
+    if (Config::Instance()->DLSSEnabled.value_or_default())
+        gpuInfo.dlssCapable = gpuInfo.nvidiaArchInfo.architecture_id >= NV_GPU_ARCHITECTURE_TU100;
 }
 
 void IdentifyGpu::getHardwareAdapter(IDXGIFactory* InFactory, IDXGIAdapter** InAdapter,
