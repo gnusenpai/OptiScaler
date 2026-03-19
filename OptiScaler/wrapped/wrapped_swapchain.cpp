@@ -193,9 +193,10 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
         // Draw overlay
         MenuOverlayDx::Present(pSwapChain, SyncInterval, Flags, pPresentParameters, pDevice, hWnd, isUWP);
 
-        LOG_DEBUG("Calling fakenvapi");
         if (State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG)
         {
+            LOG_DEBUG("Calling fakenvapi");
+
             static UINT64 fgPresentFrame = 0;
             auto fgIsActive = fg != nullptr && fg->IsActive() && !fg->IsPaused();
 

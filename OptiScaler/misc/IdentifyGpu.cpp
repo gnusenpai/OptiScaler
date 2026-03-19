@@ -85,8 +85,8 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
             std::wstring szName(adapterDesc.Description);
             gpuInfo.name = wstring_to_string(szName);
 
-            ComPtr<IDXGIVkInteropDevice> dxgiInterop;
-            if (SUCCEEDED(adapter->QueryInterface(IID_PPV_ARGS(&dxgiInterop))))
+            ComPtr<IDXGIDXVKAdapter> dxvkAdapter;
+            if (SUCCEEDED(adapter->QueryInterface(IID_PPV_ARGS(&dxvkAdapter))))
                 gpuInfo.usesDxvk = true;
 
             // Needed to be able to query amdxc and check for vkd3d-proton
@@ -223,9 +223,6 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfoVulkan()
     VkInstanceCreateInfo createInfo {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-
-    // while (!IsDebuggerPresent())
-    //     Sleep(100);
 
     auto winevulkan = LoadLibraryA("winevulkan.dll");
 
