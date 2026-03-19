@@ -26,6 +26,7 @@
 #include <hooks/Streamline_Hooks.h>
 
 #include <fsr4/FSR4ModelSelection.h>
+#include <misc/IdentifyGpu.h>
 
 // #define LOG_LIB_OPERATIONS
 
@@ -120,23 +121,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     {
         LOG_INFO("{} call!", libNameA);
 
-        auto nvapi = GetModuleHandleW(libName.c_str());
-
-        // Try to load nvapi only from system32, like the original call would
-        if (nvapi == nullptr)
-            nvapi = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-
-        // Opti exports a query function that nvapi would export
-        if (nvapi == nullptr && Config::Instance()->UseFakenvapi.value_or_default())
-        {
-            nvapi = dllModule;
-            fakenvapi::setUsingAsMainNvapi(true);
-        }
-
-        if (nvapi != nullptr)
-            NvApiHooks::Hook(nvapi);
-
-        return nvapi;
+        return LibraryLoadHooks::LoadNvApi();
     }
 
     // sl.interposer.dll
@@ -575,15 +560,27 @@ HMODULE LibraryLoadHooks::LoadNvApi()
 {
     LOG_FUNC();
 
-    auto nvapi = GetModuleHandleW(L"nvapi64.dll");
+    HMODULE nvapi = nullptr;
+
+    // Opti exports a query function that nvapi would export
+    if (Config::Instance()->UseFakenvapi.value_or_default() &&
+        IdentifyGpu::getPrimaryGpu().vendorId != VendorId::Nvidia)
+    {
+        nvapi = dllModule;
+        fakenvapi::setUsingAsMainNvapi(true);
+    }
+
+    if (nvapi == nullptr)
+        nvapi = GetModuleHandleW(L"nvapi64.dll");
 
     // Try to load nvapi only from system32, like the original call would
     if (nvapi == nullptr)
         nvapi = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
-    // Opti exports a query function that nvapi would export
-    if (nvapi == nullptr && Config::Instance()->UseFakenvapi.value_or_default())
+    // Fallback for Nvidia, doubt it's helpful
+    if (Config::Instance()->UseFakenvapi.value_or_default() && nvapi == nullptr)
     {
+        LOG_WARN("Using fakenvapi on Nvidia as the main nvapi");
         nvapi = dllModule;
         fakenvapi::setUsingAsMainNvapi(true);
     }
