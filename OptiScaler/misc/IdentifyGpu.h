@@ -83,7 +83,7 @@ inline constexpr bool IsEqualLUID(LUID luid1, LUID luid2)
 class IdentifyGpu
 {
     static std::vector<GpuInformation> checkGpuInfo();
-    static std::vector<GpuInformation> checkGpuInfoNoDxgi();
+    static std::vector<GpuInformation> checkGpuInfoVulkan();
     static void queryNvapi(GpuInformation& gpuInfo);
 
   public:
@@ -93,6 +93,6 @@ class IdentifyGpu
     // Sorted by priority, the first one should be treated as the primary one
     static std::vector<GpuInformation> getAllGpus();
     static GpuInformation getPrimaryGpu();
-    static std::vector<GpuInformation> getAllGpusNoDxgi();
-    static GpuInformation getPrimaryGpuNoDxgi();
+    static std::vector<GpuInformation> getAllGpusVulkan();
+    static GpuInformation getPrimaryGpuVulkan();
 };

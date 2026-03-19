@@ -1217,7 +1217,7 @@ static void CheckQuirks()
     auto quirks = getQuirksForExe(exePathFilename);
 
     auto state = &State::Instance();
-    auto primaryGpu = IdentifyGpu::getPrimaryGpuNoDxgi();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpuVulkan();
 
     // Apply config-level quirks
     if (quirks & GameQuirk::DisableHudfix && Config::Instance()->FGInput.value_or_default() == FGInput::Upscaler)
@@ -1609,7 +1609,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         spdlog::info("");
         State::Instance().isRunningOnLinux = IsRunningOnWine();
 
-        auto primaryGpu = IdentifyGpu::getPrimaryGpuNoDxgi();
+        auto primaryGpu = IdentifyGpu::getPrimaryGpuVulkan();
 
         // Check if real DLSS available
         if (Config::Instance()->DLSSEnabled.value_or_default())

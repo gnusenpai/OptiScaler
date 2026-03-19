@@ -2315,7 +2315,7 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::PushItemWidth(180.0f * menuResScale);
 
-                    auto primaryGpuVulkan = IdentifyGpu::getPrimaryGpuNoDxgi();
+                    auto primaryGpuVulkan = IdentifyGpu::getPrimaryGpuVulkan();
 
                     switch (state.api)
                     {
@@ -4381,20 +4381,6 @@ bool MenuCommon::RenderMenu()
                         _limitFps = 0.0f;
                         config->FramerateLimit = _limitFps;
                     }
-
-                    if (ImGui::Button("S"))
-                        ImGui::InsertNotification(
-                            { ImGuiToastType::Success, 10000, "Test Success Test Success Test Success Test Success" });
-                    ImGui::SameLine(0.0f, 16.0f);
-                    if (ImGui::Button("W"))
-                        ImGui::InsertNotification(
-                            { ImGuiToastType::Warning, 10000, "Test warning Test warning Test warning" });
-                    ImGui::SameLine(0.0f, 16.0f);
-                    if (ImGui::Button("E"))
-                        ImGui::InsertNotification({ ImGuiToastType::Error, 10000, "Test error Test error" });
-                    ImGui::SameLine(0.0f, 16.0f);
-                    if (ImGui::Button("I"))
-                        ImGui::InsertNotification({ ImGuiToastType::Info, 10000, "Test info" });
 
                     ImGui::Spacing();
                     if (auto ch = ScopedCollapsingHeader("VRR Frame Cap Calculator"); ch.IsHeaderOpen())

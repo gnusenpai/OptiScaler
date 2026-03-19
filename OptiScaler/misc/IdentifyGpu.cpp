@@ -30,6 +30,9 @@ void sortGpus(std::vector<GpuInformation>& gpus)
                       return aIsPreferred;
                   }
 
+                  if (a.softwareAdapter)
+                      return false;
+
                   // Fallback on VRAM amount
                   return a.dedicatedVramInBytes > b.dedicatedVramInBytes;
               });
@@ -205,7 +208,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
 // !!! Doesn't fill out FSR 4 capability and dxvk/vkd3d-proton usages !!!
 // We are using Vulkan inside DLL_PROCESS_ATTACH which unlike dxgi technically works™
 // Not ideal + requires a GPU that supports Vulkan but every GPU we care about should
-std::vector<GpuInformation> IdentifyGpu::checkGpuInfoNoDxgi()
+std::vector<GpuInformation> IdentifyGpu::checkGpuInfoVulkan()
 {
     auto localCachedInfo = std::vector<GpuInformation> {};
 
@@ -221,15 +224,46 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfoNoDxgi()
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
+    // while (!IsDebuggerPresent())
+    //     Sleep(100);
+
+    auto winevulkan = LoadLibraryA("winevulkan.dll");
+
+    auto o_vkCreateInstance = vkCreateInstance;
+    auto o_vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+
+    if (State::Instance().isRunningOnLinux && winevulkan)
+    {
+        o_vkCreateInstance = (PFN_vkCreateInstance) KernelBaseProxy::GetProcAddress_()(winevulkan, "vkCreateInstance");
+        o_vkGetInstanceProcAddr =
+            (PFN_vkGetInstanceProcAddr) KernelBaseProxy::GetProcAddress_()(winevulkan, "vkGetInstanceProcAddr");
+    }
+
     VkInstance instance = VK_NULL_HANDLE;
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    if (o_vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
     {
         LOG_ERROR("Couldn't create a Vulkan instance");
         return localCachedInfo;
     }
 
+    auto o_vkEnumeratePhysicalDevices = vkEnumeratePhysicalDevices;
+    auto o_vkGetPhysicalDeviceProperties2 = vkGetPhysicalDeviceProperties2;
+    auto o_vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+    auto o_vkDestroyInstance = vkDestroyInstance;
+
+    if (State::Instance().isRunningOnLinux && winevulkan && instance)
+    {
+        o_vkEnumeratePhysicalDevices =
+            (PFN_vkEnumeratePhysicalDevices) o_vkGetInstanceProcAddr(instance, "vkEnumeratePhysicalDevices");
+        o_vkGetPhysicalDeviceProperties2 =
+            (PFN_vkGetPhysicalDeviceProperties2) o_vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2");
+        o_vkGetPhysicalDeviceMemoryProperties = (PFN_vkGetPhysicalDeviceMemoryProperties) o_vkGetInstanceProcAddr(
+            instance, "vkGetPhysicalDeviceMemoryProperties");
+        o_vkDestroyInstance = (PFN_vkDestroyInstance) o_vkGetInstanceProcAddr(instance, "vkDestroyInstance");
+    }
+
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    o_vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     if (deviceCount == 0)
     {
@@ -241,7 +275,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfoNoDxgi()
     // ScopedSkipSpoofing skipSpoofing {};
 
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
+    o_vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
     for (auto physicalDevice : physicalDevices)
     {
@@ -252,10 +286,10 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfoNoDxgi()
         props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         props2.pNext = &idProps;
 
-        vkGetPhysicalDeviceProperties2(physicalDevice, &props2);
+        o_vkGetPhysicalDeviceProperties2(physicalDevice, &props2);
 
         VkPhysicalDeviceMemoryProperties memProps {};
-        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
+        o_vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
 
         GpuInformation gpuInfo;
         for (uint32_t i = 0; i < memProps.memoryHeapCount; ++i)
@@ -275,7 +309,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfoNoDxgi()
         localCachedInfo.push_back(std::move(gpuInfo));
     }
 
-    vkDestroyInstance(instance, nullptr);
+    o_vkDestroyInstance(instance, nullptr);
     sortGpus(localCachedInfo);
 
     for (auto& gpuInfo : localCachedInfo)
@@ -423,17 +457,17 @@ GpuInformation IdentifyGpu::getPrimaryGpu()
     return allGpus.size() > 0 ? allGpus[0] : GpuInformation {};
 }
 
-// !!! Use the NoDxgi variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
-std::vector<GpuInformation> IdentifyGpu::getAllGpusNoDxgi()
+// !!! Use the Vulkan variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
+std::vector<GpuInformation> IdentifyGpu::getAllGpusVulkan()
 {
-    static std::vector<GpuInformation> cache = []() { return checkGpuInfoNoDxgi(); }();
+    static std::vector<GpuInformation> cache = []() { return checkGpuInfoVulkan(); }();
     return cache;
 }
 
-// !!! Use the NoDxgi variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
-GpuInformation IdentifyGpu::getPrimaryGpuNoDxgi()
+// !!! Use the Vulkan variants only inside DLL_PROCESS_ATTACH as they provide incomplete data !!!
+GpuInformation IdentifyGpu::getPrimaryGpuVulkan()
 {
     // return GpuInformation {};
-    auto allGpus = getAllGpusNoDxgi();
+    auto allGpus = getAllGpusVulkan();
     return allGpus.size() > 0 ? allGpus[0] : GpuInformation {};
 }
