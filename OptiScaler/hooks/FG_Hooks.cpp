@@ -464,7 +464,7 @@ HRESULT FGHooks::hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDX
     return result;
 }
 
-HRESULT FGHooks::hkGetFullscreenDesc(IDXGISwapChain* This, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pDesc)
+HRESULT FGHooks::hkGetFullscreenDesc(IDXGISwapChain1* This, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pDesc)
 {
     auto result = o_FGSCGetFullscreenDesc(This, pDesc);
 
@@ -705,7 +705,7 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
     return result;
 }
 
-HRESULT FGHooks::hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTargetParameters)
+HRESULT FGHooks::hkResizeTarget(IDXGISwapChain* This, const DXGI_MODE_DESC* pNewTargetParameters)
 {
     if (Config::Instance()->FGXeFGForceBorderless.value_or_default())
     {
@@ -724,7 +724,7 @@ HRESULT FGHooks::hkResizeTarget(IDXGISwapChain* This, DXGI_MODE_DESC* pNewTarget
     return o_FGSCResizeTarget(This, pNewTargetParameters);
 }
 
-HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
+HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain3* This, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT Format,
                                   UINT SwapChainFlags, const UINT* pCreationNodeMask, IUnknown* const* ppPresentQueue)
 {
     // Skip XeFG's internal call
@@ -941,7 +941,7 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain* This, UINT BufferCount, UINT W
     return result;
 }
 
-HRESULT FGHooks::hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
+HRESULT FGHooks::hkFGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags)
 {
     // Skip XeFG's internal call
     if (_skipPresent)
@@ -975,7 +975,7 @@ HRESULT FGHooks::hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     return result;
 }
 
-HRESULT FGHooks::hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
+HRESULT FGHooks::hkFGPresent1(IDXGISwapChain1* This, UINT SyncInterval, UINT Flags,
                               const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
     // Skip XeFG's internal call
@@ -1009,7 +1009,8 @@ HRESULT FGHooks::hkFGPresent1(void* This, UINT SyncInterval, UINT Flags,
     return result;
 }
 
-HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI_PRESENT_PARAMETERS* pPresentParameters)
+HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
+                           const DXGI_PRESENT_PARAMETERS* pPresentParameters)
 {
     _lastPresentFlags = Flags;
 
@@ -1018,7 +1019,7 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
         if (pPresentParameters == nullptr)
             return o_FGSCPresent(This, SyncInterval, Flags);
         else
-            return o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
+            return o_FGSCPresent1((IDXGISwapChain1*) This, SyncInterval, Flags, pPresentParameters);
     }
 
     auto willPresent = (Flags & DXGI_PRESENT_TEST) == 0;
@@ -1113,7 +1114,7 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
     if (pPresentParameters == nullptr)
         result = o_FGSCPresent(This, SyncInterval, Flags);
     else
-        result = o_FGSCPresent1(This, SyncInterval, Flags, pPresentParameters);
+        result = o_FGSCPresent1((IDXGISwapChain1*) This, SyncInterval, Flags, pPresentParameters);
     LOG_DEBUG("Result: {:X}", result);
 
     Hudfix_Dx12::PresentEnd();
@@ -1131,7 +1132,7 @@ HRESULT FGHooks::FGPresent(void* This, UINT SyncInterval, UINT Flags, const DXGI
     return result;
 }
 
-HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
+HRESULT FGHooks::hkFGRelease(IUnknown* This)
 {
     // We already released this one, prevent crashes
     if (This == oldSwapChain)
@@ -1191,7 +1192,7 @@ HRESULT FGHooks::hkFGRelease(IDXGISwapChain* This)
                 for (UINT i = 0; i < 8; i++)
                 {
                     ID3D12Resource* backBuffer = nullptr;
-                    auto bbResult = This->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+                    auto bbResult = ((IDXGISwapChain*) This)->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
 
                     if (bbResult == S_OK)
                     {
