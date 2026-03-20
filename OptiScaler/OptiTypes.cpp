@@ -17,7 +17,7 @@ std::string UpscalerDisplayName(Upscaler upscaler, API api)
         return "FSR 2.2.1";
 
     case Upscaler::FSR31:
-        if (fsr4Capable && api != API::DX11)
+        if (fsr4Capable && api == API::DX12)
             return "FSR 3.X/4";
         else
             return "FSR 3.X";
