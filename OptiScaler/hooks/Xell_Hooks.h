@@ -6,6 +6,8 @@
 #include <xell.h>
 #include <xell_d3d12.h>
 
+#include "Hook_Utils.h"
+
 typedef decltype(&xellDestroyContext) PFN_xellDestroyContext;
 typedef decltype(&xellSetSleepMode) PFN_xellSetSleepMode;
 typedef decltype(&xellGetSleepMode) PFN_xellGetSleepMode;
@@ -47,4 +49,12 @@ class XellHooks
     static xell_result_t hkxellSetLoggingCallback(xell_context_handle_t hContext, xell_logging_level_t loggingLevel,
                                                   xell_app_log_callback_t loggingCallback);
     static xell_result_t hkxellD3D12CreateContext(ID3D12Device* device, xell_context_handle_t* out_context);
+
+    VALIDATE_MEMBER_HOOK(hkxellDestroyContext, PFN_xellDestroyContext)
+    VALIDATE_MEMBER_HOOK(hkxellSetSleepMode, PFN_xellSetSleepMode)
+    VALIDATE_MEMBER_HOOK(hkxellSleep, PFN_xellSleep)
+    VALIDATE_MEMBER_HOOK(hkxellAddMarkerData, PFN_xellAddMarkerData)
+    VALIDATE_MEMBER_HOOK(hkxellGetVersion, PFN_xellGetVersion)
+    VALIDATE_MEMBER_HOOK(hkxellSetLoggingCallback, PFN_xellSetLoggingCallback)
+    VALIDATE_MEMBER_HOOK(hkxellD3D12CreateContext, PFN_xellD3D12CreateContext)
 };

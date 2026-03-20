@@ -120,8 +120,8 @@ void DxgiFactoryHooks::HookToFactory(IDXGIFactory* pFactory)
     DetourTransactionCommit();
 }
 
-HRESULT DxgiFactoryHooks::CreateSwapChain(IDXGIFactory* realFactory, IUnknown* pDevice,
-                                          const DXGI_SWAP_CHAIN_DESC* pDesc, IDXGISwapChain** ppSwapChain)
+HRESULT DxgiFactoryHooks::CreateSwapChain(IDXGIFactory* realFactory, IUnknown* pDevice, DXGI_SWAP_CHAIN_DESC* pDesc,
+                                          IDXGISwapChain** ppSwapChain)
 {
     *ppSwapChain = nullptr;
 
@@ -841,7 +841,7 @@ HRESULT DxgiFactoryHooks::EnumAdapters(IDXGIFactory* realFactory, UINT Adapter, 
     HRESULT result = S_FALSE;
 
     if (State::Instance().skipDxgiLoadChecks)
-        return o_EnumAdapters(realFactory, Adapter, (IUnknown**) ppAdapter);
+        return o_EnumAdapters(realFactory, Adapter, ppAdapter);
 
     if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
     {
@@ -860,7 +860,7 @@ HRESULT DxgiFactoryHooks::EnumAdapters(IDXGIFactory* realFactory, UINT Adapter, 
             auto gpuLuid = allGpus[Adapter].luid;
 
             ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-            result = o_EnumAdapterByLuid(factory6, gpuLuid, __uuidof(IDXGIAdapter), (IUnknown**) ppAdapter);
+            result = o_EnumAdapterByLuid(factory6, gpuLuid, __uuidof(IDXGIAdapter), (void**) ppAdapter);
         }
         else
             result = DXGI_ERROR_NOT_FOUND;
@@ -871,7 +871,7 @@ HRESULT DxgiFactoryHooks::EnumAdapters(IDXGIFactory* realFactory, UINT Adapter, 
     if (result != S_OK && result != DXGI_ERROR_NOT_FOUND)
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-        result = o_EnumAdapters(realFactory, Adapter, (IUnknown**) ppAdapter);
+        result = o_EnumAdapters(realFactory, Adapter, ppAdapter);
     }
 
     if (result == S_OK)
@@ -889,7 +889,7 @@ HRESULT DxgiFactoryHooks::EnumAdapters1(IDXGIFactory1* realFactory, UINT Adapter
     HRESULT result = S_FALSE;
 
     if (State::Instance().skipDxgiLoadChecks)
-        return o_EnumAdapters1(realFactory, Adapter, (IUnknown**) ppAdapter);
+        return o_EnumAdapters1(realFactory, Adapter, ppAdapter);
 
     if (Config::Instance()->PreferFirstDedicatedGpu.value_or_default() && Adapter > 0)
     {
@@ -908,7 +908,7 @@ HRESULT DxgiFactoryHooks::EnumAdapters1(IDXGIFactory1* realFactory, UINT Adapter
             auto gpuLuid = allGpus[Adapter].luid;
 
             ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-            result = o_EnumAdapterByLuid(factory6, gpuLuid, __uuidof(IDXGIAdapter), (IUnknown**) ppAdapter);
+            result = o_EnumAdapterByLuid(factory6, gpuLuid, __uuidof(IDXGIAdapter), (void**) ppAdapter);
         }
         else
             result = DXGI_ERROR_NOT_FOUND;
@@ -919,7 +919,7 @@ HRESULT DxgiFactoryHooks::EnumAdapters1(IDXGIFactory1* realFactory, UINT Adapter
     if (result != S_OK && result != DXGI_ERROR_NOT_FOUND)
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-        result = o_EnumAdapters1(realFactory, Adapter, (IUnknown**) ppAdapter);
+        result = o_EnumAdapters1(realFactory, Adapter, ppAdapter);
     }
 
     if (result == S_OK)
@@ -938,7 +938,7 @@ HRESULT DxgiFactoryHooks::EnumAdapterByLuid(IDXGIFactory4* realFactory, LUID Ada
     HRESULT result;
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-        result = o_EnumAdapterByLuid(realFactory, AdapterLuid, riid, (IUnknown**) ppvAdapter);
+        result = o_EnumAdapterByLuid(realFactory, AdapterLuid, riid, ppvAdapter);
     }
 
     if (result == S_OK)
@@ -958,7 +958,7 @@ HRESULT DxgiFactoryHooks::EnumAdapterByGpuPreference(IDXGIFactory6* realFactory,
 
     {
         ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
-        result = o_EnumAdapterByGpuPreference(realFactory, Adapter, GpuPreference, riid, (IUnknown**) ppvAdapter);
+        result = o_EnumAdapterByGpuPreference(realFactory, Adapter, GpuPreference, riid, ppvAdapter);
     }
 
     // Log because that's not something we usually expect

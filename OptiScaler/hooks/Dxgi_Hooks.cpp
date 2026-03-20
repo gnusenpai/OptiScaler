@@ -10,6 +10,8 @@
 #include <DllNames.h>
 #include <misc/IdentifyGpu.h>
 
+#include "Hook_Utils.h"
+
 static DxgiProxy::PFN_CreateDxgiFactory o_CreateDXGIFactory = nullptr;
 static DxgiProxy::PFN_CreateDxgiFactory1 o_CreateDXGIFactory1 = nullptr;
 static DxgiProxy::PFN_CreateDxgiFactory2 o_CreateDXGIFactory2 = nullptr;
@@ -82,6 +84,7 @@ static void CheckLumaAndReShade(IDXGIFactory* factory)
     }
 }
 
+VALIDATE_HOOK(hkCreateDXGIFactory, DxgiProxy::PFN_CreateDxgiFactory)
 inline static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
 {
     auto caller = Util::WhoIsTheCaller(_ReturnAddress());
@@ -133,6 +136,7 @@ inline static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
     return result;
 }
 
+VALIDATE_HOOK(hkCreateDXGIFactory1, DxgiProxy::PFN_CreateDxgiFactory1)
 inline static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactory)
 {
     auto caller = Util::WhoIsTheCaller(_ReturnAddress());
@@ -184,6 +188,7 @@ inline static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactor
     return result;
 }
 
+VALIDATE_HOOK(hkCreateDXGIFactory2, DxgiProxy::PFN_CreateDxgiFactory2)
 inline static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory2** ppFactory)
 {
     auto caller = Util::WhoIsTheCaller(_ReturnAddress());
