@@ -4198,7 +4198,7 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // Framerate ---------------------
-                if (state.reflexLimitsFps || config->OverlayMenu)
+                if (state.reflexLimitsFps || config->OverlayMenu.value_or_default())
                 {
                     SeparatorWithHelpMarker(
                         "Framerate",
