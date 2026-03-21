@@ -568,6 +568,9 @@ HMODULE LibraryLoadHooks::LoadNvApi()
     {
         nvapi = dllModule;
         fakenvapi::setUsingAsMainNvapi(true);
+
+        if (GetModuleHandleW(L"nvapi64.dll"))
+            LOG_WARN("nvapi64.dll is loaded when Nvidia is not the primary GPU");
     }
 
     if (nvapi == nullptr)

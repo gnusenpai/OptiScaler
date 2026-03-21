@@ -1204,7 +1204,7 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
     return;
 }
 
-static void CheckQuirks()
+static void CheckQuirks(bool isNvidia)
 {
     auto exePathFilename = Util::ExePath().filename().string();
 
@@ -1217,7 +1217,6 @@ static void CheckQuirks()
     auto quirks = getQuirksForExe(exePathFilename);
 
     auto state = &State::Instance();
-    auto primaryGpu = IdentifyGpu::getPrimaryGpuVulkan();
 
     // Apply config-level quirks
     if (quirks & GameQuirk::DisableHudfix && Config::Instance()->FGInput.value_or_default() == FGInput::Upscaler)
@@ -1235,14 +1234,14 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DisableDxgiSpoofing && !Config::Instance()->DxgiSpoofing.has_value())
         Config::Instance()->DxgiSpoofing.set_volatile_value(false);
 
-    if (quirks & GameQuirk::RestoreComputeSigOnNonNvidia && primaryGpu.vendorId != VendorId::Nvidia &&
+    if (quirks & GameQuirk::RestoreComputeSigOnNonNvidia && !isNvidia &&
         !Config::Instance()->DxgiSpoofing.value_or_default() &&
         !Config::Instance()->RestoreComputeSignature.has_value())
     {
         Config::Instance()->RestoreComputeSignature.set_volatile_value(true);
     }
 
-    if (quirks & GameQuirk::RestoreComputeSigOnNvidia && primaryGpu.vendorId == VendorId::Nvidia &&
+    if (quirks & GameQuirk::RestoreComputeSigOnNvidia && isNvidia &&
         !Config::Instance()->RestoreComputeSignature.has_value())
     {
         Config::Instance()->RestoreComputeSignature.set_volatile_value(true);
@@ -1257,13 +1256,12 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DisableUseFsrInputValues)
         Config::Instance()->FsrUseFsrInputValues.set_volatile_value(false);
 
-    if (quirks & GameQuirk::EnableVulkanSpoofing && primaryGpu.vendorId != VendorId::Nvidia &&
-        !Config::Instance()->VulkanSpoofing.has_value())
+    if (quirks & GameQuirk::EnableVulkanSpoofing && !isNvidia && !Config::Instance()->VulkanSpoofing.has_value())
     {
         Config::Instance()->VulkanSpoofing.set_volatile_value(true);
     }
 
-    if (quirks & GameQuirk::EnableVulkanExtensionSpoofing && primaryGpu.vendorId != VendorId::Nvidia &&
+    if (quirks & GameQuirk::EnableVulkanExtensionSpoofing && !isNvidia &&
         !Config::Instance()->VulkanExtensionSpoofing.has_value())
     {
         Config::Instance()->VulkanExtensionSpoofing.set_volatile_value(true);
@@ -1527,6 +1525,8 @@ DWORD WINAPI InitThread(LPVOID hModuleVoid)
 
     InitFSR4Update();
 
+    // TODO: try to reactivate DxgiSpoofing if was auto on Nvidia cards without DLSS
+
     return 0;
 }
 
@@ -1609,56 +1609,114 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         spdlog::info("");
         State::Instance().isRunningOnLinux = IsRunningOnWine();
 
-        auto primaryGpu = IdentifyGpu::getPrimaryGpuVulkan();
-
-        // Check if real DLSS available
-        if (Config::Instance()->DLSSEnabled.value_or_default())
+        // Not foolproof
+        // calls LoadLibraryExW inside DllMain but seems mostly fine if we only call NvAPI_GetInterfaceVersionString
+        auto isNvidiaViaNvapi = [&]()
         {
-            if (primaryGpu.dlssCapable)
+            bool nvidiaDetected = false;
+            bool loadedHere = false;
+            auto nvapiModule = GetDllNameWModule(&nvapiNamesW);
+
+            if (!nvapiModule)
             {
-                spdlog::info("Running on DLSS capable GPU");
+                nvapiModule = NtdllProxy::LoadLibraryExW_Ldr(L"nvapi64.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+                loadedHere = true;
+            }
 
-                auto exePath = Util::ExePath().remove_filename();
-                State::Instance().NVNGX_DLSS_Path = Util::FindFilePath(exePath, "nvngx_dlss.dll");
-                State::Instance().NVNGX_DLSSD_Path = Util::FindFilePath(exePath, "nvngx_dlssd.dll");
-                State::Instance().NVNGX_DLSSG_Path = Util::FindFilePath(exePath, "nvngx_dlssg.dll");
+            // No nvapi, should not be nvidia
+            if (!nvapiModule)
+            {
+                spdlog::debug("Nvidia detected: {}", nvidiaDetected);
+                return nvidiaDetected;
+            }
 
-                if (State::Instance().NVNGX_DLSS_Path.has_value())
+            if (auto o_NvAPI_QueryInterface =
+                    (PFN_NvApi_QueryInterface) KernelBaseProxy::GetProcAddress_()(nvapiModule, "nvapi_QueryInterface"))
+            {
+                // dxvk-nvapi calls CreateDxgiFactory which we can't do because we are inside DLL_PROCESS_ATTACH
+                NvAPI_ShortString desc;
+                auto* getVersion = GET_INTERFACE(NvAPI_GetInterfaceVersionString, o_NvAPI_QueryInterface);
+                if (getVersion && getVersion(desc) == NVAPI_OK &&
+                    (std::string_view(desc) == std::string_view("NVAPI Open Source Interface (DXVK-NVAPI)") ||
+                     std::string_view(desc) == std::string_view("DXVK_NVAPI")))
                 {
-                    spdlog::info("Enabling DLSS");
-                    Config::Instance()->DLSSEnabled.set_volatile_value(true);
+                    spdlog::debug("Using dxvk-nvapi");
+                    DISPLAY_DEVICEA dd = {};
+                    dd.cb = sizeof(dd);
+                    int deviceIndex = 0;
+
+                    while (EnumDisplayDevicesA(nullptr, deviceIndex, &dd, 0))
+                    {
+                        if (dd.StateFlags & DISPLAY_DEVICE_ACTIVE && std::string_view(dd.DeviceID).contains("VEN_10DE"))
+                        {
+                            // Having any Nvidia GPU active will take precedence
+                            nvidiaDetected = true;
+                        }
+                        deviceIndex++;
+                    }
+                }
+                else if (o_NvAPI_QueryInterface(0x21382138))
+                {
+                    spdlog::error("Using fakenvapi as nvapi64.dll, remove it!");
+                    nvidiaDetected = false;
                 }
                 else
                 {
-                    spdlog::warn("nvngx_dlss.dll not found, disabling DLSS");
-                    Config::Instance()->DLSSEnabled.set_volatile_value(false);
-                }
+                    spdlog::debug("Using Nvidia's nvapi");
+                    auto init = GET_INTERFACE(NvAPI_Initialize, o_NvAPI_QueryInterface);
+                    if (init && init() == NVAPI_OK)
+                    {
+                        nvidiaDetected = true;
 
-                // Assumes that dxgi spoofing is only used to enable DLSS
-                if (!Config::Instance()->DxgiSpoofing.has_value())
-                {
-                    spdlog::info("Disabling DxgiSpoofing");
-                    Config::Instance()->DxgiSpoofing.set_volatile_value(false);
+                        if (auto unload = GET_INTERFACE(NvAPI_Unload, o_NvAPI_QueryInterface))
+                            unload();
+                    }
                 }
+            }
 
-                // StreamlineSpoofing is more selective on Nvidia now
-                // if (!Config::Instance()->StreamlineSpoofing.has_value())
-                //    Config::Instance()->StreamlineSpoofing.set_volatile_value(false);
+            if (loadedHere)
+                NtdllProxy::FreeLibrary_Ldr(nvapiModule);
+
+            spdlog::debug("Nvidia detected: {}", nvidiaDetected);
+
+            return nvidiaDetected;
+        };
+
+        bool possibleNvidia = isNvidiaViaNvapi();
+
+        // Not 100% accurate for Nvidia cards without DLSS
+        if (Config::Instance()->DLSSEnabled.value_or_default() && possibleNvidia)
+        {
+            auto exePath = Util::ExePath().remove_filename();
+            State::Instance().NVNGX_DLSS_Path = Util::FindFilePath(exePath, "nvngx_dlss.dll");
+            State::Instance().NVNGX_DLSSD_Path = Util::FindFilePath(exePath, "nvngx_dlssd.dll");
+            State::Instance().NVNGX_DLSSG_Path = Util::FindFilePath(exePath, "nvngx_dlssg.dll");
+
+            if (State::Instance().NVNGX_DLSS_Path.has_value())
+            {
+                spdlog::info("Enabling DLSS");
+                Config::Instance()->DLSSEnabled.set_volatile_value(true);
             }
             else
             {
-                spdlog::info("Running on non-\"DLSS capable\" GPU, disabling DLSS");
+                spdlog::warn("nvngx_dlss.dll not found, disabling DLSS");
                 Config::Instance()->DLSSEnabled.set_volatile_value(false);
+            }
+
+            // Assumes that dxgi spoofing is only used to enable DLSS
+            if (!Config::Instance()->DxgiSpoofing.has_value())
+            {
+                spdlog::info("Disabling DxgiSpoofing");
+                Config::Instance()->DxgiSpoofing.set_volatile_value(false);
             }
         }
         else
         {
-            spdlog::info("Running on non-\"DLSS capable\" GPU, disabling DLSS");
             Config::Instance()->DLSSEnabled.set_volatile_value(false);
         }
 
         spdlog::info("");
-        CheckQuirks();
+        CheckQuirks(possibleNvidia);
 
         // Check for working mode and attach hooks
         spdlog::info("");

@@ -230,7 +230,17 @@ VkResult VulkanSpoofing::hkvkCreateInstance(VkInstanceCreateInfo* pCreateInfo, c
         return VK_ERROR_INITIALIZATION_FAILED;
 
     if (pCreateInfo->pApplicationInfo != nullptr && pCreateInfo->pApplicationInfo->pApplicationName != nullptr)
+    {
         LOG_DEBUG("ApplicationName: {}", pCreateInfo->pApplicationInfo->pApplicationName);
+
+        // WAR: Something gets stuck trying to create instance with this name
+        // probably doesn't need extension changes anyway as enabledExtensionCount == 0
+        if (pCreateInfo->enabledExtensionCount == 0 &&
+            std::string(pCreateInfo->pApplicationInfo->pApplicationName).contains("AdapterQuery"))
+        {
+            return VK_SUCCESS;
+        }
+    }
 
     static std::vector<const char*> newExtensionList;
     newExtensionList.clear();
