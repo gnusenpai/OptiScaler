@@ -4255,7 +4255,7 @@ bool MenuCommon::RenderMenu()
                     if (state.reflexShowWarning)
                     {
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
-                                           "Using Reflex's limit with OptiFG has performance overhead");
+                                           "Using Reflex's limit with FSR FG has performance overhead");
 
                         ImGui::Spacing();
                     }
