@@ -81,8 +81,11 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     //           magic_enum::enum_name(pSetLatencyMarkerParams->markerType));
 
     // Some games just stop sending any async markers when DLSSG is disabled, so a reset is needed
-    if (_lastAsyncMarkerFrameId + 10 < pSetLatencyMarkerParams->frameID)
+    if (_lastAsyncMarkerFrameId + 10 < pSetLatencyMarkerParams->frameID &&
+        State::Instance().streamlineVersion.major < 2)
+    {
         _FgNumFramesToGenerate = 0;
+    }
 
     State::Instance().rtssReflexInjection = pSetLatencyMarkerParams->frameID >> 32;
 
@@ -156,7 +159,8 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
 
     _lastAsyncMarkerFrameId = pSetAsyncFrameMarkerParams->frameID;
 
-    if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START)
+    if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START &&
+        State::Instance().streamlineVersion.major < 2)
     {
         constexpr size_t history_size = 20;
         static size_t counter = 0;

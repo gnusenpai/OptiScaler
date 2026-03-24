@@ -651,6 +651,11 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
 
     LOG_TRACE("DLSSG Modified Mode: {}", magic_enum::enum_name(newOptions.mode));
 
+    if (newOptions.mode == sl::DLSSGMode::eOff)
+        ReflexHooks::setDlssgFrameCount(0);
+    else
+        ReflexHooks::setDlssgFrameCount(newOptions.numFramesToGenerate);
+
     return o_slDLSSGSetOptions(viewport, newOptions);
 }
 
