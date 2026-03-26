@@ -163,9 +163,11 @@ sl::Result StreamlineHooks::hkslSetTag(const sl::ViewportHandle& viewport, const
 
     for (uint32_t i = 0; i < numTags; i++)
     {
+        const auto typeEnum = (BufferType) tags[i].type;
+
         if (tags[i].resource == nullptr || tags[i].resource->native == nullptr)
         {
-            LOG_TRACE("Resource of type: {} is null, continuing", tags[i].type);
+            LOG_TRACE("Resource of type: {} is null, continuing", magic_enum::enum_name(typeEnum));
             continue;
         }
 
@@ -189,7 +191,7 @@ sl::Result StreamlineHooks::hkslSetTag(const sl::ViewportHandle& viewport, const
         }
         else if (State::Instance().activeFgInput == FGInput::Nukems)
         {
-            LOG_TRACE("Tagging resource of type: {}", tags[i].type);
+            LOG_TRACE("Tagging resource of type: {}", magic_enum::enum_name(typeEnum));
 
             // Workaround a bug in the FSR 3 MFG mod where it composits the UI incorrectly
             if (tags[i].type == sl::kBufferTypeUIColorAndAlpha && tags[i].resource->native &&
@@ -227,9 +229,11 @@ sl::Result StreamlineHooks::hkslSetTagForFrame(const sl::FrameToken& frame, cons
 
     for (uint32_t i = 0; i < numResources; i++)
     {
+        const auto typeEnum = (BufferType) resources[i].type;
+
         if (resources[i].resource == nullptr || resources[i].resource->native == nullptr)
         {
-            LOG_TRACE("Resource of type: {} is null, continuing", resources[i].type);
+            LOG_TRACE("Resource of type: {} is null, continuing", magic_enum::enum_name(typeEnum));
             continue;
         }
 
@@ -244,7 +248,7 @@ sl::Result StreamlineHooks::hkslSetTagForFrame(const sl::FrameToken& frame, cons
         }
         else if (State::Instance().activeFgInput == FGInput::Nukems)
         {
-            LOG_TRACE("Tagging resource of type: {}", resources[i].type);
+            LOG_TRACE("Tagging resource of type: {}", magic_enum::enum_name(typeEnum));
 
             // Workaround a bug in the FSR 3 MFG mod where it composits the UI incorrectly
             if (resources[i].type == sl::kBufferTypeUIColorAndAlpha && resources[i].resource->native &&
