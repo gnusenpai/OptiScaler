@@ -92,7 +92,7 @@ void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
     static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     // Disable flip metering
-    if (InterfaceId == 0xF3148C42 &&
+    if (InterfaceId == GET_ID(NvAPI_D3D12_SetFlipConfig) &&
         Config::Instance()->DisableFlipMetering.value_or(primaryGpu.vendorId != VendorId::Nvidia))
     {
         LOG_INFO("FlipMetering is disabled!");
