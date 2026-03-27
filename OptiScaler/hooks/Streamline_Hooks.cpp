@@ -897,35 +897,40 @@ void* StreamlineHooks::hkdlssg_slGetPluginFunction(const char* functionName)
 
     if (strcmp(functionName, "slDLSSGSetOptions") == 0)
     {
+        o_slDLSSGSetOptions = (decltype(&slDLSSGSetOptions)) o_dlssg_slGetPluginFunction(functionName);
+
         // Give steam overlay the original as it seems to be hooking it
         auto steamOverlay = KernelBaseProxy::GetModuleHandleA_()("gameoverlayrenderer64.dll");
         if (steamOverlay != nullptr)
         {
             if (HMODULE callerModule = Util::GetCallerModule(_ReturnAddress()); callerModule == steamOverlay)
-            {
-                return o_dlssg_slGetPluginFunction(functionName);
-            }
+                return o_slDLSSGSetOptions;
         }
 
-        o_slDLSSGSetOptions = (decltype(&slDLSSGSetOptions)) o_dlssg_slGetPluginFunction(functionName);
         return &hkslDLSSGSetOptions;
     }
 
     if (strcmp(functionName, "slDLSSGGetState") == 0)
     {
+        o_slDLSSGGetState = (decltype(&slDLSSGGetState)) o_dlssg_slGetPluginFunction(functionName);
+
         // Give steam overlay the original as it seems to be hooking it
         auto steamOverlay = KernelBaseProxy::GetModuleHandleA_()("gameoverlayrenderer64.dll");
         if (steamOverlay != nullptr)
         {
             if (HMODULE callerModule = Util::GetCallerModule(_ReturnAddress()); callerModule == steamOverlay)
-            {
-                return o_dlssg_slGetPluginFunction(functionName);
-            }
+                return o_slDLSSGGetState;
         }
 
-        o_slDLSSGGetState = (decltype(&slDLSSGGetState)) o_dlssg_slGetPluginFunction(functionName);
         return &hkslDLSSGGetState;
     }
+
+    // Ensure that we have those DLSSG calls
+    if (!o_slDLSSGSetOptions)
+        o_slDLSSGSetOptions = (decltype(&slDLSSGSetOptions)) o_dlssg_slGetPluginFunction("slDLSSGSetOptions");
+
+    if (!o_slDLSSGGetState)
+        o_slDLSSGGetState = (decltype(&slDLSSGGetState)) o_dlssg_slGetPluginFunction("slDLSSGGetState");
 
     return o_dlssg_slGetPluginFunction(functionName);
 }
