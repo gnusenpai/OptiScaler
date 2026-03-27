@@ -72,11 +72,17 @@ class StreamlineProxy
         State::DisableChecks(owner);
         std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.interposer.dll";
         LOG_INFO(L"Trying to load sl.interposer.dll from dll path: {}", slPath.wstring());
-        _dll = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, 0);
+        _dll = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
         State::EnableChecks(owner);
 
         if (_dll != nullptr)
         {
+            State::Instance().optiSlInterposer = _dll;
+            slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.common.dll";
+            State::Instance().optiSlCommon = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+            slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\nvngx_dlssg.dll";
+            State::Instance().optiDLSSG = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+
             return HookStreamline(_dll);
         }
 
@@ -145,15 +151,16 @@ class StreamlineProxy
         return result;
     }
 
-    static bool HookStreamlineDLSSG()
+    static HMODULE HookStreamlineDLSSG()
     {
-        // if already hooked
-        if (_slDLSSGSetOptions != nullptr)
-            return true;
-
         spdlog::info("");
 
-        auto dlssg = KernelBaseProxy::GetModuleHandleW_()(L"sl.dlss_g.dll");
+        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.dlss_g.dll";
+        auto dlssg = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+
+        // if already hooked
+        if (_slDLSSGSetOptions != nullptr)
+            return dlssg;
 
         {
             ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
@@ -174,18 +181,19 @@ class StreamlineProxy
 
         bool result = _slDLSSGSetOptions != nullptr;
         LOG_INFO("Result: {}", result);
-        return result;
+        return dlssg;
     }
 
-    static bool HookStreamlineReflex()
+    static HMODULE HookStreamlineReflex()
     {
-        // if already hooked
-        if (_slReflexGetState != nullptr)
-            return true;
-
         spdlog::info("");
 
-        auto reflex = KernelBaseProxy::GetModuleHandleW_()(L"sl.reflex.dll");
+        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.reflex.dll";
+        auto reflex = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+
+        // if already hooked
+        if (_slReflexGetState != nullptr)
+            return reflex;
 
         {
             ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
@@ -211,18 +219,19 @@ class StreamlineProxy
 
         bool result = _slReflexGetState != nullptr;
         LOG_INFO("Result: {}", result);
-        return result;
+        return reflex;
     }
 
-    static bool HookStreamlinePCL()
+    static HMODULE HookStreamlinePCL()
     {
-        // if already hooked
-        if (_slPCLSetMarker != nullptr)
-            return true;
-
         spdlog::info("");
 
-        auto pcl = KernelBaseProxy::GetModuleHandleW_()(L"sl.pcl.dll");
+        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.pcl.dll";
+        auto pcl = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+
+        // if already hooked
+        if (_slPCLSetMarker != nullptr)
+            return pcl;
 
         {
             ScopedSkipDxgiLoadChecks skipDxgiLoadChecks {};
@@ -244,7 +253,7 @@ class StreamlineProxy
 
         bool result = _slReflexGetState != nullptr;
         LOG_INFO("Result: {}", result);
-        return result;
+        return pcl;
     }
 
     static feature_version Version()
@@ -329,16 +338,9 @@ class StreamlineProxy
 
         if (initResult == sl::Result::eOk)
         {
-            StreamlineProxy::HookStreamlinePCL();
-            StreamlineProxy::HookStreamlineReflex();
-            StreamlineProxy::HookStreamlineDLSSG();
-
-            State::Instance().optiSlInterposer = KernelBaseProxy::GetModuleHandleW_()(L"sl.interposer.dll");
-            State::Instance().optiSlCommon = KernelBaseProxy::GetModuleHandleW_()(L"sl.common.dll");
-            State::Instance().optiSlDLSSG = KernelBaseProxy::GetModuleHandleW_()(L"sl.dlss_g.dll");
-            State::Instance().optiSlReflex = KernelBaseProxy::GetModuleHandleW_()(L"sl.reflex.dll");
-            State::Instance().optiSlPCL = KernelBaseProxy::GetModuleHandleW_()(L"sl.pcl.dll");
-            State::Instance().optiDLSSG = KernelBaseProxy::GetModuleHandleW_()(L"nvngx_dlssg.dll");
+            State::Instance().optiSlDLSSG = StreamlineProxy::HookStreamlineDLSSG();
+            State::Instance().optiSlReflex = StreamlineProxy::HookStreamlineReflex();
+            State::Instance().optiSlPCL = StreamlineProxy::HookStreamlinePCL();
 
             auto result = _slSetD3DDevice(device);
 
