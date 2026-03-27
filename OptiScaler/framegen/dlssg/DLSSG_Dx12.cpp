@@ -94,7 +94,11 @@ bool DLSSG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
 
     if (!StreamlineProxy::IsD3D12Inited())
     {
-        return false;
+        if (State::Instance().currentD3D12Device != nullptr &&
+            !StreamlineProxy::InitWithD3D12(State::Instance().currentD3D12Device))
+        {
+            return false;
+        }
     }
 
     _width = desc->BufferDesc.Width;
@@ -189,7 +193,11 @@ bool DLSSG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
 
     if (!StreamlineProxy::IsD3D12Inited())
     {
-        return false;
+        if (State::Instance().currentD3D12Device != nullptr &&
+            !StreamlineProxy::InitWithD3D12(State::Instance().currentD3D12Device))
+        {
+            return false;
+        }
     }
 
     _width = desc->Width;
