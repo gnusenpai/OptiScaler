@@ -7,6 +7,7 @@
 #include <resource_tracking/ResTrack_dx12.h>
 
 #include <hooks/Reflex_Hooks.h>
+#include <hooks/DxgiFactory_Hooks.h>
 
 #include <magic_enum.hpp>
 
@@ -103,6 +104,7 @@ bool DLSSG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     if (!Util::CheckForRealObject(__FUNCTION__, factory, (IUnknown**) &slFactory))
     {
         StreamlineProxy::UpgradeInterface()((void**) &factory);
+        DxgiFactoryHooks::HookToDLSSGFactory(factory);
     }
     else
     {
@@ -199,6 +201,7 @@ bool DLSSG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
     if (!Util::CheckForRealObject(__FUNCTION__, factory, (IUnknown**) &slFactory))
     {
         StreamlineProxy::UpgradeInterface()((void**) &factory);
+        DxgiFactoryHooks::HookToDLSSGFactory(factory);
     }
     else
     {
