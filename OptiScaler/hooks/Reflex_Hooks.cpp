@@ -67,7 +67,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
         if (!skip)
         {
             sl::FrameToken* frameToken;
-            uint32_t frameCount = _lastPresentId;
+            uint32_t frameCount = (uint32_t) _lastPresentId;
             StreamlineProxy::GetNewFrameToken()(frameToken, &frameCount);
 
             LOG_TRACE("Sleep for frame {}", frameCount);
@@ -214,7 +214,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
             }
 
             sl::FrameToken* frameToken;
-            uint32_t frameCount = pSetLatencyMarkerParams->frameID;
+            uint32_t frameCount = (uint32_t) pSetLatencyMarkerParams->frameID;
             StreamlineProxy::GetNewFrameToken()(frameToken, &frameCount);
 
             LOG_TRACE("{} for frame {}", magic_enum::enum_name(marker), frameCount);

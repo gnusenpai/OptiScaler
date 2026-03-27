@@ -120,6 +120,9 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode)
 
 void XeLL::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 {
+    // XeLL frame ids are uint64_t
+    auto frame_id = (uint32_t) marker_params->frame_id;
+
     switch (marker_params->marker_type)
     {
     case MarkerType::SIMULATION_START:
@@ -127,24 +130,24 @@ void XeLL::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 
         // Call sleep just before simulation start if sleep isn't getting called
         if (sleep_last_id + 10 < simulation_start_last_id)
-            xell_sleep(marker_params->frame_id);
+            xell_sleep(frame_id);
 
-        add_marker(marker_params->frame_id, XELL_SIMULATION_START);
+        add_marker(frame_id, XELL_SIMULATION_START);
         break;
     case MarkerType::SIMULATION_END:
-        add_marker(marker_params->frame_id, XELL_SIMULATION_END);
+        add_marker(frame_id, XELL_SIMULATION_END);
         break;
     case MarkerType::RENDERSUBMIT_START:
-        add_marker(marker_params->frame_id, XELL_RENDERSUBMIT_START);
+        add_marker(frame_id, XELL_RENDERSUBMIT_START);
         break;
     case MarkerType::RENDERSUBMIT_END:
-        add_marker(marker_params->frame_id, XELL_RENDERSUBMIT_END);
+        add_marker(frame_id, XELL_RENDERSUBMIT_END);
         break;
     case MarkerType::PRESENT_START:
-        add_marker(marker_params->frame_id, XELL_PRESENT_START);
+        add_marker(frame_id, XELL_PRESENT_START);
         break;
     case MarkerType::PRESENT_END:
-        add_marker(marker_params->frame_id, XELL_PRESENT_END);
+        add_marker(frame_id, XELL_PRESENT_END);
         break;
     // case MarkerType::INPUT_SAMPLE:
     //     add_marker(marker_params->frame_id, XELL_INPUT_SAMPLE);
@@ -159,5 +162,5 @@ void XeLL::sleep()
     // This can either be better than sleeping in XELL_SIMULATION_START
     // or be a total mess if +1 is not correct
     sleep_last_id = simulation_start_last_id + 1;
-    xell_sleep(sleep_last_id);
+    xell_sleep((uint32_t) sleep_last_id);
 }

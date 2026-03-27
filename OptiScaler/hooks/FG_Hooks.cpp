@@ -1080,7 +1080,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
     {
         ((IDXGISwapChain4*) This)->GetCurrentBackBufferIndex();
 
-        const uint32_t frameId = State::Instance().currentFG->FrameCount();
+        const uint32_t frameId = (uint32_t) State::Instance().currentFG->FrameCount();
         tokenResult = StreamlineProxy::GetNewFrameToken()(localToken, &frameId);
 
         if (tokenResult == sl::Result::eOk && !ReflexHooks::gameIsSendingMarkers() ||

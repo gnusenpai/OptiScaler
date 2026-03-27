@@ -70,7 +70,7 @@ class StreamlineProxy
 
         auto owner = State::GetOwner();
         State::DisableChecks(owner);
-        std::filesystem::path slPath = Util::DllPath().parent_path() / L"Opti_Dlls\\streamline\\sl.interposer.dll";
+        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.interposer.dll";
         LOG_INFO(L"Trying to load sl.interposer.dll from dll path: {}", slPath.wstring());
         _dll = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, 0);
         State::EnableChecks(owner);
@@ -291,7 +291,9 @@ class StreamlineProxy
         auto exePath = Util::ExePath().remove_filename();
         auto nvngxDlssPath = Util::FindFilePath(exePath, "nvngx_dlss.dll");
         auto nvngxDlssDPath = Util::FindFilePath(exePath, "nvngx_dlssd.dll");
-        exePath = exePath / L"Opti_DLLs";
+
+        // ??? SL doesn't search recursively so needs to be the exact path
+        exePath = exePath / L"opti_dlls" / L"streamline";
         auto nvngxDlssGPath = Util::FindFilePath(exePath, "nvngx_dlssg.dll");
 
         std::vector<std::wstring> pathStorage;
@@ -310,15 +312,15 @@ class StreamlineProxy
         if (Config::Instance()->DLSSFeaturePath.has_value())
             pathStorage.push_back(Config::Instance()->DLSSFeaturePath.value());
 
-        // Build pointer array
-        wchar_t const** paths = new const wchar_t*[pathStorage.size()];
-        for (size_t i = 0; i < pathStorage.size(); ++i)
-        {
-            paths[i] = pathStorage[i].c_str();
-        }
+        // Streamline makes a copy of those
+        std::vector<const wchar_t*> paths;
+        paths.reserve(pathStorage.size());
 
-        pref.pathsToPlugins = paths;
-        pref.numPathsToPlugins = (int) pathStorage.size();
+        for (const auto& path : pathStorage)
+            paths.push_back(path.c_str());
+
+        pref.pathsToPlugins = paths.data();
+        pref.numPathsToPlugins = (uint32_t) paths.size();
 
         auto owner = State::GetOwner();
         State::DisableChecks(owner);

@@ -979,7 +979,7 @@ bool DLSSG_Dx12::SetResource(Dx12Resource* inputResource)
         resource.native = fResource->GetResource();
         resource.state = fResource->state;
         resource.type = sl::ResourceType::eTex2d;
-        resource.width = fResource->width;
+        resource.width = (uint32_t) fResource->width;
 
         sl::ResourceTag resourceTag {};
         resourceTag.resource = &resource;
@@ -1012,7 +1012,7 @@ bool DLSSG_Dx12::SetResource(Dx12Resource* inputResource)
 
         resourceTag.extent.left = fResource->left;
         resourceTag.extent.top = fResource->top;
-        resourceTag.extent.width = fResource->width;
+        resourceTag.extent.width = (uint32_t) fResource->width;
         resourceTag.extent.height = fResource->height;
 
         int indexDiff = GetIndex() - fIndex;
