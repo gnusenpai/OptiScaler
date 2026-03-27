@@ -13,7 +13,7 @@ class DLSSG_Dx12 : public virtual IFGFeature_Dx12
     std::optional<bool> _haveHudless = std::nullopt;
 
     sl::ViewportHandle viewport { 0 };
-    sl::FrameToken* frameToken;
+    sl::FrameToken* frameToken = nullptr;
 
     ID3D12Fence* dlssgFence[BUFFER_COUNT] = {};
     UINT64 lastOptionFrame = 0;

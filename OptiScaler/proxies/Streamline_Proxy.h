@@ -217,7 +217,7 @@ class StreamlineProxy
     static bool HookStreamlinePCL()
     {
         // if already hooked
-        if (_slReflexGetState != nullptr)
+        if (_slPCLSetMarker != nullptr)
             return true;
 
         spdlog::info("");
@@ -331,7 +331,7 @@ class StreamlineProxy
             StreamlineProxy::HookStreamlineReflex();
             StreamlineProxy::HookStreamlineDLSSG();
 
-            State::Instance().optiSlInterposer = KernelBaseProxy::GetModuleHandleW_()(L"sl.inderposer.dll");
+            State::Instance().optiSlInterposer = KernelBaseProxy::GetModuleHandleW_()(L"sl.interposer.dll");
             State::Instance().optiSlCommon = KernelBaseProxy::GetModuleHandleW_()(L"sl.common.dll");
             State::Instance().optiSlDLSSG = KernelBaseProxy::GetModuleHandleW_()(L"sl.dlss_g.dll");
             State::Instance().optiSlReflex = KernelBaseProxy::GetModuleHandleW_()(L"sl.reflex.dll");

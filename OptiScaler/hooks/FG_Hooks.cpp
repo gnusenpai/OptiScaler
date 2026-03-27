@@ -1074,18 +1074,19 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
         LOG_TRACE("Accuired FG->Mutex: {}", fg->Mutex.getOwner());
     }
 
-    sl::FrameToken* frameToken = nullptr;
+    sl::FrameToken* localToken = nullptr;
+    sl::Result tokenResult = sl::Result::eErrorReflexAPI;
     if (willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG)
     {
         ((IDXGISwapChain4*) This)->GetCurrentBackBufferIndex();
 
         const uint32_t frameId = State::Instance().currentFG->FrameCount();
-        auto tokenResult = StreamlineProxy::GetNewFrameToken()(frameToken, &frameId);
+        tokenResult = StreamlineProxy::GetNewFrameToken()(localToken, &frameId);
 
-        if (!ReflexHooks::gameIsSendingMarkers() ||
+        if (tokenResult == sl::Result::eOk && !ReflexHooks::gameIsSendingMarkers() ||
             !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
         {
-            StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentStart, *frameToken);
+            StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentStart, *localToken);
         }
     }
 
@@ -1159,22 +1160,13 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
             Util::GetDeviceRemovedReason(State::Instance().currentD3D12Device);
     }
 
-    if (result == S_OK)
-    {
-        LOG_DEBUG("Result: {:X}", result);
-    }
-    else
-    {
-        if (result == DXGI_ERROR_DEVICE_REMOVED && State::Instance().currentD3D12Device != nullptr)
-            Util::GetDeviceRemovedReason(State::Instance().currentD3D12Device);
-    }
-
-    if ((!ReflexHooks::gameIsSendingMarkers() ||
+    if (tokenResult == sl::Result::eOk && localToken != nullptr &&
+        (!ReflexHooks::gameIsSendingMarkers() ||
          !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default()) &&
-        willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG && frameToken != nullptr)
+        willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG)
     {
-        StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentEnd, *frameToken);
-        StreamlineProxy::ReflexSleep()(*frameToken);
+        StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentEnd, *localToken);
+        StreamlineProxy::ReflexSleep()(*localToken);
     }
 
     Hudfix_Dx12::PresentEnd();

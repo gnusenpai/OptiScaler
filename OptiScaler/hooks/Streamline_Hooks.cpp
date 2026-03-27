@@ -322,6 +322,9 @@ sl::Result StreamlineHooks::hkslSetD3DDevice(void* d3dDevice)
 
 void StreamlineHooks::streamlineLogCallback_sl1(sl1::LogType type, const char* msg)
 {
+    if (msg == nullptr)
+        return;
+
     char* trimmed_msg = trimStreamlineLog(msg);
 
     switch (type)
