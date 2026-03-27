@@ -8,6 +8,7 @@
 #include <Util.h>
 #include <Config.h>
 #include <proxies/KernelBase_Proxy.h>
+#include <proxies/Streamline_Proxy.h>
 #include <menu/menu_overlay_base.h>
 #include <hooks/Reflex_Hooks.h>
 #include <magic_enum.hpp>
@@ -51,6 +52,7 @@ StreamlineHooks::PFN_slGetPluginFunction StreamlineHooks::o_reflex_slGetPluginFu
 StreamlineHooks::PFN_slSetConstants_sl1 StreamlineHooks::o_reflex_slSetConstants_sl1 = nullptr;
 StreamlineHooks::PFN_slOnPluginLoad StreamlineHooks::o_reflex_slOnPluginLoad = nullptr;
 decltype(&slReflexSetOptions) StreamlineHooks::o_slReflexSetOptions = nullptr;
+decltype(&slReflexSleep) StreamlineHooks::o_slReflexSleep = nullptr;
 sl::ReflexMode StreamlineHooks::reflexGamesLastMode = sl::ReflexMode::eOff;
 
 // PCL
@@ -653,11 +655,13 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     sl::DLSSGOptions newOptions = options;
     newOptions.mode = newOptions.mode == sl::DLSSGMode::eOff ? sl::DLSSGMode::eOff : sl::DLSSGMode::eOn;
 
-    if (State::Instance().swapchainApi == API::Vulkan)
+    auto& state = State::Instance();
+
+    if (state.swapchainApi == API::Vulkan)
     {
         // Only matters for Vulkan, DX doesn't use this delay
         if (options.mode != sl::DLSSGMode::eOff && !MenuOverlayBase::IsVisible())
-            State::Instance().delayMenuRenderBy = 10;
+            state.delayMenuRenderBy = 10;
 
         if (MenuOverlayBase::IsVisible())
         {
@@ -668,6 +672,32 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     }
 
     LOG_TRACE("DLSSG Modified Mode: {}", magic_enum::enum_name(newOptions.mode));
+
+    if (options.mode != sl::DLSSGMode::eOff && state.streamlineVersion >= feature_version { 2, 7, 2 })
+    {
+        if (!state.dlssgMfgMax.has_value())
+        {
+            sl::DLSSGState localState {};
+            sl::DLSSGOptions localOptions {};
+            if (o_slDLSSGGetState(viewport, localState, &localOptions) == sl::Result::eOk &&
+                localState.numFramesToGenerateMax > 0 && localState.numFramesToGenerateMax < 6)
+            {
+                state.dlssgMfgMax = localState.numFramesToGenerateMax;
+                LOG_TRACE("Saving original numFramesToGenerateMax: {}", state.dlssgMfgMax.value());
+
+                if (Config::Instance()->FGDLSSGOverrideInterpolationCount.has_value() &&
+                    Config::Instance()->FGDLSSGOverrideInterpolationCount.value() > state.dlssgMfgMax.value())
+                {
+                    Config::Instance()->FGDLSSGOverrideInterpolationCount = state.dlssgMfgMax.value();
+                }
+            }
+        }
+
+        if (Config::Instance()->FGDLSSGOverrideInterpolationCount.has_value())
+        {
+            newOptions.numFramesToGenerate = Config::Instance()->FGDLSSGOverrideInterpolationCount.value();
+        }
+    }
 
     if (newOptions.mode == sl::DLSSGMode::eOff)
         ReflexHooks::setDlssgFrameCount(0);
@@ -682,11 +712,32 @@ sl::Result StreamlineHooks::hkslDLSSGGetState(const sl::ViewportHandle& viewport
 {
     auto result = o_slDLSSGGetState(viewport, state, options);
 
-    auto& s = State::Instance();
+    auto& optiState = State::Instance();
 
-    if (s.activeFgInput == FGInput::DLSSG)
+    if (optiState.streamlineVersion >= feature_version { 2, 7, 2 })
     {
-        auto fg = s.currentFG;
+        if (!optiState.dlssgMfgMax.has_value())
+        {
+            sl::DLSSGState localState {};
+            sl::DLSSGOptions localOptions {};
+            if (o_slDLSSGGetState(viewport, localState, &localOptions) == sl::Result::eOk &&
+                localState.numFramesToGenerateMax > 0 && localState.numFramesToGenerateMax < 6)
+            {
+                optiState.dlssgMfgMax = localState.numFramesToGenerateMax;
+                LOG_TRACE("Saving original numFramesToGenerateMax: {}", optiState.dlssgMfgMax.value());
+
+                if (Config::Instance()->FGDLSSGOverrideInterpolationCount.has_value() &&
+                    Config::Instance()->FGDLSSGOverrideInterpolationCount.value() > optiState.dlssgMfgMax.value())
+                {
+                    Config::Instance()->FGDLSSGOverrideInterpolationCount = optiState.dlssgMfgMax.value();
+                }
+            }
+        }
+    }
+
+    if (optiState.activeFgInput == FGInput::DLSSG)
+    {
+        auto fg = optiState.currentFG;
 
         if (fg != nullptr)
         {
@@ -776,6 +827,17 @@ sl::Result StreamlineHooks::hkslReflexSetOptions(const sl::ReflexOptions& option
     //     newOptions.mode = sl::ReflexMode::eOff;
 
     return o_slReflexSetOptions(newOptions);
+}
+
+sl::Result StreamlineHooks::hkslReflexSleep(const sl::FrameToken& frame)
+{
+    // if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
+    //     Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
+    //{
+    //     return StreamlineProxy::ReflexSleep()(frame);
+    // }
+
+    return o_slReflexSleep(frame);
 }
 
 void* StreamlineHooks::hkdlss_slGetPluginFunction(const char* functionName)
@@ -878,11 +940,23 @@ void* StreamlineHooks::hkreflex_slGetPluginFunction(const char* functionName)
         return &hkslReflexSetOptions;
     }
 
+    if (strcmp(functionName, "slReflexSleep") == 0)
+    {
+        o_slReflexSleep = (decltype(&slReflexSleep)) o_reflex_slGetPluginFunction(functionName);
+        return &hkslReflexSleep;
+    }
+
     return o_reflex_slGetPluginFunction(functionName);
 }
 
 sl::Result StreamlineHooks::hkslPCLSetMarker(sl::PCLMarker marker, const sl::FrameToken& frame)
 {
+    // if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
+    //     Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
+    //{
+    //     return StreamlineProxy::PCLSetMarker()(marker, frame);
+    // }
+
     // HACK for broken games
     static uint64_t last_simulation_end_id = 0;
     if (marker == sl::PCLMarker::eSimulationEnd)
@@ -1090,7 +1164,8 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
 
     // Looks like when reading DLL version load methods are called
     // To prevent loops disabling checks for sl.interposer.dll
-    State::DisableChecks(7, "sl.interposer");
+    auto owner = State::GetOwner();
+    State::DisableChecks(owner, "sl.interposer");
 
     if (o_slSetTag || o_slInit || o_slInit_sl1)
         unhookInterposer();
@@ -1186,7 +1261,7 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
         }
     }
 
-    State::EnableChecks(7);
+    State::EnableChecks(owner);
 }
 
 // SL DLSS

@@ -99,6 +99,14 @@ bool Config::Reload(std::filesystem::path iniPath)
                     FGOutput.set_from_config(FGOutput::Nukems);
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "xefg") == 0)
                     FGOutput.set_from_config(FGOutput::XeFG);
+                else if (lstrcmpiA(FGOutputString.value().c_str(), "dlssg") == 0)
+                    FGOutput.set_from_config(FGOutput::DLSSG);
+            }
+
+            if (auto forceXell = readBool("fakenvapi", "ForceXeLL"); forceXell.has_value() && forceXell.value())
+            {
+                FGInput.set_volatile_value(FGInput::ForceXeLL);
+                FGOutput.set_volatile_value(FGOutput::XeFG);
             }
 
             if (auto forceXell = readBool("fakenvapi", "ForceXeLL"); forceXell.has_value() && forceXell.value())
@@ -201,6 +209,20 @@ bool Config::Reload(std::filesystem::path iniPath)
             FGXeFGHighResMV.set_from_config(readBool("XeFG", "HighResMV"));
             FGXeFGDebugView.set_from_config(readBool("XeFG", "DebugView"));
             FGXeFGForceBorderless.set_from_config(readBool("XeFG", "ForceBorderless"));
+        }
+
+        {
+            FGDLSSGInterpolationCount.set_from_config(readInt("DLSSG", "InterpolationCount"));
+            if (FGDLSSGInterpolationCount.has_value() &&
+                (FGDLSSGInterpolationCount.value() < 1 || FGDLSSGInterpolationCount.value() > 6))
+                FGDLSSGInterpolationCount.reset();
+
+            FGDLSSGUseGamesReflexMarkers.set_from_config(readBool("DLSSG", "UseGamesReflexMarkers"));
+
+            FGDLSSGOverrideInterpolationCount.set_from_config(readInt("DLSSG", "OverrideInterpolationCount"));
+            if (FGDLSSGOverrideInterpolationCount.has_value() &&
+                (FGDLSSGOverrideInterpolationCount.value() < 1 || FGDLSSGOverrideInterpolationCount.value() > 6))
+                FGDLSSGOverrideInterpolationCount.reset();
         }
 
         // FSR FG Inputs
@@ -800,6 +822,8 @@ bool Config::SaveIni()
                 FGOutputString = "Nukems";
             else if (FGOutputHeld.value() == FGOutput::XeFG)
                 FGOutputString = "XeFG";
+            else if (FGOutputHeld.value() == FGOutput::DLSSG)
+                FGOutputString = "DLSSG";
         }
         ini.SetValue("FrameGen", "FGOutput", FGOutputString.c_str());
 
@@ -876,6 +900,15 @@ bool Config::SaveIni()
         ini.SetValue("XeFG", "DebugView", GetBoolValue(Instance()->FGXeFGDebugView.value_for_config()).c_str());
         ini.SetValue("XeFG", "ForceBorderless",
                      GetBoolValue(Instance()->FGXeFGForceBorderless.value_for_config()).c_str());
+    }
+
+    {
+        ini.SetValue("DLSSG", "InterpolationCount",
+                     GetIntValue(Instance()->FGDLSSGInterpolationCount.value_for_config()).c_str());
+        ini.SetValue("DLSSG", "UseGamesReflexMarkers",
+                     GetBoolValue(Instance()->FGDLSSGUseGamesReflexMarkers.value_for_config()).c_str());
+        ini.SetValue("DLSSG", "OverrideInterpolationCount",
+                     GetIntValue(Instance()->FGDLSSGOverrideInterpolationCount.value_for_config()).c_str());
     }
 
     // OptiFG

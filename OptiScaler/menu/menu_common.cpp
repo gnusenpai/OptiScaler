@@ -6,6 +6,7 @@
 #include <proxies/XeSS_Proxy.h>
 #include <proxies/XeFG_Proxy.h>
 #include <proxies/FfxApi_Proxy.h>
+#include <proxies/Streamline_Proxy.h>
 
 #include <inputs/FG/DLSSG_Mod.h>
 
@@ -2946,7 +2947,7 @@ bool MenuCommon::RenderMenu()
                     { FGOutput::NoFG, "No Frame Generation" },
                     { FGOutput::Nukems, "FSR3-FG via Nukem's", "Enable DLSS-FG in-game" },
                     { FGOutput::FSRFG, "FSR FG", "FSR3/4 FG" },
-                    { FGOutput::DLSSG, "DLSSG", "Support not implemented" },
+                    { FGOutput::DLSSG, "DLSSG", "For 40xx and above" },
                     { FGOutput::XeFG, "XeFG", "XeFG" }
                 };
 
@@ -2954,7 +2955,7 @@ bool MenuCommon::RenderMenu()
 
                 // DLSSG output requirements
                 auto constexpr dlssgOutputIndex = (uint32_t) FGOutput::DLSSG;
-                outputOptions[dlssgOutputIndex].set_disabled(true, "Support not implemented");
+                outputOptions[dlssgOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
 
                 // Nukem's FG mod requirements
                 auto constexpr nukemsInputIndex = (uint32_t) FGInput::Nukems;
@@ -3052,8 +3053,48 @@ bool MenuCommon::RenderMenu()
                         ImGui::Spacing();
                     }
 
+                    if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() > 1)
+                    {
+                        auto maxInterpolationCount = state.dlssgMfgMax.value();
+
+                        if (maxInterpolationCount > 1)
+                        {
+                            const char* intModes[] = { "Off", "2X", "3X", "4X", "5X", "6X" };
+                            auto currentSet = config->FGDLSSGOverrideInterpolationCount.value_or(0);
+                            auto currentIntCount = intModes[currentSet];
+
+                            ImGui::PushItemWidth(95.0f * menuResScale);
+
+                            if (ImGui::BeginCombo("Override DLSSG", currentIntCount))
+                            {
+                                for (int i = 0; i <= maxInterpolationCount; i++)
+                                {
+                                    if (ImGui::Selectable(intModes[i], (currentSet == i)))
+                                    {
+                                        if (i == 0)
+                                        {
+                                            config->FGDLSSGOverrideInterpolationCount.reset();
+                                        }
+                                        else
+                                        {
+                                            LOG_DEBUG("DLSSG Interpolation Count set to: {}", i);
+                                            config->FGDLSSGOverrideInterpolationCount = i;
+                                        }
+                                    }
+                                }
+
+                                ImGui::EndCombo();
+                            }
+
+                            ImGui::PopItemWidth();
+
+                            ShowHelpMarker("Overrides DLSSG interpolation count");
+                        }
+                    }
+
                     auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
-                    if (((state.activeFgOutput == FGOutput::FSRFG || state.activeFgOutput == FGOutput::XeFG) &&
+                    if (((state.activeFgOutput == FGOutput::FSRFG || state.activeFgOutput == FGOutput::XeFG ||
+                          state.activeFgOutput == FGOutput::DLSSG) &&
                          state.activeFgInput != FGInput::NoFG && state.activeFgInput != FGInput::Nukems) &&
                         fgOutput)
                     {
@@ -3566,12 +3607,12 @@ bool MenuCommon::RenderMenu()
 
                         ShowHelpMarker("Enable Frame Generation");
 
-                        ImGui::SameLine(0.0f, 16.0f);
-
                         auto maxInterpolationCount = state.xefgMaxInterpolationCount;
 
                         if (maxInterpolationCount > 1)
                         {
+                            ImGui::SameLine(0.0f, 16.0f);
+
                             const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
                             auto currentSet = config->FGXeFGInterpolationCount.value_or_default() - 1;
                             auto currentIntCount = intModes[currentSet];
@@ -3692,6 +3733,70 @@ bool MenuCommon::RenderMenu()
                     }
                 }
 
+                // DLSSG controls
+                if (state.activeFgOutput == FGOutput::DLSSG && state.activeFgInput != FGInput::NoFG &&
+                    state.currentFGSwapchain != nullptr)
+                {
+                    if (StreamlineProxy::LoadStreamline() && currentFeature != nullptr && !currentFeature->IsFrozen())
+                    {
+                        ImGui::SeparatorText("Frame Generation (DLSSG)");
+
+                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
+
+                        bool fgActive = config->FGEnabled.value_or_default();
+                        if (ImGui::Checkbox("Active##4", &fgActive))
+                        {
+                            config->FGEnabled = fgActive;
+                            LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
+
+                            if (config->FGEnabled.value_or_default())
+                                state.FGchanged = true;
+                        }
+
+                        ShowHelpMarker("Enable Frame Generation");
+
+                        auto maxInterpolationCount = state.dlssgMaxInterpolationCount;
+
+                        if (maxInterpolationCount > 1)
+                        {
+                            ImGui::SameLine(0.0f, 16.0f);
+
+                            const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
+                            auto currentSet = config->FGDLSSGInterpolationCount.value_or_default() - 1;
+                            auto currentIntCount = intModes[currentSet];
+
+                            ImGui::PushItemWidth(95.0f * menuResScale);
+
+                            if (ImGui::BeginCombo("MFG", currentIntCount))
+                            {
+                                for (int i = 0; i < maxInterpolationCount; i++)
+                                {
+                                    if (ImGui::Selectable(intModes[i], (currentSet == i)))
+                                    {
+                                        LOG_DEBUG("DLSSG Interpolation Count set to: {}", i + 1);
+                                        config->FGDLSSGInterpolationCount = i + 1;
+                                    }
+                                }
+
+                                ImGui::EndCombo();
+                            }
+
+                            ImGui::PopItemWidth();
+
+                            ShowHelpMarker("Set DLSSG interpolation count");
+                        }
+
+                        bool useGamesMarkers = config->FGDLSSGUseGamesReflexMarkers.value_or_default();
+                        ImGui::BeginDisabled(!ReflexHooks::gameIsSendingMarkers());
+                        if (ImGui::Checkbox("Use Game's Reflex Markers", &useGamesMarkers))
+                        {
+                            config->FGDLSSGUseGamesReflexMarkers = useGamesMarkers;
+                            LOG_DEBUG("Changed set FGDLSSGUseGamesReflexMarkers: {}", useGamesMarkers);
+                        }
+                        ImGui::EndDisabled();
+                    }
+                }
+
                 // OptiFG
                 if (state.api == DX12 && state.currentFGSwapchain != nullptr &&
                     state.activeFgInput == FGInput::Upscaler)
@@ -3700,7 +3805,8 @@ bool MenuCommon::RenderMenu()
 
                     if (currentFeature != nullptr && !currentFeature->IsFrozen() &&
                         ((state.activeFgOutput == FGOutput::FSRFG && FfxApiProxy::IsFGReady()) ||
-                         (state.activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() != nullptr)))
+                         (state.activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() != nullptr) ||
+                         (state.activeFgOutput == FGOutput::DLSSG && StreamlineProxy::Module() != nullptr)))
                     {
                         if (!Config::Instance()->FGDisableHUDFix.value_or_default())
                         {

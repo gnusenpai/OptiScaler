@@ -4,8 +4,14 @@
 
 #include <nvapi/fakenvapi.h>
 
+#include <proxies/Streamline_Proxy.h>
+
 #include <magic_enum.hpp>
 #include <nvapi/fakenvapi/nvapi_calls.h>
+
+#include <math.h>
+
+static inline uint64_t _lastPresentId = 0;
 
 // #define LOG_REFLEX_CALLS
 
@@ -53,6 +59,31 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
     LOG_FUNC();
 #endif
 
+    static bool skip = false;
+
+    if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
+        Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
+    {
+        if (!skip)
+        {
+            sl::FrameToken* frameToken;
+            uint32_t frameCount = _lastPresentId;
+            StreamlineProxy::GetNewFrameToken()(frameToken, &frameCount);
+
+            LOG_TRACE("Sleep for frame {}", frameCount);
+
+            skip = true;
+            StreamlineProxy::ReflexSleep()(*frameToken);
+            skip = false;
+
+            return NvAPI_Status::NVAPI_OK;
+        }
+        else
+        {
+            return o_NvAPI_D3D_Sleep(pDev);
+        }
+    }
+
     CALL_XEFG_NVAPI(NvAPI_D3D_Sleep, pDev);
 
     return o_NvAPI_D3D_Sleep(pDev);
@@ -75,6 +106,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
 #ifdef LOG_REFLEX_CALLS
     LOG_FUNC();
 #endif
+
     _updatesWithoutMarker = 0;
 
     // LOG_DEBUG("frameID: {}, markerType: {}", pSetLatencyMarkerParams->frameID,
@@ -91,6 +123,113 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
 
     // TODO: reflexFrameId gets constantly changed, up and down depending on the marker
     State::Instance().reflexFrameId = pSetLatencyMarkerParams->frameID;
+
+    if (pSetLatencyMarkerParams->markerType == PRESENT_END)
+        _lastPresentId = pSetLatencyMarkerParams->frameID;
+
+    static bool skip[20] = {};
+
+    if (pSetLatencyMarkerParams->markerType == SIMULATION_START)
+        _lastMarkerFrame = State::Instance().FGLastFrame;
+
+    if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
+        Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
+    {
+        sl::PCLMarker marker {};
+        bool noMarker = false;
+
+        switch (pSetLatencyMarkerParams->markerType)
+        {
+        case SIMULATION_START:
+            marker = sl::PCLMarker::eSimulationStart;
+            break;
+
+        case SIMULATION_END:
+            marker = sl::PCLMarker::eSimulationEnd;
+            break;
+
+        case RENDERSUBMIT_START:
+            marker = sl::PCLMarker::eRenderSubmitStart;
+            break;
+
+        case RENDERSUBMIT_END:
+            marker = sl::PCLMarker::eRenderSubmitEnd;
+            break;
+
+        case PRESENT_START:
+            marker = sl::PCLMarker::ePresentStart;
+            break;
+
+        case PRESENT_END:
+            _lastPresentId = pSetLatencyMarkerParams->frameID;
+            marker = sl::PCLMarker::ePresentEnd;
+            break;
+
+        case INPUT_SAMPLE:
+            marker = sl::PCLMarker::eControllerInputSample;
+            break;
+
+        case TRIGGER_FLASH:
+            marker = sl::PCLMarker::eTriggerFlash;
+            break;
+
+        case PC_LATENCY_PING:
+            marker = sl::PCLMarker::eDeltaTCalculation;
+            break;
+
+        case OUT_OF_BAND_RENDERSUBMIT_START:
+            marker = sl::PCLMarker::eOutOfBandRenderSubmitStart;
+            break;
+
+        case OUT_OF_BAND_RENDERSUBMIT_END:
+            marker = sl::PCLMarker::eOutOfBandRenderSubmitEnd;
+            break;
+
+        case OUT_OF_BAND_PRESENT_START:
+            marker = sl::PCLMarker::eOutOfBandPresentStart;
+            break;
+
+        case OUT_OF_BAND_PRESENT_END:
+            marker = sl::PCLMarker::eOutOfBandPresentEnd;
+            break;
+
+        default:
+            noMarker = true;
+        }
+
+        auto index = (UINT) marker;
+
+        if (!noMarker && !skip[index])
+        {
+            if (pSetLatencyMarkerParams->markerType == PRESENT_START && State::Instance().currentFG != nullptr)
+            {
+                auto frameCount = State::Instance().currentFG->FrameCount();
+                if (pSetLatencyMarkerParams->frameID - frameCount > 1)
+                    LOG_WARN("FrameId Moved too much??? {} -> {}", frameCount, pSetLatencyMarkerParams->frameID);
+
+                if (pSetLatencyMarkerParams->frameID != frameCount)
+                    State::Instance().currentFG->SetFrameCount(pSetLatencyMarkerParams->frameID);
+
+                State::Instance().reflexFrameId = pSetLatencyMarkerParams->frameID;
+            }
+
+            sl::FrameToken* frameToken;
+            uint32_t frameCount = pSetLatencyMarkerParams->frameID;
+            StreamlineProxy::GetNewFrameToken()(frameToken, &frameCount);
+
+            LOG_TRACE("{} for frame {}", magic_enum::enum_name(marker), frameCount);
+
+            skip[index] = true;
+            StreamlineProxy::PCLSetMarker()(marker, *frameToken);
+            skip[index] = false;
+
+            return NvAPI_Status::NVAPI_OK;
+        }
+        else
+        {
+            return o_NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
+        }
+    }
 
     if (State::Instance().gameQuirks & GameQuirk::HitmanReflexHacks)
     {
@@ -210,6 +349,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
             candidate_mode = detected_mode;
             candidate_count = 1;
         }
+        max_run_length = std::max(max_run_length, current_run);
 
         // Only commit after stable detection
         if (candidate_count >= stability_threshold)
@@ -539,4 +679,10 @@ void ReflexHooks::setFPSLimit(float fps)
         temp.minimumIntervalUs = _minimumIntervalUs;
         o_NvAPI_Vulkan_SetSleepMode(_lastVkSleepDev, &temp);
     }
+}
+
+bool ReflexHooks::gameIsSendingMarkers()
+{
+    return _lastMarkerFrame != 0 && ((State::Instance().FGLastFrame < _lastMarkerFrame) ||
+                                     (State::Instance().FGLastFrame - _lastMarkerFrame) < 5);
 }
