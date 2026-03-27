@@ -57,4 +57,5 @@ class XellHooks
     VALIDATE_MEMBER_HOOK(hkxellGetVersion, PFN_xellGetVersion)
     VALIDATE_MEMBER_HOOK(hkxellSetLoggingCallback, PFN_xellSetLoggingCallback)
     VALIDATE_MEMBER_HOOK(hkxellD3D12CreateContext, PFN_xellD3D12CreateContext)
+    VALIDATE_MEMBER_HOOK(hkxellGetSleepMode, PFN_xellGetSleepMode)
 };

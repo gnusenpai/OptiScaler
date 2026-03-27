@@ -68,7 +68,8 @@ StreamlineHooks::PFN_setVoid StreamlineHooks::o_setVoid = nullptr;
 
 char* StreamlineHooks::trimStreamlineLog(const char* msg)
 {
-    int bracket_count = 0;
+    // Unused
+    // int bracket_count = 0;
 
     char* result = (char*) malloc(strlen(msg) + 1);
     if (!result)
@@ -327,23 +328,26 @@ void StreamlineHooks::streamlineLogCallback_sl1(sl1::LogType type, const char* m
 
     char* trimmed_msg = trimStreamlineLog(msg);
 
-    switch (type)
+    if (trimmed_msg != nullptr)
     {
-    case sl1::LogType::eLogTypeWarn:
-        LOG_WARN("{}", trimmed_msg);
-        break;
-    case sl1::LogType::eLogTypeInfo:
-        LOG_INFO("{}", trimmed_msg);
-        break;
-    case sl1::LogType::eLogTypeError:
-        LOG_ERROR("{}", trimmed_msg);
-        break;
-    case sl1::LogType::eLogTypeCount:
-        LOG_ERROR("{}", trimmed_msg);
-        break;
-    }
+        switch (type)
+        {
+        case sl1::LogType::eLogTypeWarn:
+            LOG_WARN("{}", trimmed_msg);
+            break;
+        case sl1::LogType::eLogTypeInfo:
+            LOG_INFO("{}", trimmed_msg);
+            break;
+        case sl1::LogType::eLogTypeError:
+            LOG_ERROR("{}", trimmed_msg);
+            break;
+        case sl1::LogType::eLogTypeCount:
+            LOG_ERROR("{}", trimmed_msg);
+            break;
+        }
 
-    free(trimmed_msg);
+        free(trimmed_msg);
+    }
 
     if (o_logCallback_sl1)
         o_logCallback_sl1(type, msg);
@@ -1110,6 +1114,11 @@ void StreamlineHooks::updateForceReflex()
             options.mode = reflexGamesLastMode;
 
         auto result = o_slReflexSetOptions(options);
+        if (result != sl::Result::eOk)
+        {
+            LOG_WARN("Failed to update Reflex mode with error code: {} ({:X})", magic_enum::enum_name(result),
+                     (UINT) result);
+        }
     }
 }
 

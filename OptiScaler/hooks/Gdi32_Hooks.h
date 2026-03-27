@@ -9,7 +9,7 @@
 typedef decltype(&D3DKMTQueryAdapterInfo) PFN_D3DKMTQueryAdapterInfo;
 typedef decltype(&D3DKMTEnumAdapters2) PFN_D3DKMTEnumAdapters2;
 
-static PFN_D3DKMTQueryAdapterInfo o_D3DKMTQueryAdapterInfo = nullptr;
+inline static PFN_D3DKMTQueryAdapterInfo o_D3DKMTQueryAdapterInfo = nullptr;
 
 VALIDATE_HOOK(hkD3DKMTQueryAdapterInfo, PFN_D3DKMTQueryAdapterInfo)
 static NTSTATUS hkD3DKMTQueryAdapterInfo(const D3DKMT_QUERYADAPTERINFO* data)

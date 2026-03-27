@@ -325,6 +325,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
                 current_run = 1;
             }
         }
+
         max_run_length = std::max(max_run_length, current_run);
 
         int detected_mode = 0;
@@ -349,7 +350,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
             candidate_mode = detected_mode;
             candidate_count = 1;
         }
-        max_run_length = std::max(max_run_length, current_run);
+
+        // Redundant
+        // max_run_length = std::max(max_run_length, current_run);
 
         // Only commit after stable detection
         if (candidate_count >= stability_threshold)
@@ -625,7 +628,7 @@ void ReflexHooks::update(bool fgActive, bool isVulkan)
         return;
 
     float currentFps = Config::Instance()->FramerateLimit.value_or_default();
-    static uint8_t lastFgNumFramesToGenerate = false;
+    static uint8_t lastFgNumFramesToGenerate = 0;
 
     if (lastFgNumFramesToGenerate != _FgNumFramesToGenerate)
     {
