@@ -1427,8 +1427,15 @@ bool MenuCommon::RenderMenu()
             if (_isVisible)
             {
                 refreshRate = Util::GetActiveRefreshRate(_handle);
-                auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
+
+                auto dllPath = Util::DllPath().parent_path() / "fsr3fg_mfg.asi";
                 state.NukemsFilesAvailable = gExists.Get(dllPath);
+
+                if (!state.NukemsFilesAvailable)
+                {
+                    dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
+                    state.NukemsFilesAvailable = gExists.Get(dllPath);
+                }
 
                 if (pfn_ClipCursor_hooked)
                 {

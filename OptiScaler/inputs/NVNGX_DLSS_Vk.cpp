@@ -351,6 +351,12 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequi
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
 
+    if (State::Instance().activeFgInput == FGInput::Nukems && DLSSGMod::isVulkanAvailable() &&
+        FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration)
+    {
+        return NVSDK_NGX_Result_Success;
+    }
+
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::VULKAN_GetFeatureInstanceExtensionRequirements() != nullptr)
     {
@@ -436,6 +442,12 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequire
     uint32_t* OutExtensionCount, VkExtensionProperties** OutExtensionProperties)
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
+
+    if (State::Instance().activeFgInput == FGInput::Nukems && DLSSGMod::isVulkanAvailable() &&
+        FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration)
+    {
+        return NVSDK_NGX_Result_Success;
+    }
 
     if (Config::Instance()->DLSSEnabled.value_or_default() && NVNGXProxy::NVNGXModule() != nullptr &&
         NVNGXProxy::VULKAN_GetFeatureDeviceExtensionRequirements() != nullptr)

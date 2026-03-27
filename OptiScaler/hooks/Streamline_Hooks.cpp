@@ -137,6 +137,24 @@ sl::Result StreamlineHooks::hkslInit(const sl::Preferences& pref, uint64_t sdkVe
     if (localPref.engine == sl::EngineType::eUnreal)
         State::Instance().gameQuirks |= GameQuirk::ForceUnrealEngine;
 
+    auto optisPlugins = (Util::DllPath().parent_path() / L"opti_dlls\\streamline\\");
+    auto optisPluginsStr = optisPlugins.wstring();
+
+    std::vector<const wchar_t*> storage;
+
+    // Replace the SL files to allow for MFG
+    // TODO: ensure the path contains all the required plugins
+    if (State::Instance().activeFgInput == FGInput::Nukems &&
+        std::filesystem::exists(optisPlugins / L"sl.interposer.dll"))
+    {
+        storage.assign(localPref.pathsToPlugins, localPref.pathsToPlugins + localPref.numPathsToPlugins);
+
+        storage.insert(storage.begin(), optisPluginsStr.c_str());
+
+        localPref.pathsToPlugins = storage.data();
+        localPref.numPathsToPlugins = (uint32_t) storage.size();
+    }
+
     // bool hookSetTag =
     //     (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG);
 
@@ -640,18 +658,25 @@ bool StreamlineHooks::hkcommon_slOnPluginLoad(sl::param::IParameters* params, co
 
     auto result = o_common_slOnPluginLoad(params, loaderJSON, pluginJSON);
 
+    nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
+
+    auto& slVersion = State::Instance().streamlineVersion;
+
+    // Grab a version of the potentially updated sl.common
+    // Opti assumes that all plugins will have this version
+    configJson.at("version").at("major").get_to(slVersion.major);
+    configJson.at("version").at("minor").get_to(slVersion.minor);
+    configJson.at("version").at("build").get_to(slVersion.patch);
+
     // Completely disables Streamline hooks
     // if (true)
-    //{
-    //    nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
-
     //    configJson["hooks"].clear();
     //    configJson["exclusive_hooks"].clear();
-
-    //    config = configJson.dump();
-
-    //    *pluginJSON = config.c_str();
     //}
+
+    config = configJson.dump();
+
+    *pluginJSON = config.c_str();
 
     return result;
 }

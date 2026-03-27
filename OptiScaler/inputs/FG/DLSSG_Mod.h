@@ -124,7 +124,8 @@ class DLSSGMod
                 (PFN_D3D12_EvaluateFeature) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_D3D12_EvaluateFeature");
             _DLSSG_D3D12_PopulateParameters_Impl = (PFN_D3D12_PopulateParameters_Impl) GetProcAddress(
                 _dll, "DLSSG_NVSDK_NGX_D3D12_PopulateParameters_Impl");
-            _dx12_inited = true;
+
+            _dx12_inited = _DLSSG_D3D12_Init != nullptr;
 
             LOG_INFO("DLSSG MFG Mod initialized for DX12");
 
@@ -176,8 +177,64 @@ class DLSSGMod
         if (_vulkan_inited || Config::Instance()->FGInput.value_or_default() != FGInput::Nukems)
             return;
 
-        if (_dll == nullptr)
+        auto dllPath = Util::DllPath().parent_path() / "fsr3fg_mfg.asi";
+
+        // set early so the hooks know
+        State::Instance().NukemsMFG = true;
+
+        if (o_GetCommandLineA)
         {
+
+            DetourTransactionBegin();
+            DetourUpdateThread(GetCurrentThread());
+
+            DetourAttach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
+
+            DetourTransactionCommit();
+
+            _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
+            LOG_TRACE("_dll: {}", (uint64_t) _dll);
+
+            DetourTransactionBegin();
+            DetourUpdateThread(GetCurrentThread());
+
+            DetourDetach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
+
+            DetourTransactionCommit();
+        }
+
+        if (_dll != nullptr)
+        {
+            _DLSSG_VULKAN_Init = (PFN_VULKAN_Init) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_Init");
+            _DLSSG_VULKAN_Init_Ext = (PFN_VULKAN_Init_Ext) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_Init_Ext");
+            _DLSSG_VULKAN_Init_Ext2 = (PFN_VULKAN_Init_Ext2) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_Init_Ext2");
+            _DLSSG_VULKAN_Shutdown = (PFN_VULKAN_Shutdown) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_Shutdown");
+            _DLSSG_VULKAN_Shutdown1 = (PFN_VULKAN_Shutdown1) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_Shutdown1");
+            _DLSSG_VULKAN_GetScratchBufferSize =
+                (PFN_VULKAN_GetScratchBufferSize) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_GetScratchBufferSize");
+            _DLSSG_VULKAN_CreateFeature =
+                (PFN_VULKAN_CreateFeature) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_CreateFeature");
+            _DLSSG_VULKAN_CreateFeature1 =
+                (PFN_VULKAN_CreateFeature1) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_CreateFeature1");
+            _DLSSG_VULKAN_ReleaseFeature =
+                (PFN_VULKAN_ReleaseFeature) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_ReleaseFeature");
+            _DLSSG_VULKAN_GetFeatureRequirements = (PFN_VULKAN_GetFeatureRequirements) GetProcAddress(
+                _dll, "DLSSG_NVSDK_NGX_VULKAN_GetFeatureRequirements");
+            _DLSSG_VULKAN_EvaluateFeature =
+                (PFN_VULKAN_EvaluateFeature) GetProcAddress(_dll, "DLSSG_NVSDK_NGX_VULKAN_EvaluateFeature");
+            _DLSSG_VULKAN_PopulateParameters_Impl = (PFN_VULKAN_PopulateParameters_Impl) GetProcAddress(
+                _dll, "DLSSG_NVSDK_NGX_VULKAN_PopulateParameters_Impl");
+
+            _vulkan_inited = _DLSSG_VULKAN_Init != nullptr;
+
+            LOG_INFO("DLSSG MFG Mod initialized for Vulkan");
+
+            return;
+        }
+        else
+        {
+            State::Instance().NukemsMFG = false;
+
             auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
             _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
         }
