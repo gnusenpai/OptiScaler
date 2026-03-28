@@ -11,6 +11,7 @@ typedef void (*PFN_RefreshGlobalConfiguration)();
 typedef void (*PFN_EnableDebugView)(bool enable);
 
 static decltype(&GetCommandLineA) o_GetCommandLineA = GetCommandLineA;
+static decltype(&GetFileAttributesExW) o_GetFileAttributesExW = GetFileAttributesExW;
 
 static LPSTR WINAPI hkGetCommandLineA(void)
 {
@@ -23,6 +24,25 @@ static LPSTR WINAPI hkGetCommandLineA(void)
     modified += " --dlss-off";
 
     return (LPSTR) modified.c_str();
+}
+
+static BOOL WINAPI hkGetFileAttributesExW(LPCWSTR lpFileName, GET_FILEEX_INFO_LEVELS fInfoLevelId,
+                                          LPVOID lpFileInformation)
+{
+    if (lpFileName)
+    {
+        std::wstring string(lpFileName);
+
+        // Prevent a copy by saying it already exists
+        if (string.contains(L"dlssg_to_fsr3_amd_is_better"))
+            return true;
+
+        // Prevent a copy by saying it wasn't found
+        else if (string.contains(L"nvngx"))
+            return false;
+    }
+
+    return o_GetFileAttributesExW(lpFileName, fInfoLevelId, lpFileInformation);
 }
 
 class DLSSGMod
@@ -73,6 +93,42 @@ class DLSSGMod
         }
     }
 
+    static HMODULE TryInitMFG()
+    {
+        auto dllPath = Util::DllPath().parent_path() / "fsr3fg_mfg.asi";
+
+        // set early so the hooks know
+        State::Instance().NukemsMFG = true;
+
+        HMODULE dll = nullptr;
+        if (o_GetCommandLineA && o_GetFileAttributesExW)
+        {
+
+            DetourTransactionBegin();
+            DetourUpdateThread(GetCurrentThread());
+
+            DetourAttach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
+            DetourAttach(&(PVOID&) o_GetFileAttributesExW, hkGetFileAttributesExW);
+
+            DetourTransactionCommit();
+
+            dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
+
+            DetourTransactionBegin();
+            DetourUpdateThread(GetCurrentThread());
+
+            DetourDetach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
+            DetourDetach(&(PVOID&) o_GetFileAttributesExW, hkGetFileAttributesExW);
+
+            DetourTransactionCommit();
+        }
+
+        if (!dll)
+            State::Instance().NukemsMFG = true;
+
+        return dll;
+    }
+
   public:
     static void InitDLSSGMod_Dx12()
     {
@@ -81,30 +137,7 @@ class DLSSGMod
         if (_dx12_inited || Config::Instance()->FGInput.value_or_default() != FGInput::Nukems)
             return;
 
-        auto dllPath = Util::DllPath().parent_path() / "fsr3fg_mfg.asi";
-
-        // set early so the hooks know
-        State::Instance().NukemsMFG = true;
-
-        if (o_GetCommandLineA)
-        {
-
-            DetourTransactionBegin();
-            DetourUpdateThread(GetCurrentThread());
-
-            DetourAttach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
-
-            DetourTransactionCommit();
-
-            _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
-
-            DetourTransactionBegin();
-            DetourUpdateThread(GetCurrentThread());
-
-            DetourDetach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
-
-            DetourTransactionCommit();
-        }
+        _dll = TryInitMFG();
 
         if (_dll != nullptr)
         {
@@ -133,8 +166,6 @@ class DLSSGMod
         }
         else
         {
-            State::Instance().NukemsMFG = false;
-
             auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
             _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
         }
@@ -177,31 +208,8 @@ class DLSSGMod
         if (_vulkan_inited || Config::Instance()->FGInput.value_or_default() != FGInput::Nukems)
             return;
 
-        auto dllPath = Util::DllPath().parent_path() / "fsr3fg_mfg.asi";
-
-        // set early so the hooks know
-        State::Instance().NukemsMFG = true;
-
-        if (o_GetCommandLineA)
-        {
-
-            DetourTransactionBegin();
-            DetourUpdateThread(GetCurrentThread());
-
-            DetourAttach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
-
-            DetourTransactionCommit();
-
-            _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
-            LOG_TRACE("_dll: {}", (uint64_t) _dll);
-
-            DetourTransactionBegin();
-            DetourUpdateThread(GetCurrentThread());
-
-            DetourDetach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
-
-            DetourTransactionCommit();
-        }
+        // Vulkan support was removed in 4.4; in <=4.3 only the original Nukem's 2x mode is supported
+        _dll = TryInitMFG();
 
         if (_dll != nullptr)
         {
@@ -233,8 +241,6 @@ class DLSSGMod
         }
         else
         {
-            State::Instance().NukemsMFG = false;
-
             auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
             _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
         }
