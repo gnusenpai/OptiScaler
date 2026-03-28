@@ -384,7 +384,7 @@ static Fsr3::FfxErrorCode hkffxCreateFrameinterpolationSwapchainDX12(DXGI_SWAP_C
     {
         auto refCount = State::Instance().currentSwapchain->Release();
 
-        while (refCount > 0)
+        while (refCount > 0 && refCount != 0xffffffff)
         {
             refCount = State::Instance().currentSwapchain->Release();
         }
@@ -415,7 +415,7 @@ static Fsr3::FfxErrorCode hkffxCreateFrameinterpolationSwapchainForHwndDX12(
         {
             auto refCount = State::Instance().currentSwapchain->Release();
 
-            while (refCount > 0)
+            while (refCount > 0 && refCount != 0xffffffff)
             {
                 refCount = State::Instance().currentSwapchain->Release();
             }
