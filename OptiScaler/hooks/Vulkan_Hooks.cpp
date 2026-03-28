@@ -142,15 +142,9 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
 {
     LOG_FUNC();
 
-    thread_local bool alreadyCalledInThread = false;
-
-    if (alreadyCalledInThread)
-        o_vkCreateDevice(physicalDevice, pCreateInfo, pAllocator, pDevice);
-
     VkDeviceCreateInfo localCreteInfo {};
     memcpy(&localCreteInfo, pCreateInfo, sizeof(VkDeviceCreateInfo));
 
-    alreadyCalledInThread = true;
     VulkanSpoofing::hkvkCreateDevice(physicalDevice, &localCreteInfo, pAllocator, pDevice);
 
     auto result = o_vkCreateDevice(physicalDevice, &localCreteInfo, pAllocator, pDevice);

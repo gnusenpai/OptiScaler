@@ -549,14 +549,13 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     if (Config::Instance()->FGXeFGHighResMV.value_or_default())
         _constants.flags |= FG_Flags::DisplayResolutionMVs;
 
-    State::Instance().skipSpoofing = true;
-
     xefg_swapchain_result_t result;
-    ScopedSkipSpoofing skipSpoofing {};
-    result = XeFGProxy::D3D12InitFromSwapChainDesc()(_swapChainContext, hwnd, desc, pFullscreenDesc, realQueue,
-                                                     factory12, &params);
 
-    State::Instance().skipSpoofing = false;
+    {
+        ScopedSkipSpoofing skipSpoofing {};
+        result = XeFGProxy::D3D12InitFromSwapChainDesc()(_swapChainContext, hwnd, desc, pFullscreenDesc, realQueue,
+                                                         factory12, &params);
+    }
 
     if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
     {

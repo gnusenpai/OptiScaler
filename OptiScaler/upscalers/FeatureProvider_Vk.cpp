@@ -186,7 +186,7 @@ bool FeatureProvider_Vk::ChangeFeature(Upscaler upscaler, VkInstance instance, V
         // next frame create context
         auto initResult = false;
         {
-            ScopedSkipSpoofing skipSpoofing;
+            ScopedSkipSpoofing skipSpoofing {};
             initResult =
                 contextData->feature->Init(instance, pd, device, cmdBuffer, gipa, gdpa, contextData->createParams);
         }
