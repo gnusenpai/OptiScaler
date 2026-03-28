@@ -240,7 +240,7 @@ static const QuirkEntry quirkTable[] = {
     // Ratchet & Clank: Rift Apart, Marvel’s Spider-Man Remastered, Marvel’s Spider-Man: Miles Morales, Marvel's
     // Spider-Man 2, DEATH STRANDING 2: ON THE BEACH
     QUIRK_ENTRY("riftapart.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("spider-man.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("spider-man.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::FSRFGHudlessMismatchFixup),
     QUIRK_ENTRY("milesmorales.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("spider-man2.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("ds2.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::FSRFGHudlessMismatchFixup),
