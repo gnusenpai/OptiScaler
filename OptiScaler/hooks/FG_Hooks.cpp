@@ -1063,7 +1063,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
 
     sl::FrameToken* localToken = nullptr;
     sl::Result tokenResult = sl::Result::eErrorReflexAPI;
-    if (willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG)
+    if (willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG && fg->IsActive() && !fg->IsPaused())
     {
         ((IDXGISwapChain4*) This)->GetCurrentBackBufferIndex();
 
@@ -1150,7 +1150,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
     if (tokenResult == sl::Result::eOk && localToken != nullptr &&
         (!ReflexHooks::gameIsSendingMarkers() ||
          !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default()) &&
-        willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG)
+        willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG && fg->IsActive() && !fg->IsPaused())
     {
         StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentEnd, *localToken);
         StreamlineProxy::ReflexSleep()(*localToken);

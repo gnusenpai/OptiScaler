@@ -11,7 +11,8 @@
 
 #include <math.h>
 
-static inline uint64_t _lastPresentId = 0;
+static inline uint64_t _lastFrameId[20] = { 0 };
+static inline IUnknown* _lastDev[20] = { 0 };
 
 // #define LOG_REFLEX_CALLS
 
@@ -60,14 +61,16 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
 #endif
 
     static bool skip = false;
+    uint32_t frameCount = (uint32_t) _lastFrameId[SIMULATION_START] + 1;
+    LOG_DEBUG("Sleeping for: {}", frameCount);
 
     if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
-        Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
+        Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
+        State::Instance().currentFG->IsActive() && !State::Instance().currentFG->IsPaused())
     {
         if (!skip)
         {
             sl::FrameToken* frameToken;
-            uint32_t frameCount = (uint32_t) _lastPresentId;
             StreamlineProxy::GetNewFrameToken()(frameToken, &frameCount);
 
             LOG_TRACE("Sleep for frame {}", frameCount);
@@ -126,8 +129,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     // TODO: reflexFrameId gets constantly changed, up and down depending on the marker
     State::Instance().reflexFrameId = pSetLatencyMarkerParams->frameID;
 
-    if (pSetLatencyMarkerParams->markerType == PRESENT_END)
-        _lastPresentId = pSetLatencyMarkerParams->frameID;
+    // if (pSetLatencyMarkerParams->markerType == PRESENT_END)
+    _lastFrameId[pSetLatencyMarkerParams->markerType] = pSetLatencyMarkerParams->frameID;
+    _lastDev[pSetLatencyMarkerParams->markerType] = pDev;
 
     static bool skip[20] = {};
 
@@ -135,7 +139,8 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
         _lastMarkerFrame = State::Instance().FGLastFrame;
 
     if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
-        Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
+        Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
+        State::Instance().currentFG->IsActive() && !State::Instance().currentFG->IsPaused())
     {
         sl::PCLMarker marker {};
         bool noMarker = false;
@@ -163,7 +168,6 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
             break;
 
         case PRESENT_END:
-            _lastPresentId = pSetLatencyMarkerParams->frameID;
             marker = sl::PCLMarker::ePresentEnd;
             break;
 
@@ -229,7 +233,10 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
         }
         else
         {
-            return o_NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
+            if (noMarker)
+                return NVAPI_OK;
+            else
+                return o_NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
         }
     }
 
