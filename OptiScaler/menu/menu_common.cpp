@@ -1511,6 +1511,24 @@ bool MenuCommon::RenderMenu()
         }
     }
 
+    if (!state.postDone)
+    {
+        if (state.postCodes & PostCode::SlPluginsAlreadyInMemory)
+        {
+            auto filename = Util::DllPath().filename().string();
+            to_lower_in_place(filename);
+
+            ImGuiToast notification { ImGuiToastType::Warning, 10000 };
+            notification.setTitle("Late Streamline hook detected");
+            notification.setContent(
+                "Consider renaming OptiScaler from %s to other supported name.\nYou may experience issues otherwise.",
+                filename.c_str());
+            ImGui::InsertNotification(notification);
+        }
+
+        state.postDone = true;
+    }
+
     if (splashLimit < 1.0f)
     {
         splashStart = now + 100.0;

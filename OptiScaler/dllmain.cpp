@@ -901,7 +901,8 @@ static void CheckWorkingMode()
     slDlss = GetDllNameWModule(&slDlssNamesW);
     if (slDlss != nullptr)
     {
-        LOG_DEBUG("sl.dlss.dll already in memory");
+        State::Instance().postCodes |= PostCode::SlPluginsAlreadyInMemory;
+        LOG_WARN("sl.dlss.dll already in memory");
         StreamlineHooks::hookDlss(slDlss);
     }
 
@@ -909,7 +910,8 @@ static void CheckWorkingMode()
     slDlssg = GetDllNameWModule(&slDlssgNamesW);
     if (slDlssg != nullptr)
     {
-        LOG_DEBUG("sl.dlss_g.dll already in memory");
+        State::Instance().postCodes |= PostCode::SlPluginsAlreadyInMemory;
+        LOG_WARN("sl.dlss_g.dll already in memory");
         StreamlineHooks::hookDlssg(slDlssg);
     }
 
@@ -917,7 +919,8 @@ static void CheckWorkingMode()
     slReflex = GetDllNameWModule(&slReflexNamesW);
     if (slReflex != nullptr)
     {
-        LOG_DEBUG("sl.reflex.dll already in memory");
+        State::Instance().postCodes |= PostCode::SlPluginsAlreadyInMemory;
+        LOG_WARN("sl.reflex.dll already in memory");
         StreamlineHooks::hookReflex(slReflex);
     }
 
@@ -925,7 +928,8 @@ static void CheckWorkingMode()
     slPcl = GetDllNameWModule(&slPclNamesW);
     if (slPcl != nullptr)
     {
-        LOG_DEBUG("sl.pcl.dll already in memory");
+        State::Instance().postCodes |= PostCode::SlPluginsAlreadyInMemory;
+        LOG_WARN("sl.pcl.dll already in memory");
         StreamlineHooks::hookPcl(slPcl);
     }
 
@@ -933,7 +937,8 @@ static void CheckWorkingMode()
     slCommon = GetDllNameWModule(&slCommonNamesW);
     if (slCommon != nullptr)
     {
-        LOG_DEBUG("sl.common.dll already in memory");
+        State::Instance().postCodes |= PostCode::SlPluginsAlreadyInMemory;
+        LOG_WARN("sl.common.dll already in memory");
         StreamlineHooks::hookCommon(slCommon);
     }
 

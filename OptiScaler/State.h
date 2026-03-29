@@ -53,6 +53,12 @@ enum class WorkingMode : uint32_t
     Other,
 };
 
+enum class PostCode : uint32_t
+{
+    SlPluginsAlreadyInMemory,
+    _
+};
+
 typedef struct CapturedHudlessInfo
 {
     UINT64 usageCount = 1;
@@ -229,6 +235,12 @@ class State
     double lastFGFrameTime = 0.0;
     double presentFrameTime = 0.0;
     std::mutex frameTimeMutex;
+
+    // Opti checking if everything is setup correctly on game launch
+    // Takes effect up to the first time Opti can show anything on the screen
+    // Beyond that use notifications
+    bool postDone = false;
+    flag_set<PostCode> postCodes;
 
     // Version check
     std::mutex versionCheckMutex;
