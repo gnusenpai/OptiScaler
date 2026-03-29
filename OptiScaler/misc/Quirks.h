@@ -60,6 +60,7 @@ enum class GameQuirk : uint64_t
     CreateD3D12DeviceForLuma,
     ForceCreateD3D12Device,
     ForceDepthD32S8,
+    ForceReflexMarkersParam,
     // Don't forget to add the new entry to printQuirks
     _
 };
@@ -243,21 +244,23 @@ static const QuirkEntry quirkTable[] = {
     //
     // Ratchet & Clank: Rift Apart, Marvel’s Spider-Man Remastered, Marvel’s Spider-Man: Miles Morales, Marvel's
     // Spider-Man 2, DEATH STRANDING 2: ON THE BEACH
-    QUIRK_ENTRY("riftapart.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("spider-man.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::FSRFGHudlessMismatchFixup),
-    QUIRK_ENTRY("milesmorales.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("spider-man2.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("ds2.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::FSRFGHudlessMismatchFixup),
+    QUIRK_ENTRY("riftapart.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
+    QUIRK_ENTRY("spider-man.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam,
+                GameQuirk::FSRFGHudlessMismatchFixup),
+    QUIRK_ENTRY("milesmorales.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
+    QUIRK_ENTRY("spider-man2.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
+    QUIRK_ENTRY("ds2.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam,
+                GameQuirk::FSRFGHudlessMismatchFixup),
     //
     // Dxgi spoofing disabled, DLSS-FG available, standalone Reflex can be unlocked with -unlockReflexOptions launch
     // option if needed
     // Horizon Zero Dawn Remastered, Horizon Forbidden West Complete Edition, Ghost of Tsushima DIRECTOR'S CUT, The Last
     // of Us Part II Remastered
-    QUIRK_ENTRY("horizonzerodawnremastered.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("horizonforbiddenwest.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("ghostoftsushima.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("tlou-ii.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("tlou-ii-l.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("horizonzerodawnremastered.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
+    QUIRK_ENTRY("horizonforbiddenwest.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
+    QUIRK_ENTRY("ghostoftsushima.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
+    QUIRK_ENTRY("tlou-ii.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
+    QUIRK_ENTRY("tlou-ii-l.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceReflexMarkersParam),
 
     // Dead Space Remake
     // Override Vsync required to avoid crash on boot

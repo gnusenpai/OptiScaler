@@ -1219,6 +1219,9 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
     if (quirks & GameQuirk::OldOverlayMenu)
         stringQuirks.push_back("Using old overlay (draws on upscaled image)");
 
+    if (quirks & GameQuirk::ForceReflexMarkersParam)
+        stringQuirks.push_back("Add -forceReflexMarkers (and similar) to launch params");
+
     state->detectedQuirks.append_range(stringQuirks);
     for (auto& stringQuirk : stringQuirks)
         spdlog::info("Quirk: {}", stringQuirk);

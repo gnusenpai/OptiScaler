@@ -10,21 +10,7 @@
 typedef void (*PFN_RefreshGlobalConfiguration)();
 typedef void (*PFN_EnableDebugView)(bool enable);
 
-static decltype(&GetCommandLineA) o_GetCommandLineA = GetCommandLineA;
 static decltype(&GetFileAttributesExW) o_GetFileAttributesExW = GetFileAttributesExW;
-
-static LPSTR WINAPI hkGetCommandLineA(void)
-{
-    static std::string modified;
-
-    LPSTR original = o_GetCommandLineA();
-
-    // Disable unused code
-    modified = original;
-    modified += " --dlss-off";
-
-    return (LPSTR) modified.c_str();
-}
 
 static BOOL WINAPI hkGetFileAttributesExW(LPCWSTR lpFileName, GET_FILEEX_INFO_LEVELS fInfoLevelId,
                                           LPVOID lpFileInformation)
@@ -101,13 +87,12 @@ class DLSSGMod
         State::Instance().NukemsMFG = true;
 
         HMODULE dll = nullptr;
-        if (o_GetCommandLineA && o_GetFileAttributesExW)
+        if (o_GetFileAttributesExW)
         {
 
             DetourTransactionBegin();
             DetourUpdateThread(GetCurrentThread());
 
-            DetourAttach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
             DetourAttach(&(PVOID&) o_GetFileAttributesExW, hkGetFileAttributesExW);
 
             DetourTransactionCommit();
@@ -117,7 +102,6 @@ class DLSSGMod
             DetourTransactionBegin();
             DetourUpdateThread(GetCurrentThread());
 
-            DetourDetach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
             DetourDetach(&(PVOID&) o_GetFileAttributesExW, hkGetFileAttributesExW);
 
             DetourTransactionCommit();

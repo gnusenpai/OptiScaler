@@ -28,6 +28,8 @@ class KernelHooks
     inline static Kernel32Proxy::PFN_GetModuleHandleA o_K32_GetModuleHandleA = nullptr;
     inline static Kernel32Proxy::PFN_GetModuleHandleExW o_K32_GetModuleHandleExW = nullptr;
     inline static Kernel32Proxy::PFN_GetFileAttributesW o_K32_GetFileAttributesW = nullptr;
+    inline static Kernel32Proxy::PFN_GetCommandLineA o_K32_GetCommandLineA = nullptr;
+    inline static Kernel32Proxy::PFN_GetCommandLineW o_K32_GetCommandLineW = nullptr;
     inline static Kernel32Proxy::PFN_CreateFileW o_K32_CreateFileW = nullptr;
 
     inline static KernelBaseProxy::PFN_FreeLibrary o_KB_FreeLibrary = nullptr;
@@ -47,6 +49,8 @@ class KernelHooks
     static HANDLE WINAPI hk_K32_CreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
                                             LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
                                             DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+    static LPSTR WINAPI hk_K32_GetCommandLineA();
+    static LPWSTR WINAPI hk_K32_GetCommandLineW();
 
     static HMODULE hk_K32_LoadLibraryW(LPCWSTR lpLibFileName);
     static HMODULE hk_K32_LoadLibraryA(LPCSTR lpLibFileName);
@@ -73,6 +77,13 @@ class KernelHooks
         o_K32_GetModuleHandleExW = Kernel32Proxy::Hook_GetModuleHandleExW(hk_K32_GetModuleHandleExW);
         o_K32_GetFileAttributesW = Kernel32Proxy::Hook_GetFileAttributesW(hk_K32_GetFileAttributesW);
         o_K32_CreateFileW = Kernel32Proxy::Hook_CreateFileW(hk_K32_CreateFileW);
+
+        if (State::Instance().gameQuirks & GameQuirk::ForceReflexMarkersParam ||
+            State::Instance().activeFgInput == FGInput::Nukems)
+        {
+            o_K32_GetCommandLineA = Kernel32Proxy::Hook_GetCommandLineA(hk_K32_GetCommandLineA);
+            o_K32_GetCommandLineW = Kernel32Proxy::Hook_GetCommandLineW(hk_K32_GetCommandLineW);
+        }
 
         if (!Config::Instance()->UseNtdllHooks.value_or_default())
         {
