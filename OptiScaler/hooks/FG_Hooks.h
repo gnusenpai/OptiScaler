@@ -54,7 +54,7 @@ class FGHooks
     static HRESULT hkResizeBuffers1(IDXGISwapChain3* This, UINT BufferCount, UINT Width, UINT Height,
                                     DXGI_FORMAT Format, UINT SwapChainFlags, const UINT* pCreationNodeMask,
                                     IUnknown* const* ppPresentQueue);
-    static HRESULT hkFGRelease(IUnknown* This);
+    static ULONG hkFGRelease(IUnknown* This);
 
     static HRESULT hkFGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags);
     static HRESULT hkFGPresent1(IDXGISwapChain1* This, UINT SyncInterval, UINT Flags,

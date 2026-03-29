@@ -1184,7 +1184,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
     return result;
 }
 
-ULONG FGHooks::hkFGRelease(IDXGISwapChain* This)
+ULONG FGHooks::hkFGRelease(IUnknown* This)
 {
     // We already released this one, prevent crashes
     if (This == oldSwapChain)
