@@ -415,8 +415,8 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("thegreatcircle.exe", GameQuirk::EnableVulkanExtensionSpoofing, GameQuirk::DisableDxgiSpoofing),
 
     // DOOM: The Dark Ages
-    // Disabled Dxgi spoofing to avoid crash on boot
-    QUIRK_ENTRY("doomthedarkages.exe", GameQuirk::DisableDxgiSpoofing),
+    // Disabled Dxgi spoofing to avoid crash on boot, D3D12 for FSR 4 w/dx12
+    QUIRK_ENTRY("doomthedarkages.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceCreateD3D12Device),
 
 };
 
