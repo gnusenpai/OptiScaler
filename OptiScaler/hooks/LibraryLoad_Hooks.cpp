@@ -351,6 +351,8 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
 
         if (module != nullptr)
         {
+            // Prevent vulkan-1 from unloading so that our hooks are valid
+            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN, L"vulkan-1", &module);
             VulkanHooks::Hook(module);
         }
 
