@@ -245,62 +245,6 @@ HANDLE WINAPI KernelHooks::hk_K32_CreateFileW(LPCWSTR lpFileName, DWORD dwDesire
                              dwFlagsAndAttributes, hTemplateFile);
 }
 
-VALIDATE_HOOK(hk_K32_GetCommandLineA, Kernel32Proxy::PFN_GetCommandLineA)
-LPSTR WINAPI KernelHooks::hk_K32_GetCommandLineA()
-{
-    auto params = o_K32_GetCommandLineA();
-
-    static std::string string;
-    const static bool nukems = State::Instance().activeFgInput == FGInput::Nukems;
-    const static bool reflexParams = State::Instance().gameQuirks[GameQuirk::ForceReflexMarkersParam];
-    if (params && (nukems || reflexParams))
-    {
-        if (string.empty())
-        {
-            string.append(params);
-
-            // Disable unused code in the MFG mod
-            if (nukems)
-                string.append(" --dlss-off");
-
-            if (reflexParams)
-                string.append(" -unlockReflexOptions -unlockreflexoptions -forceReflexMarkers");
-        }
-
-        return string.data();
-    }
-
-    return params;
-}
-
-VALIDATE_HOOK(hk_K32_GetCommandLineW, Kernel32Proxy::PFN_GetCommandLineW)
-LPWSTR WINAPI KernelHooks::hk_K32_GetCommandLineW()
-{
-    auto params = o_K32_GetCommandLineW();
-
-    static std::wstring string;
-    const static bool nukems = State::Instance().activeFgInput == FGInput::Nukems;
-    const static bool reflexParams = State::Instance().gameQuirks[GameQuirk::ForceReflexMarkersParam];
-    if (params && (nukems || reflexParams))
-    {
-        if (string.empty())
-        {
-            string.append(params);
-
-            // Disable unused code in the MFG mod
-            if (nukems)
-                string.append(L" --dlss-off");
-
-            if (reflexParams)
-                string.append(L" -unlockReflexOptions -unlockreflexoptions -forceReflexMarkers");
-        }
-
-        return string.data();
-    }
-
-    return params;
-}
-
 // Load Library checks
 
 VALIDATE_HOOK(hk_K32_LoadLibraryW, Kernel32Proxy::PFN_LoadLibraryW)

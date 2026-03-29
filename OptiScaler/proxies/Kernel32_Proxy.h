@@ -22,8 +22,6 @@
     X(GetModuleHandleW)                                                                                                \
     X(GetModuleHandleExA)                                                                                              \
     X(GetModuleHandleExW)                                                                                              \
-    X(GetCommandLineA)                                                                                                 \
-    X(GetCommandLineW)                                                                                                 \
     X(GetFileAttributesW)                                                                                              \
     X(CreateFileW)
 
