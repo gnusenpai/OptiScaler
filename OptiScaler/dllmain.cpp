@@ -1549,16 +1549,20 @@ DWORD WINAPI InitThread(LPVOID hModuleVoid)
     HMODULE hModule = (HMODULE) hModuleVoid;
 
     auto detectedGpus = IdentifyGpu::getAllGpus();
-    spdlog::info("Detected GPUs:");
+    std::string gpus = "Detected GPUs:\n";
+
+    std::string indent(22, ' ');
+
     for (auto& gpu : detectedGpus)
     {
-        spdlog::info("{}", gpu.name);
-        spdlog::info("   vendorId: {:X}, deviceId: {:X}, VRAM: {}MB", (uint32_t) gpu.vendorId, gpu.deviceId,
-                     gpu.dedicatedVramInBytes / (1024 * 1024));
-        spdlog::info("   dxvk: {}, vkd3d-proton: {}", gpu.usesDxvk, gpu.usesVkd3dProton);
-        spdlog::info("   Upscaler support - fsr4: {}, dlss: {}", gpu.fsr4Capable, gpu.dlssCapable);
-        spdlog::info("");
+        gpus += std::format("{}{}\n", indent, gpu.name);
+        gpus += std::format("{}    vendorId: {:X}, deviceId: {:X}, VRAM: {}MB\n", indent, (uint32_t) gpu.vendorId,
+                            gpu.deviceId, gpu.dedicatedVramInBytes / (1024 * 1024));
+        gpus += std::format("{}    dxvk: {}, vkd3d-proton: {}\n", indent, gpu.usesDxvk, gpu.usesVkd3dProton);
+        gpus += std::format("{}    Upscaler support - fsr4: {}, dlss: {}\n", indent, gpu.fsr4Capable, gpu.dlssCapable);
     }
+
+    spdlog::info(gpus);
 
     InitFSR4Update();
 
