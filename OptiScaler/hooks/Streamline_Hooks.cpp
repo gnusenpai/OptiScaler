@@ -144,8 +144,7 @@ sl::Result StreamlineHooks::hkslInit(const sl::Preferences& pref, uint64_t sdkVe
 
     // Replace the SL files to allow for MFG
     // TODO: ensure the path contains all the required plugins
-    if (State::Instance().activeFgInput == FGInput::Nukems &&
-        std::filesystem::exists(optisPlugins / L"sl.interposer.dll"))
+    if (State::Instance().activeFgInput == FGInput::Nukems && std::filesystem::exists(optisPlugins / L"sl.common.dll"))
     {
         storage.assign(localPref.pathsToPlugins, localPref.pathsToPlugins + localPref.numPathsToPlugins);
 

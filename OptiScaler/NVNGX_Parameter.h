@@ -531,7 +531,10 @@ inline static void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
         InParams->Set(NVSDK_NGX_Parameter_FrameInterpolation_NeedsUpdatedDriver, 0);
         InParams->Set(NVSDK_NGX_Parameter_FrameInterpolation_FeatureInitResult, 1);
 
-        InParams->Set("DLSSG.MultiFrameCountMax", State::Instance().NukemsMFG ? 3 : 1);
+        feature_version moreCopeVersion { 2, 11, 0 };
+        auto maxCopeCount = State::Instance().streamlineVersion >= moreCopeVersion ? 5 : 3;
+
+        InParams->Set("DLSSG.MultiFrameCountMax", State::Instance().NukemsMFG ? maxCopeCount : 1);
 
         if (State::Instance().NVNGX_Engine == NVSDK_NGX_ENGINE_TYPE_UNREAL ||
             State::Instance().gameQuirks & GameQuirk::ForceUnrealEngine)
