@@ -10,23 +10,6 @@
 #include "log.h"
 #include "fn_vulkan_hooks.h"
 
-class LowLatencyCtx
-{
-  public:
-    static void init() { lowlatency_ctx = new LowLatency(); }
-
-    static void shutdown()
-    {
-        delete lowlatency_ctx;
-        lowlatency_ctx = nullptr;
-    }
-
-    static LowLatency* get() { return lowlatency_ctx; }
-
-  private:
-    static LowLatency* lowlatency_ctx;
-};
-
 namespace nvapi_calls
 {
 static auto drs = 1U;
@@ -134,8 +117,4 @@ NvAPI_Status __cdecl NvAPI_SK_3(IUnknown* unknown);
 NvAPI_Status __cdecl NvAPI_SK_4(IUnknown* unknown);
 NvAPI_Status __cdecl NvAPI_SK_5(IUnknown* unknown);
 NvAPI_Status __cdecl NvAPI_Unload();
-NvAPI_Status __cdecl Fake_InformFGState(bool fg_state);
-NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t reflex_frame_id);
-NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, LowLatencyMode* mode);
-NvAPI_Status __cdecl Fake_SetLowLatencyCtx(void* low_latency_context, LowLatencyMode mode);
 } // namespace nvapi_calls

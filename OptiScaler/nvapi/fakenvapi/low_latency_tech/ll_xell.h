@@ -32,11 +32,8 @@ class XeLL : public virtual LowLatencyTech
 
     bool is_enabled() override
     {
-        if (inited_using_context)
-            return true;
-        else
-            return low_latency_override != ForceReflex::InGame ? low_latency_override == ForceReflex::ForceEnable
-                                                               : low_latency_enabled;
+        return low_latency_override != ForceReflex::InGame ? low_latency_override == ForceReflex::ForceEnable
+                                                           : low_latency_enabled;
     };
 
     void get_sleep_status(SleepParams* sleep_params) override;

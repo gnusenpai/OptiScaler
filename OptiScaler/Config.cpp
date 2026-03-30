@@ -632,7 +632,6 @@ bool Config::Reload(std::filesystem::path iniPath)
         // fakenvapi
         {
             UseFakenvapi.set_from_config(readBool("fakenvapi", "UseFakenvapi"));
-            XeFGWithoutXeLL.set_from_config(readBool("fakenvapi", "XeFGWithoutXeLL"));
             ForceXeLL.set_from_config(readBool("fakenvapi", "ForceXeLL"));
             FN_ForceLatencyFlex.set_from_config(readBool("fakenvapi", "ForceLatencyFlex"));
 
@@ -1353,8 +1352,6 @@ bool Config::SaveIni()
     // fakenvapi
     {
         ini.SetValue("fakenvapi", "UseFakenvapi", GetBoolValue(Instance()->UseFakenvapi.value_for_config()).c_str());
-        ini.SetValue("fakenvapi", "XeFGWithoutXeLL",
-                     GetBoolValue(Instance()->XeFGWithoutXeLL.value_for_config()).c_str());
         ini.SetValue("fakenvapi", "ForceXeLL", GetBoolValue(Instance()->ForceXeLL.value_for_config()).c_str());
         ini.SetValue("fakenvapi", "ForceLatencyFlex",
                      GetBoolValue(Instance()->FN_ForceLatencyFlex.value_for_config()).c_str());

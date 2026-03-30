@@ -8,7 +8,9 @@ void XeLL::xell_sleep(uint32_t frame_id)
 {
     sent_sleep_frame_ids[frame_id % 64] = true;
 
-    XeLLProxy::Sleep()(XeLLProxy::Context(), frame_id);
+    // Don't call XeLL when trying to disable XeLL with XeFG active
+    if (!inited_using_context || is_enabled())
+        XeLLProxy::Sleep()(XeLLProxy::Context(), frame_id);
 }
 
 void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
@@ -20,7 +22,8 @@ void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
         return;
     }
 
-    XeLLProxy::AddMarkerData()(XeLLProxy::Context(), frame_id, marker);
+    if (!inited_using_context || is_enabled())
+        XeLLProxy::AddMarkerData()(XeLLProxy::Context(), frame_id, marker);
 }
 
 bool XeLL::init(IUnknown* pDevice)
@@ -98,7 +101,12 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode)
 
     low_latency_enabled = sleep_mode->low_latency_enabled;
 
-    xell_sleep_params.bLowLatencyMode = is_enabled();
+    // Always report XeLL as enabled when XeFG is enabled
+    if (inited_using_context)
+        xell_sleep_params.bLowLatencyMode = true;
+    else
+        xell_sleep_params.bLowLatencyMode = is_enabled();
+
     xell_sleep_params.minimumIntervalUs = sleep_mode->minimum_interval_us;
     xell_sleep_params.bLowLatencyBoost = sleep_mode->low_latency_boost;
 

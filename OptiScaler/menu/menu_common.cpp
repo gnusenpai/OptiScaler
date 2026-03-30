@@ -4393,35 +4393,32 @@ bool MenuCommon::RenderMenu()
                         "Uses Reflex when possible\nOn AMD/Intel cards, you can use Fakenvapi to substitute Reflex");
 
                     static std::string currentMethod {};
-                    LowLatencyMode mode {};
+                    LowLatencyMode fakenvapiMode = {};
                     if (state.reflexLimitsFps)
                     {
-                        if (fakenvapi::updateModeAndContext())
-                        {
-                            mode = fakenvapi::getCurrentMode();
+                        fakenvapiMode = fakenvapi::getCurrentMode();
 
-                            if (mode == LowLatencyMode::AntiLag2)
-                                currentMethod = "FSR Latency Reduction 2.0";
-                            else if (mode == LowLatencyMode::LatencyFlex)
-                                currentMethod = "LatencyFlex";
-                            else if (mode == LowLatencyMode::XeLL)
-                                currentMethod = "XeLL";
-                            else if (mode == LowLatencyMode::AntiLagVk)
-                                currentMethod = "Vulkan AntiLag";
-
-                            if (state.rtssReflexInjection && mode == LowLatencyMode::AntiLag2 &&
-                                config->FGOutput.value_or_default() == FGOutput::FSRFG)
-                                ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
-                                                   "Using RTSS Reflex injection with FSR Latency Reduction 2.0 and FSR "
-                                                   "FG might cause issues");
-                        }
-                        else
+                        if (fakenvapiMode == LowLatencyMode::AntiLag2)
+                            currentMethod = "FSR Latency Reduction 2.0";
+                        else if (fakenvapiMode == LowLatencyMode::LatencyFlex)
+                            currentMethod = "LatencyFlex";
+                        else if (fakenvapiMode == LowLatencyMode::XeLL)
+                            currentMethod = "XeLL";
+                        else if (fakenvapiMode == LowLatencyMode::AntiLagVk)
+                            currentMethod = "Vulkan AntiLag";
+                        else if (fakenvapiMode == LowLatencyMode::None)
                         {
                             if (fakenvapi::isUsingAsMainNvapi())
-                                currentMethod = "Fallback";
+                                currentMethod = "None";
                             else
                                 currentMethod = "Reflex";
                         }
+
+                        if (state.rtssReflexInjection && fakenvapiMode == LowLatencyMode::AntiLag2 &&
+                            config->FGOutput.value_or_default() == FGOutput::FSRFG)
+                            ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
+                                               "Using RTSS Reflex injection with FSR Latency Reduction 2.0 and FSR "
+                                               "FG might cause issues");
                     }
                     else
                     {
@@ -4431,12 +4428,16 @@ bool MenuCommon::RenderMenu()
                     if (state.rtssReflexInjection)
                         currentMethod.append(" (RTSS)");
 
-                    if (config->FGOutput == FGOutput::XeFG && config->XeFGWithoutXeLL.value_or_default())
-                        currentMethod.append(" (no XeLL)");
+                    const bool fakenvapiInactive =
+                        (fakenvapi::isUsingAsMainNvapi() || fakenvapiMode == LowLatencyMode::XeLL) &&
+                        !fakenvapi::isLowLatencyActive() && state.reflexLimitsFps;
+
+                    if (fakenvapiInactive)
+                        currentMethod.append(" (inactive)");
 
                     ImGui::Text("Current method: %s", currentMethod.c_str());
 
-                    if (mode == LowLatencyMode::AntiLag2)
+                    if (fakenvapiMode == LowLatencyMode::AntiLag2)
                         ShowHelpMarker("FSR Latency Reduction 2.0 is the new name for AntiLag 2\nDon't ask me why");
 
                     if (state.reflexShowWarning)
@@ -4505,7 +4506,7 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::SeparatorText("fakenvapi");
 
-                    ImGui::BeginDisabled(state.activeFgInput == FGInput::XeFG ||
+                    ImGui::BeginDisabled(state.activeFgOutput == FGOutput::XeFG ||
                                          state.activeFgInput == FGInput::ForceXeLL);
                     if (bool forceLFX = config->FN_ForceLatencyFlex.value_or_default();
                         ImGui::Checkbox("Force LatencyFlex", &forceLFX))
@@ -4521,6 +4522,8 @@ bool MenuCommon::RenderMenu()
 
                     if (fakenvapi::isUsingAsMainNvapi())
                     {
+                        ImGui::SameLine(0.0f, 16.0f);
+
                         if (ImGui::Checkbox("Force XeLL", &forceXell))
                         {
                             config->ForceXeLL = forceXell;
@@ -4528,19 +4531,6 @@ bool MenuCommon::RenderMenu()
                         ShowHelpMarker("Allows XeLL to work without FG on non-Intel cards.\n\nDisables FG "
                                        "options\n\nRequires a restart");
                     }
-
-                    ImGui::SameLine(0.0f, 16.0f);
-
-                    ImGui::BeginDisabled(state.activeFgOutput != FGOutput::XeFG);
-
-                    if (bool xeFGWithoutXeLL = config->XeFGWithoutXeLL.value_or_default();
-                        ImGui::Checkbox("XeFG Without XeLL", &xeFGWithoutXeLL))
-                    {
-                        config->XeFGWithoutXeLL = xeFGWithoutXeLL;
-                    }
-                    ShowHelpMarker("If you hate having low latency");
-
-                    ImGui::EndDisabled();
 
                     if (activeForceXeLL != forceXell)
                     {
@@ -4559,8 +4549,7 @@ bool MenuCommon::RenderMenu()
                             "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to Aggressive" }
                     };
 
-                    bool usingLFX =
-                        fakenvapi::updateModeAndContext() && fakenvapi::getCurrentMode() == LowLatencyMode::LatencyFlex;
+                    bool usingLFX = fakenvapi::getCurrentMode() == LowLatencyMode::LatencyFlex;
 
                     ImGui::BeginDisabled(!usingLFX);
                     PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
@@ -4569,11 +4558,6 @@ bool MenuCommon::RenderMenu()
                     static std::vector<MenuOption<ForceReflex>> reflex_modes = { { ForceReflex::InGame, "Follow in-game" },
                                                                             { ForceReflex::ForceDisable, "Force Disable" },
                                                                             { ForceReflex::ForceEnable, "Force Enable" } };
-
-                    if (state.activeFgOutput == FGOutput::XeFG)
-                        reflex_modes[1].set_disabled(true);
-                    else
-                        reflex_modes[1].set_disabled(false);
 
                     PopulateCombo("Force Reflex", config->FN_ForceReflex, reflex_modes);
                     // clang-format on

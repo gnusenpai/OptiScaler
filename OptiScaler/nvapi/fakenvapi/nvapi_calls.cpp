@@ -356,7 +356,6 @@ NvAPI_Status __cdecl NvAPI_D3D_GetLatency(IUnknown* pDevice, NV_LATENCY_RESULT_P
 {
     if (!pDevice || !pGetLatencyParams)
         return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
-    ;
 
     // xellGetFramesReports() currently doesn't give any extra data that we can't already get
     return LowLatencyCtx::get()->GetLatency(pDevice, pGetLatencyParams);
@@ -771,57 +770,5 @@ NvAPI_Status __cdecl NvAPI_Unload()
     }
 
     return OK();
-}
-
-NvAPI_Status __cdecl Fake_InformFGState(bool fg_state)
-{
-    auto context = LowLatencyCtx::get();
-
-    if (!context)
-        return ERROR();
-
-    context->set_forced_fg(fg_state);
-    return OK();
-}
-
-NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t reflex_frame_id)
-{
-    auto context = LowLatencyCtx::get();
-
-    if (!context)
-        return ERROR();
-
-    context->set_fg_type(frame_interpolated, reflex_frame_id);
-    return OK();
-}
-
-NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, LowLatencyMode* mode)
-{
-    if (!low_latency_context || !mode)
-        return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
-
-    auto context = LowLatencyCtx::get();
-
-    if (!context)
-        return ERROR();
-
-    bool result = context->get_low_latency_context(low_latency_context, mode);
-
-    return result ? OK() : ERROR();
-}
-
-NvAPI_Status __cdecl Fake_SetLowLatencyCtx(void* low_latency_context, LowLatencyMode mode)
-{
-    if (!low_latency_context)
-        return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
-
-    auto context = LowLatencyCtx::get();
-
-    if (!context)
-        return ERROR();
-
-    auto result = context->set_low_latency_context(low_latency_context, mode);
-
-    return result ? OK() : ERROR();
 }
 } // namespace nvapi_calls

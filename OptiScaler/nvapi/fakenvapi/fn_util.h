@@ -8,6 +8,7 @@
 
 enum class LowLatencyMode
 {
+    None,
     LatencyFlex,
     AntiLag2,
     XeLL,

@@ -15,9 +15,12 @@
 
 std::unordered_map<NvU32, void*> fakenvapi::idToFuncMapping;
 
-void fakenvapi::init()
+void fakenvapi::init(bool onlyContext)
 {
     LowLatencyCtx::init();
+
+    if (onlyContext)
+        return;
 
     auto exe_path = State::Instance().GameExe;
     to_lower_in_place(exe_path);
@@ -179,8 +182,13 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
     if (!isUsingAsMainNvapi() || State::Instance().activeFgOutput != FGOutput::FSRFG)
         return;
 
+    auto lowLatencyCtx = LowLatencyCtx::get();
+
     // Lets fakenvapi log and reset correctly
-    nvapi_calls::Fake_InformFGState(fg_state);
+    if (lowLatencyCtx)
+        lowLatencyCtx->set_forced_fg(fg_state);
+    else
+        LOG_ERROR("Couldn't get low latency context");
 
     if (fg_state)
     {
@@ -190,8 +198,8 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
         constexpr feature_version requiredVersion = { 3, 1, 1 };
         if (ffxApiVersion >= requiredVersion && updateModeAndContext())
         {
-            antilag2_data.enabled = _lowLatencyContext != nullptr && _lowLatencyMode == LowLatencyMode::AntiLag2;
-            antilag2_data.context = antilag2_data.enabled ? _lowLatencyContext : nullptr;
+            antilag2_data.enabled = _lowLatencyTechContext != nullptr && _lowLatencyMode == LowLatencyMode::AntiLag2;
+            antilag2_data.context = antilag2_data.enabled ? _lowLatencyTechContext : nullptr;
 
             pSwapChain->SetPrivateData(IID_IFfxAntiLag2Data, sizeof(antilag2_data), &antilag2_data);
         }
@@ -200,7 +208,9 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
             // Tell fakenvapi to call SetFrameGenFrameType by itself
             // Reflex frame id might get used in the future
             LOG_TRACE("Fake_InformPresentFG: {}", frame_interpolated);
-            nvapi_calls::Fake_InformPresentFG(frame_interpolated, 0);
+
+            if (lowLatencyCtx)
+                lowLatencyCtx->set_fg_type(frame_interpolated, 0);
         }
     }
     else
@@ -212,35 +222,69 @@ void fakenvapi::reportFGPresent(IDXGISwapChain* pSwapChain, bool fg_state, bool 
 
 bool fakenvapi::updateModeAndContext()
 {
-    if (State::Instance().activeFgOutput == FGOutput::XeFG && Config::Instance()->XeFGWithoutXeLL.value_or_default())
+    LOG_FUNC();
+
+    auto lowLatencyCtx = LowLatencyCtx::get();
+
+    if (!lowLatencyCtx)
     {
+        // Real reflex should fall here and not log
+        if (_usingFakenvapiAsMainNvapi)
+            LOG_ERROR("Couldn't get low latency context");
+
         return false;
     }
 
-    LOG_FUNC();
+    auto result = lowLatencyCtx->get_low_latency_tech_context(&_lowLatencyTechContext, &_lowLatencyMode);
 
-    auto result = nvapi_calls::Fake_GetLowLatencyCtx(&_lowLatencyContext, &_lowLatencyMode);
-
-    if (result != NVAPI_OK)
+    if (!result)
         LOG_TRACE_FAKENVAPI("Can't get Low Latency context from fakenvapi");
 
-    return result == NVAPI_OK;
+    return result;
 }
 
 bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
 {
     LOG_FUNC();
 
-    auto result = nvapi_calls::Fake_SetLowLatencyCtx(context, mode);
+    auto lowLatencyCtx = LowLatencyCtx::get();
 
-    if (result != NVAPI_OK)
+    if (!lowLatencyCtx)
+    {
+        LOG_ERROR("Couldn't get low latency context");
+        return false;
+    }
+
+    auto result = lowLatencyCtx->set_low_latency_tech_context(context, mode);
+
+    if (!result)
         LOG_TRACE_FAKENVAPI("Can't set Low Latency context from fakenvapi");
 
-    return result == NVAPI_OK;
+    return result;
 }
 
-// updateModeAndContext needs to be called before that
-LowLatencyMode fakenvapi::getCurrentMode() { return _lowLatencyMode; }
+bool fakenvapi::isLowLatencyActive()
+{
+    auto lowLatencyCtx = LowLatencyCtx::get();
+
+    if (!lowLatencyCtx)
+    {
+        if (_usingFakenvapiAsMainNvapi)
+            LOG_ERROR("Couldn't get low latency context");
+
+        return false;
+    }
+
+    return lowLatencyCtx->is_low_latency_enabled();
+}
+
+LowLatencyMode fakenvapi::getCurrentMode()
+{
+    if (updateModeAndContext())
+        return _lowLatencyMode;
+    else
+        return LowLatencyMode::None;
+}
 
 bool fakenvapi::isUsingAsMainNvapi() { return _usingFakenvapiAsMainNvapi; }
 

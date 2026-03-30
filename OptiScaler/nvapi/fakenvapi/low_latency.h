@@ -70,8 +70,10 @@ class LowLatency
         if (currently_active_tech)
             currently_active_tech->set_fg_type(interpolated, frame_id);
     }
-    bool get_low_latency_context(void** low_latency_context, LowLatencyMode* low_latency_tech);
-    bool set_low_latency_context(void* low_latency_context, LowLatencyMode low_latency_tech);
+    bool get_low_latency_tech_context(void** low_latency_tech_context, LowLatencyMode* low_latency_tech);
+    bool set_low_latency_tech_context(void* low_latency_tech_context, LowLatencyMode low_latency_tech);
+
+    bool is_low_latency_enabled();
 
     // D3D
     NvAPI_Status Sleep(IUnknown* pDevice);
@@ -88,4 +90,27 @@ class LowLatency
     NvAPI_Status GetSleepStatus(HANDLE vkDevice, NV_VULKAN_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams);
     NvAPI_Status SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
     NvAPI_Status GetLatency(HANDLE vkDevice, NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams);
+};
+
+// This is a wrapper for the entire LowLatency abstraction layer
+// If you need a specific *tech* context then you need to query this abstraction layer
+class LowLatencyCtx
+{
+  public:
+    static void init()
+    {
+        if (!lowlatency_ctx)
+            lowlatency_ctx = new LowLatency();
+    }
+
+    static void shutdown()
+    {
+        delete lowlatency_ctx;
+        lowlatency_ctx = nullptr;
+    }
+
+    static LowLatency* get() { return lowlatency_ctx; }
+
+  private:
+    static LowLatency* lowlatency_ctx;
 };

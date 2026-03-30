@@ -46,7 +46,7 @@ bool LowLatency::deinit_current_tech()
     return false;
 }
 
-bool LowLatency::get_low_latency_context(void** low_latency_context, LowLatencyMode* low_latency_tech)
+bool LowLatency::get_low_latency_tech_context(void** low_latency_context, LowLatencyMode* low_latency_tech)
 {
     std::scoped_lock lock(active_tech_mutex);
 
@@ -66,7 +66,7 @@ bool LowLatency::get_low_latency_context(void** low_latency_context, LowLatencyM
     return true;
 }
 
-bool LowLatency::set_low_latency_context(void* low_latency_context, LowLatencyMode low_latency_tech)
+bool LowLatency::set_low_latency_tech_context(void* low_latency_context, LowLatencyMode low_latency_tech)
 {
     forced_low_latency_context = low_latency_context;
     forced_low_latency_tech = low_latency_tech;
@@ -78,4 +78,14 @@ bool LowLatency::set_low_latency_context(void* low_latency_context, LowLatencyMo
         return update_low_latency_tech((IUnknown*) nullptr);
     else
         return true; // no device, low latency will need to reinit itself on the next reflex call
+}
+
+bool LowLatency::is_low_latency_enabled()
+{
+    std::scoped_lock lock(active_tech_mutex);
+
+    if (!currently_active_tech)
+        return false;
+
+    return currently_active_tech->is_enabled();
 }
