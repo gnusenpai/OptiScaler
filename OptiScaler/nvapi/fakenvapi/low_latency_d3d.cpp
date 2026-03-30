@@ -7,6 +7,7 @@
 
 #include "log.h"
 #include "config.h"
+#include <hooks/Reflex_Hooks.h>
 
 // private
 bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
@@ -42,12 +43,15 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
 
         if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default())
         {
-            currently_active_tech = new AntiLag2();
-            if (currently_active_tech->init(pDevice))
+            if (!State::Instance().NukemsMFG || ReflexHooks::dlssgFrameCountToGenerate() <= 1)
             {
-                LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0");
-                active_tech_mutex.unlock();
-                return true;
+                currently_active_tech = new AntiLag2();
+                if (currently_active_tech->init(pDevice))
+                {
+                    LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0");
+                    active_tech_mutex.unlock();
+                    return true;
+                }
             }
 
             delete currently_active_tech;
@@ -78,6 +82,12 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
     bool force_latencyflex = Config::Instance()->FN_ForceLatencyFlex.value_or_default();
     bool change_detected = last_force_latencyflex != force_latencyflex;
     last_force_latencyflex = force_latencyflex;
+
+    if (State::Instance().fakenvapiReloadLowLatency)
+    {
+        change_detected = true;
+        State::Instance().fakenvapiReloadLowLatency = false;
+    }
 
     auto try_reinit = [&]() -> bool
     {

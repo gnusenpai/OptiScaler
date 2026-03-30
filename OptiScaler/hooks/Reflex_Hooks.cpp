@@ -644,6 +644,9 @@ void ReflexHooks::update(bool fgActive, bool isVulkan)
 
     if (lastFgNumFramesToGenerate != _FgNumFramesToGenerate)
     {
+        if (fakenvapi::isUsingAsMainNvapi())
+            State::Instance().fakenvapiReloadLowLatency = true;
+
         lastFgNumFramesToGenerate = _FgNumFramesToGenerate;
         setFPSLimit(currentFps);
 

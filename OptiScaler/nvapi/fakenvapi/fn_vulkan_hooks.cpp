@@ -70,6 +70,9 @@ void FnVulkanHooks::hook_vulkan(HMODULE vulkanModule)
 {
     LOG_DEBUG("Trying to hook Vulkan");
 
+    if (o_vkCreateDevice)
+        return;
+
     o_vkCreateDevice = (PFN_vkCreateDevice) GetProcAddress(vulkanModule, "vkCreateDevice");
     o_vkGetPhysicalDeviceFeatures2 =
         (PFN_vkGetPhysicalDeviceFeatures2) GetProcAddress(vulkanModule, "vkGetPhysicalDeviceFeatures2");

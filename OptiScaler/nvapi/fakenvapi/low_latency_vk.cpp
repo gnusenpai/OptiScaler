@@ -43,6 +43,12 @@ bool LowLatency::update_low_latency_tech(HANDLE vkDevice)
     bool change_detected = last_force_latencyflex != force_latencyflex;
     last_force_latencyflex = force_latencyflex;
 
+    if (State::Instance().fakenvapiReloadLowLatency)
+    {
+        change_detected = true;
+        State::Instance().fakenvapiReloadLowLatency = false;
+    }
+
     if (change_detected)
     {
         if (deinit_current_tech())
