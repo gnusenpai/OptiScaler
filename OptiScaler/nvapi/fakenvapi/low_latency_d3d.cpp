@@ -41,17 +41,15 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             delete currently_active_tech;
         }
 
-        if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default())
+        if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default() &&
+            (!State::Instance().NukemsMFG || ReflexHooks::dlssgFrameCountToGenerate() <= 1))
         {
-            if (!State::Instance().NukemsMFG || ReflexHooks::dlssgFrameCountToGenerate() <= 1)
+            currently_active_tech = new AntiLag2();
+            if (currently_active_tech->init(pDevice))
             {
-                currently_active_tech = new AntiLag2();
-                if (currently_active_tech->init(pDevice))
-                {
-                    LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0");
-                    active_tech_mutex.unlock();
-                    return true;
-                }
+                LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0");
+                active_tech_mutex.unlock();
+                return true;
             }
 
             delete currently_active_tech;
