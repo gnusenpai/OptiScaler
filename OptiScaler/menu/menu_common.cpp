@@ -2916,7 +2916,7 @@ bool MenuCommon::RenderMenu()
 
                 // clang-format on
 
-                // XeFG requirements
+                // XeFG input requirements
                 auto constexpr xefgInputIndex = (uint32_t) FGInput::XeFG;
                 inputOptions[xefgInputIndex].set_disabled(true, "Support not implemented");
 
@@ -2996,6 +2996,8 @@ bool MenuCommon::RenderMenu()
                     outputOptions[nukemsOutputIndex].set_disabled(true,
                                                                   "Missing the dlssg_to_fsr3_amd_is_better.dll file");
                 }
+                inputOptions[nukemsInputIndex].set_disabled(state.swapchainApi == API::DX11, "Unsupported API");
+                outputOptions[nukemsOutputIndex].set_disabled(state.swapchainApi == API::DX11, "Unsupported API");
 
                 // FSR FG output requirements
                 auto constexpr fsrfgOutputIndex = (uint32_t) FGOutput::FSRFG;
