@@ -627,6 +627,13 @@ bool Config::Reload(std::filesystem::path iniPath)
             SpoofRegistry.set_from_config(readBool("Spoofing", "Registry"));
             SpoofedDriver.set_from_config(readWString("Spoofing", "RegistryDriver"));
             SpoofUser32.set_from_config(readBool("Spoofing", "User32"));
+
+            // Enable HAGS when DLSS-G will be used
+            if (!SpoofHAGS.has_value())
+            {
+                SpoofHAGS.set_volatile_value(FGInput.value_or_default() == FGInput::Nukems ||
+                                             FGInput.value_or_default() == FGInput::DLSSG);
+            }
         }
 
         // fakenvapi
@@ -1331,13 +1338,6 @@ bool Config::SaveIni()
         ini.SetValue("Spoofing", "RegistryDriver",
                      wstring_to_string(Instance()->SpoofedDriver.value_for_config_or(L"auto")).c_str());
         ini.SetValue("Spoofing", "User32", GetBoolValue(Instance()->SpoofUser32.value_for_config()).c_str());
-
-        // Enable HAGS when DLSS-G will be used
-        if (!Instance()->SpoofHAGS.has_value())
-        {
-            Instance()->SpoofHAGS.set_volatile_value(Instance()->FGInput.value_or_default() == FGInput::Nukems ||
-                                                     Instance()->FGInput.value_or_default() == FGInput::DLSSG);
-        }
     }
 
     // Plugins
