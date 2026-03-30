@@ -2983,6 +2983,8 @@ bool MenuCommon::RenderMenu()
                 // DLSSG output requirements
                 auto constexpr dlssgOutputIndex = (uint32_t) FGOutput::DLSSG;
                 outputOptions[dlssgOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
+                outputOptions[dlssgOutputIndex].set_disabled(
+                    primaryGpu.nvidiaArchInfo.architecture_id < NV_GPU_ARCHITECTURE_AD100, "Unsupported hardware");
 
                 // Nukem's FG mod requirements
                 auto constexpr nukemsInputIndex = (uint32_t) FGInput::Nukems;
