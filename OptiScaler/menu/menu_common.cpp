@@ -3000,8 +3000,8 @@ bool MenuCommon::RenderMenu()
                 // For that one case of DX11 DLSSG
                 const auto streamlineVersion = state.streamlineVersion;
                 const bool nukemsUnsupportedApi =
-                    state.swapchainApi == API::DX11 &&
-                    (streamlineVersion == feature_version { 0, 0, 0 } || streamlineVersion > feature_version { 2, 0, 1 });
+                    state.swapchainApi == API::DX11 && (streamlineVersion == feature_version { 0, 0, 0 } ||
+                                                        streamlineVersion > feature_version { 2, 0, 1 });
                 inputOptions[nukemsInputIndex].set_disabled(nukemsUnsupportedApi, "Unsupported API");
                 outputOptions[nukemsOutputIndex].set_disabled(nukemsUnsupportedApi, "Unsupported API");
 
