@@ -97,6 +97,8 @@ bool Config::Reload(std::filesystem::path iniPath)
                     FGOutput.set_from_config(FGOutput::FSRFG);
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "nukems") == 0)
                     FGOutput.set_from_config(FGOutput::Nukems);
+                else if (lstrcmpiA(FGOutputString.value().c_str(), "dlssgwithnukems") == 0)
+                    FGOutput.set_from_config(FGOutput::DLSSGWithNukems);
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "xefg") == 0)
                     FGOutput.set_from_config(FGOutput::XeFG);
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "dlssg") == 0)
@@ -632,6 +634,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             if (!SpoofHAGS.has_value())
             {
                 SpoofHAGS.set_volatile_value(FGInput.value_or_default() == FGInput::Nukems ||
+                                             FGOutput.value_or_default() == FGOutput::DLSSGWithNukems ||
                                              FGInput.value_or_default() == FGInput::DLSSG);
             }
         }
@@ -826,6 +829,8 @@ bool Config::SaveIni()
                 FGOutputString = "FSRFG";
             else if (FGOutputHeld.value() == FGOutput::Nukems)
                 FGOutputString = "Nukems";
+            else if (FGOutputHeld.value() == FGOutput::DLSSGWithNukems)
+                FGOutputString = "DLSSGWithNukems";
             else if (FGOutputHeld.value() == FGOutput::XeFG)
                 FGOutputString = "XeFG";
             else if (FGOutputHeld.value() == FGOutput::DLSSG)

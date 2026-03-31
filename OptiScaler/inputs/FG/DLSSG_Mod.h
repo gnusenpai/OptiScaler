@@ -134,8 +134,11 @@ class DLSSGMod
     {
         LOG_FUNC();
 
-        if (_dx12_inited || Config::Instance()->FGInput.value_or_default() != FGInput::Nukems)
+        if (_dx12_inited || (Config::Instance()->FGInput.value_or_default() != FGInput::Nukems &&
+                             Config::Instance()->FGOutput.value_or_default() != FGOutput::DLSSGWithNukems))
+        {
             return;
+        }
 
         _dll = TryInitMFG();
 

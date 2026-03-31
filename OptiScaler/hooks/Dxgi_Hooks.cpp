@@ -127,7 +127,8 @@ inline static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
     {
         IDXGIFactory* real = nullptr;
 
-        if (State::Instance().activeFgOutput != FGOutput::DLSSG &&
+        if ((State::Instance().activeFgOutput != FGOutput::DLSSG ||
+             State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
             Util::CheckForRealObject(__FUNCTION__, *ppFactory, (IUnknown**) &real))
         {
             *ppFactory = real;
@@ -185,7 +186,8 @@ inline static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactor
     {
         IDXGIFactory1* real = nullptr;
 
-        if (State::Instance().activeFgOutput != FGOutput::DLSSG &&
+        if ((State::Instance().activeFgOutput != FGOutput::DLSSG ||
+             State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
             Util::CheckForRealObject(__FUNCTION__, *ppFactory, (IUnknown**) &real))
         {
             *ppFactory = real;
@@ -245,7 +247,8 @@ inline static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory
     {
         IDXGIFactory2* real = nullptr;
 
-        if (State::Instance().activeFgOutput != FGOutput::DLSSG &&
+        if ((State::Instance().activeFgOutput != FGOutput::DLSSG ||
+             State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
             Util::CheckForRealObject(__FUNCTION__, *ppFactory, (IUnknown**) &real))
         {
             *ppFactory = real;

@@ -1112,8 +1112,12 @@ static void HookToDevice(ID3D12Device* InDevice)
     if (State::Instance().activeFgInput == FGInput::Upscaler && !Config::Instance()->FGDisableHUDFix.value_or_default())
         ResTrack_Dx12::HookDevice(InDevice);
 
-    if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::LoadStreamline())
+    if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
+         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
+        StreamlineProxy::LoadStreamline())
+    {
         StreamlineProxy::InitWithD3D12(InDevice);
+    }
 }
 
 static void UnhookDevice()

@@ -500,8 +500,12 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
 #ifdef USE_LOCAL_MUTEX
         // dlssg calls this from present it seems
         // don't try to get a mutex when present owns it while dlssg mod is enabled
-        if (!(_localMutex.getOwner() == 4 && Config::Instance()->FGInput.value_or_default() == FGInput::Nukems))
+        if (!(_localMutex.getOwner() == 4 &&
+              (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems ||
+               Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNukems)))
+        {
             OwnedLockGuard lock(_localMutex, 3);
+        }
 #endif
         if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
         {
@@ -554,8 +558,12 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 #ifdef USE_LOCAL_MUTEX
     // dlssg calls this from present it seems
     // don't try to get a mutex when present owns it while dlssg mod is enabled
-    if (!(_localMutex.getOwner() == 4 && Config::Instance()->FGInput.value_or_default() == FGInput::Nukems))
+    if (!(_localMutex.getOwner() == 4 &&
+          (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems ||
+           Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNukems)))
+    {
         OwnedLockGuard lock(_localMutex, 1);
+    }
 #endif
 
     if (State::Instance().currentFG != nullptr && Config::Instance()->FGUseMutexForSwapchain.value_or_default())
@@ -863,8 +871,12 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 #ifdef USE_LOCAL_MUTEX
     // dlssg calls this from present it seems
     // don't try to get a mutex when present owns it while dlssg mod is enabled
-    if (!(_localMutex.getOwner() == 4 && Config::Instance()->FGInput.value_or_default() == FGInput::Nukems))
+    if (!(_localMutex.getOwner() == 4 &&
+          (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems ||
+           Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNukems)))
+    {
         OwnedLockGuard lock(_localMutex, 2);
+    }
 #endif
 
     if (State::Instance().activeFgOutput == FGOutput::FSRFG &&
