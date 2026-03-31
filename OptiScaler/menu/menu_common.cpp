@@ -2996,8 +2996,14 @@ bool MenuCommon::RenderMenu()
                     outputOptions[nukemsOutputIndex].set_disabled(true,
                                                                   "Missing the dlssg_to_fsr3_amd_is_better.dll file");
                 }
-                inputOptions[nukemsInputIndex].set_disabled(state.swapchainApi == API::DX11, "Unsupported API");
-                outputOptions[nukemsOutputIndex].set_disabled(state.swapchainApi == API::DX11, "Unsupported API");
+
+                // For that one case of DX11 DLSSG
+                const auto streamlineVersion = state.streamlineVersion;
+                const bool nukemsUnsupportedApi =
+                    state.swapchainApi == API::DX11 &&
+                    (streamlineVersion == feature_version { 0, 0, 0 } || streamlineVersion > feature_version { 2, 0, 1 });
+                inputOptions[nukemsInputIndex].set_disabled(nukemsUnsupportedApi, "Unsupported API");
+                outputOptions[nukemsOutputIndex].set_disabled(nukemsUnsupportedApi, "Unsupported API");
 
                 // FSR FG output requirements
                 auto constexpr fsrfgOutputIndex = (uint32_t) FGOutput::FSRFG;
