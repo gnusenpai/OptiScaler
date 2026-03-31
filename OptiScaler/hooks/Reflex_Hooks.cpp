@@ -46,15 +46,14 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
 #endif
 
     static bool skip = false;
-    uint32_t frameCount = (uint32_t) _lastFrameId[SIMULATION_START] + 1;
-    LOG_DEBUG("Sleeping for: {}", frameCount);
-
     if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
         Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
         State::Instance().currentFG->IsActive() && !State::Instance().currentFG->IsPaused())
     {
         if (!skip)
         {
+            uint32_t frameCount = (uint32_t) _lastFrameId[SIMULATION_START] + 1;
+
             sl::FrameToken* frameToken;
             StreamlineProxy::GetNewFrameToken()(frameToken, &frameCount);
 
