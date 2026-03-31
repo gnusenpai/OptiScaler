@@ -46,7 +46,8 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
 #endif
 
     static bool skip = false;
-    if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
+    if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
+         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
         Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
         State::Instance().currentFG->IsActive() && !State::Instance().currentFG->IsPaused())
     {
@@ -124,8 +125,9 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     if (pSetLatencyMarkerParams->markerType == SIMULATION_START)
         _lastMarkerFrame = State::Instance().FGLastFrame;
 
-    if (State::Instance().activeFgOutput == FGOutput::DLSSG && StreamlineProxy::IsD3D12Inited() &&
-        Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
+    if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
+         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
+        StreamlineProxy::IsD3D12Inited() && Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
         State::Instance().currentFG->IsActive() && !State::Instance().currentFG->IsPaused())
     {
         sl::PCLMarker marker {};

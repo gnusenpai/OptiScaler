@@ -58,7 +58,9 @@ static bool CheckForFGStatus()
         Config::Instance()->FGOutput.set_volatile_value(FGOutput::NoFG);
         State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
     }
-    else if (State::Instance().activeFgOutput == FGOutput::DLSSG && !StreamlineProxy::LoadStreamline())
+    else if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
+              State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
+             !StreamlineProxy::LoadStreamline())
     {
         LOG_DEBUG("Can't init StreamlineProxy, disabling FGOutput");
         Config::Instance()->FGOutput.set_volatile_value(FGOutput::NoFG);
@@ -66,7 +68,8 @@ static bool CheckForFGStatus()
     }
 
     if (State::Instance().activeFgOutput != FGOutput::FSRFG && State::Instance().activeFgOutput != FGOutput::XeFG &&
-        State::Instance().activeFgOutput != FGOutput::DLSSG)
+        State::Instance().activeFgOutput != FGOutput::DLSSG &&
+        State::Instance().activeFgOutput != FGOutput::DLSSGWithNukems)
     {
         LOG_WARN("FGOutput is not set to FSR-FG or XeFG");
         return false;
@@ -105,7 +108,8 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         {
             State::Instance().currentFG = new XeFG_Dx12();
         }
-        else if (State::Instance().activeFgOutput == FGOutput::DLSSG)
+        else if (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                 State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
         {
             State::Instance().currentFG = new DLSSG_Dx12();
         }
@@ -232,7 +236,8 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
         {
             State::Instance().currentFG = new XeFG_Dx12();
         }
-        else if (State::Instance().activeFgOutput == FGOutput::DLSSG)
+        else if (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                 State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
         {
             State::Instance().currentFG = new DLSSG_Dx12();
         }
@@ -1063,17 +1068,21 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
 
     sl::FrameToken* localToken = nullptr;
     sl::Result tokenResult = sl::Result::eErrorReflexAPI;
-    if (willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG && fg->IsActive() && !fg->IsPaused())
+    if (willPresent && (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                        State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems))
     {
         ((IDXGISwapChain4*) This)->GetCurrentBackBufferIndex();
 
-        const uint32_t frameId = (uint32_t) State::Instance().currentFG->FrameCount();
-        tokenResult = StreamlineProxy::GetNewFrameToken()(localToken, &frameId);
-
-        if (tokenResult == sl::Result::eOk && !ReflexHooks::gameIsSendingMarkers() ||
+        if (!ReflexHooks::gameIsSendingMarkers() ||
             !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
         {
-            StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentStart, *localToken);
+            const uint32_t frameId = (uint32_t) State::Instance().currentFG->FrameCount();
+            tokenResult = StreamlineProxy::GetNewFrameToken()(localToken, &frameId);
+
+            if (tokenResult == sl::Result::eOk)
+            {
+                StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentStart, *localToken);
+            }
         }
     }
 
@@ -1150,7 +1159,9 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
     if (tokenResult == sl::Result::eOk && localToken != nullptr &&
         (!ReflexHooks::gameIsSendingMarkers() ||
          !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default()) &&
-        willPresent && State::Instance().activeFgOutput == FGOutput::DLSSG && fg->IsActive() && !fg->IsPaused())
+        willPresent &&
+        (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems))
     {
         StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentEnd, *localToken);
         StreamlineProxy::ReflexSleep()(*localToken);

@@ -59,6 +59,12 @@ class DLSSG_Dx12 : public virtual IFGFeature_Dx12
     {
         if (StreamlineProxy::Module() == nullptr)
             StreamlineProxy::LoadStreamline();
+
+        if (StreamlineProxy::Module() != nullptr && !StreamlineProxy::IsD3D12Inited() &&
+            State::Instance().currentD3D12Device != nullptr)
+        {
+            StreamlineProxy::InitWithD3D12(State::Instance().currentD3D12Device);
+        }
     }
 
     ~DLSSG_Dx12();

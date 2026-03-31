@@ -69,10 +69,15 @@ class StreamlineProxy
             return true;
 
         auto owner = State::GetOwner();
-        State::DisableChecks(owner);
+        if (State::Instance().activeFgOutput != FGOutput::DLSSGWithNukems)
+            State::DisableChecks(owner);
+        else
+            State::DisableChecks(owner, "sl.");
+
         std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.interposer.dll";
         LOG_INFO(L"Trying to load sl.interposer.dll from dll path: {}", slPath.wstring());
         _dll = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+
         State::EnableChecks(owner);
 
         if (_dll != nullptr)
@@ -332,8 +337,14 @@ class StreamlineProxy
         pref.numPathsToPlugins = (uint32_t) paths.size();
 
         auto owner = State::GetOwner();
-        State::DisableChecks(owner);
+
+        if (State::Instance().activeFgOutput != FGOutput::DLSSGWithNukems)
+            State::DisableChecks(owner);
+        else
+            State::DisableChecks(owner, "sl.");
+
         auto initResult = StreamlineProxy::Init()(pref, sl::kSDKVersion);
+
         State::EnableChecks(owner);
 
         if (initResult == sl::Result::eOk)

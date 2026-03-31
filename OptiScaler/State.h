@@ -43,7 +43,8 @@ enum class FGOutput : uint32_t
     Nukems,
     FSRFG,
     DLSSG,
-    XeFG
+    XeFG,
+    DLSSGWithNukems,
 };
 
 enum class WorkingMode : uint32_t
@@ -307,26 +308,32 @@ class State
     /// <param name="dllName">Lower case dll name without `.dll` at the end. Leave blank for skipping all dll's</param>
     static void DisableChecks(UINT owner, std::string dllName = "")
     {
-        if (_skipOwner == 0)
-        {
-            _skipOwner = owner;
-            _skipChecks = true;
-            _skipDllName = dllName;
-        }
-        else
-        {
-            _skipDllName = ""; // Hack for multiple skip calls
-        }
+        // if (_skipOwner == 0 || _skipOwner < owner)
+        //{
+        _skipOwner = owner;
+        _skipChecks = true;
+        _skipDllName[_skipOwner] = dllName;
+        //}
     };
 
     static void EnableChecks(UINT owner)
     {
-        if (_skipOwner == 0 || _skipOwner == owner)
+        _skipDllName.erase(_skipOwner);
+
+        // if (_skipOwner == owner)
+        //{
+        if (_skipDllName.size() > 0)
         {
-            _skipChecks = false;
-            _skipDllName = "";
+            // loop in reverse to get the last added owner
+            _skipOwner = _skipDllName.rbegin()->first;
+        }
+        else
+        {
             _skipOwner = 0;
         }
+
+        _skipChecks = (_skipOwner != 0);
+        //}
     };
 
     static void DisableServeOriginal(UINT owner)
@@ -348,12 +355,15 @@ class State
     };
 
     static bool SkipDllChecks() { return _skipChecks; }
-    static std::string SkipDllName() { return _skipDllName; }
+    static std::string SkipDllName()
+    {
+        return _skipOwner == 0 ? "" : (_skipDllName.contains(_skipOwner) ? _skipDllName[_skipOwner] : "");
+    }
     static bool ServeOriginal() { return _serveOriginal; }
 
   private:
     inline static bool _skipChecks = false;
-    inline static std::string _skipDllName = "";
+    inline static std::map<UINT, std::string> _skipDllName;
     inline static UINT _skipOwner = 0;
     inline static UINT _lastOwner = 0;
 

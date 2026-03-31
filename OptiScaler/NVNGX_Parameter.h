@@ -522,7 +522,8 @@ inline static void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
     }
 
     // not ideal as it doesn't take different APIs into account
-    if (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG)
+    if (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG ||
+        State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
     {
         InParams->Set("FrameGeneration.Available", 1);
         InParams->Set("FrameGeneration.NeedsUpdatedDriver", 0);
@@ -531,10 +532,8 @@ inline static void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
         InParams->Set(NVSDK_NGX_Parameter_FrameInterpolation_NeedsUpdatedDriver, 0);
         InParams->Set(NVSDK_NGX_Parameter_FrameInterpolation_FeatureInitResult, 1);
 
-        feature_version moreCopeVersion { 2, 11, 0 };
-        auto maxCopeCount = State::Instance().streamlineVersion >= moreCopeVersion ? 5 : 3;
-
-        InParams->Set("DLSSG.MultiFrameCountMax", State::Instance().NukemsMFG ? maxCopeCount : 1);
+        // Streamline handle the max interpolated frame count
+        InParams->Set("DLSSG.MultiFrameCountMax", State::Instance().NukemsMFG ? 5 : 1);
 
         if (State::Instance().NVNGX_Engine == NVSDK_NGX_ENGINE_TYPE_UNREAL ||
             State::Instance().gameQuirks & GameQuirk::ForceUnrealEngine)

@@ -2975,7 +2975,8 @@ bool MenuCommon::RenderMenu()
                     { FGOutput::Nukems, "FSR3-FG via Nukem's", "Enable DLSS-FG in-game" },
                     { FGOutput::FSRFG, "FSR FG", "FSR3/4 FG" },
                     { FGOutput::DLSSG, "DLSSG", "For 40xx and above" },
-                    { FGOutput::XeFG, "XeFG", "XeFG" }
+                    { FGOutput::XeFG, "XeFG", "XeFG" },
+                    { FGOutput::DLSSGWithNukems, "DLSSG with Nukem's", "DLSSG with Nukem's" }
                 };
 
                 // clang-format on
@@ -3004,6 +3005,15 @@ bool MenuCommon::RenderMenu()
                                                         streamlineVersion > feature_version { 2, 0, 1 });
                 inputOptions[nukemsInputIndex].set_disabled(nukemsUnsupportedApi, "Unsupported API");
                 outputOptions[nukemsOutputIndex].set_disabled(nukemsUnsupportedApi, "Unsupported API");
+
+                auto constexpr dlssgWithNukemsOutputIndex = (uint32_t) FGOutput::DLSSGWithNukems;
+                if (!state.NukemsFilesAvailable)
+                {
+                    outputOptions[dlssgWithNukemsOutputIndex].set_disabled(
+                        true, "Missing the dlssg_to_fsr3_amd_is_better.dll file");
+                }
+                outputOptions[dlssgWithNukemsOutputIndex].set_disabled(state.swapchainApi != API::DX12,
+                                                                       "Unsupported API");
 
                 // FSR FG output requirements
                 auto constexpr fsrfgOutputIndex = (uint32_t) FGOutput::FSRFG;
@@ -3131,7 +3141,8 @@ bool MenuCommon::RenderMenu()
 
                     auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
                     if (((state.activeFgOutput == FGOutput::FSRFG || state.activeFgOutput == FGOutput::XeFG ||
-                          state.activeFgOutput == FGOutput::DLSSG) &&
+                          state.activeFgOutput == FGOutput::DLSSG ||
+                          state.activeFgOutput == FGOutput::DLSSGWithNukems) &&
                          state.activeFgInput != FGInput::NoFG && state.activeFgInput != FGInput::Nukems) &&
                         fgOutput)
                     {
@@ -3771,8 +3782,8 @@ bool MenuCommon::RenderMenu()
                 }
 
                 // DLSSG controls
-                if (state.activeFgOutput == FGOutput::DLSSG && state.activeFgInput != FGInput::NoFG &&
-                    state.currentFGSwapchain != nullptr)
+                if ((state.activeFgOutput == FGOutput::DLSSG || state.activeFgOutput == FGOutput::DLSSGWithNukems) &&
+                    state.activeFgInput != FGInput::NoFG && state.currentFGSwapchain != nullptr)
                 {
                     if (StreamlineProxy::LoadStreamline() && currentFeature != nullptr && !currentFeature->IsFrozen())
                     {
@@ -3843,7 +3854,9 @@ bool MenuCommon::RenderMenu()
                     if (currentFeature != nullptr && !currentFeature->IsFrozen() &&
                         ((state.activeFgOutput == FGOutput::FSRFG && FfxApiProxy::IsFGReady()) ||
                          (state.activeFgOutput == FGOutput::XeFG && XeFGProxy::Module() != nullptr) ||
-                         (state.activeFgOutput == FGOutput::DLSSG && StreamlineProxy::Module() != nullptr)))
+                         ((state.activeFgOutput == FGOutput::DLSSG ||
+                           state.activeFgOutput == FGOutput::DLSSGWithNukems) &&
+                          StreamlineProxy::Module() != nullptr)))
                     {
                         if (!Config::Instance()->FGDisableHUDFix.value_or_default())
                         {
