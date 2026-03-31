@@ -465,9 +465,23 @@ bool DLSSG_Dx12::Dispatch()
 
     constData.jitterOffset.x = _jitterX[fIndex];
     constData.jitterOffset.y = _jitterY[fIndex];
+
     auto mv = GetResource(FG_ResourceType::Velocity, fIndex);
-    constData.mvecScale.x = 1.0f / mv->width;
-    constData.mvecScale.y = 1.0f / mv->height;
+    constData.mvecScale.x = _mvScaleX[fIndex] / (float) mv->width;
+    constData.mvecScale.y = _mvScaleY[fIndex] / (float) mv->height;
+
+    // LOG_DEBUG("MvRes: {}x{}, Games MvScale : {}x{}, SL MvScale: {}x{}", mv->width, mv->height, _mvScaleX[fIndex],
+    //           _mvScaleY[fIndex], constData.mvecScale.x, constData.mvecScale.y);
+
+    // if (State::Instance().currentFeature != nullptr)
+    //{
+    //     auto fResX = State::Instance().currentFeature->RenderWidth();
+    //     auto fResY = State::Instance().currentFeature->RenderHeight();
+
+    //    LOG_DEBUG("Feature LowResMV: {} RenderRes : {}x{}, CMvScale: {}x{}",
+    //              State::Instance().currentFeature->LowResMV(), fResX, fResY, 1.0f / (float) fResX,
+    //              1.0f / (float) fResY);
+    //}
 
     if (!Config::Instance()->FGSkipReset.value_or_default())
         constData.reset = _reset[fIndex] != 0 ? sl::Boolean::eTrue : sl::Boolean::eFalse;
