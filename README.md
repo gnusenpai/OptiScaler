@@ -44,7 +44,7 @@
 > * We've been informed about some **FAKE websites** presenting themselves as OptiScaler team, so we would like to strongly highlight that we **DO NOT HAVE an official website!**
 > * **We DON'T have an official manager app**, so please be careful when downloading or using them!
 > * Only **LEGIT places** are this Github, our Discord server and Nitec's NexusMods page.  
-> * OptiScaler is **FREE**, any kind of monetary requirements are scams as we don't even have a donation link at the moment!  
+> * OptiScaler is **FREE**, any kind of monetary requirements are scams!  
 
 > [!TIP]
 > _For example, if a game has DLSS only, OptiScaler can be used to replace DLSS with XeSS or FSR 3.1 (also works for FSR2-only games, like The Outer Worlds Spacer's Choice, albeit requires manually providing nvngx_dlss.dll)._
