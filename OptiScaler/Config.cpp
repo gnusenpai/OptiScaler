@@ -111,12 +111,6 @@ bool Config::Reload(std::filesystem::path iniPath)
                 FGOutput.set_volatile_value(FGOutput::XeFG);
             }
 
-            if (auto forceXell = readBool("fakenvapi", "ForceXeLL"); forceXell.has_value() && forceXell.value())
-            {
-                FGInput.set_volatile_value(FGInput::ForceXeLL);
-                FGOutput.set_volatile_value(FGOutput::XeFG);
-            }
-
             auto ftInput = readInt("FrameGen", "FTSource");
             if (ftInput.has_value() && ftInput.value() >= 0 &&
                 ftInput.value() <= (FGOutput.value_or_default() == FGOutput::XeFG ? 2 : 1))
@@ -280,7 +274,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             else if (FsrNonLinearSRGB.has_value() && FsrNonLinearSRGB.value())
                 FsrNonLinearPQ.reset();
 
-            if (FsrNonLinearPQ.has_value() || FsrNonLinearPQ.has_value())
+            if (FsrNonLinearPQ.has_value() || FsrNonLinearSRGB.has_value())
                 FsrNonLinearColorSpace.set_volatile_value(true);
         }
 

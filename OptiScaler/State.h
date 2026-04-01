@@ -119,7 +119,7 @@ class State
     bool skipHeapCapture = false;
 
     bool FGcaptureResources = false;
-    size_t FGcapturedResourceCount = false;
+    size_t FGcapturedResourceCount = 0;
     bool FGresetCapturedResources = false;
     bool FGonlyUseCapturedResources = false;
 
