@@ -14,6 +14,7 @@
 
 #include <ankerl/unordered_dense.h>
 #include <imgui/ImGuiNotify.hpp>
+#include <misc/IdentifyGpu.h>
 
 inline ID3D11Device* D3D11Device = nullptr;
 static ankerl::unordered_dense::map<unsigned int, ContextData<IFeature_Dx11>> Dx11Contexts;

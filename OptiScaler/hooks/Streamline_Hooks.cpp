@@ -15,6 +15,7 @@
 #include <sl1_reflex.h>
 #include <nvapi/fakenvapi.h>
 #include <misc/IdentifyGpu.h>
+#include <framegen/nvngx/Nvngx_FG.h>
 
 sl::RenderAPI StreamlineHooks::renderApi = sl::RenderAPI::eCount;
 std::mutex StreamlineHooks::setConstantsMutex {};
@@ -221,8 +222,7 @@ sl::Result StreamlineHooks::hkslSetTag(const sl::ViewportHandle& viewport, const
             LOG_TRACE("Tagging resource of type: {}", magic_enum::enum_name(typeEnum));
 
             // Workaround a bug in the FSR 3 MFG mod where it composits the UI incorrectly
-            if (tags[i].type == sl::kBufferTypeUIColorAndAlpha && tags[i].resource->native &&
-                State::Instance().NukemsMFG)
+            if (tags[i].type == sl::kBufferTypeUIColorAndAlpha && tags[i].resource->native && Nvngx_FG::isMFG())
             {
                 tags[i].resource->native = nullptr;
             }
@@ -279,7 +279,7 @@ sl::Result StreamlineHooks::hkslSetTagForFrame(const sl::FrameToken& frame, cons
 
             // Workaround a bug in the FSR 3 MFG mod where it composits the UI incorrectly
             if (resources[i].type == sl::kBufferTypeUIColorAndAlpha && resources[i].resource->native &&
-                State::Instance().NukemsMFG)
+                Nvngx_FG::isMFG())
             {
                 resources[i].resource->native = nullptr;
             }

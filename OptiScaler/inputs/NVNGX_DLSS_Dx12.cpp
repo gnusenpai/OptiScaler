@@ -9,7 +9,7 @@
 #include <upscalers/FeatureProvider_Dx12.h>
 #include "upscalers/dlss/DLSSFeature_Dx12.h"
 
-#include "FG/DLSSG_Mod.h"
+#include <framegen/nvngx/Nvngx_FG.h>
 #include "FG/FSR3_Dx12_FG.h"
 #include "FG/Upscaler_Inputs_Dx12.h"
 
@@ -22,6 +22,7 @@
 #include <shared_mutex>
 #include "detours/detours.h"
 #include <ankerl/unordered_dense.h>
+#include <misc/IdentifyGpu.h>
 
 static ankerl::unordered_dense::map<unsigned int, ContextData<IFeature_Dx12>> Dx12Contexts;
 
@@ -95,8 +96,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
     if (State::Instance().activeFgInput == FGInput::Nukems ||
         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
     {
-        DLSSGMod::InitDLSSGMod_Dx12();
-        DLSSGMod::D3D12_Init_Ext(InApplicationId, InApplicationDataPath, InDevice, InSDKVersion, InFeatureInfo);
+        Nvngx_FG::InitDLSSGMod_Dx12();
+        Nvngx_FG::D3D12_Init_Ext(InApplicationId, InApplicationDataPath, InDevice, InSDKVersion, InFeatureInfo);
     }
 
     LOG_INFO("AppId: {0}", InApplicationId);
@@ -166,8 +167,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init(unsigned long long InApplica
 
     // if (State::Instance().activeFgInput == FGInput::Nukems)
     //{
-    //     DLSSGMod::InitDLSSGMod_Dx12();
-    //     DLSSGMod::D3D12_Init(InApplicationId, InApplicationDataPath, InDevice, InFeatureInfo, InSDKVersion);
+    //     Nvngx_FG::InitDLSSGMod_Dx12();
+    //     Nvngx_FG::D3D12_Init(InApplicationId, InApplicationDataPath, InDevice, InFeatureInfo, InSDKVersion);
     // }
 
     ScopedInit scopedInit {};
@@ -302,7 +303,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
     if (State::Instance().activeFgInput == FGInput::Nukems ||
         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
     {
-        DLSSGMod::D3D12_Shutdown();
+        Nvngx_FG::D3D12_Shutdown();
     }
 
     State::Instance().NvngxDx12Inited = false;
@@ -318,7 +319,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown1(ID3D12Device* InDevice)
     if (State::Instance().activeFgInput == FGInput::Nukems ||
         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
     {
-        DLSSGMod::D3D12_Shutdown1(InDevice);
+        Nvngx_FG::D3D12_Shutdown1(InDevice);
     }
 
     // Added `&& !State::Instance().isShuttingDown` hack for crash on exit
@@ -464,7 +465,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_PopulateParameters_Impl(NVSDK_NGX
     if (State::Instance().activeFgInput == FGInput::Nukems ||
         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
     {
-        DLSSGMod::D3D12_PopulateParameters_Impl(InParameters);
+        Nvngx_FG::D3D12_PopulateParameters_Impl(InParameters);
     }
 
     return NVSDK_NGX_Result_Success;
@@ -658,11 +659,11 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_CreateFeature(ID3D12GraphicsComma
 
     // Nukem's DLSSG mod passthrough
     if ((state.activeFgInput == FGInput::Nukems || state.activeFgOutput == FGOutput::DLSSGWithNukems) &&
-        DLSSGMod::isDx12Available() && InFeatureID == NVSDK_NGX_Feature_FrameGeneration)
+        Nvngx_FG::isDx12Available() && InFeatureID == NVSDK_NGX_Feature_FrameGeneration)
     {
         LOG_INFO("Passthrough to Nukem's DLSSG CreateFeature for FrameGeneration");
 
-        NVSDK_NGX_Result res = DLSSGMod::D3D12_CreateFeature(InCmdList, InFeatureID, InParameters, OutHandle);
+        NVSDK_NGX_Result res = Nvngx_FG::D3D12_CreateFeature(InCmdList, InFeatureID, InParameters, OutHandle);
 
         if (*OutHandle)
             LOG_INFO("Created modded DLSSG feature with HandleId: {}", (*OutHandle)->Id);
@@ -747,7 +748,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_ReleaseFeature(NVSDK_NGX_Handle* 
              handleId >= DLSSG_MOD_ID_OFFSET)
     {
         LOG_INFO("D3D12_ReleaseFeature modded DLSSG with HandleId: {0}", handleId);
-        return DLSSGMod::D3D12_ReleaseFeature(InHandle);
+        return Nvngx_FG::D3D12_ReleaseFeature(InHandle);
     }
 
     // Remove feature from context map
@@ -789,11 +790,11 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_GetFeatureRequirements(
 
     if (State::Instance().activeFgInput == FGInput::Nukems ||
         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
-        DLSSGMod::InitDLSSGMod_Dx12();
+        Nvngx_FG::InitDLSSGMod_Dx12();
 
     if (FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_SuperSampling ||
         (FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration &&
-         ((DLSSGMod::isDx12Available() && (Config::Instance()->FGInput == FGInput::Nukems ||
+         ((Nvngx_FG::isDx12Available() && (Config::Instance()->FGInput == FGInput::Nukems ||
                                            Config::Instance()->FGOutput == FGOutput::DLSSGWithNukems)) ||
           Config::Instance()->FGInput == FGInput::DLSSG)))
     {
@@ -1010,7 +1011,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         handleId >= DLSSG_MOD_ID_OFFSET)
     {
         LOG_DEBUG("Passthrough to Nukem's DLSSG EvaluateFeature for handle {}", handleId);
-        return DLSSGMod::D3D12_EvaluateFeature(InCmdList, InFeatureHandle, InParameters, InCallback);
+        return Nvngx_FG::D3D12_EvaluateFeature(InCmdList, InFeatureHandle, InParameters, InCallback);
     }
 
     // OptiScaler internal handling
@@ -1032,7 +1033,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_GetScratchBufferSize(NVSDK_NGX_Fe
          State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
         InFeatureId == NVSDK_NGX_Feature_FrameGeneration)
     {
-        return DLSSGMod::D3D12_GetScratchBufferSize(InFeatureId, InParameters, OutSizeInBytes);
+        return Nvngx_FG::D3D12_GetScratchBufferSize(InFeatureId, InParameters, OutSizeInBytes);
     }
 
     LOG_WARN("-> 52428800");

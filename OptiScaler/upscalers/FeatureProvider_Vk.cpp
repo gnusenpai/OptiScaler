@@ -14,6 +14,7 @@
 #include "upscalers/fsr31/FSR31Feature_Vk.h"
 #include "upscalers/xess/XeSSFeature_Vk.h"
 #include "upscalers/fsr31/FSR31Feature_VkOn12.h"
+#include <misc/IdentifyGpu.h>
 
 bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_Parameter* parameters,
                                     std::unique_ptr<IFeature_Vk>* feature)

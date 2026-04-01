@@ -20,6 +20,7 @@
 #include <detours/detours.h>
 
 #include <d3d12.h>
+#include <misc/IdentifyGpu.h>
 
 #define XEFG_RESOURCE_REF_LIMIT 1
 

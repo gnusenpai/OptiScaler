@@ -4,7 +4,7 @@
 #include "resource.h"
 
 #include "NVNGX_DLSS.h"
-#include "FG/DLSSG_Mod.h"
+#include <framegen/nvngx/Nvngx_FG.h>
 #include "NVNGX_Parameter.h"
 #include "proxies/NVNGX_Proxy.h"
 
@@ -15,6 +15,7 @@
 #include <vulkan/vulkan.hpp>
 #include <ankerl/unordered_dense.h>
 #include <imgui/ImGuiNotify.hpp>
+#include <misc/IdentifyGpu.h>
 
 VkInstance vkInstance;
 VkPhysicalDevice vkPD;
@@ -68,8 +69,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext2(
         }
     }
 
-    DLSSGMod::InitDLSSGMod_Vulkan();
-    DLSSGMod::VULKAN_Init_Ext2(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InGIPA, InGDPA,
+    Nvngx_FG::InitDLSSGMod_Vulkan();
+    Nvngx_FG::VULKAN_Init_Ext2(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InGIPA, InGDPA,
                                InSDKVersion, InFeatureInfo);
 
     State::Instance().NVNGX_ApplicationId = InApplicationId;
@@ -187,8 +188,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext(unsigned long long InAp
         }
     }
 
-    DLSSGMod::InitDLSSGMod_Vulkan();
-    DLSSGMod::VULKAN_Init_Ext(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InSDKVersion,
+    Nvngx_FG::InitDLSSGMod_Vulkan();
+    Nvngx_FG::VULKAN_Init_Ext(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InSDKVersion,
                               InFeatureInfo);
 
     ScopedInit scopedInit {};
@@ -266,8 +267,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init(unsigned long long InApplic
         }
     }
 
-    DLSSGMod::InitDLSSGMod_Vulkan();
-    DLSSGMod::VULKAN_Init(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InGIPA, InGDPA,
+    Nvngx_FG::InitDLSSGMod_Vulkan();
+    Nvngx_FG::VULKAN_Init(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InGIPA, InGDPA,
                           InFeatureInfo, InSDKVersion);
 
     ScopedInit scopedInit {};
@@ -351,7 +352,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequi
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
 
-    if (State::Instance().activeFgInput == FGInput::Nukems && DLSSGMod::isVulkanAvailable() &&
+    if (State::Instance().activeFgInput == FGInput::Nukems && Nvngx_FG::isVulkanAvailable() &&
         FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration)
     {
         return NVSDK_NGX_Result_Success;
@@ -443,7 +444,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequire
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
 
-    if (State::Instance().activeFgInput == FGInput::Nukems && DLSSGMod::isVulkanAvailable() &&
+    if (State::Instance().activeFgInput == FGInput::Nukems && Nvngx_FG::isVulkanAvailable() &&
         FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration)
     {
         return NVSDK_NGX_Result_Success;
@@ -564,10 +565,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureRequirements(
 {
     LOG_DEBUG("for FeatureID: {0}", (int) FeatureDiscoveryInfo->FeatureID);
 
-    DLSSGMod::InitDLSSGMod_Vulkan();
+    Nvngx_FG::InitDLSSGMod_Vulkan();
 
     if (FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_SuperSampling ||
-        (State::Instance().activeFgInput == FGInput::Nukems && DLSSGMod::isVulkanAvailable() &&
+        (State::Instance().activeFgInput == FGInput::Nukems && Nvngx_FG::isVulkanAvailable() &&
          FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration))
     {
         if (OutSupported == nullptr)
@@ -651,7 +652,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_PopulateParameters_Impl(NVSDK_NG
 
     InitNGXParameters(InParameters);
 
-    DLSSGMod::VULKAN_PopulateParameters_Impl(InParameters);
+    Nvngx_FG::VULKAN_PopulateParameters_Impl(InParameters);
 
     return NVSDK_NGX_Result_Success;
 }
@@ -676,9 +677,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetScratchBufferSize(NVSDK_NGX_F
                                                                      const NVSDK_NGX_Parameter* InParameters,
                                                                      size_t* OutSizeInBytes)
 {
-    if (DLSSGMod::isVulkanAvailable() && InFeatureId == NVSDK_NGX_Feature_FrameGeneration)
+    if (Nvngx_FG::isVulkanAvailable() && InFeatureId == NVSDK_NGX_Feature_FrameGeneration)
     {
-        return DLSSGMod::VULKAN_GetScratchBufferSize(InFeatureId, InParameters, OutSizeInBytes);
+        return Nvngx_FG::VULKAN_GetScratchBufferSize(InFeatureId, InParameters, OutSizeInBytes);
     }
 
     LOG_WARN("-> 52428800");
@@ -692,9 +693,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature1(VkDevice InDevice
                                                                NVSDK_NGX_Parameter* InParameters,
                                                                NVSDK_NGX_Handle** OutHandle)
 {
-    if (DLSSGMod::isVulkanAvailable() && InFeatureID == NVSDK_NGX_Feature_FrameGeneration)
+    if (Nvngx_FG::isVulkanAvailable() && InFeatureID == NVSDK_NGX_Feature_FrameGeneration)
     {
-        auto result = DLSSGMod::VULKAN_CreateFeature1(InDevice, InCmdList, InFeatureID, InParameters, OutHandle);
+        auto result = Nvngx_FG::VULKAN_CreateFeature1(InDevice, InCmdList, InFeatureID, InParameters, OutHandle);
         LOG_INFO("Creating new modded DLSSG feature with HandleId: {0}", (*OutHandle)->Id);
         return result;
     }
@@ -787,9 +788,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature(VkCommandBuffer In
 {
     LOG_FUNC();
 
-    if (DLSSGMod::isVulkanAvailable() && InFeatureID == NVSDK_NGX_Feature_FrameGeneration)
+    if (Nvngx_FG::isVulkanAvailable() && InFeatureID == NVSDK_NGX_Feature_FrameGeneration)
     {
-        auto result = DLSSGMod::VULKAN_CreateFeature(InCmdBuffer, InFeatureID, InParameters, OutHandle);
+        auto result = Nvngx_FG::VULKAN_CreateFeature(InCmdBuffer, InFeatureID, InParameters, OutHandle);
         LOG_INFO("Creating new modded DLSSG feature with HandleId: {0}", (*OutHandle)->Id);
         return result;
     }
@@ -833,7 +834,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_ReleaseFeature(NVSDK_NGX_Handle*
     else if (handleId >= DLSSG_MOD_ID_OFFSET)
     {
         LOG_INFO("VULKAN_ReleaseFeature modded DLSSG with HandleId: {0}", handleId);
-        return DLSSGMod::VULKAN_ReleaseFeature(InHandle);
+        return Nvngx_FG::VULKAN_ReleaseFeature(InHandle);
     }
 
     if (!shutdown)
@@ -918,7 +919,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
     }
     else if (handleId >= DLSSG_MOD_ID_OFFSET)
     {
-        return DLSSGMod::VULKAN_EvaluateFeature(InCmdList, InFeatureHandle, InParameters, InCallback);
+        return Nvngx_FG::VULKAN_EvaluateFeature(InCmdList, InFeatureHandle, InParameters, InCallback);
     }
 
     evalCounter++;
@@ -991,7 +992,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Shutdown(void)
     // Disabled for now to check if it cause any issues
     // MenuOverlayVk::UnHookVk();
 
-    DLSSGMod::VULKAN_Shutdown();
+    Nvngx_FG::VULKAN_Shutdown();
 
     shutdown = false;
     State::Instance().NvngxVkInited = false;
@@ -1010,7 +1011,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Shutdown1(VkDevice InDevice)
         NVNGXProxy::SetVulkanInited(false);
     }
 
-    DLSSGMod::VULKAN_Shutdown1(InDevice);
+    Nvngx_FG::VULKAN_Shutdown1(InDevice);
 
     shutdown = false;
 

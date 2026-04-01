@@ -13,6 +13,7 @@
 #include "upscalers/fsr31/FSR31Feature_Dx12.h"
 #include "upscalers/xess/XeSSFeature_Dx12.h"
 #include "FeatureProvider_Dx11.h"
+#include <misc/IdentifyGpu.h>
 
 bool FeatureProvider_Dx12::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_Parameter* parameters,
                                       std::unique_ptr<IFeature_Dx12>* feature)

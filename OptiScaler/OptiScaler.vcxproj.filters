@@ -32,9 +32,6 @@
     <ClInclude Include="Config.h">
       <Filter>Config</Filter>
     </ClInclude>
-    <ClInclude Include="NVNGX_Parameter.h">
-      <Filter>NVNGX</Filter>
-    </ClInclude>
     <ClInclude Include="Util.h">
       <Filter>Util</Filter>
     </ClInclude>
@@ -554,9 +551,6 @@
     <ClInclude Include="upscalers\FeatureProvider_Vk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="inputs\FG\DLSSG_Mod.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\spdlog_sink\debug_sink.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -822,6 +816,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="hooks\Hook_Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="framegen\nvngx\Nvngx_FG.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NVNGX_Parameter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1278,6 +1278,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OptiTypes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="framegen\nvngx\Nvngx_FG.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NVNGX_Parameter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

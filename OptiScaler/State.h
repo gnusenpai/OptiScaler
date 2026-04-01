@@ -92,9 +92,8 @@ class State
     // FG
     UINT64 FGLastFrame = 0;
 
-    // DLSSG
+    // Nvngx FG, uses streamline swapchain
     bool NukemsFilesAvailable = false;
-    bool NukemsMFG = false;
     bool DLSSGDebugView = false;
     bool DLSSGInterpolatedOnly = false;
     uint32_t delayMenuRenderBy = 0;

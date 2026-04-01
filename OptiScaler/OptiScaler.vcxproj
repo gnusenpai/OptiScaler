@@ -316,6 +316,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="framegen\ffx\FSRFG_Dx12.h" />
     <ClInclude Include="framegen\IFGFeature.h" />
     <ClInclude Include="framegen\IFGFeature_Dx12.h" />
+    <ClInclude Include="framegen\nvngx\Nvngx_FG.h" />
     <ClInclude Include="fsr4\FSR4ModelSelection.h" />
     <ClInclude Include="hooks\D3D12_Hooks.h" />
     <ClInclude Include="hooks\DxgiFactory_Hooks.h" />
@@ -470,7 +471,6 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="upscalers\fsr31\FSR31Feature_Dx11On12.h" />
     <ClInclude Include="upscalers\fsr31\FSR31Feature_Dx12.h" />
     <ClInclude Include="upscalers\fsr31\FSR31Feature_Vk.h" />
-    <ClInclude Include="inputs\FG\DLSSG_Mod.h" />
     <ClInclude Include="inputs\FfxApi_Dx12.h" />
     <ClInclude Include="inputs\FSR2_Dx12.h" />
     <ClInclude Include="inputs\FSR3_Dx12.h" />
@@ -514,7 +514,6 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="menu\menu_overlay_vk.h" />
     <ClInclude Include="wrapped\wrapped_swapchain.h" />
     <ClInclude Include="Logger.h" />
-    <ClInclude Include="NVNGX_Parameter.h" />
     <ClInclude Include="proxies\NVNGX_Proxy.h" />
     <ClInclude Include="output_scaling\OS_Dx11.h" />
     <ClInclude Include="pch.h" />
@@ -557,12 +556,14 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="version_check.h" />
     <ClInclude Include="upscalers\xess\XeSSFeature_Dx11.h" />
     <ClInclude Include="proxies\XeSS_Proxy.h" />
+    <ClInclude Include="NVNGX_Parameter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="framegen\dlssg\DLSSG_Dx12.cpp" />
     <ClCompile Include="framegen\ffx\FSRFG_Dx12.cpp" />
     <ClCompile Include="framegen\IFGFeature.cpp" />
     <ClCompile Include="framegen\IFGFeature_Dx12.cpp" />
+    <ClCompile Include="framegen\nvngx\Nvngx_FG.cpp" />
     <ClCompile Include="fsr4\FSR4ModelSelection.cpp" />
     <ClCompile Include="fsr4\FSR4Upgrade.cpp" />
     <ClCompile Include="hooks\D3D12_Hooks.cpp" />
@@ -590,6 +591,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="nvapi\fakenvapi\low_latency_tech\ll_xell.cpp" />
     <ClCompile Include="nvapi\fakenvapi\low_latency_vk.cpp" />
     <ClCompile Include="nvapi\fakenvapi\nvapi_calls.cpp" />
+    <ClCompile Include="NVNGX_Parameter.cpp" />
     <ClCompile Include="OptiTypes.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

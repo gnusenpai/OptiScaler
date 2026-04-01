@@ -8,7 +8,7 @@
 #include <proxies/FfxApi_Proxy.h>
 #include <proxies/Streamline_Proxy.h>
 
-#include <inputs/FG/DLSSG_Mod.h>
+#include <framegen/nvngx/Nvngx_FG.h>
 
 #include <fsr4/FSR4Upgrade.h>
 
@@ -130,6 +130,7 @@ static std::vector<std::string> splashText = { "Cope smarter, not harder",
                                                "2D AI filters, now powered by just 2x 5090s",
                                                "Neural Slop Sampling with DLSS5",
                                                "DLSS 5 - the way it's meant to be slopped",
+                                               "Like going in the first gear on the highway",
                                                "<Your funny text goes here>" };
 
 static std::string updateNoticeTag;
@@ -4156,13 +4157,13 @@ bool MenuCommon::RenderMenu()
                     SeparatorWithHelpMarker("Frame Generation (FSR3-FG via Nukem's DLSSG)",
                                             "Requires Nukem's dlssg_to_fsr3 dll\nSelect DLSS-FG in-game");
 
-                    if (!state.NukemsFilesAvailable && !State::Instance().NukemsMFG)
+                    if (!state.NukemsFilesAvailable && !Nvngx_FG::isMFG())
                     {
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                                            "Please put dlssg_to_fsr3_amd_is_better.dll next to OptiScaler");
                     }
 
-                    if (State::Instance().NukemsMFG)
+                    if (Nvngx_FG::isMFG())
                     {
                         ImGui::Text("Using Nukem's via the MFG mod from fsr3fg_mfg.asi");
                     }
@@ -4214,24 +4215,24 @@ bool MenuCommon::RenderMenu()
                         ImGui::Spacing();
                     }
 
-                    if (DLSSGMod::isLoaded() && !State::Instance().NukemsMFG)
+                    if (Nvngx_FG::isLoaded() && !Nvngx_FG::isMFG())
                     {
-                        if (DLSSGMod::is120orNewer())
+                        if (Nvngx_FG::is120orNewer())
                         {
                             if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
                             {
-                                DLSSGMod::setDebugView(state.DLSSGDebugView);
+                                Nvngx_FG::setDebugView(state.DLSSGDebugView);
                             }
                             if (ImGui::Checkbox("Interpolated frames only", &state.DLSSGInterpolatedOnly))
                             {
-                                DLSSGMod::setInterpolatedOnly(state.DLSSGInterpolatedOnly);
+                                Nvngx_FG::setInterpolatedOnly(state.DLSSGInterpolatedOnly);
                             }
                         }
-                        else if (DLSSGMod::FSRDebugView() != nullptr)
+                        else if (Nvngx_FG::FSRDebugView() != nullptr)
                         {
                             if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
                             {
-                                DLSSGMod::FSRDebugView()(state.DLSSGDebugView);
+                                Nvngx_FG::FSRDebugView()(state.DLSSGDebugView);
                             }
                         }
                     }

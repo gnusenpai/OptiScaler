@@ -8,6 +8,7 @@
 #include "log.h"
 #include "config.h"
 #include <hooks/Reflex_Hooks.h>
+#include <framegen/nvngx/Nvngx_FG.h>
 
 // private
 bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
@@ -42,7 +43,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
         }
 
         if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default() &&
-            (!State::Instance().NukemsMFG || ReflexHooks::dlssgFrameCountToGenerate() <= 1))
+            (!Nvngx_FG::isMFG() || ReflexHooks::dlssgFrameCountToGenerate() <= 1))
         {
             currently_active_tech = new AntiLag2();
             if (currently_active_tech->init(pDevice))
