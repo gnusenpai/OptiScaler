@@ -20,7 +20,9 @@
 #ifdef FAKENVAPI_TRACE_LOGGING
 #define LOG_TRACE_FAKENVAPI(msg, ...) LOG_TRACE(msg, ##__VA_ARGS__)
 #else
-#define LOG_TRACE_FAKENVAPI(msg, ...)
+#define LOG_TRACE_FAKENVAPI(msg, ...)                                                                                  \
+    {                                                                                                                  \
+    }
 #endif
 
 NvAPI_Status Ok(const char* function_name);
