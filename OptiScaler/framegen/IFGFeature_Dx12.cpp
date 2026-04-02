@@ -161,14 +161,12 @@ Dx12Resource* IFGFeature_Dx12::GetResource(FG_ResourceType type, int index)
     if (index < 0)
         index = GetIndex();
 
-    std::shared_lock<std::shared_mutex> lock(_resourceMutex[index]);
+    std::shared_lock lock(_resourceMutex[index]);
 
-    if (!_frameResources[index].contains(type))
-        return nullptr;
+    auto& resources = _frameResources[index];
 
-    auto& currentIndex = _frameResources[index];
-    if (auto it = currentIndex.find(type); it != currentIndex.end())
-        return &it->second;
+    if (resources.contains(type))
+        return &resources[type];
 
     return nullptr;
 }
