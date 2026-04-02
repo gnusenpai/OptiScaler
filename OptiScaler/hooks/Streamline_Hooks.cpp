@@ -745,6 +745,9 @@ bool StreamlineHooks::hkcommon_slOnPluginLoad(sl::param::IParameters* params, co
 
 sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewport, const sl::DLSSGOptions& options)
 {
+    lastDlssgViewport = viewport;
+    lastDlssgOptions = options;
+
     // Make DLSSG auto always mean On
     sl::DLSSGOptions newOptions = options;
     newOptions.mode = newOptions.mode == sl::DLSSGMode::eOff ? sl::DLSSGMode::eOff : sl::DLSSGMode::eOn;
@@ -1224,6 +1227,15 @@ void StreamlineHooks::updateForceReflex()
             LOG_WARN("Failed to update Reflex mode with error code: {} ({:X})", magic_enum::enum_name(result),
                      (UINT) result);
         }
+    }
+}
+
+void StreamlineHooks::updateDlssgOptions()
+{
+    if (o_slDLSSGSetOptions)
+    {
+        LOG_FUNC();
+        hkslDLSSGSetOptions(lastDlssgViewport, lastDlssgOptions);
     }
 }
 

@@ -3128,6 +3128,8 @@ bool MenuCommon::RenderMenu()
                                             LOG_DEBUG("DLSSG Interpolation Count set to: {}", i);
                                             config->FGDLSSGOverrideInterpolationCount = i;
                                         }
+
+                                        StreamlineHooks::updateDlssgOptions();
                                     }
                                 }
 

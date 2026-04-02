@@ -138,6 +138,7 @@ class StreamlineHooks
     typedef bool (*PFN_setVoid)(void* self, const char* key, void** value);
 
     static void updateForceReflex();
+    static void updateDlssgOptions();
 
     static void unhookInterposer();
     static void hookInterposer(HMODULE slInterposer);
@@ -227,6 +228,8 @@ class StreamlineHooks
     static PFN_slOnPluginLoad o_dlssg_slOnPluginLoad;
     static decltype(&slDLSSGSetOptions) o_slDLSSGSetOptions;
     static decltype(&slDLSSGGetState) o_slDLSSGGetState;
+    static inline sl::ViewportHandle lastDlssgViewport {}; // For updating options when we change them
+    static inline sl::DLSSGOptions lastDlssgOptions {};
 
     static bool hkdlssg_slOnPluginLoad(sl::param::IParameters* params, const char* loaderJSON, const char** pluginJSON);
     static sl::Result hkslSetConstants(const sl::Constants& values, const sl::FrameToken& frame,
