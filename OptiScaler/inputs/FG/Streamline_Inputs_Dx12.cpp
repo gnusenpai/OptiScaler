@@ -53,7 +53,7 @@ int Sl_Inputs_Dx12::IndexForFrameId(uint32_t frameId) const
 
 bool Sl_Inputs_Dx12::setConstants(const sl::Constants& values, uint32_t frameId)
 {
-    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+    auto fgOutput = State::Instance().currentFG;
 
     if (fgOutput == nullptr)
         return false;
@@ -252,7 +252,7 @@ bool Sl_Inputs_Dx12::setConstants(const sl::Constants& values, uint32_t frameId)
 
 bool Sl_Inputs_Dx12::evaluateState(ID3D12Device* device)
 {
-    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+    auto fgOutput = State::Instance().currentFG;
 
     if (fgOutput == nullptr)
         return false;
