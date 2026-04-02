@@ -350,20 +350,23 @@ bool FSRFG_Dx12::Dispatch()
     uiDesc.header.type = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_REGISTERUIRESOURCE_DX12;
     uiDesc.uiResource = FfxApiResource({});
 
-    auto hudless = GetResource(FG_ResourceType::HudlessColor, fIndex);
-
-    if (hudless != nullptr && IsResourceReady(FG_ResourceType::HudlessColor, fIndex))
     {
-        LOG_TRACE("Using hudless: {:X}", (size_t) hudless->GetResource());
+        std::shared_lock<std::shared_mutex> lock(_resourceMutex[fIndex]);
+        auto hudless = GetResource(FG_ResourceType::HudlessColor, fIndex);
 
-        fgConfig.HUDLessColor = ffxApiGetResourceDX12(hudless->GetResource(), GetFfxApiState(hudless->state));
+        if (hudless != nullptr && IsResourceReady(FG_ResourceType::HudlessColor, fIndex))
+        {
+            LOG_TRACE("Using hudless: {:X}", (size_t) hudless->GetResource());
 
-        // Reset of _paramHudless[fIndex] happens in DispatchCallback
-        // as we might use it in Preset to remove hud from swapchain
-    }
-    else
-    {
-        fgConfig.HUDLessColor = FfxApiResource({});
+            fgConfig.HUDLessColor = ffxApiGetResourceDX12(hudless->GetResource(), GetFfxApiState(hudless->state));
+
+            // Reset of _paramHudless[fIndex] happens in DispatchCallback
+            // as we might use it in Preset to remove hud from swapchain
+        }
+        else
+        {
+            fgConfig.HUDLessColor = FfxApiResource({});
+        }
     }
 
     FfxApiProxy::D3D12_Configure(&_swapChainContext, &uiDesc.header);
