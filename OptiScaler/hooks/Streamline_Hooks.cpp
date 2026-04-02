@@ -48,6 +48,10 @@ StreamlineHooks::PFN_slOnPluginLoad StreamlineHooks::o_dlssg_slOnPluginLoad = nu
 decltype(&slDLSSGSetOptions) StreamlineHooks::o_slDLSSGSetOptions = nullptr;
 decltype(&slDLSSGGetState) StreamlineHooks::o_slDLSSGGetState = nullptr;
 
+// Local DLSSG
+StreamlineHooks::PFN_slGetPluginFunction StreamlineHooks::o_local_dlssg_slGetPluginFunction = nullptr;
+StreamlineHooks::PFN_slOnPluginLoad StreamlineHooks::o_local_dlssg_slOnPluginLoad = nullptr;
+
 // Reflex
 StreamlineHooks::PFN_slGetPluginFunction StreamlineHooks::o_reflex_slGetPluginFunction = nullptr;
 StreamlineHooks::PFN_slSetConstants_sl1 StreamlineHooks::o_reflex_slSetConstants_sl1 = nullptr;
@@ -409,7 +413,7 @@ void StreamlineHooks::hookSystemCaps(sl::param::IParameters* params)
     }
 }
 
-uint32_t StreamlineHooks::getSystemCapsArch()
+uint32_t StreamlineHooks::getSystemCapsArch(SystemCaps* altSystemCaps)
 {
     uint32_t highestArch = 0;
 
@@ -418,9 +422,10 @@ uint32_t StreamlineHooks::getSystemCapsArch()
     {
         if (State::Instance().streamlineVersion.major > 1)
         {
-            if (systemCaps)
+            auto caps = altSystemCaps != nullptr ? altSystemCaps : systemCaps;
+            if (caps)
             {
-                for (auto& adapter : systemCaps->adapters)
+                for (auto& adapter : caps->adapters)
                 {
                     if (adapter.architecture > highestArch)
                         highestArch = adapter.architecture;
@@ -448,23 +453,25 @@ uint32_t StreamlineHooks::getSystemCapsArch()
     return highestArch;
 }
 
-void StreamlineHooks::setArch(uint32_t arch)
+void StreamlineHooks::setArch(uint32_t arch, SystemCaps* altSystemCaps)
 {
     static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (State::Instance().streamlineVersion.major > 1)
     {
-        if (systemCaps)
+        // Assumes that altCaps are always for SL2+
+        auto caps = altSystemCaps != nullptr ? altSystemCaps : systemCaps;
+        if (caps)
         {
-            for (uint32_t i = 0; i < systemCaps->gpuCount; i++)
+            for (uint32_t i = 0; i < caps->gpuCount; i++)
             {
-                systemCaps->adapters[i].architecture = arch;
-                systemCaps->adapters[i].vendor = VendorId::Nvidia;
+                caps->adapters[i].architecture = arch;
+                caps->adapters[i].vendor = VendorId::Nvidia;
             }
 
             if (fakenvapi::isUsingAsMainNvapi() || primaryGpu.vendorId != VendorId::Nvidia)
-                systemCaps->driverVersionMajor = 999;
+                caps->driverVersionMajor = 999;
 
-            systemCaps->hwsSupported = true;
+            caps->hwsSupported = true;
         }
     }
     else if (State::Instance().streamlineVersion.major == 1)
@@ -483,7 +490,7 @@ void StreamlineHooks::setArch(uint32_t arch)
 }
 
 // Spoof arch based on feature and current arch
-void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature)
+void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature, SystemCaps* altSystemCaps)
 {
     constexpr uint32_t maxArch = 0xFFFFFFFF;
 
@@ -491,7 +498,7 @@ void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature)
     if (feature == sl::kFeatureDLSS)
     {
         if (currentArch < NV_GPU_ARCHITECTURE_TU100)
-            return setArch(maxArch);
+            return setArch(maxArch, altSystemCaps);
     }
 
     // Don't spoof DLSSD at all
@@ -504,13 +511,13 @@ void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature)
     else if (feature == sl::kFeatureDLSS_G)
     {
         if (currentArch < NV_GPU_ARCHITECTURE_AD100)
-            return setArch(maxArch);
+            return setArch(maxArch, altSystemCaps);
     }
 
     else if (feature == sl::kFeatureReflex || feature == sl::kFeaturePCL)
     {
         if (fakenvapi::isUsingAsMainNvapi())
-            return setArch(maxArch);
+            return setArch(maxArch, altSystemCaps);
     }
 }
 
@@ -626,6 +633,55 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(sl::param::IParameters* params, con
         // if (configJson.contains("/external/vk/opticalflow/supported"_json_pointer))
         //     configJson["external"]["vk"]["opticalflow"]["supported"] = true;
     }
+
+    if (Config::Instance()->VulkanExtensionSpoofing.value_or_default())
+    {
+        if (configJson.contains("/external/vk/instance/extensions"_json_pointer))
+            configJson["external"]["vk"]["instance"]["extensions"].clear();
+
+        if (configJson.contains("/external/vk/device/extensions"_json_pointer))
+            configJson["external"]["vk"]["device"]["extensions"].clear();
+    }
+
+    config = configJson.dump();
+
+    *pluginJSON = config.c_str();
+
+    return result;
+}
+
+bool StreamlineHooks::hklocal_dlssg_slOnPluginLoad(sl::param::IParameters* params, const char* loaderJSON,
+                                                   const char** pluginJSON)
+{
+    LOG_FUNC();
+
+    // TODO: do it better than "static" and hoping for the best
+    static std::string config;
+
+    bool shouldSpoofArch = Config::Instance()->StreamlineSpoofing.value_or_default();
+
+    uint32_t currentArch = 0;
+    SystemCaps* localSystemCaps = nullptr;
+    if (shouldSpoofArch)
+    {
+        sl::param::getPointerParam(params, sl::param::common::kSystemCaps, &localSystemCaps);
+
+        if (localSystemCaps)
+        {
+            currentArch = getSystemCapsArch(localSystemCaps);
+            spoofArch(currentArch, sl::kFeatureDLSS_G, localSystemCaps);
+        }
+    }
+
+    auto result = o_local_dlssg_slOnPluginLoad(params, loaderJSON, pluginJSON);
+
+    if (shouldSpoofArch && localSystemCaps)
+        setArch(currentArch, localSystemCaps);
+
+    nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
+
+    if (configJson.contains("/external/hws/required"_json_pointer))
+        configJson["external"]["hws"]["required"] = false; // disable eHardwareSchedulingRequired
 
     if (Config::Instance()->VulkanExtensionSpoofing.value_or_default())
     {
@@ -939,6 +995,19 @@ void* StreamlineHooks::hkdlssg_slGetPluginFunction(const char* functionName)
         o_slDLSSGGetState = (decltype(&slDLSSGGetState)) o_dlssg_slGetPluginFunction("slDLSSGGetState");
 
     return o_dlssg_slGetPluginFunction(functionName);
+}
+
+void* StreamlineHooks::hklocal_dlssg_slGetPluginFunction(const char* functionName)
+{
+    // LOG_DEBUG("{}", functionName);
+
+    if (strcmp(functionName, "slOnPluginLoad") == 0 && Config::Instance()->FGOutput == FGOutput::DLSSGWithNukems)
+    {
+        o_local_dlssg_slOnPluginLoad = (PFN_slOnPluginLoad) o_local_dlssg_slGetPluginFunction(functionName);
+        return &hklocal_dlssg_slOnPluginLoad;
+    }
+
+    return o_local_dlssg_slGetPluginFunction(functionName);
 }
 
 bool StreamlineHooks::hkreflex_slSetConstants_sl1(const void* data, uint32_t frameIndex, uint32_t id)
@@ -1399,6 +1468,52 @@ void StreamlineHooks::hookDlssg(HMODULE slDlssg)
         DetourUpdateThread(GetCurrentThread());
 
         DetourAttach(&(PVOID&) o_dlssg_slGetPluginFunction, hkdlssg_slGetPluginFunction);
+
+        DetourTransactionCommit();
+    }
+}
+
+// Local SL DLSSG
+
+void StreamlineHooks::unhookLocalDlssg()
+{
+    LOG_FUNC();
+
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+
+    if (o_local_dlssg_slGetPluginFunction)
+    {
+        DetourDetach(&(PVOID&) o_local_dlssg_slGetPluginFunction, hklocal_dlssg_slGetPluginFunction);
+        o_local_dlssg_slGetPluginFunction = nullptr;
+    }
+
+    DetourTransactionCommit();
+}
+
+void StreamlineHooks::hookLocalDlssg(HMODULE slDlssg)
+{
+    LOG_FUNC();
+
+    if (!slDlssg)
+    {
+        LOG_WARN("Dlssg module in NULL");
+        return;
+    }
+
+    if (o_local_dlssg_slGetPluginFunction)
+        unhookLocalDlssg();
+
+    o_local_dlssg_slGetPluginFunction =
+        reinterpret_cast<PFN_slGetPluginFunction>(KernelBaseProxy::GetProcAddress_()(slDlssg, "slGetPluginFunction"));
+
+    if (o_local_dlssg_slGetPluginFunction != nullptr)
+    {
+        LOG_TRACE("Hooking slGetPluginFunction in local sl.dlssg");
+        DetourTransactionBegin();
+        DetourUpdateThread(GetCurrentThread());
+
+        DetourAttach(&(PVOID&) o_local_dlssg_slGetPluginFunction, hklocal_dlssg_slGetPluginFunction);
 
         DetourTransactionCommit();
     }

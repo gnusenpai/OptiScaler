@@ -167,14 +167,17 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     }
 
     // sl.dlss_g.dll
-    if (hookOptiDlls && (CheckDllNameW(&libName, &slDlssgNamesW) ||
-                         (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_dlss_g_"))))
+    if ((CheckDllNameW(&libName, &slDlssgNamesW) ||
+         (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_dlss_g_"))))
     {
         auto dlssgModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 
-        if (dlssgModule != nullptr && dlssgModule != State::Instance().optiSlDLSSG)
+        if (dlssgModule != nullptr)
         {
-            StreamlineHooks::hookDlssg(dlssgModule);
+            if (!normalizedPath.contains(L"\\opti_dlls") && dlssgModule != State::Instance().optiSlDLSSG)
+                StreamlineHooks::hookDlssg(dlssgModule);
+            else
+                StreamlineHooks::hookLocalDlssg(dlssgModule);
         }
         else
         {

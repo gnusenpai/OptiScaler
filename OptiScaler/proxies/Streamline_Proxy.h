@@ -7,6 +7,7 @@
 
 #include <proxies/Ntdll_Proxy.h>
 #include <proxies/KernelBase_Proxy.h>
+#include <hooks/Streamline_Hooks.h>
 
 #include <sl.h>
 #include <sl_pcl.h>

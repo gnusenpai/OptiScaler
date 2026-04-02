@@ -148,6 +148,9 @@ class StreamlineHooks
     static void unhookDlssg();
     static void hookDlssg(HMODULE slDlssg);
 
+    static void unhookLocalDlssg();
+    static void hookLocalDlssg(HMODULE slDlssg);
+
     static void unhookReflex();
     static void hookReflex(HMODULE slReflex);
 
@@ -172,9 +175,9 @@ class StreamlineHooks
     static SystemCaps* systemCaps;
     static SystemCapsSl15* systemCapsSl15;
     static void hookSystemCaps(sl::param::IParameters* params);
-    static uint32_t getSystemCapsArch();
-    static void setArch(uint32_t arch);
-    static void spoofArch(uint32_t currentArch, sl::Feature feature);
+    static uint32_t getSystemCapsArch(SystemCaps* altSystemCaps = nullptr);
+    static void setArch(uint32_t arch, SystemCaps* altSystemCaps = nullptr);
+    static void spoofArch(uint32_t currentArch, sl::Feature feature, SystemCaps* altSystemCaps = nullptr);
 
     // Interposer
     static decltype(&slInit) o_slInit;
@@ -232,6 +235,14 @@ class StreamlineHooks
     static sl::Result hkslDLSSGGetState(const sl::ViewportHandle& viewport, sl::DLSSGState& state,
                                         const sl::DLSSGOptions* options);
     static void* hkdlssg_slGetPluginFunction(const char* functionName);
+
+    // Local DLSSG
+    static PFN_slGetPluginFunction o_local_dlssg_slGetPluginFunction;
+    static PFN_slOnPluginLoad o_local_dlssg_slOnPluginLoad;
+
+    static bool hklocal_dlssg_slOnPluginLoad(sl::param::IParameters* params, const char* loaderJSON,
+                                             const char** pluginJSON);
+    static void* hklocal_dlssg_slGetPluginFunction(const char* functionName);
 
     // Reflex
     static sl::ReflexMode reflexGamesLastMode;
