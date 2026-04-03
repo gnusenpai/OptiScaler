@@ -529,6 +529,7 @@ class Config
     CustomOptional<bool> FN_ForceLatencyFlex { false };
     CustomOptional<LFXMode> FN_LatencyFlexMode { LFXMode::Conservative };
     CustomOptional<ForceReflex> FN_ForceReflex { ForceReflex::InGame };
+    CustomOptional<int> FramerateTargetDMFG { 0 };
 
     // Inputs
     CustomOptional<bool> EnableDlssInputs { true };

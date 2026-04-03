@@ -110,6 +110,7 @@ NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProf
 NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile,
                                           NVDRS_SETTING* pSetting);
 NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session);
+NvAPI_Status __cdecl NvAPI_NGX_GetDriverFeatureSupport(NV_NGX_GET_DRIVER_FEATURE_SUPPORT_PARAMS* pParams);
 NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk);
 NvAPI_Status __cdecl NvAPI_SK_1(IUnknown* unknown);
 NvAPI_Status __cdecl NvAPI_SK_2(IUnknown* unknown);

@@ -648,6 +648,12 @@ bool Config::Reload(std::filesystem::path iniPath)
                 FN_ForceReflex.set_from_config(*v);
             else
                 FN_ForceReflex.reset();
+
+            FramerateTargetDMFG.set_from_config(readInt("fakenvapi", "FramerateTargetDMFG"));
+
+            // DMFG is a mess with our reflex implementations, disable by default
+            if (FramerateTargetDMFG.value_or_default() != 0 && !FN_ForceReflex.has_value())
+                FN_ForceReflex.set_volatile_value(ForceReflex::ForceDisable);
         }
 
         // Inputs
@@ -1357,6 +1363,8 @@ bool Config::SaveIni()
         ini.SetValue("fakenvapi", "LatencyFlexMode",
                      GetIntValue(Instance()->FN_LatencyFlexMode.value_for_config()).c_str());
         ini.SetValue("fakenvapi", "ForceReflex", GetIntValue(Instance()->FN_ForceReflex.value_for_config()).c_str());
+        ini.SetValue("fakenvapi", "FramerateTargetDMFG",
+                     GetIntValue(Instance()->FramerateTargetDMFG.value_for_config()).c_str());
     }
 
     // inputs

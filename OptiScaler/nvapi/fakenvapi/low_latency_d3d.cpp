@@ -43,7 +43,8 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
         }
 
         if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default() &&
-            (!Nvngx_FG::isMFG() || ReflexHooks::dlssgFrameCountToGenerate() <= 1))
+            (!Nvngx_FG::isMFG() || ReflexHooks::dlssgFrameCountToGenerate() <= 1) &&
+            Config::Instance()->FramerateTargetDMFG.value_or_default() == 0)
         {
             currently_active_tech = new AntiLag2();
             if (currently_active_tech->init(pDevice))
@@ -82,7 +83,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
     bool change_detected = last_force_latencyflex != force_latencyflex;
     last_force_latencyflex = force_latencyflex;
 
-    if (State::Instance().fakenvapiReloadLowLatency)
+    if (State::Instance().fakenvapiReloadLowLatency && Config::Instance()->FramerateTargetDMFG.value_or_default() == 0)
     {
         change_detected = true;
         State::Instance().fakenvapiReloadLowLatency = false;

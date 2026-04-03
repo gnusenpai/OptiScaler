@@ -2,6 +2,7 @@
 #include "nvapi_calls.h"
 #include "proxies/Dxgi_Proxy.h"
 #include <misc/IdentifyGpu.h>
+#include <NvApiDriverSettings.h>
 
 using Microsoft::WRL::ComPtr;
 
@@ -723,18 +724,57 @@ NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSP
 NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId,
                                           NVDRS_SETTING* pSetting)
 {
-    LOG_DEBUG("Missing get setting: {}", settingId);
+    auto setting = (ESetting) settingId;
+
+    auto dmfgFpsTarget = Config::Instance()->FramerateTargetDMFG.value_or_default();
+    if (setting == NGX_DLSSG_MODE_ID && dmfgFpsTarget != 0)
+    {
+        pSetting->settingId = settingId;
+        constexpr auto name = L"NGX_DLSSG_MODE_ID";
+        memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
+        pSetting->settingType = NVDRS_DWORD_TYPE;
+        pSetting->u32CurrentValue = NGX_DLSSG_MODE_DYNAMIC;
+
+        LOG_DEBUG("Set NGX_DLSSG_MODE_ID");
+
+        return OK();
+    }
+
+    if (setting == NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID && dmfgFpsTarget != 0)
+    {
+        pSetting->settingId = settingId;
+        constexpr auto name = L"NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID";
+        memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
+        pSetting->settingType = NVDRS_DWORD_TYPE;
+        pSetting->u32CurrentValue = dmfgFpsTarget;
+
+        LOG_DEBUG("Set NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID to {}", pSetting->u32CurrentValue);
+
+        return OK();
+    }
+
+    LOG_DEBUG("Missing get setting: {:X}", settingId);
     return OK();
 }
 
 NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile,
                                           NVDRS_SETTING* pSetting)
 {
-    LOG_DEBUG("Missing set setting: {}", pSetting->settingId);
+    LOG_DEBUG("Missing set setting: 0x{:X}", pSetting->settingId);
     return OK();
 }
 
 NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session) { return OK(); }
+
+NvAPI_Status __cdecl NvAPI_NGX_GetDriverFeatureSupport(NV_NGX_GET_DRIVER_FEATURE_SUPPORT_PARAMS* pParams)
+{
+    for (size_t i = 0; i < pParams->featureCount; i++)
+    {
+        if (pParams->featureSupportInfo[i].featureId == NV_NGX_DRIVER_FEATURE_ID_SET_FLIP_CONFIG_V2)
+            pParams->featureSupportInfo[i].bSupported = NV_TRUE;
+    }
+    return OK();
+}
 
 NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk)
 {

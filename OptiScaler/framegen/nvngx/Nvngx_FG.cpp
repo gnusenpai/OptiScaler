@@ -57,7 +57,7 @@ void Nvngx_FG::setSetting(const wchar_t* setting, const wchar_t* value)
 
 HMODULE Nvngx_FG::TryInitMFG()
 {
-    auto dllPath = Util::DllPath().parent_path() / "fsr3fg_mfg.asi";
+    auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.asi";
 
     // set early so the hooks know
     _mfg = true;
@@ -417,6 +417,13 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
             {
                 LOG_ERROR("Getting heap properties has failed");
             }
+        }
+
+        if (Config::Instance()->FramerateTargetDMFG.value_or_default() != 0 && fakenvapi::isUsingAsMainNvapi())
+        {
+            int frameCount = 0;
+            InParameters->Get("DLSSG.MultiFrameCount", &frameCount);
+            Config::Instance()->FGDLSSGOverrideInterpolationCount.set_volatile_value(frameCount);
         }
 
         NVSDK_NGX_Handle TempHandle = { .Id = InFeatureHandle->Id - DLSSG_MOD_ID_OFFSET };

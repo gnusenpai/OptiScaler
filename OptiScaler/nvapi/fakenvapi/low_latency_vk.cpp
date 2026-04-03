@@ -43,7 +43,7 @@ bool LowLatency::update_low_latency_tech(HANDLE vkDevice)
     bool change_detected = last_force_latencyflex != force_latencyflex;
     last_force_latencyflex = force_latencyflex;
 
-    if (State::Instance().fakenvapiReloadLowLatency)
+    if (State::Instance().fakenvapiReloadLowLatency && Config::Instance()->FramerateTargetDMFG.value_or_default() == 0)
     {
         change_detected = true;
         State::Instance().fakenvapiReloadLowLatency = false;

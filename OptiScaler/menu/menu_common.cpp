@@ -1431,7 +1431,7 @@ bool MenuCommon::RenderMenu()
             {
                 refreshRate = Util::GetActiveRefreshRate(_handle);
 
-                auto dllPath = Util::DllPath().parent_path() / "fsr3fg_mfg.asi";
+                auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.asi";
                 state.NukemsFilesAvailable = gExists.Get(dllPath);
 
                 if (!state.NukemsFilesAvailable)
@@ -4167,7 +4167,7 @@ bool MenuCommon::RenderMenu()
 
                     if (Nvngx_FG::isMFG())
                     {
-                        ImGui::Text("Using Nukem's via the MFG mod from fsr3fg_mfg.asi");
+                        ImGui::Text("Using Nukem's via the MFG mod from dlss-enabler-headless.asi");
                     }
 
                     if (!ReflexHooks::isReflexHooked())
