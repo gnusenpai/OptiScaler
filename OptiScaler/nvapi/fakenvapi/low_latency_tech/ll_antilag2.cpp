@@ -143,8 +143,14 @@ void AntiLag2::deinit()
         amdxc64_load_times = 0;
     }
 
-    if (dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&dx12_ctx))
-        LOG_INFO("FSR Latency Reduction 2.0 DX12 deinitialized");
+    if (dx12_ctx.m_pAntiLagAPI)
+    {
+        // WAR for AL2 not deiniting properly when it's enabled
+        AMD::AntiLag2DX12::Update(&dx12_ctx, false, 0);
+
+        if (!AMD::AntiLag2DX12::DeInitialize(&dx12_ctx))
+            LOG_INFO("FSR Latency Reduction 2.0 DX12 deinitialized");
+    }
 
     if (dx11_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX11::DeInitialize(&dx11_ctx))
         LOG_INFO("FSR Latency Reduction 2.0 DX11 deinitialized");

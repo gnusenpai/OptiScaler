@@ -25,6 +25,7 @@
 #include <misc/IdentifyGpu.h>
 
 static ankerl::unordered_dense::map<unsigned int, ContextData<IFeature_Dx12>> Dx12Contexts;
+static std::unordered_map<unsigned int, NVSDK_NGX_Feature> HandleToFeature;
 
 static ID3D12Device* D3D12Device = nullptr;
 static int evalCounter = 0;
@@ -666,7 +667,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_CreateFeature(ID3D12GraphicsComma
         NVSDK_NGX_Result res = Nvngx_FG::D3D12_CreateFeature(InCmdList, InFeatureID, InParameters, OutHandle);
 
         if (*OutHandle)
+        {
             LOG_INFO("Created modded DLSSG feature with HandleId: {}", (*OutHandle)->Id);
+            HandleToFeature[(*OutHandle)->Id] = InFeatureID;
+        }
 
         return res;
     }
@@ -682,9 +686,14 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_CreateFeature(ID3D12GraphicsComma
             NVSDK_NGX_Result res = NVNGXProxy::D3D12_CreateFeature()(InCmdList, InFeatureID, InParameters, OutHandle);
 
             if (*OutHandle)
+            {
                 LOG_INFO("Native CreateFeature success, HandleId: {}", (*OutHandle)->Id);
+                HandleToFeature[(*OutHandle)->Id] = InFeatureID;
+            }
             else
+            {
                 LOG_INFO("Native CreateFeature failed: {:#x}", (uint32_t) res);
+            }
 
             return res;
         }
@@ -694,7 +703,12 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_CreateFeature(ID3D12GraphicsComma
     }
 
     // OptiScaler internal handling (SuperSampling or RayReconstruction)
-    return TryCreateOptiFeature(InCmdList, InFeatureID, InParameters, OutHandle);
+    auto tryResult = TryCreateOptiFeature(InCmdList, InFeatureID, InParameters, OutHandle);
+
+    if (tryResult == NVSDK_NGX_Result_Success)
+        HandleToFeature[(*OutHandle)->Id] = InFeatureID;
+
+    return tryResult;
 }
 
 NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_ReleaseFeature(NVSDK_NGX_Handle* InHandle)
@@ -989,6 +1003,32 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
 
     const State& state = State::Instance();
     const Config& cfg = *Config::Instance();
+
+    auto feature = HandleToFeature[handleId];
+    static size_t evalWithoutFG = 0;
+    bool fgCreated = std::any_of(HandleToFeature.begin(), HandleToFeature.end(),
+                                 [](const auto& pair) { return pair.second == NVSDK_NGX_Feature_FrameGeneration; });
+
+    if (feature == NVSDK_NGX_Feature_FrameGeneration)
+    {
+        evalWithoutFG = 0;
+
+        int frameCount = 0;
+        InParameters->Get("DLSSG.MultiFrameCount", &frameCount);
+        State::Instance().dlssgDetectedInterpolationCount = frameCount;
+        ReflexHooks::setDlssgFrameCount(frameCount);
+    }
+    else if (fgCreated)
+    {
+        evalWithoutFG++;
+
+        if (evalWithoutFG == 6)
+        {
+            // Report FG as disabled
+            State::Instance().dlssgDetectedInterpolationCount = 0;
+            ReflexHooks::setDlssgFrameCount(0);
+        }
+    }
 
     // Native DLSS passthrough
     if (handleId < DLSS_MOD_ID_OFFSET)

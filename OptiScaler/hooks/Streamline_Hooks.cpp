@@ -748,16 +748,29 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     lastDlssgViewport = viewport;
     lastDlssgOptions = options;
 
-    // Make DLSSG auto always mean On
     sl::DLSSGOptions newOptions = options;
-    newOptions.mode = newOptions.mode == sl::DLSSGMode::eOff ? sl::DLSSGMode::eOff : sl::DLSSGMode::eOn;
+
+    // Make DLSSG auto always mean On
+    // if (newOptions.mode == sl::DLSSGMode::eAuto)
+    //    newOptions.mode = sl::DLSSGMode::eOn;
 
     auto& state = State::Instance();
+
+    const auto dlssgPotentiallyActive = newOptions.mode == sl::DLSSGMode::eOn ||
+                                        newOptions.mode == sl::DLSSGMode::eAuto || newOptions.mode == (sl::DLSSGMode) 3;
+
+    bool enableDynamicMode = Config::Instance()->FGDLSSGOverrideForceDMFG.value_or_default() &&
+                             state.dlssgDMFGSupported && dlssgPotentiallyActive;
+
+    if (enableDynamicMode)
+    {
+        newOptions.mode = (sl::DLSSGMode) 3;
+    }
 
     if (state.swapchainApi == API::Vulkan)
     {
         // Only matters for Vulkan, DX doesn't use this delay
-        if (options.mode != sl::DLSSGMode::eOff && !MenuOverlayBase::IsVisible())
+        if (dlssgPotentiallyActive && !MenuOverlayBase::IsVisible())
             state.delayMenuRenderBy = 10;
 
         if (MenuOverlayBase::IsVisible())
@@ -770,8 +783,9 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
 
     LOG_TRACE("DLSSG Modified Mode: {}", magic_enum::enum_name(newOptions.mode));
 
-    if (options.mode != sl::DLSSGMode::eOff && state.streamlineVersion >= feature_version { 2, 7, 2 })
+    if (dlssgPotentiallyActive && state.streamlineVersion >= feature_version { 2, 7, 1 })
     {
+        // Populate dlssgMfgMax once
         if (!state.dlssgMfgMax.has_value())
         {
             sl::DLSSGState localState {};
@@ -790,28 +804,84 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
             }
         }
 
+        // Won't take effect with Dynamic
         if (Config::Instance()->FGDLSSGOverrideInterpolationCount.has_value())
         {
-            newOptions.numFramesToGenerate = Config::Instance()->FGDLSSGOverrideInterpolationCount.value();
+            auto overrideCount = Config::Instance()->FGDLSSGOverrideInterpolationCount.value();
+            if (overrideCount != 0)
+                newOptions.numFramesToGenerate = overrideCount;
+            else if (!enableDynamicMode)
+                newOptions.mode = sl::DLSSGMode::eOff;
         }
     }
 
-    if (newOptions.mode == sl::DLSSGMode::eOff)
-        ReflexHooks::setDlssgFrameCount(0);
-    else
-        ReflexHooks::setDlssgFrameCount(newOptions.numFramesToGenerate);
+    state.dlssgLastSetMode = newOptions.mode;
 
     return o_slDLSSGSetOptions(viewport, newOptions);
 }
 
+// TODO: update once sl::DLSSGState becomes v4
+struct DLSSGState4 : sl::DLSSGState
+{
+    sl::Boolean bIsDynamicMFGSupportAvailable = sl::eInvalid;
+};
+
 sl::Result StreamlineHooks::hkslDLSSGGetState(const sl::ViewportHandle& viewport, sl::DLSSGState& state,
                                               const sl::DLSSGOptions* options)
 {
-    auto result = o_slDLSSGGetState(viewport, state, options);
+    sl::Result result {};
+
+    {
+        static sl::DLSSGState s;
+        assert(s.structVersion == 3);
+    }
+
+    const auto originalStructVersion = state.structVersion;
+    if (originalStructVersion < 4)
+    {
+        DLSSGState4 newState {};
+        newState.structVersion = 4;
+
+        // We might be feeding a newer struct to an older SL but that seems to work just fine for this Get function
+        result = o_slDLSSGGetState(viewport, dynamic_cast<sl::DLSSGState&>(newState), options);
+
+        // Copy back data to game's struct
+        memcpy(&state, &newState, 56); // struct ver 1 size
+        state.structVersion = originalStructVersion;
+
+        if (originalStructVersion >= 2)
+        {
+            state.numFramesToGenerateMax = newState.numFramesToGenerateMax;
+            state.bReserved4 = newState.bReserved4;
+            state.bIsVsyncSupportAvailable = newState.bIsVsyncSupportAvailable;
+        }
+
+        if (originalStructVersion >= 3)
+        {
+            state.inputsProcessingCompletionFence = newState.inputsProcessingCompletionFence;
+            state.lastPresentInputsProcessingCompletionFenceValue =
+                newState.lastPresentInputsProcessingCompletionFenceValue;
+        }
+
+        State::Instance().dlssgDMFGSupported = newState.bIsDynamicMFGSupportAvailable == sl::eTrue;
+    }
+    else
+    {
+        result = o_slDLSSGGetState(viewport, state, options);
+
+        auto ver4struct = reinterpret_cast<DLSSGState4&>(state);
+        State::Instance().dlssgDMFGSupported = ver4struct.bIsDynamicMFGSupportAvailable == sl::eTrue;
+    }
+
+    if (!State::Instance().dlssgDMFGSupported)
+    {
+        Config::Instance()->FGDLSSGOverrideForceDMFG.set_volatile_value(false);
+        Config::Instance()->FGDLSSGFramerateTargetDMFG.set_volatile_value(0);
+    }
 
     auto& optiState = State::Instance();
 
-    if (optiState.streamlineVersion >= feature_version { 2, 7, 2 })
+    if (optiState.streamlineVersion >= feature_version { 2, 7, 1 })
     {
         if (!optiState.dlssgMfgMax.has_value())
         {

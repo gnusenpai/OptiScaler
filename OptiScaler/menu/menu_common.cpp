@@ -3101,32 +3101,45 @@ bool MenuCommon::RenderMenu()
                         ImGui::Spacing();
                     }
 
-                    if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() > 1)
+                    ImGui::BeginDisabled(state.dlssgDMFGSupported &&
+                                         config->FGDLSSGOverrideForceDMFG.value_or_default());
+                    if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() >= 1)
                     {
                         auto maxInterpolationCount = state.dlssgMfgMax.value();
 
                         if (maxInterpolationCount > 1)
                         {
-                            const char* intModes[] = { "Off", "2X", "3X", "4X", "5X", "6X" };
-                            auto currentSet = config->FGDLSSGOverrideInterpolationCount.value_or(0);
-                            auto currentIntCount = intModes[currentSet];
+                            const char* intModes[] = { "Default", "Off", "2X", "3X", "4X", "5X", "6X" };
+
+                            // Map config value to UI index
+                            int currentSet = 0;
+                            if (config->FGDLSSGOverrideInterpolationCount.has_value())
+                            {
+                                currentSet = config->FGDLSSGOverrideInterpolationCount.value() + 1;
+                            }
+
+                            const char* currentIntCount = intModes[currentSet];
 
                             ImGui::PushItemWidth(95.0f * menuResScale);
 
                             if (ImGui::BeginCombo("Override DLSSG", currentIntCount))
                             {
-                                for (int i = 0; i <= maxInterpolationCount; i++)
+                                for (int i = 0; i <= maxInterpolationCount + 1; i++)
                                 {
                                     if (ImGui::Selectable(intModes[i], (currentSet == i)))
                                     {
                                         if (i == 0)
                                         {
+                                            // Default, no override
                                             config->FGDLSSGOverrideInterpolationCount.reset();
                                         }
                                         else
                                         {
-                                            LOG_DEBUG("DLSSG Interpolation Count set to: {}", i);
-                                            config->FGDLSSGOverrideInterpolationCount = i;
+                                            // UI index, store value
+                                            int framesToGenerate = i - 1;
+
+                                            LOG_DEBUG("DLSSG Interpolation Count set to: {}", framesToGenerate);
+                                            config->FGDLSSGOverrideInterpolationCount = framesToGenerate;
                                         }
 
                                         StreamlineHooks::updateDlssgOptions();
@@ -3137,9 +3150,36 @@ bool MenuCommon::RenderMenu()
                             }
 
                             ImGui::PopItemWidth();
-
-                            ShowHelpMarker("Overrides DLSSG interpolation count");
                         }
+                    }
+
+                    ImGui::EndDisabled();
+
+                    if (state.dlssgDMFGSupported)
+                    {
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        ImGui::BeginDisabled(config->FGDLSSGFramerateTargetDMFG.value_or_default());
+
+                        if (bool dynamicMFG = config->FGDLSSGOverrideForceDMFG.value_or_default();
+                            ImGui::Checkbox("Force Dynamic MFG", &dynamicMFG))
+                        {
+                            config->FGDLSSGOverrideForceDMFG = dynamicMFG;
+                            StreamlineHooks::updateDlssgOptions();
+                        }
+
+                        if (config->FGDLSSGFramerateTargetDMFG.value_or_default())
+                        {
+                            ShowHelpMarker("You have set a custom FPS target in the config\n"
+                                           "You cannot disable DMFG while the game is running");
+                        }
+                        else
+                        {
+                            ShowHelpMarker("Currently targets your monitors refresh rate\n"
+                                           "For custom targets set FramerateTargetDMFG in the config and restart");
+                        }
+
+                        ImGui::EndDisabled();
                     }
 
                     auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
@@ -4170,12 +4210,14 @@ bool MenuCommon::RenderMenu()
                         ImGui::Text("Using Nukem's via the MFG mod from dlss-enabler-headless.asi");
                     }
 
+                    bool dmfgActive = state.dlssgDMFGSupported && config->FGDLSSGOverrideForceDMFG.value_or_default();
+
                     if (!ReflexHooks::isReflexHooked())
                     {
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Reflex not hooked");
                         ImGui::Text("If you are using an AMD/Intel GPU, then make sure you have Fakenvapi");
                     }
-                    else if (ReflexHooks::dlssgFrameCountToGenerate() == 0)
+                    else if (ReflexHooks::dlssgFrameCountToGenerate() == 0 && !dmfgActive)
                     {
                         ImGui::Text("Please select DLSS Frame Generation in the game options\n"
                                     "You might need to select DLSS first");
@@ -4185,7 +4227,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Current DLSSG state:");
                         ImGui::SameLine();
-                        if (auto count = ReflexHooks::dlssgFrameCountToGenerate(); count > 0)
+                        if (auto count = state.dlssgDetectedInterpolationCount; count > 0)
                         {
                             ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), std::format("ON {}x", count + 1).c_str());
                         }

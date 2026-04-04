@@ -42,9 +42,10 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             delete currently_active_tech;
         }
 
+        // Don't use AL2 and XeLL when using DMFG or MFG
         if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default() &&
-            (!Nvngx_FG::isMFG() || ReflexHooks::dlssgFrameCountToGenerate() <= 1) &&
-            Config::Instance()->FramerateTargetDMFG.value_or_default() == 0)
+            State::Instance().dlssgDetectedInterpolationCount <= 1 &&
+            State::Instance().dlssgLastSetMode != (sl::DLSSGMode) 3)
         {
             currently_active_tech = new AntiLag2();
             if (currently_active_tech->init(pDevice))
@@ -83,7 +84,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
     bool change_detected = last_force_latencyflex != force_latencyflex;
     last_force_latencyflex = force_latencyflex;
 
-    if (State::Instance().fakenvapiReloadLowLatency && Config::Instance()->FramerateTargetDMFG.value_or_default() == 0)
+    if (State::Instance().fakenvapiReloadLowLatency)
     {
         change_detected = true;
         State::Instance().fakenvapiReloadLowLatency = false;

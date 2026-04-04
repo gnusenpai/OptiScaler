@@ -519,9 +519,13 @@ class Config
     CustomOptional<bool> FGXeFGForceBorderless { false };
 
     // DLSSG
-    CustomOptional<int> FGDLSSGInterpolationCount { 1 };
+    CustomOptional<int> FGDLSSGInterpolationCount { 1 }; // For Opti's own SL instance
     CustomOptional<bool> FGDLSSGUseGamesReflexMarkers { true };
-    CustomOptional<int, NoDefault> FGDLSSGOverrideInterpolationCount;
+    CustomOptional<int, NoDefault>
+        FGDLSSGOverrideInterpolationCount; // For overriding game's value sent to SL, could be Nvngx FG, could be noFG
+                                           // but someone just uses real DLSSG
+    CustomOptional<bool> FGDLSSGOverrideForceDMFG { false }; // Overrides game's DLSSG mode to Dynamic
+    CustomOptional<int> FGDLSSGFramerateTargetDMFG { 0 };    // Applies on launch
 
     // fakenvapi
     CustomOptional<bool> UseFakenvapi { true };
@@ -529,7 +533,6 @@ class Config
     CustomOptional<bool> FN_ForceLatencyFlex { false };
     CustomOptional<LFXMode> FN_LatencyFlexMode { LFXMode::Conservative };
     CustomOptional<ForceReflex> FN_ForceReflex { ForceReflex::InGame };
-    CustomOptional<int> FramerateTargetDMFG { 0 };
 
     // Inputs
     CustomOptional<bool> EnableDlssInputs { true };

@@ -724,35 +724,6 @@ NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSP
 NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId,
                                           NVDRS_SETTING* pSetting)
 {
-    auto setting = (ESetting) settingId;
-
-    auto dmfgFpsTarget = Config::Instance()->FramerateTargetDMFG.value_or_default();
-    if (setting == NGX_DLSSG_MODE_ID && dmfgFpsTarget != 0)
-    {
-        pSetting->settingId = settingId;
-        constexpr auto name = L"NGX_DLSSG_MODE_ID";
-        memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
-        pSetting->settingType = NVDRS_DWORD_TYPE;
-        pSetting->u32CurrentValue = NGX_DLSSG_MODE_DYNAMIC;
-
-        LOG_DEBUG("Set NGX_DLSSG_MODE_ID");
-
-        return OK();
-    }
-
-    if (setting == NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID && dmfgFpsTarget != 0)
-    {
-        pSetting->settingId = settingId;
-        constexpr auto name = L"NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID";
-        memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
-        pSetting->settingType = NVDRS_DWORD_TYPE;
-        pSetting->u32CurrentValue = dmfgFpsTarget;
-
-        LOG_DEBUG("Set NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID to {}", pSetting->u32CurrentValue);
-
-        return OK();
-    }
-
     LOG_DEBUG("Missing get setting: {:X}", settingId);
     return OK();
 }

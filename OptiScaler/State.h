@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 #include <ankerl/unordered_dense.h>
 #include <mutex>
+#include <sl_dlss_g.h>
 
 enum class FGPreset : uint32_t
 {
@@ -157,6 +158,7 @@ class State
 
     feature_version streamlineVersion = { 0, 0, 0 };
 
+    // Has value when Opti was able to hook sl and the game set DLSSG options
     std::optional<int> dlssgMfgMax = std::nullopt;
 
     API api = API::NotSelected;
@@ -182,6 +184,9 @@ class State
 
     int xefgMaxInterpolationCount = 1;
     int dlssgMaxInterpolationCount = 1;
+    bool dlssgDMFGSupported = false;
+    sl::DLSSGMode dlssgLastSetMode = sl::DLSSGMode::eOff;
+    int dlssgDetectedInterpolationCount = 0;
 
     // DLSS
     bool dlssPresetsOverriddenExternally = false;

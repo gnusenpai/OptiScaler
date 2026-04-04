@@ -642,8 +642,18 @@ void ReflexHooks::update(bool fgActive, bool isVulkan)
 
     if (lastFgNumFramesToGenerate != _FgNumFramesToGenerate)
     {
+        // Don't reload when using Dynamic MFG
         if (fakenvapi::isUsingAsMainNvapi())
-            State::Instance().fakenvapiReloadLowLatency = true;
+        {
+            if (State::Instance().dlssgLastSetMode != (sl::DLSSGMode) 3)
+                State::Instance().fakenvapiReloadLowLatency = true;
+
+            if (Config::Instance()->FN_ForceReflex.value_or_default() != ForceReflex::ForceEnable &&
+                (State::Instance().dlssgLastSetMode != (sl::DLSSGMode) 3 || _FgNumFramesToGenerate > 1))
+            {
+                Config::Instance()->FN_ForceReflex.set_volatile_value(ForceReflex::ForceDisable);
+            }
+        }
 
         lastFgNumFramesToGenerate = _FgNumFramesToGenerate;
         setFPSLimit(currentFps);

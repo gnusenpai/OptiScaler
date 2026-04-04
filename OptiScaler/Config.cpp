@@ -219,6 +219,13 @@ bool Config::Reload(std::filesystem::path iniPath)
             if (FGDLSSGOverrideInterpolationCount.has_value() &&
                 (FGDLSSGOverrideInterpolationCount.value() < 1 || FGDLSSGOverrideInterpolationCount.value() > 6))
                 FGDLSSGOverrideInterpolationCount.reset();
+
+            FGDLSSGFramerateTargetDMFG.set_from_config(readInt("DLSSG", "FramerateTargetDMFG"));
+            FGDLSSGOverrideForceDMFG.set_from_config(readBool("DLSSG", "OverrideForceDMFG"));
+
+            // DMFG target can currently only be set on launch, inform using the ForceDMFG
+            if (FGDLSSGFramerateTargetDMFG.has_value() && FGDLSSGFramerateTargetDMFG.value() > 0)
+                FGDLSSGOverrideForceDMFG.set_volatile_value(true);
         }
 
         // FSR FG Inputs
@@ -649,10 +656,8 @@ bool Config::Reload(std::filesystem::path iniPath)
             else
                 FN_ForceReflex.reset();
 
-            FramerateTargetDMFG.set_from_config(readInt("fakenvapi", "FramerateTargetDMFG"));
-
             // DMFG is a mess with our reflex implementations, disable by default
-            if (FramerateTargetDMFG.value_or_default() != 0 && !FN_ForceReflex.has_value())
+            if (FGDLSSGOverrideForceDMFG.value_or_default() && !FN_ForceReflex.has_value())
                 FN_ForceReflex.set_volatile_value(ForceReflex::ForceDisable);
         }
 
@@ -920,6 +925,10 @@ bool Config::SaveIni()
                      GetBoolValue(Instance()->FGDLSSGUseGamesReflexMarkers.value_for_config()).c_str());
         ini.SetValue("DLSSG", "OverrideInterpolationCount",
                      GetIntValue(Instance()->FGDLSSGOverrideInterpolationCount.value_for_config()).c_str());
+        ini.SetValue("DLSSG", "FramerateTargetDMFG",
+                     GetIntValue(Instance()->FGDLSSGFramerateTargetDMFG.value_for_config()).c_str());
+        ini.SetValue("DLSSG", "OverrideForceDMFG",
+                     GetBoolValue(Instance()->FGDLSSGOverrideForceDMFG.value_for_config()).c_str());
     }
 
     // OptiFG
@@ -1363,8 +1372,6 @@ bool Config::SaveIni()
         ini.SetValue("fakenvapi", "LatencyFlexMode",
                      GetIntValue(Instance()->FN_LatencyFlexMode.value_for_config()).c_str());
         ini.SetValue("fakenvapi", "ForceReflex", GetIntValue(Instance()->FN_ForceReflex.value_for_config()).c_str());
-        ini.SetValue("fakenvapi", "FramerateTargetDMFG",
-                     GetIntValue(Instance()->FramerateTargetDMFG.value_for_config()).c_str());
     }
 
     // inputs

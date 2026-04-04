@@ -419,13 +419,6 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
             }
         }
 
-        if (Config::Instance()->FramerateTargetDMFG.value_or_default() != 0 && fakenvapi::isUsingAsMainNvapi())
-        {
-            int frameCount = 0;
-            InParameters->Get("DLSSG.MultiFrameCount", &frameCount);
-            Config::Instance()->FGDLSSGOverrideInterpolationCount.set_volatile_value(frameCount);
-        }
-
         NVSDK_NGX_Handle TempHandle = { .Id = InFeatureHandle->Id - DLSSG_MOD_ID_OFFSET };
         return _DLSSG_D3D12_EvaluateFeature(InCmdList, &TempHandle, InParameters, InCallback);
     }
