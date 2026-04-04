@@ -2069,7 +2069,7 @@ void ResTrack_Dx12::HookToQueue(ID3D12Device* InDevice)
 
 void ResTrack_Dx12::HookDevice(ID3D12Device* device)
 {
-    if (o_CreateDescriptorHeap != nullptr || State::Instance().activeFgInput == FGInput::Nukems)
+    if (o_CreateDescriptorHeap != nullptr || State::Instance().activeFgInput == FGInput::NvngxFG)
         return;
 
     if (device == nullptr)

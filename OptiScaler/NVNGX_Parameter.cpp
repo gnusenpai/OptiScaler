@@ -797,8 +797,8 @@ void InitNGXParameters(NVSDK_NGX_Parameter* InParams)
     }
 
     // not ideal as it doesn't take different APIs into account
-    if (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG ||
-        State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
+    if (State::Instance().activeFgInput == FGInput::NvngxFG || State::Instance().activeFgInput == FGInput::DLSSG ||
+        State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx)
     {
         InParams->Set("FrameGeneration.Available", 1);
         InParams->Set("FrameGeneration.NeedsUpdatedDriver", 0);

@@ -70,7 +70,7 @@ class StreamlineProxy
             return true;
 
         auto owner = State::GetOwner();
-        if (State::Instance().activeFgOutput != FGOutput::DLSSGWithNukems)
+        if (State::Instance().activeFgOutput != FGOutput::DLSSGWithNvngx)
             State::DisableChecks(owner);
         else
             State::DisableChecks(owner, "sl.");
@@ -339,7 +339,7 @@ class StreamlineProxy
 
         auto owner = State::GetOwner();
 
-        if (State::Instance().activeFgOutput != FGOutput::DLSSGWithNukems)
+        if (State::Instance().activeFgOutput != FGOutput::DLSSGWithNvngx)
             State::DisableChecks(owner);
         else
             State::DisableChecks(owner, "sl.");

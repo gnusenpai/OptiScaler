@@ -501,8 +501,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
         // dlssg calls this from present it seems
         // don't try to get a mutex when present owns it while dlssg mod is enabled
         if (!(_localMutex.getOwner() == 4 &&
-              (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems ||
-               Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNukems)))
+              (Config::Instance()->FGInput.value_or_default() == FGInput::NvngxFG ||
+               Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNvngx)))
         {
             OwnedLockGuard lock(_localMutex, 3);
         }
@@ -559,8 +559,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
     // dlssg calls this from present it seems
     // don't try to get a mutex when present owns it while dlssg mod is enabled
     if (!(_localMutex.getOwner() == 4 &&
-          (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems ||
-           Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNukems)))
+          (Config::Instance()->FGInput.value_or_default() == FGInput::NvngxFG ||
+           Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNvngx)))
     {
         OwnedLockGuard lock(_localMutex, 1);
     }
@@ -872,8 +872,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
     // dlssg calls this from present it seems
     // don't try to get a mutex when present owns it while dlssg mod is enabled
     if (!(_localMutex.getOwner() == 4 &&
-          (Config::Instance()->FGInput.value_or_default() == FGInput::Nukems ||
-           Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNukems)))
+          (Config::Instance()->FGInput.value_or_default() == FGInput::NvngxFG ||
+           Config::Instance()->FGOutput.value_or_default() == FGOutput::DLSSGWithNvngx)))
     {
         OwnedLockGuard lock(_localMutex, 2);
     }

@@ -149,7 +149,7 @@ sl::Result StreamlineHooks::hkslInit(const sl::Preferences& pref, uint64_t sdkVe
 
     // Replace the SL files to allow for MFG
     // TODO: ensure the path contains all the required plugins
-    if (State::Instance().activeFgInput == FGInput::Nukems && std::filesystem::exists(optisPlugins / L"sl.common.dll"))
+    if (State::Instance().activeFgInput == FGInput::NvngxFG && std::filesystem::exists(optisPlugins / L"sl.common.dll"))
     {
         storage.assign(localPref.pathsToPlugins, localPref.pathsToPlugins + localPref.numPathsToPlugins);
 
@@ -160,7 +160,7 @@ sl::Result StreamlineHooks::hkslInit(const sl::Preferences& pref, uint64_t sdkVe
     }
 
     // bool hookSetTag =
-    //     (State::Instance().activeFgInput == FGInput::Nukems || State::Instance().activeFgInput == FGInput::DLSSG);
+    //     (State::Instance().activeFgInput == FGInput::NvngxFG || State::Instance().activeFgInput == FGInput::DLSSG);
 
     // if (hookSetTag)
     //     localPref->flags &= ~(sl::PreferenceFlags::eAllowOTA | sl::PreferenceFlags::eLoadDownloadedPlugins);
@@ -221,7 +221,7 @@ sl::Result StreamlineHooks::hkslSetTag(const sl::ViewportHandle& viewport, const
         {
             State::Instance().slFGInputs.reportResource(tags[i], (ID3D12GraphicsCommandList*) cmdBuffer, 0);
         }
-        else if (State::Instance().activeFgInput == FGInput::Nukems)
+        else if (State::Instance().activeFgInput == FGInput::NvngxFG)
         {
             LOG_TRACE("Tagging resource of type: {}", magic_enum::enum_name(typeEnum));
 
@@ -277,7 +277,7 @@ sl::Result StreamlineHooks::hkslSetTagForFrame(const sl::FrameToken& frame, cons
             State::Instance().slFGInputs.reportResource(resources[i], (ID3D12GraphicsCommandList*) cmdBuffer,
                                                         (uint32_t) frame);
         }
-        else if (State::Instance().activeFgInput == FGInput::Nukems)
+        else if (State::Instance().activeFgInput == FGInput::NvngxFG)
         {
             LOG_TRACE("Tagging resource of type: {}", magic_enum::enum_name(typeEnum));
 
@@ -510,8 +510,8 @@ void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature, Syste
     // Don't change arch for DLSSG with ada and above
     else if (feature == sl::kFeatureDLSS_G)
     {
-        if (State::Instance().activeFgOutput == FGOutput::Nukems ||
-            State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
+        if (State::Instance().activeFgOutput == FGOutput::NvngxFG ||
+            State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx)
         {
             Nvngx_FG::InitDLSSGMod_Dx12();
             Nvngx_FG::InitDLSSGMod_Vulkan();
@@ -589,7 +589,7 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(sl::param::IParameters* params, con
 
     bool shouldSpoofArch =
         Config::Instance()->StreamlineSpoofing.value_or_default() &&
-        (Config::Instance()->FGInput == FGInput::Nukems || Config::Instance()->FGInput == FGInput::DLSSG);
+        (Config::Instance()->FGInput == FGInput::NvngxFG || Config::Instance()->FGInput == FGInput::DLSSG);
 
     uint32_t currentArch = 0;
     if (shouldSpoofArch)
@@ -631,7 +631,7 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(sl::param::IParameters* params, con
             configJson["external"]["vk"]["device"]["1.3_features"].clear();
     }
 
-    if (State::Instance().activeFgInput == FGInput::DLSSG || State::Instance().activeFgInput == FGInput::Nukems)
+    if (State::Instance().activeFgInput == FGInput::DLSSG || State::Instance().activeFgInput == FGInput::NvngxFG)
     {
         if (configJson.contains("/vsync/supported"_json_pointer))
             configJson["vsync"]["supported"] = true; // disable eVSyncOffRequired
@@ -1083,7 +1083,7 @@ void* StreamlineHooks::hklocal_dlssg_slGetPluginFunction(const char* functionNam
 {
     // LOG_DEBUG("{}", functionName);
 
-    if (strcmp(functionName, "slOnPluginLoad") == 0 && Config::Instance()->FGOutput == FGOutput::DLSSGWithNukems)
+    if (strcmp(functionName, "slOnPluginLoad") == 0 && Config::Instance()->FGOutput == FGOutput::DLSSGWithNvngx)
     {
         o_local_dlssg_slOnPluginLoad = (PFN_slOnPluginLoad) o_local_dlssg_slGetPluginFunction(functionName);
         return &hklocal_dlssg_slOnPluginLoad;
@@ -1421,7 +1421,7 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
 
                 DetourAttach(&(PVOID&) o_slInit, hkslInit);
 
-                bool hookSetTag = (State::Instance().activeFgInput == FGInput::Nukems ||
+                bool hookSetTag = (State::Instance().activeFgInput == FGInput::NvngxFG ||
                                    State::Instance().activeFgInput == FGInput::DLSSG);
 
                 if (o_slSetTag != nullptr && hookSetTag)

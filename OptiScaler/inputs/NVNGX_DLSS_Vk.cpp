@@ -352,7 +352,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureInstanceExtensionRequi
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
 
-    if (State::Instance().activeFgInput == FGInput::Nukems && Nvngx_FG::isVulkanAvailable() &&
+    if (State::Instance().activeFgInput == FGInput::NvngxFG && Nvngx_FG::isVulkanAvailable() &&
         FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration)
     {
         return NVSDK_NGX_Result_Success;
@@ -444,7 +444,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureDeviceExtensionRequire
 {
     LOG_DEBUG("FeatureID: {0}", (UINT) FeatureDiscoveryInfo->FeatureID);
 
-    if (State::Instance().activeFgInput == FGInput::Nukems && Nvngx_FG::isVulkanAvailable() &&
+    if (State::Instance().activeFgInput == FGInput::NvngxFG && Nvngx_FG::isVulkanAvailable() &&
         FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration)
     {
         return NVSDK_NGX_Result_Success;
@@ -568,7 +568,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetFeatureRequirements(
     Nvngx_FG::InitDLSSGMod_Vulkan();
 
     if (FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_SuperSampling ||
-        (State::Instance().activeFgInput == FGInput::Nukems && Nvngx_FG::isVulkanAvailable() &&
+        (State::Instance().activeFgInput == FGInput::NvngxFG && Nvngx_FG::isVulkanAvailable() &&
          FeatureDiscoveryInfo->FeatureID == NVSDK_NGX_Feature_FrameGeneration))
     {
         if (OutSupported == nullptr)

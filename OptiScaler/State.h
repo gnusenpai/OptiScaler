@@ -28,7 +28,7 @@ enum class FrameTimeSource : uint32_t
 enum class FGInput : uint32_t
 {
     NoFG,
-    Nukems,
+    NvngxFG,
     FSRFG,
     DLSSG, // technically Streamline inputs
     XeFG,
@@ -41,11 +41,11 @@ enum class FGInput : uint32_t
 enum class FGOutput : uint32_t
 {
     NoFG,
-    Nukems,
+    NvngxFG,
     FSRFG,
     DLSSG,
     XeFG,
-    DLSSGWithNukems,
+    DLSSGWithNvngx,
 };
 
 enum class WorkingMode : uint32_t
@@ -94,7 +94,7 @@ class State
     UINT64 FGLastFrame = 0;
 
     // Nvngx FG, uses streamline swapchain
-    bool NukemsFilesAvailable = false;
+    bool NvngxFgFilesAvailable = false;
     bool DLSSGDebugView = false;
     bool DLSSGInterpolatedOnly = false;
     uint32_t delayMenuRenderBy = 0;
@@ -184,7 +184,7 @@ class State
 
     int xefgMaxInterpolationCount = 1;
     bool WAR_xefgRequestFGToggle = false;
-    
+
     int dlssgMaxInterpolationCount = 1;
     bool dlssgDMFGSupported = false;
     sl::DLSSGMode dlssgLastSetMode = sl::DLSSGMode::eOff;

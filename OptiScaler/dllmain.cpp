@@ -1342,35 +1342,35 @@ static void CheckQuirks(bool isNvidia)
 
     if (quirks & GameQuirk::ForceBorderlessWhenUsingXeFG && !Config::Instance()->FGXeFGForceBorderless.has_value() &&
         State::Instance().activeFgOutput == FGOutput::XeFG && State::Instance().activeFgInput != FGInput::NoFG &&
-        State::Instance().activeFgInput != FGInput::Nukems)
+        State::Instance().activeFgInput != FGInput::NvngxFG)
     {
         Config::Instance()->FGXeFGForceBorderless.set_volatile_value(true);
     }
 
     if (quirks & GameQuirk::OverrideVsyncWhenUsingXeFG && !Config::Instance()->OverrideVsync.has_value() &&
         State::Instance().activeFgOutput == FGOutput::XeFG && State::Instance().activeFgInput != FGInput::NoFG &&
-        State::Instance().activeFgInput != FGInput::Nukems)
+        State::Instance().activeFgInput != FGInput::NvngxFG)
     {
         Config::Instance()->OverrideVsync.set_volatile_value(true);
     }
 
     if (quirks & GameQuirk::SetDepthValidNow && !Config::Instance()->FGDepthValidNow.has_value() &&
         State::Instance().activeFgInput == FGInput::DLSSG && State::Instance().activeFgOutput != FGOutput::NoFG &&
-        State::Instance().activeFgOutput != FGOutput::Nukems)
+        State::Instance().activeFgOutput != FGOutput::NvngxFG)
     {
         Config::Instance()->FGDepthValidNow.set_volatile_value(true);
     }
 
     if (quirks & GameQuirk::SetVelocityValidNow && !Config::Instance()->FGVelocityValidNow.has_value() &&
         State::Instance().activeFgInput == FGInput::DLSSG && State::Instance().activeFgOutput != FGOutput::NoFG &&
-        State::Instance().activeFgOutput != FGOutput::Nukems)
+        State::Instance().activeFgOutput != FGOutput::NvngxFG)
     {
         Config::Instance()->FGVelocityValidNow.set_volatile_value(true);
     }
 
     if (quirks & GameQuirk::SetHudlessValidNow && !Config::Instance()->FGHudlessValidNow.has_value() &&
         State::Instance().activeFgInput == FGInput::DLSSG && State::Instance().activeFgOutput != FGOutput::NoFG &&
-        State::Instance().activeFgOutput != FGOutput::Nukems)
+        State::Instance().activeFgOutput != FGOutput::NvngxFG)
     {
         Config::Instance()->FGHudlessValidNow.set_volatile_value(true);
     }
@@ -1478,7 +1478,7 @@ static void CheckQuirks(bool isNvidia)
     }
 
     if (Config::Instance()->LoadReShade.value_or_default() && quirks & GameQuirk::CreateD3D12DeviceForLuma &&
-        State::Instance().activeFgInput != FGInput::NoFG && State::Instance().activeFgInput != FGInput::Nukems)
+        State::Instance().activeFgInput != FGInput::NoFG && State::Instance().activeFgInput != FGInput::NvngxFG)
     {
         Config::Instance()->DxgiFactoryWrapping.set_volatile_value(true);
         State::Instance().detectedQuirks.push_back("Factory wrapping enabled due to delayed ReShade + FG");
@@ -1486,7 +1486,7 @@ static void CheckQuirks(bool isNvidia)
     }
 
     if (Config::Instance()->LoadSpecialK.value_or_default() && State::Instance().activeFgInput != FGInput::NoFG &&
-        State::Instance().activeFgInput != FGInput::Nukems)
+        State::Instance().activeFgInput != FGInput::NvngxFG)
     {
         Config::Instance()->LoadSpecialK.set_volatile_value(false);
         State::Instance().detectedQuirks.push_back("FG Inputs are enabled, LoadSpecialK disabled");

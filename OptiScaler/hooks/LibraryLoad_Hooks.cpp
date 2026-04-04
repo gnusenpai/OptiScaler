@@ -126,7 +126,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     }
 
     const bool hookOptiDlls =
-        !normalizedPath.contains(L"\\opti_dlls") || State::Instance().activeFgInput == FGInput::Nukems;
+        !normalizedPath.contains(L"\\opti_dlls") || State::Instance().activeFgInput == FGInput::NvngxFG;
 
     // sl.interposer.dll
     if (CheckDllNameW(&libName, &slInterposerNamesW) && hookOptiDlls)

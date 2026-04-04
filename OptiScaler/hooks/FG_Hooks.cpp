@@ -39,7 +39,7 @@ static bool CheckForFGStatus()
     // if (!Config::Instance()->OverlayMenu.value_or_default())
     //    return false;
 
-    if (State::Instance().activeFgInput == FGInput::NoFG || State::Instance().activeFgInput == FGInput::Nukems)
+    if (State::Instance().activeFgInput == FGInput::NoFG || State::Instance().activeFgInput == FGInput::NvngxFG)
         return false;
 
     // Disable FG if amd dll is not found
@@ -60,7 +60,7 @@ static bool CheckForFGStatus()
         State::Instance().activeFgOutput = Config::Instance()->FGOutput.value_or_default();
     }
     else if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
-              State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
+              State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&
              !StreamlineProxy::LoadStreamline())
     {
         LOG_DEBUG("Can't init StreamlineProxy, disabling FGOutput");
@@ -70,7 +70,7 @@ static bool CheckForFGStatus()
 
     if (State::Instance().activeFgOutput != FGOutput::FSRFG && State::Instance().activeFgOutput != FGOutput::XeFG &&
         State::Instance().activeFgOutput != FGOutput::DLSSG &&
-        State::Instance().activeFgOutput != FGOutput::DLSSGWithNukems)
+        State::Instance().activeFgOutput != FGOutput::DLSSGWithNvngx)
     {
         LOG_WARN("FGOutput is not set to FSR-FG or XeFG");
         return false;
@@ -110,7 +110,7 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
             State::Instance().currentFG = new XeFG_Dx12();
         }
         else if (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                 State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
+                 State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx)
         {
             State::Instance().currentFG = new DLSSG_Dx12();
         }
@@ -238,7 +238,7 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
             State::Instance().currentFG = new XeFG_Dx12();
         }
         else if (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                 State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
+                 State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx)
         {
             State::Instance().currentFG = new DLSSG_Dx12();
         }
@@ -1069,7 +1069,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
     sl::FrameToken* localToken = nullptr;
     sl::Result tokenResult = sl::Result::eErrorReflexAPI;
     if (willPresent && (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                        State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems))
+                        State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx))
     {
         ((IDXGISwapChain4*) This)->GetCurrentBackBufferIndex();
 
@@ -1161,7 +1161,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
          !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default()) &&
         willPresent &&
         (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-         State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems))
+         State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx))
     {
         StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentEnd, *localToken);
         StreamlineProxy::ReflexSleep()(*localToken);

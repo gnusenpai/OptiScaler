@@ -95,8 +95,8 @@ void Nvngx_FG::InitDLSSGMod_Dx12()
 {
     LOG_FUNC();
 
-    if (_dx12_inited || (Config::Instance()->FGInput.value_or_default() != FGInput::Nukems &&
-                         Config::Instance()->FGOutput.value_or_default() != FGOutput::DLSSGWithNukems))
+    if (_dx12_inited || (Config::Instance()->FGInput.value_or_default() != FGInput::NvngxFG &&
+                         Config::Instance()->FGOutput.value_or_default() != FGOutput::DLSSGWithNvngx))
     {
         return;
     }
@@ -167,7 +167,7 @@ void Nvngx_FG::InitDLSSGMod_Vulkan()
 {
     LOG_FUNC();
 
-    if (_vulkan_inited || Config::Instance()->FGInput.value_or_default() != FGInput::Nukems)
+    if (_vulkan_inited || Config::Instance()->FGInput.value_or_default() != FGInput::NvngxFG)
         return;
 
     // Vulkan support was removed in 4.4; in <=4.3 only the original Nukem's 2x mode is supported

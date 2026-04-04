@@ -128,7 +128,7 @@ inline static HRESULT hkCreateDXGIFactory(REFIID riid, IDXGIFactory** ppFactory)
         IDXGIFactory* real = nullptr;
 
         if ((State::Instance().activeFgOutput != FGOutput::DLSSG ||
-             State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
+             State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&
             Util::CheckForRealObject(__FUNCTION__, *ppFactory, (IUnknown**) &real))
         {
             *ppFactory = real;
@@ -187,7 +187,7 @@ inline static HRESULT hkCreateDXGIFactory1(REFIID riid, IDXGIFactory1** ppFactor
         IDXGIFactory1* real = nullptr;
 
         if ((State::Instance().activeFgOutput != FGOutput::DLSSG ||
-             State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
+             State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&
             Util::CheckForRealObject(__FUNCTION__, *ppFactory, (IUnknown**) &real))
         {
             *ppFactory = real;
@@ -248,7 +248,7 @@ inline static HRESULT hkCreateDXGIFactory2(UINT Flags, REFIID riid, IDXGIFactory
         IDXGIFactory2* real = nullptr;
 
         if ((State::Instance().activeFgOutput != FGOutput::DLSSG ||
-             State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems) &&
+             State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&
             Util::CheckForRealObject(__FUNCTION__, *ppFactory, (IUnknown**) &real))
         {
             *ppFactory = real;
@@ -275,7 +275,7 @@ void DxgiHooks::Hook()
     // Probably I forgot something but we can add it later
     if (!Config::Instance()->OverlayMenu.value_or_default() &&
         (Config::Instance()->FGInput.value_or_default() == FGInput::NoFG ||
-         Config::Instance()->FGInput.value_or_default() == FGInput::Nukems) &&
+         Config::Instance()->FGInput.value_or_default() == FGInput::NvngxFG) &&
         !Config::Instance()->DxgiSpoofing.value_or_default())
     {
         return;

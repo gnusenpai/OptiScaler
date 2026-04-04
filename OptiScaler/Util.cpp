@@ -382,7 +382,7 @@ std::optional<std::filesystem::path> Util::FindFilePath(const std::filesystem::p
             auto normalizedPath = entry.path().lexically_normal().wstring();
             to_lower_in_place(normalizedPath);
             if (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems ||
+                State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx ||
                 !normalizedPath.contains(L"\\opti_dlls"))
             {
                 LOG_INFO(L"{} found at {}", fileName.wstring(), entry.path().parent_path().wstring());
@@ -413,7 +413,7 @@ std::optional<std::filesystem::path> Util::FindFilePath(const std::filesystem::p
                     auto normalizedPath = entry.path().lexically_normal().wstring();
                     to_lower_in_place(normalizedPath);
                     if (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                        State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems ||
+                        State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx ||
                         !normalizedPath.contains(L"\\opti_dlls"))
                     {
                         LOG_INFO(L"{} found at {}", fileName.wstring(), entry.path().parent_path().wstring());

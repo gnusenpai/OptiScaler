@@ -75,10 +75,11 @@ bool Config::Reload(std::filesystem::path iniPath)
                     FGInput.set_from_config(FGInput::NoFG);
                 else if (lstrcmpiA(FGInputString.value().c_str(), "upscaler") == 0)
                     FGInput.set_from_config(FGInput::Upscaler);
-                else if (lstrcmpiA(FGInputString.value().c_str(), "nukems") == 0)
+                else if (lstrcmpiA(FGInputString.value().c_str(), "nvngxfg") == 0 ||
+                         lstrcmpiA(FGInputString.value().c_str(), "nukems") == 0)
                 {
-                    FGInput.set_from_config(FGInput::Nukems);
-                    FGOutput.set_from_config(FGOutput::Nukems);
+                    FGInput.set_from_config(FGInput::NvngxFG);
+                    FGOutput.set_from_config(FGOutput::NvngxFG);
                 }
                 else if (lstrcmpiA(FGInputString.value().c_str(), "dlssg") == 0)
                     FGInput.set_from_config(FGInput::DLSSG);
@@ -89,16 +90,17 @@ bool Config::Reload(std::filesystem::path iniPath)
             }
 
             if (auto FGOutputString = readString("FrameGen", "FGOutput");
-                FGInput.value_or_default() != FGInput::Nukems && FGOutputString.has_value())
+                FGInput.value_or_default() != FGInput::NvngxFG && FGOutputString.has_value())
             {
                 if (lstrcmpiA(FGOutputString.value().c_str(), "nofg") == 0)
                     FGOutput.set_from_config(FGOutput::NoFG);
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "fsrfg") == 0)
                     FGOutput.set_from_config(FGOutput::FSRFG);
-                else if (lstrcmpiA(FGOutputString.value().c_str(), "nukems") == 0)
-                    FGOutput.set_from_config(FGOutput::Nukems);
-                else if (lstrcmpiA(FGOutputString.value().c_str(), "dlssgwithnukems") == 0)
-                    FGOutput.set_from_config(FGOutput::DLSSGWithNukems);
+                else if (lstrcmpiA(FGOutputString.value().c_str(), "nvngxfg") == 0 ||
+                         lstrcmpiA(FGOutputString.value().c_str(), "nukems") == 0)
+                    FGOutput.set_from_config(FGOutput::NvngxFG);
+                else if (lstrcmpiA(FGOutputString.value().c_str(), "DLSSGWithNvngx") == 0)
+                    FGOutput.set_from_config(FGOutput::DLSSGWithNvngx);
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "xefg") == 0)
                     FGOutput.set_from_config(FGOutput::XeFG);
                 else if (lstrcmpiA(FGOutputString.value().c_str(), "dlssg") == 0)
@@ -371,9 +373,9 @@ bool Config::Reload(std::filesystem::path iniPath)
                 DLSSDRenderPresetUltraPerformance.set_from_config(setting);
         }
 
-        // Nukems
+        // Nvngx_FG
         {
-            MakeDepthCopy.set_from_config(readBool("Nukems", "MakeDepthCopy"));
+            MakeDepthCopy.set_from_config(readBool("Nvngx_FG", "MakeDepthCopy"));
         }
 
         // Logging
@@ -634,8 +636,8 @@ bool Config::Reload(std::filesystem::path iniPath)
             // Enable HAGS when DLSS-G will be used
             if (!SpoofHAGS.has_value())
             {
-                SpoofHAGS.set_volatile_value(FGInput.value_or_default() == FGInput::Nukems ||
-                                             FGOutput.value_or_default() == FGOutput::DLSSGWithNukems ||
+                SpoofHAGS.set_volatile_value(FGInput.value_or_default() == FGInput::NvngxFG ||
+                                             FGOutput.value_or_default() == FGOutput::DLSSGWithNvngx ||
                                              FGInput.value_or_default() == FGInput::DLSSG);
             }
         }
@@ -814,8 +816,8 @@ bool Config::SaveIni()
                 FGInputString = "NoFG";
             else if (FGInputHeld.value() == FGInput::Upscaler)
                 FGInputString = "Upscaler";
-            else if (FGInputHeld.value() == FGInput::Nukems)
-                FGInputString = "Nukems";
+            else if (FGInputHeld.value() == FGInput::NvngxFG)
+                FGInputString = "NvngxFG";
             else if (FGInputHeld.value() == FGInput::DLSSG)
                 FGInputString = "DLSSG";
             else if (FGInputHeld.value() == FGInput::FSRFG)
@@ -832,10 +834,10 @@ bool Config::SaveIni()
                 FGOutputString = "NoFG";
             else if (FGOutputHeld.value() == FGOutput::FSRFG)
                 FGOutputString = "FSRFG";
-            else if (FGOutputHeld.value() == FGOutput::Nukems)
-                FGOutputString = "Nukems";
-            else if (FGOutputHeld.value() == FGOutput::DLSSGWithNukems)
-                FGOutputString = "DLSSGWithNukems";
+            else if (FGOutputHeld.value() == FGOutput::NvngxFG)
+                FGOutputString = "NvngxFG";
+            else if (FGOutputHeld.value() == FGOutput::DLSSGWithNvngx)
+                FGOutputString = "DLSSGWithNvngx";
             else if (FGOutputHeld.value() == FGOutput::XeFG)
                 FGOutputString = "XeFG";
             else if (FGOutputHeld.value() == FGOutput::DLSSG)
@@ -1106,9 +1108,9 @@ bool Config::SaveIni()
                      GetIntValue(Instance()->DLSSDRenderPresetUltraPerformance.value_for_config()).c_str());
     }
 
-    // Nukems
+    // NvngxFG
     {
-        ini.SetValue("Nukems", "MakeDepthCopy", GetBoolValue(Instance()->MakeDepthCopy.value_for_config()).c_str());
+        ini.SetValue("NvngxFG", "MakeDepthCopy", GetBoolValue(Instance()->MakeDepthCopy.value_for_config()).c_str());
     }
 
     // Sharpness
