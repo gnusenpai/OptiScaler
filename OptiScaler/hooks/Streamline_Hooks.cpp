@@ -510,6 +510,15 @@ void StreamlineHooks::spoofArch(uint32_t currentArch, sl::Feature feature, Syste
     // Don't change arch for DLSSG with ada and above
     else if (feature == sl::kFeatureDLSS_G)
     {
+        if (State::Instance().activeFgOutput == FGOutput::Nukems ||
+            State::Instance().activeFgOutput == FGOutput::DLSSGWithNukems)
+        {
+            Nvngx_FG::InitDLSSGMod_Dx12();
+            Nvngx_FG::InitDLSSGMod_Vulkan();
+            if (!Nvngx_FG::isDx12Available() && !Nvngx_FG::isVulkanAvailable())
+                return setArch(0);
+        }
+
         if (currentArch < NV_GPU_ARCHITECTURE_AD100)
             return setArch(maxArch, altSystemCaps);
     }
