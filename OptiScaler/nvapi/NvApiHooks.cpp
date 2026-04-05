@@ -113,6 +113,21 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_DRS_GetSetting(NvDRSSessionHandle hSe
                 State::Instance().dlssdPresetsOverriddenExternally =
                     pSetting->u32CurrentValue != NGX_DLSS_RR_OVERRIDE_RENDER_PRESET_SELECTION_OFF;
         }
+
+        if (settingId == NGX_DLSS_RR_OVERRIDE_SCALING_RATIO_ID || settingId == NGX_DLSS_SR_OVERRIDE_SCALING_RATIO_ID)
+        {
+            if (Config::Instance()->UpscaleRatioOverrideEnabled.value_or_default())
+            {
+                auto ratio = Config::Instance()->UpscaleRatioOverrideValue.value_or_default();
+                auto ratioPercentage = (uint32_t) std::round(100.f / ratio);
+
+                // Uses the clamp from SR for RR but it should be fine
+                ratioPercentage = std::clamp(ratioPercentage, (uint32_t) NGX_DLSS_SR_OVERRIDE_SCALING_RATIO_MIN,
+                                             (uint32_t) NGX_DLSS_SR_OVERRIDE_SCALING_RATIO_MAX);
+
+                pSetting->u32CurrentValue = ratioPercentage;
+            }
+        }
     }
 
     return result;
