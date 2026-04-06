@@ -773,8 +773,8 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     newOptions.structVersion = newStructVer;
 
     // Make DLSSG auto always mean On
-    // if (newOptions.mode == sl::DLSSGMode::eAuto)
-    //    newOptions.mode = sl::DLSSGMode::eOn;
+    if (newOptions.mode == sl::DLSSGMode::eAuto)
+        newOptions.mode = sl::DLSSGMode::eOn;
 
     auto& state = State::Instance();
 
