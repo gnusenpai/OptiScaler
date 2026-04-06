@@ -126,10 +126,11 @@ static VkResult hkvkCreateInstance(const VkInstanceCreateInfo* pCreateInfo, cons
 #endif
     }
 
-    if (result == VK_SUCCESS && !State::Instance().vulkanSkipHooks)
-    {
-        MenuOverlayVk::DestroyVulkanObjects(false);
-    }
+    // Disabled to prevent unnecessary object release
+    // if (result == VK_SUCCESS && !State::Instance().vulkanSkipHooks)
+    //{
+    //     MenuOverlayVk::DestroyVulkanObjects(false);
+    // }
 
     LOG_FUNC_RESULT(result);
 
@@ -153,7 +154,8 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
     {
         if (!State::Instance().vulkanSkipHooks)
         {
-            MenuOverlayVk::DestroyVulkanObjects(false);
+            // Disabled to prevent unnecessary object release
+            // MenuOverlayVk::DestroyVulkanObjects(false);
 
             _PD = physicalDevice;
             LOG_DEBUG("_PD captured: {0:X}", (UINT64) _PD);
