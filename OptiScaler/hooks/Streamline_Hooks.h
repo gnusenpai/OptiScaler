@@ -164,6 +164,7 @@ class StreamlineHooks
     static bool isInterposerHooked();
     static bool isDlssHooked();
     static bool isDlssgHooked();
+    static bool isLocalDlssgHooked();
     static bool isCommonHooked();
     static bool isPclHooked();
     static bool isReflexHooked();

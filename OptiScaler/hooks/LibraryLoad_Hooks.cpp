@@ -849,14 +849,36 @@ void LibraryLoadHooks::CheckModulesInMemory()
         }
     }
 
-    if (!StreamlineHooks::isDlssgHooked())
+    if (!StreamlineHooks::isDlssgHooked() || !StreamlineHooks::isLocalDlssgHooked())
     {
         HMODULE slDlssg = nullptr;
         slDlssg = GetDllNameWModule(&slDlssgNamesW);
+
         if (slDlssg != nullptr && slDlssg != State::Instance().optiSlDLSSG)
         {
-            LOG_DEBUG("sl.dlss_g.dll already in memory");
-            StreamlineHooks::hookDlssg(slDlssg);
+            // Make sure this is not a local/opti's sl.dlss_g
+
+            char callerPath[MAX_PATH] = { 0 };
+            GetModuleFileNameA(slDlssg, callerPath, sizeof(callerPath));
+            auto path = std::filesystem::path(callerPath);
+            auto normalizedPath = path.lexically_normal().wstring();
+            to_lower_in_place(normalizedPath);
+
+            const bool localDlssg = normalizedPath.contains(L"\\opti_dlls\\streamline\\");
+
+            if (localDlssg)
+            {
+                if (!StreamlineHooks::isLocalDlssgHooked())
+                {
+                    LOG_DEBUG("local sl.dlss_g.dll already in memory");
+                    StreamlineHooks::hookLocalDlssg(slDlssg);
+                }
+            }
+            else
+            {
+                LOG_DEBUG("sl.dlss_g.dll already in memory");
+                StreamlineHooks::hookDlssg(slDlssg);
+            }
         }
     }
 

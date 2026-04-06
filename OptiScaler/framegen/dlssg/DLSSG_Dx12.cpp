@@ -488,14 +488,13 @@ bool DLSSG_Dx12::Dispatch()
     else
         constData.reset = sl::Boolean::eFalse;
 
-    constData.depthInverted =
-        State::Instance().currentFeature->DepthInverted() ? sl::Boolean::eTrue : sl::Boolean::eFalse;
+    constData.depthInverted = _constants.flags & FG_Flags::InvertedDepth ? sl::Boolean::eTrue : sl::Boolean::eFalse;
     constData.cameraMotionIncluded = sl::Boolean::eTrue;
     constData.motionVectors3D = sl::Boolean::eFalse;
     constData.motionVectorsInvalidValue = 0.0f;
     constData.orthographicProjection = sl::Boolean::eFalse;
     constData.motionVectorsDilated =
-        !State::Instance().currentFeature->LowResMV() ? sl::Boolean::eTrue : sl::Boolean::eFalse;
+        _constants.flags & FG_Flags::DisplayResolutionMVs ? sl::Boolean::eTrue : sl::Boolean::eFalse;
 
     auto frameId = static_cast<uint32_t>(willDispatchFrame);
 

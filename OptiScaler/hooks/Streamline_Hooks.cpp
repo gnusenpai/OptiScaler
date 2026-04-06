@@ -456,7 +456,9 @@ uint32_t StreamlineHooks::getSystemCapsArch(SystemCaps* altSystemCaps)
 void StreamlineHooks::setArch(uint32_t arch, SystemCaps* altSystemCaps)
 {
     static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-    if (State::Instance().streamlineVersion.major > 1)
+
+    // altSystemCaps has to be sl2+
+    if (State::Instance().streamlineVersion.major > 1 || altSystemCaps)
     {
         // Assumes that altCaps are always for SL2+
         auto caps = altSystemCaps != nullptr ? altSystemCaps : systemCaps;
@@ -1769,6 +1771,8 @@ bool StreamlineHooks::isInterposerHooked() { return o_slInit != nullptr || o_slI
 bool StreamlineHooks::isDlssHooked() { return o_dlss_slGetPluginFunction != nullptr; }
 
 bool StreamlineHooks::isDlssgHooked() { return o_dlssg_slGetPluginFunction != nullptr; }
+
+bool StreamlineHooks::isLocalDlssgHooked() { return o_local_dlssg_slGetPluginFunction != nullptr; }
 
 bool StreamlineHooks::isCommonHooked() { return o_common_slGetPluginFunction != nullptr; }
 

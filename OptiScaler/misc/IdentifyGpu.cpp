@@ -333,23 +333,23 @@ void IdentifyGpu::getHardwareAdapter(IDXGIFactory* InFactory, IDXGIAdapter** InA
 
 std::vector<GpuInformation> IdentifyGpu::getAllGpus()
 {
-    // Prevent getAllGpus calling itself
-    thread_local bool skip = false;
-    if (skip)
-        return std::vector<GpuInformation> {};
+    thread_local bool is_fetching = false;
+    if (is_fetching)
+        return {};
 
-    // Static inits are thread safe
-    skip = true;
-    static std::vector<GpuInformation> cache = []() { return checkGpuInfo(); }();
-    skip = false;
-
-    // Retry getting the GPU info in case it failed
     static std::mutex mutex;
-    if (cache.size() == 0 || (cache.size() > 0 && cache[0].deviceId == VendorId::Invalid))
+    static std::vector<GpuInformation> cache;
+
+    std::scoped_lock lock(mutex);
+
+    if (!cache.empty() && cache.front().deviceId != VendorId::Invalid)
     {
-        std::scoped_lock lock(mutex);
-        cache = checkGpuInfo();
+        return cache;
     }
+
+    is_fetching = true;
+    cache = checkGpuInfo();
+    is_fetching = false;
 
     return cache;
 }
@@ -357,5 +357,5 @@ std::vector<GpuInformation> IdentifyGpu::getAllGpus()
 GpuInformation IdentifyGpu::getPrimaryGpu()
 {
     auto allGpus = getAllGpus();
-    return allGpus.size() > 0 ? allGpus[0] : GpuInformation {};
+    return !allGpus.empty() ? allGpus.front() : GpuInformation {};
 }
