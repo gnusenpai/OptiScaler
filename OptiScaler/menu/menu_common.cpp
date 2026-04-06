@@ -3615,7 +3615,9 @@ bool MenuCommon::RenderMenu()
                                         config->FGFPTAllowWaitForSingleObjectOnFence.value_or_default();
                                     if (ImGui::Checkbox("Enable WaitForSingleObjectOnFence",
                                                         &fpWaitForSingleObjectOnFence))
+                                    {
                                         config->FGFPTAllowWaitForSingleObjectOnFence = fpWaitForSingleObjectOnFence;
+                                    }
                                     ShowHelpMarker("Allows WaitForSingleObject instead of spinning for fence value");
 
                                     if (ImGui::Button("Apply Timing Changes"))
