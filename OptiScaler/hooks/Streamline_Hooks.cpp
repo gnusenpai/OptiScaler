@@ -757,7 +757,20 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     lastDlssgViewport = viewport;
     lastDlssgOptions = options;
 
-    sl::DLSSGOptions newOptions = options;
+    // Avoid reading past the game's struct's size
+    sl::DLSSGOptions newOptions {};
+    auto newStructVer = newOptions.structVersion;
+
+    if (options.structVersion == 1)
+        memcpy(&newOptions, &options, 104);
+    else if (options.structVersion == 2 || options.structVersion == 3)
+        memcpy(&newOptions, &options, 112);
+    else if (options.structVersion == 4)
+        memcpy(&newOptions, &options, 120);
+    else
+        newOptions = options;
+
+    newOptions.structVersion = newStructVer;
 
     // Make DLSSG auto always mean On
     // if (newOptions.mode == sl::DLSSGMode::eAuto)
