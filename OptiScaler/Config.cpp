@@ -380,10 +380,10 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // Logging
         {
+            LogToFile.set_from_config(readBool("Log", "LogToFile"));
             LogLevel.set_from_config(readInt("Log", "LogLevel"));
             LogToConsole.set_from_config(readBool("Log", "LogToConsole"));
             LogToDebug.set_from_config(readBool("Log", "LogToDebug"));
-            LogToFile.set_from_config(readBool("Log", "LogToFile"));
             LogToNGX.set_from_config(readBool("Log", "LogToNGX"));
             OpenConsole.set_from_config(readBool("Log", "OpenConsole"));
             DebugWait.set_from_config(readBool("Log", "DebugWait"));
@@ -392,7 +392,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             LogAsyncThreads.set_from_config(readInt("Log", "LogAsyncThreads"));
 
             {
-                auto setting = readString("Log", "LogFile", false);
+                auto setting = readString("Log", "LogFileName", false);
 
                 if (setting.has_value() && setting.value().empty())
                     setting = std::nullopt;
@@ -1296,14 +1296,15 @@ bool Config::SaveIni()
 
     // Logging
     {
+        ini.SetValue("Log", "LogToFile", GetBoolValue(Instance()->LogToFile.value_for_config()).c_str());
         ini.SetValue("Log", "LogLevel", GetIntValue(Instance()->LogLevel.value_for_config()).c_str());
         ini.SetValue("Log", "LogToConsole", GetBoolValue(Instance()->LogToConsole.value_for_config()).c_str());
         ini.SetValue("Log", "LogToDebug", GetBoolValue(Instance()->LogToDebug.value_for_config()).c_str());
-        ini.SetValue("Log", "LogToFile", GetBoolValue(Instance()->LogToFile.value_for_config()).c_str());
         ini.SetValue("Log", "LogToNGX", GetBoolValue(Instance()->LogToNGX.value_for_config()).c_str());
         ini.SetValue("Log", "OpenConsole", GetBoolValue(Instance()->OpenConsole.value_for_config()).c_str());
-        ini.SetValue("Log", "LogFile", wstring_to_string(Instance()->LogFileName.value_for_config_or(L"auto")).c_str());
         ini.SetValue("Log", "SingleFile", GetBoolValue(Instance()->LogSingleFile.value_for_config()).c_str());
+        ini.SetValue("Log", "LogFileName",
+                     wstring_to_string(Instance()->LogFileName.value_for_config_or(L"auto")).c_str());
         ini.SetValue("Log", "LogAsync", GetBoolValue(Instance()->LogAsync.value_for_config()).c_str());
         ini.SetValue("Log", "LogAsyncThreads", GetIntValue(Instance()->LogAsyncThreads.value_for_config()).c_str());
     }
