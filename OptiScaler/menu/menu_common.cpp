@@ -1432,7 +1432,7 @@ bool MenuCommon::RenderMenu()
             {
                 refreshRate = Util::GetActiveRefreshRate(_handle);
 
-                auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.asi";
+                auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.dll";
                 state.NvngxFgFilesAvailable = gExists.Get(dllPath);
 
                 if (!state.NvngxFgFilesAvailable)
@@ -1780,6 +1780,30 @@ bool MenuCommon::RenderMenu()
             auto fg = state.currentFG;
             auto fgText = (fg != nullptr && fg->IsActive() && !fg->IsPaused()) ? ("(" + std::string(fg->Name()) + ")")
                                                                                : std::string();
+
+            if (state.activeFgOutput == FGOutput::NvngxFG)
+            {
+                if (Nvngx_FG::isMFG())
+                {
+                    if (state.dlssgDetectedInterpolationCount == 0)
+                        fgText = "(Enabler off)";
+                    else
+                        fgText = std::format("(Enabler x{})", state.dlssgDetectedInterpolationCount + 1);
+                }
+                else
+                {
+                    if (state.dlssgDetectedInterpolationCount == 0)
+                        fgText = "(Nukems off)";
+                    else if (state.dlssgDetectedInterpolationCount == 1)
+                        fgText = std::format("(Nukems x2)");
+                    else
+                        fgText = std::format("(Nukems Doesn't support more than 2x)");
+                }
+            }
+
+            // if (state.activeFgOutput == FGOutput::DLSSGWithNvngx)
+            //{
+            // }
 
             // Prepare Line 1
             if (config->FpsOverlayType.value_or_default() == FpsOverlay_JustFPS)
@@ -3010,9 +3034,9 @@ bool MenuCommon::RenderMenu()
                 if (!state.NvngxFgFilesAvailable)
                 {
                     inputOptions[nvngxInputIndex].set_disabled(
-                        true, "Missing dlssg_to_fsr3_amd_is_better.dll\nor dlss-enabler-headless.asi");
+                        true, "Missing dlssg_to_fsr3_amd_is_better.dll\nor dlss-enabler-headless.dll");
                     outputOptions[nvngxOutputIndex].set_disabled(
-                        true, "Missing dlssg_to_fsr3_amd_is_better.dll\nor dlss-enabler-headless.asi");
+                        true, "Missing dlssg_to_fsr3_amd_is_better.dll\nor dlss-enabler-headless.dll");
                 }
 
                 // For that one case of DX11 DLSSG
@@ -3123,7 +3147,7 @@ bool MenuCommon::RenderMenu()
                     {
                         auto maxInterpolationCount = state.dlssgMfgMax.value();
 
-                        if (maxInterpolationCount > 1)
+                        if (maxInterpolationCount >= 1)
                         {
                             const char* intModes[] = { "Default", "Off", "2X", "3X", "4X", "5X", "6X" };
 
@@ -4217,7 +4241,7 @@ bool MenuCommon::RenderMenu()
                     if (Nvngx_FG::isMFG())
                     {
                         SeparatorWithHelpMarker("Frame Generation (FSR3-MFG via DLSS Enabler)",
-                                                "DLSS Enabler as dlss-enabler-headless.asi\n"
+                                                "DLSS Enabler as dlss-enabler-headless.dll\n"
                                                 "Select DLSS-FG in-game");
                     }
                     else
@@ -4230,7 +4254,7 @@ bool MenuCommon::RenderMenu()
                     if (!state.NvngxFgFilesAvailable)
                     {
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Please put dlssg_to_fsr3_amd_is_better.dll or "
-                                                                       "dlss-enabler-headless.asi next to OptiScaler");
+                                                                       "dlss-enabler-headless.dll next to OptiScaler");
                     }
 
                     if (Nvngx_FG::isMFG())

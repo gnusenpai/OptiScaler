@@ -4,6 +4,7 @@
 
 #include "proxies/NVNGX_Proxy.h"
 #include "proxies/Ntdll_Proxy.h"
+#include <shaders/hud_copy/HudCopy_Dx12.h>
 
 #define DLSSG_MOD_ID_OFFSET 2000000
 
@@ -46,6 +47,8 @@ class Nvngx_FG
     inline static bool _vulkan_inited = false;
 
     inline static bool _mfg = false;
+
+    inline static std::unique_ptr<HudCopy_Dx12> _hudCopy;
 
     // Envvars that can be set:
     // DLSSGTOFSR3_EnableDebugOverlay

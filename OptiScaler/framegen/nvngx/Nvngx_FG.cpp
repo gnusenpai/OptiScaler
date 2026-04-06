@@ -11,21 +11,7 @@
 typedef void (*PFN_RefreshGlobalConfiguration)();
 typedef void (*PFN_EnableDebugView)(bool enable);
 
-static decltype(&GetCommandLineA) o_GetCommandLineA = GetCommandLineA;
 static decltype(&GetFileAttributesExW) o_GetFileAttributesExW = GetFileAttributesExW;
-
-static LPSTR WINAPI hkGetCommandLineA(void)
-{
-    static std::string modified;
-
-    LPSTR original = o_GetCommandLineA();
-
-    // Disable unused code
-    modified = original;
-    modified += " --dlss-off";
-
-    return (LPSTR) modified.c_str();
-}
 
 static BOOL WINAPI hkGetFileAttributesExW(LPCWSTR lpFileName, GET_FILEEX_INFO_LEVELS fInfoLevelId,
                                           LPVOID lpFileInformation)
@@ -34,12 +20,8 @@ static BOOL WINAPI hkGetFileAttributesExW(LPCWSTR lpFileName, GET_FILEEX_INFO_LE
     {
         std::wstring string(lpFileName);
 
-        // Prevent a copy by saying it already exists
-        if (string.contains(L"dlssg_to_fsr3_amd_is_better"))
-            return true;
-
         // Prevent a copy by saying it wasn't found
-        else if (string.contains(L"nvngx"))
+        if (string.contains(L"nvngx"))
             return false;
     }
 
@@ -57,19 +39,18 @@ void Nvngx_FG::setSetting(const wchar_t* setting, const wchar_t* value)
 
 HMODULE Nvngx_FG::TryInitMFG()
 {
-    auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.asi";
+    auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.dll";
 
     // set early so the hooks know
     _mfg = true;
 
     HMODULE dll = nullptr;
-    if (o_GetCommandLineA && o_GetFileAttributesExW)
+    if (o_GetFileAttributesExW)
     {
 
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-        DetourAttach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
         DetourAttach(&(PVOID&) o_GetFileAttributesExW, hkGetFileAttributesExW);
 
         DetourTransactionCommit();
@@ -79,14 +60,13 @@ HMODULE Nvngx_FG::TryInitMFG()
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-        DetourDetach(&(PVOID&) o_GetCommandLineA, hkGetCommandLineA);
         DetourDetach(&(PVOID&) o_GetFileAttributesExW, hkGetFileAttributesExW);
 
         DetourTransactionCommit();
     }
 
     if (!dll)
-        _mfg = true;
+        _mfg = false;
 
     return dll;
 }
@@ -416,6 +396,43 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
             else
             {
                 LOG_ERROR("Getting heap properties has failed");
+            }
+        }
+
+        if (State::Instance().gameQuirks & GameQuirk::FSRFGHudlessMismatchFixup && !_mfg)
+        {
+            ID3D12Resource* presentWithHud = nullptr;
+            InParameters->Get("DLSSG.Backbuffer", &presentWithHud);
+            auto presentWithHudState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+            ID3D12Resource* hudlessResource = nullptr;
+            InParameters->Get("DLSSG.HUDLess", &hudlessResource);
+            auto hudlessState = D3D12_RESOURCE_STATE_COPY_DEST;
+
+            auto device = State::Instance().currentD3D12Device;
+
+            if (presentWithHud && hudlessResource && device)
+            {
+                if (_hudCopy.get() == nullptr)
+                    _hudCopy = std::make_unique<HudCopy_Dx12>("HudCopy", device);
+
+                if (auto hudCopy = _hudCopy.get(); hudCopy && hudCopy->IsInit())
+                {
+                    // In Cyberprank - DLSSG has noise issues, FSR FG has noise + vignetting
+                    // In Death Stranding 2 - DLSSG has wrong colormapping it seems, FSR FG is fine
+                    const bool isCyberpunk = State::Instance().gameQuirks[GameQuirk::CyberpunkHudlessState];
+                    float hudDetectionThreshold = 0.03f;
+
+                    if (isCyberpunk && State::Instance().activeFgInput != FGInput::FSRFG)
+                        hudDetectionThreshold = 0.01f;
+
+                    hudCopy->Dispatch(device, InCmdList, hudlessResource, presentWithHud, hudlessState,
+                                      presentWithHudState, hudDetectionThreshold);
+                }
+            }
+            else
+            {
+                LOG_WARN("Couldn't run hudless fixup");
             }
         }
 
