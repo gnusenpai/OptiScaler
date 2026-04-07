@@ -174,7 +174,11 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
 
         if (dlssgModule != nullptr)
         {
-            if (!normalizedPath.contains(L"\\opti_dlls") && dlssgModule != State::Instance().optiSlDLSSG)
+            const bool localDlssg = normalizedPath.contains(L"\\opti_dlls\\streamline\\") &&
+                                    (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                                     State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx);
+
+            if (!localDlssg && dlssgModule != State::Instance().optiSlDLSSG)
                 StreamlineHooks::hookDlssg(dlssgModule);
             else
                 StreamlineHooks::hookLocalDlssg(dlssgModule);
@@ -864,7 +868,9 @@ void LibraryLoadHooks::CheckModulesInMemory()
             auto normalizedPath = path.lexically_normal().wstring();
             to_lower_in_place(normalizedPath);
 
-            const bool localDlssg = normalizedPath.contains(L"\\opti_dlls\\streamline\\");
+            const bool localDlssg = normalizedPath.contains(L"\\opti_dlls\\streamline\\") &&
+                                    (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                                     State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx);
 
             if (localDlssg)
             {
