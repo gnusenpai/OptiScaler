@@ -812,17 +812,20 @@ LRESULT MenuCommon::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     if (!lastKey && msg == WM_KEYUP)
         lastKey = static_cast<int>(wParam);
 
-    if (!inputMenu)
-        inputMenu = msg == WM_KEYUP && wParam == Config::Instance()->ShortcutKey.value_or_default();
+    if (!receivingWmInputs)
+    {
+        if (!inputMenu)
+            inputMenu = msg == WM_KEYUP && wParam == Config::Instance()->ShortcutKey.value_or_default();
 
-    if (!inputFps)
-        inputFps = msg == WM_KEYUP && wParam == Config::Instance()->FpsShortcutKey.value_or_default();
+        if (!inputFps)
+            inputFps = msg == WM_KEYUP && wParam == Config::Instance()->FpsShortcutKey.value_or_default();
 
-    if (!inputFG)
-        inputFG = msg == WM_KEYUP && wParam == Config::Instance()->FGShortcutKey.value_or_default();
+        if (!inputFG)
+            inputFG = msg == WM_KEYUP && wParam == Config::Instance()->FGShortcutKey.value_or_default();
 
-    if (!inputFpsCycle)
-        inputFpsCycle = msg == WM_KEYUP && wParam == Config::Instance()->FpsCycleShortcutKey.value_or_default();
+        if (!inputFpsCycle)
+            inputFpsCycle = msg == WM_KEYUP && wParam == Config::Instance()->FpsCycleShortcutKey.value_or_default();
+    }
 
     // SHIFT + DEL - Debug dump
     if (msg == WM_KEYUP && wParam == VK_DELETE && (GetKeyState(VK_SHIFT) & 0x8000))
