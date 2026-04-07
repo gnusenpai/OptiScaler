@@ -222,65 +222,85 @@ void IdentifyGpu::queryNvapi(GpuInformation& gpuInfo)
     if (!nvapiModule)
         return;
 
-    if (auto o_NvAPI_QueryInterface =
-            (PFN_NvApi_QueryInterface) KernelBaseProxy::GetProcAddress_()(nvapiModule, "nvapi_QueryInterface"))
+    auto o_NvAPI_QueryInterface =
+        (PFN_NvApi_QueryInterface) KernelBaseProxy::GetProcAddress_()(nvapiModule, "nvapi_QueryInterface");
+
+    if (!o_NvAPI_QueryInterface)
     {
-        // Check for fakenvapi in system32, assume it's not nvidia if found
-        if (o_NvAPI_QueryInterface(0x21382138))
-            return;
+        NtdllProxy::FreeLibrary_Ldr(nvapiModule);
+        return;
+    }
 
-        // Handle we want to grab
-        NvPhysicalGpuHandle hPhysicalGpu {};
+    // Check for fakenvapi in system32, assume it's not nvidia if found
+    if (o_NvAPI_QueryInterface(0x21382138))
+    {
+        NtdllProxy::FreeLibrary_Ldr(nvapiModule);
+        return;
+    }
 
-        // Grab logical GPUs to extract coresponding LUID
-        auto* getLogicalGPUs = GET_INTERFACE(NvAPI_SYS_GetLogicalGPUs, o_NvAPI_QueryInterface);
-        NV_LOGICAL_GPUS logicalGpus {};
-        logicalGpus.version = NV_LOGICAL_GPUS_VER;
-        if (getLogicalGPUs)
+    auto* init = GET_INTERFACE(NvAPI_Initialize, o_NvAPI_QueryInterface);
+    if (!init || init() != NVAPI_OK)
+    {
+        LOG_ERROR("Failed to init NvApi");
+        NtdllProxy::FreeLibrary_Ldr(nvapiModule);
+        return;
+    }
+
+    // Handle we want to grab
+    NvPhysicalGpuHandle hPhysicalGpu {};
+
+    // Grab logical GPUs to extract coresponding LUID
+    auto* getLogicalGPUs = GET_INTERFACE(NvAPI_SYS_GetLogicalGPUs, o_NvAPI_QueryInterface);
+    NV_LOGICAL_GPUS logicalGpus {};
+    logicalGpus.version = NV_LOGICAL_GPUS_VER;
+    if (getLogicalGPUs)
+    {
+        if (auto result = getLogicalGPUs(&logicalGpus); result != NVAPI_OK)
+            LOG_ERROR("NvAPI_SYS_GetLogicalGPUs failed: {}", magic_enum::enum_name(result));
+    }
+
+    auto* getLogicalGpuInfo = GET_INTERFACE(NvAPI_GPU_GetLogicalGpuInfo, o_NvAPI_QueryInterface);
+
+    if (getLogicalGpuInfo)
+    {
+        for (uint32_t i = 0; i < logicalGpus.gpuHandleCount; i++)
         {
-            if (auto result = getLogicalGPUs(&logicalGpus); result != NVAPI_OK)
-                LOG_ERROR("NvAPI_SYS_GetLogicalGPUs failed: {}", magic_enum::enum_name(result));
-        }
+            LUID luid;
+            NV_LOGICAL_GPU_DATA logicalGpuData {};
+            logicalGpuData.pOSAdapterId = &luid;
+            logicalGpuData.version = NV_LOGICAL_GPU_DATA_VER;
+            auto logicalGpu = logicalGpus.gpuHandleData[i].hLogicalGpu;
 
-        auto* getLogicalGpuInfo = GET_INTERFACE(NvAPI_GPU_GetLogicalGpuInfo, o_NvAPI_QueryInterface);
+            if (auto result = getLogicalGpuInfo(logicalGpu, &logicalGpuData); result != NVAPI_OK)
+                LOG_ERROR("NvAPI_GPU_GetLogicalGpuInfo failed: {}", magic_enum::enum_name(result));
 
-        if (getLogicalGpuInfo)
-        {
-            for (uint32_t i = 0; i < logicalGpus.gpuHandleCount; i++)
+            // We are looking at the correct GPU for this gpuInfo.luid
+            if (IsEqualLUID(luid, gpuInfo.luid) && logicalGpuData.physicalGpuCount > 0)
             {
-                LUID luid;
-                NV_LOGICAL_GPU_DATA logicalGpuData {};
-                logicalGpuData.pOSAdapterId = &luid;
-                logicalGpuData.version = NV_LOGICAL_GPU_DATA_VER;
-                auto logicalGpu = logicalGpus.gpuHandleData[i].hLogicalGpu;
+                if (logicalGpuData.physicalGpuCount > 1)
+                    LOG_WARN("A logical GPU has more than a single physical GPU, we are only checking one");
 
-                if (auto result = getLogicalGpuInfo(logicalGpu, &logicalGpuData); result != NVAPI_OK)
-                    LOG_ERROR("NvAPI_GPU_GetLogicalGpuInfo failed: {}", magic_enum::enum_name(result));
-
-                // We are looking at the correct GPU for this gpuInfo.luid
-                if (IsEqualLUID(luid, gpuInfo.luid) && logicalGpuData.physicalGpuCount > 0)
-                {
-                    if (logicalGpuData.physicalGpuCount > 1)
-                        LOG_WARN("A logical GPU has more than a single physical GPU, we are only checking one");
-
-                    hPhysicalGpu = logicalGpuData.physicalGpuHandles[0];
-                }
+                hPhysicalGpu = logicalGpuData.physicalGpuHandles[0];
             }
         }
-
-        auto* getArchInfo = GET_INTERFACE(NvAPI_GPU_GetArchInfo, o_NvAPI_QueryInterface);
-        gpuInfo.nvidiaArchInfo.version = NV_GPU_ARCH_INFO_VER;
-        if (getArchInfo && hPhysicalGpu && getArchInfo(hPhysicalGpu, &gpuInfo.nvidiaArchInfo) != NVAPI_OK)
-            LOG_ERROR("Couldn't get GPU Architecture");
-
-        auto* getConnectedDisplayIds = GET_INTERFACE(NvAPI_GPU_GetConnectedDisplayIds, o_NvAPI_QueryInterface);
-        NvU32 displayCount = 0;
-        if (getConnectedDisplayIds && hPhysicalGpu &&
-            getConnectedDisplayIds(hPhysicalGpu, nullptr, &displayCount, 0) == NVAPI_OK && displayCount == 0)
-        {
-            gpuInfo.noDisplayConnected = true;
-        }
     }
+
+    auto* getArchInfo = GET_INTERFACE(NvAPI_GPU_GetArchInfo, o_NvAPI_QueryInterface);
+    gpuInfo.nvidiaArchInfo.version = NV_GPU_ARCH_INFO_VER;
+    if (getArchInfo && hPhysicalGpu && getArchInfo(hPhysicalGpu, &gpuInfo.nvidiaArchInfo) != NVAPI_OK)
+        LOG_ERROR("Couldn't get GPU Architecture");
+
+    auto* getConnectedDisplayIds = GET_INTERFACE(NvAPI_GPU_GetConnectedDisplayIds, o_NvAPI_QueryInterface);
+    NvU32 displayCount = 0;
+    if (getConnectedDisplayIds && hPhysicalGpu &&
+        getConnectedDisplayIds(hPhysicalGpu, nullptr, &displayCount, 0) == NVAPI_OK && displayCount == 0)
+    {
+        gpuInfo.noDisplayConnected = true;
+    }
+
+    auto* unload = GET_INTERFACE(NvAPI_Unload, o_NvAPI_QueryInterface);
+    if (!unload || unload() != NVAPI_OK)
+        LOG_ERROR("Failed to unload NvApi");
 
     NtdllProxy::FreeLibrary_Ldr(nvapiModule);
 
