@@ -10,33 +10,27 @@
 // private
 bool LowLatency::update_low_latency_tech(HANDLE vkDevice)
 {
-    active_tech_mutex.lock();
-
-    if (!currently_active_tech)
+    if (!currently_active_tech.load())
     {
         if (!Config::Instance()->FN_ForceLatencyFlex.value_or_default())
         {
-            currently_active_tech = new AntiLagVk();
-            if (currently_active_tech->init(nullptr))
+            auto new_tech = std::make_shared<AntiLagVk>();
+            if (new_tech->init(nullptr))
             {
                 LOG_INFO("LowLatency algo: AntiLag Vulkan");
-                active_tech_mutex.unlock();
+                currently_active_tech.store(std::move(new_tech));
                 return true;
             }
-
-            delete currently_active_tech;
         }
 
-        currently_active_tech = new LatencyFlex();
-        if (currently_active_tech->init(nullptr))
+        auto new_tech = std::make_shared<LatencyFlex>();
+        if (new_tech->init(nullptr))
         {
             LOG_INFO("LowLatency algo: LatencyFlex");
-            active_tech_mutex.unlock();
+            currently_active_tech.store(std::move(new_tech));
             return true;
         }
     }
-
-    active_tech_mutex.unlock();
 
     static bool last_force_latencyflex = Config::Instance()->FN_ForceLatencyFlex.value_or_default();
     bool force_latencyflex = Config::Instance()->FN_ForceLatencyFlex.value_or_default();
@@ -169,9 +163,8 @@ NvAPI_Status LowLatency::Sleep(HANDLE vkDevice)
     if (!update_low_latency_tech(vkDevice))
         return ERROR();
 
-    // Make deinit wait for sleep to finish
-    std::scoped_lock lock(active_tech_mutex);
-    currently_active_tech->sleep();
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->sleep();
 
     return OK();
 }
@@ -188,7 +181,8 @@ NvAPI_Status LowLatency::SetSleepMode(HANDLE vkDevice, NV_VULKAN_SET_SLEEP_MODE_
     sleep_mode.minimum_interval_us = pSetSleepModeParams->minimumIntervalUs;
     sleep_mode.use_markers_to_optimize = true;
 
-    currently_active_tech->set_sleep_mode(&sleep_mode);
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->set_sleep_mode(&sleep_mode);
 
     return OK();
 }
@@ -200,7 +194,8 @@ NvAPI_Status LowLatency::GetSleepStatus(HANDLE vkDevice, NV_VULKAN_GET_SLEEP_STA
 
     SleepParams sleep_params {};
 
-    currently_active_tech->get_sleep_status(&sleep_params);
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->get_sleep_status(&sleep_params);
 
     pGetSleepStatusParams->bLowLatencyMode = sleep_params.low_latency_enabled;
 
@@ -223,12 +218,9 @@ NvAPI_Status LowLatency::SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MAR
     marker_params.frame_id = pSetLatencyMarkerParams->frameID;
     marker_params.marker_type = (MarkerType) pSetLatencyMarkerParams->markerType; // requires enums to match
 
-    // We can't mutex using the same one here as for sleep
-    // This would make for example Present markers unable to mark during sleep
-    // std::scoped_lock lock(active_tech_mutex);
-
     // This cast is not ideal as it needs to be cast to VkDevice while knowing it's vulkan
-    currently_active_tech->set_marker((IUnknown*) vkDevice, &marker_params);
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->set_marker((IUnknown*) vkDevice, &marker_params);
 
     LOG_TRACE_FAKENVAPI("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 

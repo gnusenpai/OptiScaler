@@ -13,33 +13,27 @@
 // private
 bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
 {
-    active_tech_mutex.lock();
-
-    if (!currently_active_tech)
+    if (!currently_active_tech.load())
     {
         if (forced_low_latency_context && forced_low_latency_tech == LowLatencyMode::AntiLag2)
         {
-            currently_active_tech = new AntiLag2();
-            if (currently_active_tech->init_using_ctx(forced_low_latency_context))
+            auto new_tech = std::make_shared<AntiLag2>();
+            if (new_tech->init_using_ctx(forced_low_latency_context))
             {
                 LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0 (via context)");
-                active_tech_mutex.unlock();
+                currently_active_tech.store(std::move(new_tech));
                 return true;
             }
-
-            delete currently_active_tech;
         }
         else if (forced_low_latency_context && forced_low_latency_tech == LowLatencyMode::XeLL)
         {
-            currently_active_tech = new XeLL();
-            if (currently_active_tech->init_using_ctx(forced_low_latency_context))
+            auto new_tech = std::make_shared<XeLL>();
+            if (new_tech->init_using_ctx(forced_low_latency_context))
             {
                 LOG_INFO("LowLatency algo: XeLL (via context)");
-                active_tech_mutex.unlock();
+                currently_active_tech.store(std::move(new_tech));
                 return true;
             }
-
-            delete currently_active_tech;
         }
 
         // Don't use AL2 and XeLL when using DMFG or MFG
@@ -47,37 +41,31 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             State::Instance().dlssgDetectedInterpolationCount <= 1 &&
             State::Instance().dlssgLastSetMode != (sl::DLSSGMode) 3)
         {
-            currently_active_tech = new AntiLag2();
-            if (currently_active_tech->init(pDevice))
+            auto new_tech_al2 = std::make_shared<AntiLag2>();
+            if (new_tech_al2->init(pDevice))
             {
                 LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0");
-                active_tech_mutex.unlock();
+                currently_active_tech.store(std::move(new_tech_al2));
                 return true;
             }
 
-            delete currently_active_tech;
-
-            currently_active_tech = new XeLL();
-            if (currently_active_tech->init(pDevice))
+            auto new_tech_xell = std::make_shared<XeLL>();
+            if (new_tech_xell->init(pDevice))
             {
                 LOG_INFO("LowLatency algo: XeLL");
-                active_tech_mutex.unlock();
+                currently_active_tech.store(std::move(new_tech_xell));
                 return true;
             }
-
-            delete currently_active_tech;
         }
 
-        currently_active_tech = new LatencyFlex();
-        if (currently_active_tech->init(pDevice))
+        auto new_tech = std::make_shared<LatencyFlex>();
+        if (new_tech->init(pDevice))
         {
             LOG_INFO("LowLatency algo: LatencyFlex");
-            active_tech_mutex.unlock();
+            currently_active_tech.store(std::move(new_tech));
             return true;
         }
     }
-
-    active_tech_mutex.unlock();
 
     static bool last_force_latencyflex = Config::Instance()->FN_ForceLatencyFlex.value_or_default();
     bool force_latencyflex = Config::Instance()->FN_ForceLatencyFlex.value_or_default();
@@ -103,7 +91,14 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
     // FSR FG might still be using AntiLag 2, give Opti time to set AL2 context to null
     if (change_detected)
     {
-        if (currently_active_tech && currently_active_tech->get_mode() == LowLatencyMode::AntiLag2)
+        bool al2 = false;
+        {
+            auto current_tech = currently_active_tech.load();
+            if (current_tech && current_tech->get_mode() == LowLatencyMode::AntiLag2)
+                al2 = true;
+        }
+
+        if (al2)
         {
             delay_deinit = 50;
         }
@@ -219,9 +214,8 @@ NvAPI_Status LowLatency::Sleep(IUnknown* pDevice)
     if (!update_low_latency_tech(pDevice))
         return ERROR();
 
-    // Make deinit wait for sleep to finish
-    std::scoped_lock lock(active_tech_mutex);
-    currently_active_tech->sleep();
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->sleep();
 
     return OK();
 }
@@ -238,7 +232,8 @@ NvAPI_Status LowLatency::SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAM
     sleep_mode.minimum_interval_us = pSetSleepModeParams->minimumIntervalUs;
     sleep_mode.use_markers_to_optimize = pSetSleepModeParams->bUseMarkersToOptimize;
 
-    currently_active_tech->set_sleep_mode(&sleep_mode);
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->set_sleep_mode(&sleep_mode);
 
     return OK();
 }
@@ -250,7 +245,8 @@ NvAPI_Status LowLatency::GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_P
 
     SleepParams sleep_params {};
 
-    currently_active_tech->get_sleep_status(&sleep_params);
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->get_sleep_status(&sleep_params);
 
     pGetSleepStatusParams->bLowLatencyMode = sleep_params.low_latency_enabled;
     pGetSleepStatusParams->bFsVrr = sleep_params.fullscreen_vrr;
@@ -275,11 +271,8 @@ NvAPI_Status LowLatency::SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARA
     marker_params.frame_id = pSetLatencyMarkerParams->frameID;
     marker_params.marker_type = (MarkerType) pSetLatencyMarkerParams->markerType; // requires enums to match
 
-    // We can't mutex using the same one here as for sleep
-    // This would make for example Present markers unable to mark during sleep
-    // std::scoped_lock lock(active_tech_mutex);
-
-    currently_active_tech->set_marker(pDev, &marker_params);
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->set_marker(pDev, &marker_params);
 
     LOG_TRACE_FAKENVAPI("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
@@ -289,7 +282,7 @@ NvAPI_Status LowLatency::SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARA
 NvAPI_Status LowLatency::SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue,
                                              NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams)
 {
-    if (!currently_active_tech) // can't init using ID3D12CommandQueue, can only check if available
+    if (!currently_active_tech.load()) // can't init using ID3D12CommandQueue, can only check if available
         return ERROR();
 
     MarkerParams marker_params {};
@@ -325,7 +318,8 @@ NvAPI_Status LowLatency::SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue,
         update_effective_fg_state();
     }
 
-    currently_active_tech->set_async_marker(&marker_params);
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->set_async_marker(&marker_params);
 
     LOG_TRACE_FAKENVAPI("Async {}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 

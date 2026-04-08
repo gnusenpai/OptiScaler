@@ -4,39 +4,43 @@
 // private
 void LowLatency::update_effective_fg_state()
 {
-    std::scoped_lock lock(active_tech_mutex);
+    if (auto current_tech = currently_active_tech.load())
+    {
+        if (!current_tech)
+            return;
 
-    if (!currently_active_tech)
-        return;
-
-    if (forced_fg.has_value())
-        currently_active_tech->set_effective_fg_state(forced_fg.value());
-    else
-        currently_active_tech->set_effective_fg_state(fg);
+        if (forced_fg.has_value())
+            current_tech->set_effective_fg_state(forced_fg.value());
+        else
+            current_tech->set_effective_fg_state(fg);
+    }
 }
 
 void LowLatency::update_enabled_override()
 {
-    std::scoped_lock lock(active_tech_mutex);
+    if (auto current_tech = currently_active_tech.load())
+    {
+        if (!current_tech)
+            return;
 
-    if (!currently_active_tech)
-        return;
-
-    currently_active_tech->set_low_latency_override(
-        (ForceReflex) Config::Instance()->FN_ForceReflex.value_or_default());
+        current_tech->set_low_latency_override((ForceReflex) Config::Instance()->FN_ForceReflex.value_or_default());
+    }
 }
 
 // public
 bool LowLatency::deinit_current_tech()
 {
-    std::scoped_lock lock(active_tech_mutex);
+    // currently_active_tech becomes nullptr
+    // but we need to wait for all users of the old one to release
+    auto old_tech = currently_active_tech.exchange(nullptr);
 
-    if (currently_active_tech)
+    if (old_tech)
     {
-        currently_active_tech->deinit();
+        LOG_TRACE("Deiniting current tech");
+        while (old_tech.use_count() > 1)
+            std::this_thread::yield();
 
-        delete currently_active_tech;
-        currently_active_tech = nullptr;
+        old_tech->deinit();
 
         std::memset(frame_reports, 0, sizeof(frame_reports));
 
@@ -48,13 +52,14 @@ bool LowLatency::deinit_current_tech()
 
 bool LowLatency::get_low_latency_tech_context(void** low_latency_context, LowLatencyMode* low_latency_tech)
 {
-    std::scoped_lock lock(active_tech_mutex);
+    if (auto current_tech = currently_active_tech.load())
+    {
+        if (!current_tech || !low_latency_context || !low_latency_tech)
+            return false;
 
-    if (!currently_active_tech || !low_latency_context || !low_latency_tech)
-        return false;
-
-    *low_latency_context = currently_active_tech->get_tech_context();
-    *low_latency_tech = currently_active_tech->get_mode();
+        *low_latency_context = current_tech->get_tech_context();
+        *low_latency_tech = current_tech->get_mode();
+    }
 
     // We are during deinit, don't let app use the context
     if (delay_deinit > 0)
@@ -82,10 +87,10 @@ bool LowLatency::set_low_latency_tech_context(void* low_latency_context, LowLate
 
 bool LowLatency::is_low_latency_enabled()
 {
-    std::scoped_lock lock(active_tech_mutex);
+    auto current_tech = currently_active_tech.load();
 
-    if (!currently_active_tech)
+    if (!current_tech)
         return false;
 
-    return currently_active_tech->is_enabled();
+    return current_tech->is_enabled();
 }

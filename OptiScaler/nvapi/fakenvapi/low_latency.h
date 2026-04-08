@@ -35,8 +35,7 @@ struct FrameReport
 class LowLatency
 {
   private:
-    std::mutex active_tech_mutex;
-    LowLatencyTech* currently_active_tech;
+    std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
     FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
     std::optional<bool> forced_fg;
     bool fg;
@@ -67,8 +66,11 @@ class LowLatency
     void set_forced_fg(std::optional<bool> forced_fg) { this->forced_fg = forced_fg; };
     void set_fg_type(bool interpolated, uint64_t frame_id)
     {
-        if (currently_active_tech)
-            currently_active_tech->set_fg_type(interpolated, frame_id);
+        if (auto current_tech = currently_active_tech.load())
+        {
+            if (current_tech)
+                current_tech->set_fg_type(interpolated, frame_id);
+        }
     }
     bool get_low_latency_tech_context(void** low_latency_tech_context, LowLatencyMode* low_latency_tech);
     bool set_low_latency_tech_context(void* low_latency_tech_context, LowLatencyMode low_latency_tech);
