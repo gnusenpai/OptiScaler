@@ -880,7 +880,7 @@ void LibraryLoadHooks::CheckModulesInMemory()
                     StreamlineHooks::hookLocalDlssg(slDlssg);
                 }
             }
-            else
+            else if (!StreamlineHooks::isDlssgHooked())
             {
                 LOG_DEBUG("sl.dlss_g.dll already in memory");
                 StreamlineHooks::hookDlssg(slDlssg);
