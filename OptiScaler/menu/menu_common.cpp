@@ -3158,7 +3158,8 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::BeginDisabled(state.dlssgDMFGSupported &&
                                          config->FGDLSSGOverrideForceDMFG.value_or_default());
-                    if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() >= 1)
+                    if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() >= 1 &&
+                        state.activeFgInput != FGInput::DLSSG)
                     {
                         auto maxInterpolationCount = state.dlssgMfgMax.value();
 
