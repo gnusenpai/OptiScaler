@@ -36,11 +36,14 @@ static ImVec2 overlaySize(0.0f, 0.0f);
 static ImVec2 overlayPosition(-1000.0f, -1000.0f);
 static bool _hdrTonemapApplied = false;
 static ImVec4 SdrColors[ImGuiCol_COUNT];
-static bool receivingWmInputs = false;
+
 static bool inputMenu = false;
 static bool inputFG = false;
 static bool inputFps = false;
 static bool inputFpsCycle = false;
+static uint64_t lastInputTick = 0;
+constexpr uint64_t debounceThreshold = 60;
+
 static bool hasGamepad = false;
 static bool fsr31InitTried = false;
 static bool xefgInitTried = false;
@@ -783,14 +786,17 @@ LRESULT MenuCommon::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     RAWINPUT rawData {};
     UINT rawDataSize = sizeof(rawData);
 
+    // More of a workaround than a fix, stop accepting inputs for {debounceThreshold} ms
+    const auto currentTick = GetTickCount64();
+    const bool canAcceptInputs = lastInputTick + debounceThreshold < currentTick;
+
     if (msg == WM_INPUT && GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &rawData, &rawDataSize,
                                            sizeof(rawData.data)) != (UINT) -1)
     {
         auto rawCode = GET_RAWINPUT_CODE_WPARAM(wParam);
         rawRead = true;
-        receivingWmInputs = true;
         bool isKeyUp = (rawData.data.keyboard.Flags & RI_KEY_BREAK) != 0;
-        if (isKeyUp && rawData.header.dwType == RIM_TYPEKEYBOARD && rawData.data.keyboard.VKey != 0)
+        if (isKeyUp && rawData.header.dwType == RIM_TYPEKEYBOARD && rawData.data.keyboard.VKey != 0 && canAcceptInputs)
         {
             lastKey = rawData.data.keyboard.VKey;
 
@@ -806,13 +812,16 @@ LRESULT MenuCommon::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (!inputFpsCycle)
                 inputFpsCycle =
                     rawData.data.keyboard.VKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
+
+            if (inputMenu || inputFps || inputFG || inputFpsCycle)
+                lastInputTick = currentTick;
         }
     }
 
     if (!lastKey && msg == WM_KEYUP)
         lastKey = static_cast<int>(wParam);
 
-    if (!receivingWmInputs)
+    if (canAcceptInputs)
     {
         if (!inputMenu)
             inputMenu = msg == WM_KEYUP && wParam == Config::Instance()->ShortcutKey.value_or_default();
@@ -825,6 +834,9 @@ LRESULT MenuCommon::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         if (!inputFpsCycle)
             inputFpsCycle = msg == WM_KEYUP && wParam == Config::Instance()->FpsCycleShortcutKey.value_or_default();
+
+        if (inputMenu || inputFps || inputFG || inputFpsCycle)
+            lastInputTick = currentTick;
     }
 
     // SHIFT + DEL - Debug dump
