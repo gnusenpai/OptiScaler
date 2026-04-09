@@ -280,7 +280,7 @@ bool FSR2FeatureVkOnDx12_212::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Pa
 
     LOG_DEBUG("Input Resolution: {0}x{1}", params.renderSize.width, params.renderSize.height);
 
-    auto frame = _frameCount % 2;
+    auto frame = _frameCount % VKDX12_BUFFER_COUNT;
     auto cmdList = Dx12CommandList[frame];
 
     params.commandList = cmdList;

@@ -331,7 +331,7 @@ bool IFeature_VkwDx12::CreateVulkanCommandBuffers(uint32_t queueFamilyIndex)
 
     auto& b = VulkanQueueCommandBuffers[queueFamilyIndex];
 
-    for (uint32_t i = 0; i < 2; i++)
+    for (uint32_t i = 0; i < VKDX12_BUFFER_COUNT; i++)
     {
         if (b.VulkanCopyCommandPool[i] == VK_NULL_HANDLE)
         {
@@ -969,7 +969,7 @@ bool IFeature_VkwDx12::ProcessVulkanTextures(VkCommandBuffer InCmdList, const NV
 {
     LOG_FUNC();
 
-    auto frame = _frameCount % 2;
+    auto frame = _frameCount % VKDX12_BUFFER_COUNT;
     LOG_DEBUG("frame: {}", frame);
 
     auto queueFamilyOpt = Vulkan_wDx12::cmdBufferStateTracker.GetCommandBufferQueueFamily(InCmdList);
@@ -1420,7 +1420,7 @@ bool IFeature_VkwDx12::CopyBackOutput()
 {
     LOG_FUNC();
 
-    auto frame = _frameCount % 2;
+    auto frame = _frameCount % VKDX12_BUFFER_COUNT;
     LOG_DEBUG("frame: {}", frame);
 
     std::vector<D3D12_RESOURCE_BARRIER> barriers;
@@ -1816,7 +1816,7 @@ void IFeature_VkwDx12::ReleaseSharedResources()
     // Loop in VulkanQueueCommandBuffers instead of hardcoding 2 command buffers, in case we have more in the future
     for (auto& [index, b] : VulkanQueueCommandBuffers)
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VKDX12_BUFFER_COUNT; i++)
         {
             if (b.VulkanBarrierCommandBuffer[i] != VK_NULL_HANDLE && b.VulkanBarrierCommandPool[i] != VK_NULL_HANDLE)
             {
@@ -1848,11 +1848,13 @@ void IFeature_VkwDx12::ReleaseSharedResources()
 
     ReleaseSyncResources();
 
-    SAFE_RELEASE(Dx12CommandList[0]);
-    SAFE_RELEASE(Dx12CommandList[1]);
+    for (size_t i = 0; i < VKDX12_BUFFER_COUNT; i++)
+    {
+        SAFE_RELEASE(Dx12CommandList[i]);
+        SAFE_RELEASE(Dx12CommandAllocator[i]);
+    }
+
     SAFE_RELEASE(Dx12CommandQueue);
-    SAFE_RELEASE(Dx12CommandAllocator[0]);
-    SAFE_RELEASE(Dx12CommandAllocator[1]);
     SAFE_RELEASE(Dx12Fence);
 
     if (Dx12FenceEvent)
@@ -1913,7 +1915,7 @@ void IFeature_VkwDx12::ReleaseSharedResources()
 void IFeature_VkwDx12::ReleaseSyncResources()
 {
     LOG_FUNC();
-    for (uint32_t i = 0; i < 2; i++)
+    for (uint32_t i = 0; i < VKDX12_BUFFER_COUNT; i++)
     {
         SAFE_DESTROY_VK(vkDestroySemaphore, VulkanDevice, vkSemaphoreTextureCopy[i], nullptr);
         SAFE_RELEASE(dx12FenceTextureCopy[i]);
@@ -2018,7 +2020,7 @@ HRESULT IFeature_VkwDx12::CreateDx12Device()
         }
     }
 
-    for (size_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < VKDX12_BUFFER_COUNT; i++)
     {
         if (Dx12CommandAllocator[i] == nullptr)
         {
@@ -2182,7 +2184,7 @@ bool IFeature_VkwDx12::CreateSharedFenceSemaphore()
         return true;
     }
 
-    for (uint32_t i = 0; i < 2; i++)
+    for (uint32_t i = 0; i < VKDX12_BUFFER_COUNT; i++)
     {
         // Create D3D12 fence with shared flag (only once)
         if (dx12FenceTextureCopy[i] == nullptr)
