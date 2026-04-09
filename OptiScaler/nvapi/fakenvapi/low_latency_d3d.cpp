@@ -13,6 +13,12 @@
 // private
 bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
 {
+    if (!pDevice && !forced_low_latency_context)
+    {
+        LOG_ERROR("Invalid pointer");
+        return false;
+    }
+
     if (!currently_active_tech.load())
     {
         if (forced_low_latency_context && forced_low_latency_tech == LowLatencyMode::AntiLag2)

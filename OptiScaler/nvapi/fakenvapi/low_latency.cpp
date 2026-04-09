@@ -76,6 +76,17 @@ bool LowLatency::set_low_latency_tech_context(void* low_latency_context, LowLate
     forced_low_latency_context = low_latency_context;
     forced_low_latency_tech = low_latency_tech;
 
+    if (auto current_tech = currently_active_tech.load(); current_tech)
+    {
+        // If trying to init low latency tech with the same context...
+        if (current_tech->get_tech_context() == low_latency_context && current_tech->get_mode() == low_latency_tech)
+        {
+            // Just init itself with the correct method using that context to set the flag
+            current_tech->init_using_ctx(current_tech->get_tech_context());
+            return true;
+        }
+    }
+
     deinit_current_tech();
 
     // Only D3D

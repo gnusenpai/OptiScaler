@@ -50,7 +50,7 @@ void AntiLag2::set_fg_type(bool interpolated, uint64_t frame_id)
 
 bool AntiLag2::init(IUnknown* pDevice)
 {
-    if (!dx12_ctx.m_pAntiLagAPI && !dx11_ctx.m_pAntiLagAPI)
+    if (!dx12_ctx.m_pAntiLagAPI && !dx11_ctx.m_pAntiLagAPI && pDevice)
     {
         ID3D12Device* device = nullptr;
 

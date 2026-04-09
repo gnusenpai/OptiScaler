@@ -29,7 +29,10 @@ void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
 bool XeLL::init(IUnknown* pDevice)
 {
     if (!pDevice)
+    {
+        LOG_ERROR("Invalid pointer");
         return false;
+    }
 
     ID3D12Device* dx12_pDevice = nullptr;
     HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&dx12_pDevice));
@@ -128,6 +131,12 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode)
 
 void XeLL::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 {
+    if (!pDevice || !marker_params)
+    {
+        LOG_ERROR("Invalid pointer");
+        return;
+    }
+
     // XeLL frame ids are uint64_t
     auto frame_id = (uint32_t) marker_params->frame_id;
 

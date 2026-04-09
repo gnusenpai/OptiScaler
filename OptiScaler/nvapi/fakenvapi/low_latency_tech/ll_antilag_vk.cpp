@@ -40,6 +40,12 @@ void AntiLagVk::sleep()
 
 void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 {
+    if (!pDevice || !marker_params)
+    {
+        LOG_ERROR("Invalid pointer");
+        return;
+    }
+
     auto mode = is_enabled() ? VK_ANTI_LAG_MODE_ON_AMD : VK_ANTI_LAG_MODE_OFF_AMD;
 
     static size_t call_count = 0;
