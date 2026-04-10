@@ -39,8 +39,6 @@ void Nvngx_FG::setSetting(const wchar_t* setting, const wchar_t* value)
 
 HMODULE Nvngx_FG::TryInitMFG()
 {
-    auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.dll";
-
     // set early so the hooks know
     _mfg = true;
 
@@ -55,7 +53,12 @@ HMODULE Nvngx_FG::TryInitMFG()
 
         DetourTransactionCommit();
 
-        dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
+        HMODULE memModule = nullptr;
+        auto optiPath = Config::Instance()->MainDllPath.value();
+        Util::LoadProxyLibrary(L"dlss-enabler-headless.dll", L"", optiPath, &memModule, &dll);
+
+        if (dll == nullptr && memModule != nullptr)
+            dll = memModule;
 
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
@@ -110,8 +113,12 @@ void Nvngx_FG::InitDLSSGMod_Dx12()
     }
     else
     {
-        auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
-        _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
+        HMODULE memModule = nullptr;
+        auto optiPath = Config::Instance()->MainDllPath.value();
+        Util::LoadProxyLibrary(L"dlssg_to_fsr3_amd_is_better.dll", L"", optiPath, &memModule, &_dll);
+
+        if (_dll == nullptr && memModule != nullptr)
+            _dll = memModule;
     }
 
     if (_dll != nullptr)
@@ -183,8 +190,12 @@ void Nvngx_FG::InitDLSSGMod_Vulkan()
     }
     else
     {
-        auto dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
-        _dll = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
+        HMODULE memModule = nullptr;
+        auto optiPath = Config::Instance()->MainDllPath.value();
+        Util::LoadProxyLibrary(L"dlssg_to_fsr3_amd_is_better.dll", L"", optiPath, &memModule, &_dll);
+
+        if (_dll == nullptr && memModule != nullptr)
+            _dll = memModule;
     }
 
     if (_dll != nullptr)

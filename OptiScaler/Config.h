@@ -220,14 +220,9 @@ class Config
     CustomOptional<bool> BuildPipelines { true };
     CustomOptional<int32_t> NetworkModel { 0 };
     CustomOptional<bool> CreateHeaps { true };
-    CustomOptional<std::wstring, NoDefault> XeSSLibrary;
-    CustomOptional<std::wstring, NoDefault> XeSSDx11Library;
 
     // DLSS
     CustomOptional<bool> DLSSEnabled { true };
-    CustomOptional<std::wstring, NoDefault> NvngxPath;
-    CustomOptional<std::wstring, NoDefault> NVNGX_DLSS_Library;
-    CustomOptional<std::wstring, NoDefault> DLSSFeaturePath;
     CustomOptional<bool> RenderPresetOverride { false };
     CustomOptional<uint32_t> RenderPresetForAll { 0 };
     CustomOptional<uint32_t> RenderPresetDLAA { 0 };
@@ -249,6 +244,23 @@ class Config
 
     // Nukems
     CustomOptional<bool> MakeDepthCopy { false };
+
+    // Libraries
+    CustomOptional<std::wstring, NoDefault> MainDllPath;
+    CustomOptional<std::wstring, NoDefault> FfxDx12Path;
+    CustomOptional<std::wstring, NoDefault> FfxDx12SRPath;
+    CustomOptional<std::wstring, NoDefault> FfxDx12FGPath;
+    CustomOptional<std::wstring, NoDefault> FfxDx12RRPath;
+    CustomOptional<std::wstring, NoDefault> FfxDx12RCPath;
+    CustomOptional<std::wstring, NoDefault> FfxVkPath;
+    CustomOptional<std::wstring, NoDefault> XeSSLibrary;
+    CustomOptional<std::wstring, NoDefault> XeFGLibrary;
+    CustomOptional<std::wstring, NoDefault> XeLLLibrary;
+    CustomOptional<std::wstring, NoDefault> XeSSDx11Library;
+    CustomOptional<std::wstring, NoDefault> NvngxPath;
+    CustomOptional<std::wstring, NoDefault> NVNGX_DLSS_Library;
+    CustomOptional<std::wstring, NoDefault> DLSSFeaturePath;
+    CustomOptional<std::wstring, NoDefault> NvapiDllPath;
 
     // CAS
     CustomOptional<bool> RcasEnabled { false };
@@ -390,9 +402,6 @@ class Config
     CustomOptional<float> FsrCameraFar { 100000.0f };
     CustomOptional<bool> FsrUseFsrInputValues { true };
 
-    CustomOptional<std::wstring, NoDefault> FfxDx12Path;
-    CustomOptional<std::wstring, NoDefault> FfxVkPath;
-
     // dx11wdx12
     CustomOptional<bool> Dx11DelayedInit { false };
     CustomOptional<bool> DontUseNTShared { true };
@@ -426,7 +435,7 @@ class Config
     CustomOptional<std::wstring> SpoofedDriver { L"32.0.15.9155" };
 
     // Plugins
-    CustomOptional<std::wstring> PluginPath { L"plugins" };
+    CustomOptional<std::wstring, NoDefault> PluginPath;
     CustomOptional<bool> LoadSpecialK { false };
     CustomOptional<bool> LoadReShade { false };
     CustomOptional<bool> LoadAsiPlugins { false };

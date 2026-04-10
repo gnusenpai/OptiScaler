@@ -248,9 +248,6 @@ bool Config::Reload(std::filesystem::path iniPath)
             FsrCameraNear.set_from_config(readFloat("FSR", "CameraNear"));
             FsrCameraFar.set_from_config(readFloat("FSR", "CameraFar"));
             FsrUseFsrInputValues.set_from_config(readBool("FSR", "UseFsrInputValues"));
-
-            FfxDx12Path.set_from_config(readWString("FSR", "FfxDx12Path"));
-            FfxVkPath.set_from_config(readWString("FSR", "FfxVkPath"));
         }
 
         // FSR
@@ -292,17 +289,12 @@ bool Config::Reload(std::filesystem::path iniPath)
             BuildPipelines.set_from_config(readBool("XeSS", "BuildPipelines"));
             NetworkModel.set_from_config(readInt("XeSS", "NetworkModel"));
             CreateHeaps.set_from_config(readBool("XeSS", "CreateHeaps"));
-            XeSSLibrary.set_from_config(readWString("XeSS", "LibraryPath"));
-            XeSSDx11Library.set_from_config(readWString("XeSS", "Dx11LibraryPath"));
         }
 
         // DLSS
         {
             // Don't enable again if set false because of no nvngx found
             DLSSEnabled.set_from_config(readBool("DLSS", "Enabled"));
-            NvngxPath.set_from_config(readWString("DLSS", "LibraryPath"));
-            DLSSFeaturePath.set_from_config(readWString("DLSS", "FeaturePath"));
-            NVNGX_DLSS_Library.set_from_config(readWString("DLSS", "NVNGX_DLSS_Path"));
             UseGenericAppIdWithDlss.set_from_config(readBool("DLSS", "UseGenericAppIdWithDlss"));
 
             RenderPresetOverride.set_from_config(readBool("DLSS", "RenderPresetOverride"));
@@ -685,29 +677,7 @@ bool Config::Reload(std::filesystem::path iniPath)
 
         // Plugins
         {
-            std::filesystem::path path;
-            auto setting = readString("Plugins", "Path", true);
-
-            if (setting.has_value())
-                path = std::filesystem::path(setting.value());
-            else
-                path = std::filesystem::path(PluginPath.value_or_default());
-
-            if (setting.has_value())
-            {
-                if (path.has_root_path())
-                    PluginPath.set_from_config(path.wstring());
-                else
-                    PluginPath.set_from_config((Util::DllPath().parent_path() / path).wstring());
-            }
-            else
-            {
-                if (path.has_root_path())
-                    PluginPath.set_volatile_value(path.wstring());
-                else
-                    PluginPath.set_volatile_value((Util::DllPath().parent_path() / path).wstring());
-            }
-
+            PluginPath.set_from_config(readWString("Plugins", "Path"));
             LoadSpecialK.set_from_config(readBool("Plugins", "LoadSpecialK"));
             LoadReShade.set_from_config(readBool("Plugins", "LoadReShade"));
             LoadAsiPlugins.set_from_config(readBool("Plugins", "LoadAsiPlugins"));
@@ -725,6 +695,28 @@ bool Config::Reload(std::filesystem::path iniPath)
             OverrideVsync.set_from_config(readBool("V-Sync", "OverrideVsync"));
             ForceVsync.set_from_config(readBool("V-Sync", "ForceVsync"));
             VsyncInterval.set_from_config(readInt("V-Sync", "SyncInterval"));
+        }
+
+        // Libraries
+        {
+            MainDllPath.set_from_config(readWString("Libraries", "OptiDllPath"));
+
+            NvngxPath.set_from_config(readWString("Libraries", "NvngxPath"));
+            NVNGX_DLSS_Library.set_from_config(readWString("Libraries", "NvngxDlssPath"));
+            DLSSFeaturePath.set_from_config(readWString("Libraries", "NvngxFeaturePath"));
+            NvapiDllPath.set_from_config(readWString("Libraries", "NvapiPath"));
+
+            FfxDx12Path.set_from_config(readWString("Libraries", "FfxDx12Path"));
+            FfxDx12SRPath.set_from_config(readWString("Libraries", "FfxSRDx12Path"));
+            FfxDx12FGPath.set_from_config(readWString("Libraries", "FfxFGDx12Path"));
+            FfxDx12RRPath.set_from_config(readWString("Libraries", "FfxRRDx12Path"));
+            FfxDx12RCPath.set_from_config(readWString("Libraries", "FfxRCDx12Path"));
+            FfxVkPath.set_from_config(readWString("Libraries", "FfxVkPath"));
+
+            XeSSLibrary.set_from_config(readWString("Libraries", "XeSSPath"));
+            XeSSLibrary.set_from_config(readWString("Libraries", "XeFGPath"));
+            XeSSLibrary.set_from_config(readWString("Libraries", "XeLLPath"));
+            XeSSDx11Library.set_from_config(readWString("Libraries", "XeSSDx11Path"));
         }
 
         return true;
@@ -1015,10 +1007,6 @@ bool Config::SaveIni()
         ini.SetValue("FSR", "CameraFar", GetFloatValue(Instance()->FsrCameraFar.value_for_config()).c_str());
         ini.SetValue("FSR", "UseFsrInputValues",
                      GetBoolValue(Instance()->FsrUseFsrInputValues.value_for_config()).c_str());
-
-        ini.SetValue("FSR", "FfxDx12Path",
-                     wstring_to_string(Instance()->FfxDx12Path.value_for_config_or(L"auto")).c_str());
-        ini.SetValue("FSR", "FfxVkPath", wstring_to_string(Instance()->FfxVkPath.value_for_config_or(L"auto")).c_str());
     }
 
     // FSR
@@ -1054,21 +1042,11 @@ bool Config::SaveIni()
         ini.SetValue("XeSS", "BuildPipelines", GetBoolValue(Instance()->BuildPipelines.value_for_config()).c_str());
         ini.SetValue("XeSS", "CreateHeaps", GetBoolValue(Instance()->CreateHeaps.value_for_config()).c_str());
         ini.SetValue("XeSS", "NetworkModel", GetIntValue(Instance()->NetworkModel.value_for_config()).c_str());
-        ini.SetValue("XeSS", "LibraryPath",
-                     wstring_to_string(Instance()->XeSSLibrary.value_for_config_or(L"auto")).c_str());
-        ini.SetValue("XeSS", "Dx11LibraryPath",
-                     wstring_to_string(Instance()->XeSSDx11Library.value_for_config_or(L"auto")).c_str());
     }
 
     // DLSS
     {
         ini.SetValue("DLSS", "Enabled", GetBoolValue(Instance()->DLSSEnabled.value_for_config()).c_str());
-        ini.SetValue("DLSS", "LibraryPath",
-                     wstring_to_string(Instance()->NvngxPath.value_for_config_or(L"auto")).c_str());
-        ini.SetValue("DLSS", "FeaturePath",
-                     wstring_to_string(Instance()->DLSSFeaturePath.value_for_config_or(L"auto")).c_str());
-        ini.SetValue("DLSS", "NVNGX_DLSS_Path",
-                     wstring_to_string(Instance()->NVNGX_DLSS_Library.value_for_config_or(L"auto")).c_str());
         ini.SetValue("DLSS", "RenderPresetOverride",
                      GetBoolValue(Instance()->RenderPresetOverride.value_for_config()).c_str());
         ini.SetValue("DLSS", "RenderPresetForAll",
@@ -1413,6 +1391,43 @@ bool Config::SaveIni()
             if (Instance()->VsyncInterval.value() < 0 || Instance()->VsyncInterval.value() > 3)
                 Instance()->VsyncInterval.reset();
         }
+    }
+
+    // Libraries
+    {
+        ini.SetValue("Libraries", "OptiDllPath",
+                     wstring_to_string(Instance()->MainDllPath.value_for_config_or(L"auto")).c_str());
+
+        ini.SetValue("Libraries", "NvngxPath",
+                     wstring_to_string(Instance()->NvngxPath.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "NvngxFeaturePath",
+                     wstring_to_string(Instance()->DLSSFeaturePath.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "NvngxDlssPath",
+                     wstring_to_string(Instance()->NVNGX_DLSS_Library.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "NvapiPath",
+                     wstring_to_string(Instance()->NvapiDllPath.value_for_config_or(L"auto")).c_str());
+
+        ini.SetValue("Libraries", "FfxDx12Path",
+                     wstring_to_string(Instance()->FfxDx12Path.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "FfxDx12SRPath",
+                     wstring_to_string(Instance()->FfxDx12SRPath.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "FfxDx12FGPath",
+                     wstring_to_string(Instance()->FfxDx12FGPath.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "FfxDx12RRPath",
+                     wstring_to_string(Instance()->FfxDx12RRPath.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "FfxDx12RCPath",
+                     wstring_to_string(Instance()->FfxDx12RCPath.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "FfxVkPath",
+                     wstring_to_string(Instance()->FfxVkPath.value_for_config_or(L"auto")).c_str());
+
+        ini.SetValue("Libraries", "XeSSPath",
+                     wstring_to_string(Instance()->XeSSLibrary.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "XeFGPath",
+                     wstring_to_string(Instance()->XeFGLibrary.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "XeLLPath",
+                     wstring_to_string(Instance()->XeLLLibrary.value_for_config_or(L"auto")).c_str());
+        ini.SetValue("Libraries", "XeSSDx11Path",
+                     wstring_to_string(Instance()->XeSSDx11Library.value_for_config_or(L"auto")).c_str());
     }
 
     auto pathWStr = absoluteFileName.wstring();
