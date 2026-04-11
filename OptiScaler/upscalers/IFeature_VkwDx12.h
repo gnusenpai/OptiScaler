@@ -19,7 +19,7 @@
 
 #include <nvsdk_ngx_vk.h>
 
-#define VKDX12_BUFFER_COUNT 4
+#define VKDX12_BUFFER_COUNT 2
 
 class IFeature_VkwDx12 : public virtual IFeature_Vk
 {
