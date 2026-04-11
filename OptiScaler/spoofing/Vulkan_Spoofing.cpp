@@ -440,24 +440,10 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
     }
 
     if (vkDeviceExtensions.size() == 0 ||
-        vkDeviceExtensions.contains(std::string(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME)))
-    {
-        LOG_DEBUG("  Adding {}", VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
-        newExtensionList.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
-    }
-
-    if (vkDeviceExtensions.size() == 0 ||
         vkDeviceExtensions.contains(std::string(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME)))
     {
         LOG_DEBUG("  Adding {}", VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
         newExtensionList.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
-    }
-
-    if (vkDeviceExtensions.size() == 0 ||
-        vkDeviceExtensions.contains(std::string(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME)))
-    {
-        LOG_DEBUG("  Adding {}", VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
-        newExtensionList.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
     }
 
     if (vkDeviceExtensions.size() == 0 ||
@@ -467,7 +453,8 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
         newExtensionList.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
     }
 
-    if (vkDeviceExtensions.contains(std::string(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME)))
+    if (vkDeviceExtensions.size() == 0 ||
+        vkDeviceExtensions.contains(std::string(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME)))
     {
         LOG_DEBUG("  Adding {}", VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
         newExtensionList.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
@@ -493,6 +480,22 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
     {
         LOG_DEBUG("  Adding {}", VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME);
         newExtensionList.push_back(VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME);
+    }
+
+    LOG_INFO("Adding Vk w/Dx12 Vulkan extensions");
+
+    if (vkDeviceExtensions.size() == 0 ||
+        vkDeviceExtensions.contains(std::string(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME)))
+    {
+        LOG_DEBUG("  Adding {}", VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+        newExtensionList.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+    }
+
+    if (vkDeviceExtensions.size() == 0 ||
+        vkDeviceExtensions.contains(std::string(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME)))
+    {
+        LOG_DEBUG("  Adding {}", VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+        newExtensionList.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
     }
 
 #ifdef USE_QUEUE_SUBMIT_2_KHR
