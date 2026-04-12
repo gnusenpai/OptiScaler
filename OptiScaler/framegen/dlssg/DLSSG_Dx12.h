@@ -9,7 +9,6 @@ class DLSSG_Dx12 : public virtual IFGFeature_Dx12
   private:
     uint32_t _width = 0;
     uint32_t _height = 0;
-    bool _infiniteDepth = false;
     std::optional<bool> _haveHudless = std::nullopt;
 
     sl::ViewportHandle viewport { 0 };

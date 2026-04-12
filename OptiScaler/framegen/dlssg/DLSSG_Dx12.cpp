@@ -404,9 +404,9 @@ bool DLSSG_Dx12::Dispatch()
 
     sl::Constants constData = {};
 
-    if (_infiniteDepth && _cameraFar[fIndex] > _cameraNear[fIndex])
+    if (IsInfiniteDepth() && _cameraFar[fIndex] > _cameraNear[fIndex])
         _cameraFar[fIndex] = std::numeric_limits<float>::infinity();
-    else if (_infiniteDepth && _cameraNear[fIndex] > _cameraFar[fIndex])
+    else if (IsInfiniteDepth() && _cameraNear[fIndex] > _cameraFar[fIndex])
         _cameraNear[fIndex] = std::numeric_limits<float>::infinity();
 
     if (_cameraPosition[fIndex][0] != 0.0f || _cameraPosition[fIndex][1] != 0.0f || _cameraPosition[fIndex][2] != 0.0f)
@@ -502,6 +502,7 @@ bool DLSSG_Dx12::Dispatch()
     constData.motionVectorsInvalidValue = 0.0f;
     constData.orthographicProjection = sl::Boolean::eFalse;
     constData.motionVectorsDilated = IsLowResMV() ? sl::Boolean::eFalse : sl::Boolean::eTrue;
+    constData.motionVectorsJittered = IsJitteredMVs() ? sl::Boolean::eTrue : sl::Boolean::eFalse;
 
     auto frameId = static_cast<uint32_t>(willDispatchFrame);
 
