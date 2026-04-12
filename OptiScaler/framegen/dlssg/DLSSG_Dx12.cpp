@@ -467,6 +467,14 @@ bool DLSSG_Dx12::Dispatch()
     constData.jitterOffset.y = _jitterY[fIndex];
 
     auto mv = GetResource(FG_ResourceType::Velocity, fIndex);
+
+    if (!mv)
+    {
+        LOG_ERROR("Motion vectors missing for: {}", fIndex);
+
+        return false;
+    }
+
     constData.mvecScale.x = _mvScaleX[fIndex] / (float) mv->width;
     constData.mvecScale.y = _mvScaleY[fIndex] / (float) mv->height;
 
@@ -488,13 +496,12 @@ bool DLSSG_Dx12::Dispatch()
     else
         constData.reset = sl::Boolean::eFalse;
 
-    constData.depthInverted = _constants.flags & FG_Flags::InvertedDepth ? sl::Boolean::eTrue : sl::Boolean::eFalse;
+    constData.depthInverted = IsInvertedDepth() ? sl::Boolean::eTrue : sl::Boolean::eFalse;
     constData.cameraMotionIncluded = sl::Boolean::eTrue;
     constData.motionVectors3D = sl::Boolean::eFalse;
     constData.motionVectorsInvalidValue = 0.0f;
     constData.orthographicProjection = sl::Boolean::eFalse;
-    constData.motionVectorsDilated =
-        _constants.flags & FG_Flags::DisplayResolutionMVs ? sl::Boolean::eTrue : sl::Boolean::eFalse;
+    constData.motionVectorsDilated = IsLowResMV() ? sl::Boolean::eFalse : sl::Boolean::eTrue;
 
     auto frameId = static_cast<uint32_t>(willDispatchFrame);
 
@@ -550,7 +557,7 @@ void DLSSG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
         return;
     }
 
-    _infiniteDepth = static_cast<bool>(fgConstants.flags & FG_Flags::InfiniteDepth);
+    _constants = fgConstants;
 
     // If FG Enabled from menu
     if (Config::Instance()->FGEnabled.value_or_default())
