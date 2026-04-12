@@ -1400,7 +1400,7 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
         LOG_TRACE("slInterposer path: {}", dllPath);
 
         Util::version_t sl_version;
-        Util::GetDLLVersion(string_to_wstring(dllPath), &sl_version);
+        Util::GetFileVersion(string_to_wstring(dllPath), &sl_version);
 
         State::Instance().streamlineVersion.major = sl_version.major;
         State::Instance().streamlineVersion.minor = sl_version.minor;

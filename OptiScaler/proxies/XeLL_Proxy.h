@@ -75,51 +75,20 @@ class XeLLProxy
 
     inline static xell_version_t GetDLLVersion(std::wstring dllPath)
     {
-        // Step 1: Get the size of the version information
-        DWORD handle = 0;
-        DWORD versionSize = GetFileVersionInfoSizeW(dllPath.c_str(), &handle);
-        xell_version_t version { 0, 0, 0 };
+        xell_version_t xellVersion {};
+        Util::version_t tempVersion {};
+        auto result = Util::GetFileVersion(dllPath, &tempVersion);
 
-        if (versionSize == 0)
+        // Don't assume that the structs are identical
+        if (result)
         {
-            LOG_ERROR("Failed to get version info size: {0:X}", GetLastError());
-            return version;
+            xellVersion.major = tempVersion.major;
+            xellVersion.minor = tempVersion.minor;
+            xellVersion.patch = tempVersion.patch;
+            xellVersion.reserved = tempVersion.reserved;
         }
 
-        // Step 2: Allocate buffer and get the version information
-        std::vector<BYTE> versionInfo(versionSize);
-        if (handle == 0 && !GetFileVersionInfoW(dllPath.c_str(), handle, versionSize, versionInfo.data()))
-        {
-            LOG_ERROR("Failed to get version info: {0:X}", GetLastError());
-            return version;
-        }
-
-        // Step 3: Extract the version information
-        VS_FIXEDFILEINFO* fileInfo = nullptr;
-        UINT size = 0;
-        if (!VerQueryValueW(versionInfo.data(), L"\\", reinterpret_cast<LPVOID*>(&fileInfo), &size))
-        {
-            LOG_ERROR("Failed to query version value: {0:X}", GetLastError());
-            return version;
-        }
-
-        if (fileInfo != nullptr)
-        {
-            // Extract major, minor, build, and revision numbers from version information
-            DWORD fileVersionMS = fileInfo->dwFileVersionMS;
-            DWORD fileVersionLS = fileInfo->dwFileVersionLS;
-
-            version.major = (fileVersionMS >> 16) & 0xffff;
-            version.minor = (fileVersionMS >> 0) & 0xffff;
-            version.patch = (fileVersionLS >> 16) & 0xffff;
-            version.reserved = (fileVersionLS >> 0) & 0xffff;
-        }
-        else
-        {
-            LOG_ERROR("No version information found!");
-        }
-
-        return version;
+        return xellVersion;
     }
 
     inline static std::filesystem::path DllPath(HMODULE module)
@@ -228,7 +197,7 @@ class XeLLProxy
     {
         if (_xellVersion.major == 0 && _xellGetVersion != nullptr)
         {
-            if (auto result = _xellGetVersion((xell_version_t*) &_xellVersion); result == XESS_RESULT_SUCCESS)
+            if (auto result = _xellGetVersion((xell_version_t*) &_xellVersion); result == XELL_RESULT_SUCCESS)
                 LOG_INFO("XeLL Version: v{}.{}.{}", _xellVersion.major, _xellVersion.minor, _xellVersion.patch);
             else
                 LOG_ERROR("Can't get XeLL version: {}", (UINT) result);

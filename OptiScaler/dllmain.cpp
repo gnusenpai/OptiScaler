@@ -1238,8 +1238,24 @@ static void CheckQuirks(bool isNvidia)
     State::Instance().GameExe = exePathFilename;
     State::Instance().GameName = wstring_to_string(Util::GetExeProductName());
 
+    Util::version_t fileVersion;
+    Util::version_t productVersion;
+    Util::GetFileVersion(Util::ExePath().wstring(), &fileVersion, &productVersion);
+
     LOG_INFO("Game's Exe: {0}", exePathFilename);
     LOG_INFO("Game Name: {0}", State::Instance().GameName);
+
+    if (fileVersion != Util::version_t {})
+    {
+        LOG_INFO("Game's File Version: {}.{}.{}.{}", fileVersion.major, fileVersion.minor, fileVersion.patch,
+                 fileVersion.reserved);
+    }
+
+    if (productVersion != Util::version_t {})
+    {
+        LOG_INFO("Game's Product Version: {}.{}.{}.{}", productVersion.major, productVersion.minor,
+                 productVersion.patch, productVersion.reserved);
+    }
 
     auto quirks = getQuirksForExe(exePathFilename);
 

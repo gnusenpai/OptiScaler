@@ -297,7 +297,7 @@ static inline std::string LogLastError()
     return result;
 }
 
-bool Util::GetDLLVersion(std::wstring dllPath, version_t* versionOut)
+bool Util::GetFileVersion(std::wstring dllPath, version_t* fileVersionOut, version_t* productVersionOut)
 {
     // Step 1: Get the size of the version information
     DWORD handle = 0;
@@ -326,16 +326,27 @@ bool Util::GetDLLVersion(std::wstring dllPath, version_t* versionOut)
         return false;
     }
 
-    if (fileInfo != nullptr && versionOut != nullptr)
+    if (fileInfo != nullptr && fileVersionOut != nullptr)
     {
         // Extract major, minor, build, and revision numbers from version information
         DWORD fileVersionMS = fileInfo->dwFileVersionMS;
         DWORD fileVersionLS = fileInfo->dwFileVersionLS;
 
-        versionOut->major = (fileVersionMS >> 16) & 0xffff;
-        versionOut->minor = (fileVersionMS >> 0) & 0xffff;
-        versionOut->patch = (fileVersionLS >> 16) & 0xffff;
-        versionOut->reserved = (fileVersionLS >> 0) & 0xffff;
+        fileVersionOut->major = (fileVersionMS >> 16) & 0xffff;
+        fileVersionOut->minor = (fileVersionMS >> 0) & 0xffff;
+        fileVersionOut->patch = (fileVersionLS >> 16) & 0xffff;
+        fileVersionOut->reserved = (fileVersionLS >> 0) & 0xffff;
+
+        if (productVersionOut != nullptr)
+        {
+            DWORD productVersionMS = fileInfo->dwProductVersionMS;
+            DWORD productVersionLS = fileInfo->dwProductVersionLS;
+
+            productVersionOut->major = (productVersionMS >> 16) & 0xffff;
+            productVersionOut->minor = (productVersionMS >> 0) & 0xffff;
+            productVersionOut->patch = (productVersionLS >> 16) & 0xffff;
+            productVersionOut->reserved = (productVersionLS >> 0) & 0xffff;
+        }
     }
     else
     {
@@ -343,23 +354,6 @@ bool Util::GetDLLVersion(std::wstring dllPath, version_t* versionOut)
         return false;
     }
     return true;
-}
-
-bool Util::GetDLLVersion(std::wstring dllPath, xess_version_t* xessVersionOut)
-{
-    version_t tempVersion;
-    auto result = Util::GetDLLVersion(dllPath, &tempVersion);
-
-    // Don't assume that the structs are identical
-    if (result)
-    {
-        xessVersionOut->major = tempVersion.major;
-        xessVersionOut->minor = tempVersion.minor;
-        xessVersionOut->patch = tempVersion.patch;
-        xessVersionOut->reserved = tempVersion.reserved;
-    }
-
-    return result;
 }
 
 std::optional<std::filesystem::path> Util::FindFilePath(const std::filesystem::path& startDir,
