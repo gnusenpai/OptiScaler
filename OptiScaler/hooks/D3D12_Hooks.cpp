@@ -352,6 +352,7 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
 
     DXGI_ADAPTER_DESC desc {};
     std::wstring szName;
+    bool nonPrimaryGpu = false;
     if (pAdapter != nullptr && MinimumFeatureLevel != D3D_FEATURE_LEVEL_1_0_CORE)
     {
         ScopedSkipSpoofing skipSpoofing {};
@@ -363,7 +364,10 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
 
             auto primaryGpu = IdentifyGpu::getPrimaryGpu();
             if (!IsEqualLUID(desc.AdapterLuid, primaryGpu.luid))
+            {
                 LOG_WARN("D3D12Device created with non-primary GPU");
+                nonPrimaryGpu = true;
+            }
         }
     }
 
@@ -398,7 +402,7 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
 
     LOG_DEBUG("o_D3D12CreateDevice result: {:X}", (UINT) result);
 
-    if (result == S_OK && ppDevice != nullptr && MinimumFeatureLevel != D3D_FEATURE_LEVEL_1_0_CORE)
+    if (result == S_OK && ppDevice != nullptr && MinimumFeatureLevel != D3D_FEATURE_LEVEL_1_0_CORE && !nonPrimaryGpu)
     {
         LOG_DEBUG("Device captured: {0:X}", (size_t) *ppDevice);
         State::Instance().currentD3D12Device = (ID3D12Device*) *ppDevice;
