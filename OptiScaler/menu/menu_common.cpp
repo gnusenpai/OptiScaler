@@ -4101,7 +4101,6 @@ bool MenuCommon::RenderMenu()
                                 {
                                     state.FGresetCapturedResources = true;
                                     state.FGonlyUseCapturedResources = false;
-                                    state.FGonlyUseCapturedResources = false;
                                 }
 
                                 ImGui::EndDisabled();
