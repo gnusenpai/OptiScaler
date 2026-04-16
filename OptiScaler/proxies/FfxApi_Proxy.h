@@ -1050,7 +1050,7 @@ class FfxApiProxy
 
                 if (queryResult == FFX_API_RETURN_OK)
                 {
-                    parse_version(versionNames[0], &denoiser_dx12.version);
+                    denoiser_dx12.version.parse_version(versionNames[0]);
                     LOG_INFO("FfxApi Dx12 SR version: {}.{}.{}", denoiser_dx12.version.major,
                              denoiser_dx12.version.minor, denoiser_dx12.version.patch);
                 }
@@ -1099,7 +1099,7 @@ class FfxApiProxy
 
                 if (queryResult == FFX_API_RETURN_OK)
                 {
-                    parse_version(versionNames[0], &radiance_dx12.version);
+                    radiance_dx12.version.parse_version(versionNames[0]);
                     LOG_INFO("FfxApi Dx12 SR version: {}.{}.{}", radiance_dx12.version.major,
                              radiance_dx12.version.minor, radiance_dx12.version.patch);
                 }

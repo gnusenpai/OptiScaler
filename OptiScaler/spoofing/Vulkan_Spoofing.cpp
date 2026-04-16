@@ -607,7 +607,7 @@ inline static VkResult hkvkEnumerateDeviceExtensionProperties(VkPhysicalDevice p
         vkEnumerateDeviceExtensionPropertiesListed = true;
 
         auto minusCount = 5;
-        if (State::Instance().activeFgInput == FGInput::DLSSG || State::Instance().activeFgInput == FGInput::Nukems)
+        if (State::Instance().activeFgInput == FGInput::DLSSG || State::Instance().activeFgInput == FGInput::NvngxFG)
             minusCount = 7;
 
         LOG_DEBUG("Extensions returned:");
