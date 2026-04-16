@@ -2691,7 +2691,10 @@ bool MenuCommon::RenderMenu()
 
                                     ImGui::TableNextColumn();
 
-                                    ImGui::Text("Current model: %d", state.currentFsr4Model);
+                                    if (state.currentFsr4Model.has_value())
+                                        ImGui::Text("Current model: %d", state.currentFsr4Model.value());
+                                    else
+                                        ImGui::Text("Failed to hook");
 
                                     ImGui::EndTable();
                                 }
