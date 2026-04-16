@@ -34,11 +34,7 @@ class DxgiProxy
 
             if (_dll == nullptr)
             {
-                wchar_t sysFolder[MAX_PATH];
-                GetSystemDirectory(sysFolder, MAX_PATH);
-                std::filesystem::path sysPath(sysFolder);
-                sysPath = sysPath / L"dxgi.dll";
-                _dll = NtdllProxy::LoadLibraryExW_Ldr(sysPath.c_str(), NULL, 0);
+                _dll = NtdllProxy::LoadLibraryExW_Ldr(L"dxgi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
             }
         }
         else

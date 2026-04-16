@@ -118,11 +118,7 @@ std::wstring Util::GetExeProductName()
     // In case of working ag version.dll
     // Loading original dll from system
 
-    wchar_t sysFolder[MAX_PATH];
-    GetSystemDirectory(sysFolder, MAX_PATH);
-    std::filesystem::path sysPath(sysFolder);
-
-    auto dll = LoadLibraryExW((sysPath / L"version.dll").c_str(), NULL, 0);
+    auto dll = LoadLibraryExW(L"version.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
     if (dll == nullptr)
         return L"";

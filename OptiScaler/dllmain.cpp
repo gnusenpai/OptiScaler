@@ -266,9 +266,6 @@ static void CheckWorkingMode()
     bool modeFound = false;
     std::string filename = wstring_to_string(Util::DllPath().filename().wstring()); // .string() can crash
     std::string lCaseFilename(filename);
-    wchar_t sysFolder[MAX_PATH];
-    GetSystemDirectory(sysFolder, MAX_PATH);
-    std::filesystem::path sysPath(sysFolder);
     std::filesystem::path pluginPath(Config::Instance()->PluginPath.value());
 
     for (size_t i = 0; i < lCaseFilename.size(); i++)
@@ -324,8 +321,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                auto sysFilePath = sysPath / L"version.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"version.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
                 if (originalModule != nullptr && !_passThruMode)
                     LOG_INFO("OptiScaler working as version.dll, system dll loaded");
@@ -379,8 +375,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                auto sysFilePath = sysPath / L"winmm.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"winmm.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
                 if (originalModule != nullptr && !_passThruMode)
                     LOG_INFO("OptiScaler working as winmm.dll, system dll loaded");
@@ -433,8 +428,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                auto sysFilePath = sysPath / L"wininet.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"wininet.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
                 if (originalModule != nullptr && !_passThruMode)
                     LOG_INFO("OptiScaler working as wininet.dll, system dll loaded");
@@ -487,8 +481,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                auto sysFilePath = sysPath / L"dbghelp.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"dbghelp.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
                 if (originalModule != nullptr && !_passThruMode)
                     LOG_INFO("OptiScaler working as dbghelp.dll, system dll loaded");
@@ -577,8 +570,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                auto sysFilePath = sysPath / L"winhttp.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"winhttp.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
                 if (originalModule != nullptr && !_passThruMode)
                     LOG_INFO("OptiScaler working as winhttp.dll, system dll loaded");
@@ -631,8 +623,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                auto sysFilePath = sysPath / L"dxgi.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"dxgi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
                 if (originalModule != nullptr && !_passThruMode)
                     LOG_INFO("OptiScaler working as dxgi.dll, system dll loaded");
@@ -692,8 +683,7 @@ static void CheckWorkingMode()
                     break;
                 }
 
-                auto sysFilePath = sysPath / L"d3d12.dll";
-                originalModule = NtdllProxy::LoadLibraryExW_Ldr(sysFilePath.wstring().c_str(), NULL, 0);
+                originalModule = NtdllProxy::LoadLibraryExW_Ldr(L"d3d12.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
                 if (originalModule != nullptr && !_passThruMode)
                     LOG_INFO("OptiScaler working as d3d12.dll, system dll loaded");
