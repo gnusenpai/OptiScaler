@@ -49,8 +49,15 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
 #endif
 
     // C:\\Path\\like\\this.dll
-    auto normalizedPath = std::filesystem::path(libName).lexically_normal().wstring();
+    auto path = std::filesystem::path(libName).lexically_normal();
+    auto normalizedPath = path.wstring();
     to_lower_in_place(normalizedPath);
+
+    std::filesystem::path localSlPath(Config::Instance()->MainDllPath.value());
+    localSlPath = localSlPath / L"streamline"; // Hardcoded streamline folder
+    auto normalizedLocalSlPath = localSlPath.lexically_normal();
+
+    const bool pathInsideLocalSlPath = Util::IsSubpath(path, normalizedLocalSlPath);
 
     // exe path
     auto exePath = Util::ExePath().parent_path().wstring();
@@ -128,11 +135,11 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
         return LibraryLoadHooks::LoadNvApi();
     }
 
-    const bool hookOptiDlls =
-        !normalizedPath.contains(L"\\opti_dlls") || State::Instance().activeFgInput == FGInput::NvngxFG;
+    // Hook SL from local path if using Nvngx FG (and probably upgrading SL for it)
+    const bool shouldHookSl = !pathInsideLocalSlPath || State::Instance().activeFgInput == FGInput::NvngxFG;
 
     // sl.interposer.dll
-    if (CheckDllNameW(&libName, &slInterposerNamesW) && hookOptiDlls)
+    if (CheckDllNameW(&libName, &slInterposerNamesW) && shouldHookSl)
     {
         auto streamlineModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
 
@@ -152,7 +159,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     // sl.dlss.dll
     // Try to catch something like this:
     // C:\ProgramData/NVIDIA/NGX/models/sl_dlss_0/versions/133120/files/190_E658703.dll
-    if (hookOptiDlls && (CheckDllNameW(&libName, &slDlssNamesW) ||
+    if (shouldHookSl && (CheckDllNameW(&libName, &slDlssNamesW) ||
                          (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_dlss_0"))))
     {
         auto dlssModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
@@ -177,9 +184,9 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
 
         if (dlssgModule != nullptr)
         {
-            const bool localDlssg = normalizedPath.contains(L"\\opti_dlls\\streamline\\") &&
-                                    (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                                     State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx);
+            const bool localDlssg =
+                pathInsideLocalSlPath && (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                                          State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx);
 
             if (!localDlssg && dlssgModule != State::Instance().optiSlDLSSG)
                 StreamlineHooks::hookDlssg(dlssgModule);
@@ -195,7 +202,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     }
 
     // sl.reflex.dll
-    if (hookOptiDlls && (CheckDllNameW(&libName, &slReflexNamesW) ||
+    if (shouldHookSl && (CheckDllNameW(&libName, &slReflexNamesW) ||
                          (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_reflex_"))))
     {
         auto reflexModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
@@ -213,7 +220,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     }
 
     // sl.pcl.dll
-    if (hookOptiDlls && (CheckDllNameW(&libName, &slPclNamesW) ||
+    if (shouldHookSl && (CheckDllNameW(&libName, &slPclNamesW) ||
                          (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_pcl_"))))
     {
         auto pclModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
@@ -231,7 +238,7 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     }
 
     // sl.common.dll
-    if (hookOptiDlls && (CheckDllNameW(&libName, &slCommonNamesW) ||
+    if (shouldHookSl && (CheckDllNameW(&libName, &slCommonNamesW) ||
                          (normalizedPath.contains(L"\\versions\\") && normalizedPath.contains(L"\\sl_common_"))))
     {
         auto commonModule = NtdllProxy::LoadLibraryExW_Ldr(lpLibFullPath, NULL, 0);
@@ -897,13 +904,17 @@ void LibraryLoadHooks::CheckModulesInMemory()
 
             char callerPath[MAX_PATH] = { 0 };
             GetModuleFileNameA(slDlssg, callerPath, sizeof(callerPath));
-            auto path = std::filesystem::path(callerPath);
-            auto normalizedPath = path.lexically_normal().wstring();
-            to_lower_in_place(normalizedPath);
 
-            const bool localDlssg = normalizedPath.contains(L"\\opti_dlls\\streamline\\") &&
-                                    (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                                     State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx);
+            auto path = std::filesystem::path(callerPath).lexically_normal();
+            std::filesystem::path localSlPath(Config::Instance()->MainDllPath.value());
+            localSlPath = localSlPath / L"streamline";
+            auto normalizedLocalSlPath = localSlPath.lexically_normal();
+
+            const bool pathInsideLocalSlPath = Util::IsSubpath(path, normalizedLocalSlPath);
+
+            const bool localDlssg =
+                pathInsideLocalSlPath && (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                                          State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx);
 
             if (localDlssg)
             {

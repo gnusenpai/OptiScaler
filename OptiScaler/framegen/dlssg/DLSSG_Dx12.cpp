@@ -439,8 +439,23 @@ bool DLSSG_Dx12::Dispatch()
         constData.cameraFwd = { 0.0f, 0.0f, 1.0f };
         constData.cameraPinholeOffset = { 0.0f, 0.0f };
 
-        XMMATRIX cameraViewToClip = XMMatrixPerspectiveFovRH(_cameraVFov[fIndex], _cameraAspectRatio[fIndex],
-                                                             _cameraNear[fIndex], _cameraFar[fIndex]);
+        XMMATRIX cameraViewToClip {};
+
+        // XMMatrixPerspectiveFovRH will fail if input values are incorrect
+        if (_cameraNear[fIndex] > 0.f && _cameraFar[fIndex] > 0.f &&
+            !XMScalarNearEqual(_cameraVFov[fIndex], 0.0f, 0.00001f) &&
+            !XMScalarNearEqual(_cameraAspectRatio[fIndex], 0.0f, 0.00001f))
+        {
+            if (XMScalarNearEqual(_cameraNear[fIndex], _cameraFar[fIndex], 0.00001f))
+                _cameraFar[fIndex]++;
+
+            cameraViewToClip = XMMatrixPerspectiveFovRH(_cameraVFov[fIndex], _cameraAspectRatio[fIndex],
+                                                        _cameraNear[fIndex], _cameraFar[fIndex]);
+        }
+        else
+        {
+            LOG_WARN("Can't calculate projectionMatrix");
+        }
 
         XMMATRIX clipToCameraView = XMMatrixInverse(nullptr, cameraViewToClip);
 

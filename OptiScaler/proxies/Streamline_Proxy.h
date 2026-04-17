@@ -75,19 +75,22 @@ class StreamlineProxy
         else
             State::DisableChecks(owner, "sl.");
 
-        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.interposer.dll";
-        LOG_INFO(L"Trying to load sl.interposer.dll from dll path: {}", slPath.wstring());
-        _dll = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+        std::filesystem::path localSlPath(Config::Instance()->MainDllPath.value());
+        localSlPath = localSlPath / L"streamline"; // Hardcoded streamline folder
+
+        std::filesystem::path slInterposerPath = localSlPath / L"sl.interposer.dll";
+        LOG_INFO(L"Trying to load sl.interposer.dll from dll path: {}", slInterposerPath.wstring());
+        _dll = NtdllProxy::LoadLibraryExW_Ldr(slInterposerPath.c_str(), NULL, NULL);
 
         State::EnableChecks(owner);
 
         if (_dll != nullptr)
         {
             State::Instance().optiSlInterposer = _dll;
-            slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.common.dll";
-            State::Instance().optiSlCommon = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
-            slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\nvngx_dlssg.dll";
-            State::Instance().optiDLSSG = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+            auto slCommonPath = localSlPath / L"sl.common.dll";
+            State::Instance().optiSlCommon = NtdllProxy::LoadLibraryExW_Ldr(slCommonPath.c_str(), NULL, NULL);
+            auto dlssgPath = localSlPath / L"nvngx_dlssg.dll"; // TODO: maybe some search?
+            State::Instance().optiDLSSG = NtdllProxy::LoadLibraryExW_Ldr(dlssgPath.c_str(), NULL, NULL);
 
             return HookStreamline(_dll);
         }
@@ -161,8 +164,9 @@ class StreamlineProxy
     {
         spdlog::info("");
 
-        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.dlss_g.dll";
-        auto dlssg = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+        std::filesystem::path localSlPath(Config::Instance()->MainDllPath.value());
+        localSlPath = localSlPath / L"streamline" / L"sl.dlss_g.dll";
+        auto dlssg = NtdllProxy::LoadLibraryExW_Ldr(localSlPath.c_str(), NULL, NULL);
 
         // if already hooked
         if (_slDLSSGSetOptions != nullptr)
@@ -194,8 +198,9 @@ class StreamlineProxy
     {
         spdlog::info("");
 
-        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.reflex.dll";
-        auto reflex = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+        std::filesystem::path localSlPath(Config::Instance()->MainDllPath.value());
+        localSlPath = localSlPath / L"streamline" / L"sl.reflex.dll";
+        auto reflex = NtdllProxy::LoadLibraryExW_Ldr(localSlPath.c_str(), NULL, NULL);
 
         // if already hooked
         if (_slReflexGetState != nullptr)
@@ -232,8 +237,9 @@ class StreamlineProxy
     {
         spdlog::info("");
 
-        std::filesystem::path slPath = Util::DllPath().parent_path() / L"opti_dlls\\streamline\\sl.pcl.dll";
-        auto pcl = NtdllProxy::LoadLibraryExW_Ldr(slPath.c_str(), NULL, NULL);
+        std::filesystem::path localSlPath(Config::Instance()->MainDllPath.value());
+        localSlPath = localSlPath / L"streamline" / L"sl.pcl.dll";
+        auto pcl = NtdllProxy::LoadLibraryExW_Ldr(localSlPath.c_str(), NULL, NULL);
 
         // if already hooked
         if (_slPCLSetMarker != nullptr)
@@ -306,14 +312,13 @@ class StreamlineProxy
         auto exePath = Util::ExePath().remove_filename();
         auto nvngxDlssPath = Util::FindFilePath(exePath, "nvngx_dlss.dll");
         auto nvngxDlssDPath = Util::FindFilePath(exePath, "nvngx_dlssd.dll");
-
-        // ??? SL doesn't search recursively so needs to be the exact path
-        exePath = exePath / L"opti_dlls" / L"streamline";
         auto nvngxDlssGPath = Util::FindFilePath(exePath, "nvngx_dlssg.dll");
 
         std::vector<std::wstring> pathStorage;
 
-        pathStorage.push_back(exePath.wstring());
+        std::filesystem::path mainDllPath(Config::Instance()->MainDllPath.value());
+        mainDllPath = mainDllPath / L"streamline";
+        pathStorage.push_back(mainDllPath.wstring());
 
         if (nvngxDlssGPath.has_value())
             pathStorage.push_back(nvngxDlssGPath.value().parent_path().wstring());

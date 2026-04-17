@@ -22,8 +22,15 @@ class NtdllProxy
     // It's a partial implementation
     static HMODULE LoadLibraryExW_Ldr(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags)
     {
-        UNICODE_STRING uName;
+        // LdrLoadDll wants a ULONG*, remove unsupported flags
+        ULONG ldrFlags = dwFlags & ~(LOAD_WITH_ALTERED_SEARCH_PATH | LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+                                     LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS |
+                                     LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
 
+        // This will receive the module handle:
+        HANDLE hModule = nullptr;
+
+        NTSTATUS status;
         if (dwFlags & LOAD_LIBRARY_SEARCH_SYSTEM32)
         {
             static std::filesystem::path sysDir = []
@@ -35,26 +42,26 @@ class NtdllProxy
 
             std::filesystem::path sysPath = sysDir / lpLibFileName;
 
+            UNICODE_STRING uName;
             o_RtlInitUnicodeString(&uName, sysPath.c_str());
+
+            status = o_LdrLoadDll(nullptr,                        // null is default search order
+                                  ldrFlags ? &ldrFlags : nullptr, // optional flags
+                                  &uName,                         // the name of the DLL
+                                  &hModule                        // out: module handle
+            );
         }
         else
         {
+            UNICODE_STRING uName;
             o_RtlInitUnicodeString(&uName, lpLibFileName);
+
+            status = o_LdrLoadDll(nullptr,                        // null is default search order
+                                  ldrFlags ? &ldrFlags : nullptr, // optional flags
+                                  &uName,                         // the name of the DLL
+                                  &hModule                        // out: module handle
+            );
         }
-
-        // LdrLoadDll wants a ULONG*, remove unsupported flags
-        ULONG ldrFlags = dwFlags & ~(LOAD_WITH_ALTERED_SEARCH_PATH | LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
-                                     LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS |
-                                     LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
-
-        // This will receive the module handle:
-        HANDLE hModule = nullptr;
-
-        NTSTATUS status = o_LdrLoadDll(nullptr,                        // null is default search order
-                                       ldrFlags ? &ldrFlags : nullptr, // optional flags
-                                       &uName,                         // the name of the DLL
-                                       &hModule                        // out: module handle
-        );
 
         if (NT_SUCCESS(status))
         {

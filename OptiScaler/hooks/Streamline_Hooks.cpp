@@ -142,18 +142,20 @@ sl::Result StreamlineHooks::hkslInit(const sl::Preferences& pref, uint64_t sdkVe
     if (localPref.engine == sl::EngineType::eUnreal)
         State::Instance().gameQuirks |= GameQuirk::ForceUnrealEngine;
 
-    auto optisPlugins = (Util::DllPath().parent_path() / L"opti_dlls\\streamline\\");
-    auto optisPluginsStr = optisPlugins.wstring();
+    std::filesystem::path localSlPath(Config::Instance()->MainDllPath.value());
+    localSlPath = localSlPath / L"streamline"; // Hardcoded streamline folder
+
+    auto localSlPathStr = localSlPath.wstring();
 
     std::vector<const wchar_t*> storage;
 
     // Replace the SL files to allow for MFG
     // TODO: ensure the path contains all the required plugins
-    if (State::Instance().activeFgInput == FGInput::NvngxFG && std::filesystem::exists(optisPlugins / L"sl.common.dll"))
+    if (State::Instance().activeFgInput == FGInput::NvngxFG && std::filesystem::exists(localSlPath / L"sl.common.dll"))
     {
         storage.assign(localPref.pathsToPlugins, localPref.pathsToPlugins + localPref.numPathsToPlugins);
 
-        storage.insert(storage.begin(), optisPluginsStr.c_str());
+        storage.insert(storage.begin(), localSlPathStr.c_str());
 
         localPref.pathsToPlugins = storage.data();
         localPref.numPathsToPlugins = (uint32_t) storage.size();

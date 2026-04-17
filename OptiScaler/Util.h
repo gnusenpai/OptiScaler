@@ -67,6 +67,7 @@ double MillisecondsNow();
 
 HWND GetProcessWindow();
 bool GetFileVersion(std::wstring dllPath, version_t* fileVersionOut, version_t* productVersionOut = nullptr);
+bool IsSubpath(const std::filesystem::path& path, const std::filesystem::path& base);
 bool GetRealWindowsVersion(OSVERSIONINFOW& osInfo);
 std::string GetWindowsName(const OSVERSIONINFOW& os);
 std::wstring GetExeProductName();

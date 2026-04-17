@@ -187,7 +187,7 @@ struct FsExistsCache
     std::chrono::steady_clock::time_point nextRefresh { std::chrono::steady_clock::time_point::min() };
     std::chrono::milliseconds interval { 2000 };
 
-    bool Get(const std::wstring& path)
+    bool Get(const std::filesystem::path& path)
     {
         auto now = std::chrono::steady_clock::now();
         if (path != lastPath || now >= nextRefresh)
@@ -1447,12 +1447,13 @@ bool MenuCommon::RenderMenu()
             {
                 refreshRate = Util::GetActiveRefreshRate(_handle);
 
-                auto dllPath = Util::DllPath().parent_path() / "dlss-enabler-headless.dll";
+                auto optiPath = std::filesystem::path(Config::Instance()->MainDllPath.value());
+                auto dllPath = optiPath / L"dlss-enabler-headless.dll";
                 state.NvngxFgFilesAvailable = gExists.Get(dllPath);
 
                 if (!state.NvngxFgFilesAvailable)
                 {
-                    dllPath = Util::DllPath().parent_path() / "dlssg_to_fsr3_amd_is_better.dll";
+                    dllPath = optiPath / L"dlssg_to_fsr3_amd_is_better.dll";
                     state.NvngxFgFilesAvailable = gExists.Get(dllPath);
                 }
 
