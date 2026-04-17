@@ -382,6 +382,7 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
     {
         LOG_ERROR("ppDevice is nullptr");
         _creatingD3D12Device = true;
+        ScopedCreatingD3DDevice skipCreatingD3DDevice {};
         auto result = o_D3D12CreateDevice(pAdapter, minLevel, riid, ppDevice);
         _creatingD3D12Device = false;
         return result;
@@ -396,6 +397,7 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
     }
     else
     {
+        ScopedCreatingD3DDevice skipCreatingD3DDevice {};
         result = o_D3D12CreateDevice(pAdapter, minLevel, riid, ppDevice);
     }
     _creatingD3D12Device = false;
@@ -515,6 +517,7 @@ static HRESULT hkCreateDevice(ID3D12DeviceFactory* pFactory, IUnknown* pAdapter,
     if (ppDevice == nullptr)
     {
         LOG_ERROR("ppDevice is nullptr");
+        ScopedCreatingD3DDevice skipCreatingD3DDevice {};
         return o_CreateDevice(pFactory, pAdapter, minLevel, riid, ppDevice);
     }
 
@@ -522,10 +525,12 @@ static HRESULT hkCreateDevice(ID3D12DeviceFactory* pFactory, IUnknown* pAdapter,
     if (desc.VendorId == VendorId::Intel)
     {
         ScopedSkipSpoofing skipSpoofing {};
+        ScopedCreatingD3DDevice skipCreatingD3DDevice {};
         result = o_CreateDevice(pFactory, pAdapter, minLevel, riid, ppDevice);
     }
     else
     {
+        ScopedCreatingD3DDevice skipCreatingD3DDevice {};
         result = o_CreateDevice(pFactory, pAdapter, minLevel, riid, ppDevice);
     }
 
