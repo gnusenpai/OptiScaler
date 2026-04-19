@@ -22,6 +22,8 @@ bool FSR2FeatureDx12_212::EvaluateInternal(ID3D12GraphicsCommandList* InCommandL
     auto& state = State::Instance();
     auto& cfg = *Config::Instance();
 
+    Config::Instance()->DADepthIsLinear.set_volatile_value(false);
+
     Fsr212::FfxFsr2DispatchDescription params {};
 
     InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_X, &params.jitterOffset.x);
