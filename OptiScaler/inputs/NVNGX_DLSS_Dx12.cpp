@@ -541,6 +541,14 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     const uint32_t handleId = IFeature::GetNextHandleId();
     LOG_INFO("Creating OptiScaler feature, HandleId: {}", handleId);
 
+    // Root signature restore
+    if (Config::Instance()->RestoreComputeSignature.value_or_default() ||
+        Config::Instance()->RestoreGraphicSignature.value_or_default())
+    {
+        D3D12Hooks::SetRootSignatureTracking(false);
+        D3D12Hooks::HookToCommandListLate(InCmdList);
+    }
+
     // Determine backend name
     Upscaler upscalerBackend;
     if (InFeatureID == NVSDK_NGX_Feature_SuperSampling)
@@ -885,6 +893,20 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     // Skip evaluation for the first N frames if configured
     if (cfg.SkipFirstFrames.has_value() && evalCounter < cfg.SkipFirstFrames.value())
         return NVSDK_NGX_Result_Success;
+
+    if (Config::Instance()->RestoreComputeSignature.value_or_default() &&
+        !D3D12Hooks::CanRestoreComputeRootSignature(InCmdList))
+    {
+        LOG_DEBUG("Skipping upscaling because can't restore compute signature");
+        return NVSDK_NGX_Result_Success;
+    }
+
+    if (Config::Instance()->RestoreGraphicSignature.value_or_default() &&
+        !D3D12Hooks::CanRestoreGraphicsRootSignature(InCmdList))
+    {
+        LOG_DEBUG("Skipping upscaling because can't restore graphics signature");
+        return NVSDK_NGX_Result_Success;
+    }
 
     if (InCallback)
         LOG_INFO("Progress callback provided but unused in synchronous OptiScaler path");
