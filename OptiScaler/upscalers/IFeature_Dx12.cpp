@@ -155,15 +155,12 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
 
                   RcasConstants rcasConstants {};
                   rcasConstants.Sharpness = localSharpness;
-                  rcasConstants.DisplayWidth = TargetWidth();
-                  rcasConstants.DisplayHeight = TargetHeight();
                   InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_X, &rcasConstants.MvScaleX);
                   InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &rcasConstants.MvScaleY);
-                  rcasConstants.DisplaySizeMV = !(GetFeatureFlags() & NVSDK_NGX_DLSS_Feature_Flags_MVLowRes);
-                  rcasConstants.RenderHeight = RenderHeight();
-                  rcasConstants.RenderWidth = RenderWidth();
+                  rcasConstants.CameraNear = Config::Instance()->FsrCameraNear.value_or_default();
+                  rcasConstants.CameraFar = Config::Instance()->FsrCameraFar.value_or_default();
 
-                  if (!RCAS->Dispatch(Device, InCommandList, input, paramMotion, rcasConstants, output))
+                  if (!RCAS->Dispatch(Device, InCommandList, input, paramMotion, rcasConstants, output, paramDepth))
                   {
                       Config::Instance()->RcasEnabled.set_volatile_value(false);
                       return false;
