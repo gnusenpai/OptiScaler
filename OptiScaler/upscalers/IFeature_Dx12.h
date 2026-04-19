@@ -11,6 +11,20 @@
 
 class IFeature_Dx12 : public virtual IFeature
 {
+  private:
+    struct ShaderPass
+    {
+        // Requests the target buffer it needs to write to. Returns the buffer the PREVIOUS stage must write to
+        std::function<ID3D12Resource*(ID3D12Resource* nextOutput)> Setup;
+
+        // Runs the shader
+        std::function<bool(ID3D12Resource* input, ID3D12Resource* output)> Dispatch;
+
+        // Internal state tracked by the pipeline setup loop
+        ID3D12Resource* inputBuffer = nullptr;
+        ID3D12Resource* outputBuffer = nullptr;
+    };
+
   protected:
     ID3D12Device* Device = nullptr;
     static inline std::unique_ptr<Menu_Dx12> Imgui = nullptr;
@@ -21,10 +35,13 @@ class IFeature_Dx12 : public virtual IFeature
     void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Resource* InResource,
                          D3D12_RESOURCE_STATES InBeforeState, D3D12_RESOURCE_STATES InAfterState) const;
 
+    virtual bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) = 0;
+    virtual bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) = 0;
+    virtual Upscaler GetUpscalerType() = 0; // TODO: should be moved to IFeature in the future
+
   public:
-    virtual bool Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList,
-                      NVSDK_NGX_Parameter* InParameters) = 0;
-    virtual bool Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) = 0;
+    bool Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters);
+    bool Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters);
 
     IFeature_Dx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 

@@ -27,46 +27,21 @@ FSR31FeatureDx12::FSR31FeatureDx12(unsigned int InHandleId, NVSDK_NGX_Parameter*
         LOG_ERROR("can't load amd_fidelityfx_dx12.dll methods!");
 }
 
-bool FSR31FeatureDx12::Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList,
-                            NVSDK_NGX_Parameter* InParameters)
+bool FSR31FeatureDx12::InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_DEBUG("FSR31FeatureDx12::Init");
 
     if (IsInited())
         return true;
 
-    Device = InDevice;
-
-    if (InitFSR3(InParameters))
-    {
-        if (!Config::Instance()->OverlayMenu.value_or_default() && (Imgui == nullptr || Imgui.get() == nullptr))
-            Imgui = std::make_unique<Menu_Dx12>(Util::GetProcessWindow(), InDevice);
-
-        OutputScaler = std::make_unique<OS_Dx12>("Output Scaling", InDevice, (TargetWidth() < DisplayWidth()));
-        RCAS = std::make_unique<RCAS_Dx12>("RCAS", InDevice);
-        Bias = std::make_unique<Bias_Dx12>("Bias", InDevice);
-
-        return true;
-    }
-
-    return false;
+    return InitFSR3(InParameters);
 }
 
-bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters)
+bool FSR31FeatureDx12::EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
-    if (!IsInited())
-        return false;
-
     auto& cfg = *Config::Instance();
-    const auto& ngxParams = *InParameters;
-
-    if (!RCAS->IsInit())
-        Config::Instance()->RcasEnabled.set_volatile_value(false);
-
-    if (!OutputScaler->IsInit())
-        Config::Instance()->OutputScalingEnabled.set_volatile_value(false);
 
     struct ffxDispatchDescUpscale params = { 0 };
     params.header.type = FFX_API_DISPATCH_DESC_TYPE_UPSCALE;
@@ -87,24 +62,8 @@ bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_
     InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_X, &params.jitterOffset.x);
     InParameters->Get(NVSDK_NGX_Parameter_Jitter_Offset_Y, &params.jitterOffset.y);
 
-    if (Config::Instance()->OverrideSharpness.value_or_default())
-        _sharpness = Config::Instance()->Sharpness.value_or_default();
-    else
-        _sharpness = GetSharpness(InParameters);
-
-    if (Config::Instance()->RcasEnabled.value_or_default())
-    {
-        params.enableSharpening = false;
-        params.sharpness = 0.0f;
-    }
-    else
-    {
-        if (_sharpness > 1.0f)
-            _sharpness = 1.0f;
-
-        params.enableSharpening = _sharpness > 0.0f;
-        params.sharpness = _sharpness;
-    }
+    params.enableSharpening = _sharpness > 0.0f;
+    params.sharpness = _sharpness;
 
     // Force enable RCAS when in FSR4 debug view mode
     // it crashes when sharpening is disabled
@@ -202,30 +161,7 @@ bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_
                             (D3D12_RESOURCE_STATES) Config::Instance()->OutputResourceBarrier.value(),
                             D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-        if (useSS)
-        {
-            if (OutputScaler->CreateBufferResource(Device, paramOutput, TargetWidth(), TargetHeight(),
-                                                   D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
-            {
-                OutputScaler->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-                params.output = ffxApiGetResourceDX12(OutputScaler->Buffer(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-            }
-            else
-                params.output = ffxApiGetResourceDX12(paramOutput, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-        }
-        else
-            params.output = ffxApiGetResourceDX12(paramOutput, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-
-        if (Config::Instance()->RcasEnabled.value_or_default() &&
-            (_sharpness > 0.0f || (Config::Instance()->MotionSharpnessEnabled.value_or_default() &&
-                                   Config::Instance()->MotionSharpness.value_or_default() > 0.0f)) &&
-            RCAS->IsInit() &&
-            RCAS->CreateBufferResource(Device, (ID3D12Resource*) params.output.resource,
-                                       D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
-        {
-            RCAS->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-            params.output = ffxApiGetResourceDX12(RCAS->Buffer(), FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-        }
+        params.output = ffxApiGetResourceDX12(paramOutput, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
     }
     else
     {
@@ -411,7 +347,7 @@ bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_
     }
 
     if (!cfg.FsrUseFsrInputValues.value_or_default() ||
-        ngxParams.Get(OptiKeys::FSR_CameraFovVertical, &params.cameraFovAngleVertical) != NVSDK_NGX_Result_Success)
+        InParameters->Get(OptiKeys::FSR_CameraFovVertical, &params.cameraFovAngleVertical) != NVSDK_NGX_Result_Success)
     {
         if (cfg.FsrVerticalFov.has_value())
             params.cameraFovAngleVertical = GetRadiansFromDeg(cfg.FsrVerticalFov.value());
@@ -549,81 +485,6 @@ bool FSR31FeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_
         }
 
         return false;
-    }
-
-    // apply rcas
-    if (Config::Instance()->RcasEnabled.value_or_default() &&
-        (_sharpness > 0.0f || (Config::Instance()->MotionSharpnessEnabled.value_or_default() &&
-                               Config::Instance()->MotionSharpness.value_or_default() > 0.0f)) &&
-        RCAS->CanRender())
-    {
-        if (params.output.resource != RCAS->Buffer())
-            ResourceBarrier(InCommandList, (ID3D12Resource*) params.output.resource,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-        RCAS->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-        RcasConstants rcasConstants {};
-
-        rcasConstants.Sharpness = _sharpness;
-        rcasConstants.DisplayWidth = TargetWidth();
-        rcasConstants.DisplayHeight = TargetHeight();
-        InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_X, &rcasConstants.MvScaleX);
-        InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &rcasConstants.MvScaleY);
-        rcasConstants.DisplaySizeMV = !(GetFeatureFlags() & NVSDK_NGX_DLSS_Feature_Flags_MVLowRes);
-        rcasConstants.RenderHeight = RenderHeight();
-        rcasConstants.RenderWidth = RenderWidth();
-
-        if (useSS)
-        {
-            if (!RCAS->Dispatch(Device, InCommandList, (ID3D12Resource*) params.output.resource,
-                                (ID3D12Resource*) params.motionVectors.resource, rcasConstants, OutputScaler->Buffer()))
-            {
-                Config::Instance()->RcasEnabled.set_volatile_value(false);
-                return true;
-            }
-        }
-        else
-        {
-            if (!RCAS->Dispatch(Device, InCommandList, (ID3D12Resource*) params.output.resource,
-                                (ID3D12Resource*) params.motionVectors.resource, rcasConstants, paramOutput))
-            {
-                Config::Instance()->RcasEnabled.set_volatile_value(false);
-                return true;
-            }
-        }
-    }
-
-    if (useSS)
-    {
-        LOG_DEBUG("scaling output...");
-        OutputScaler->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-        if (!OutputScaler->Dispatch(Device, InCommandList, OutputScaler->Buffer(), paramOutput))
-        {
-            Config::Instance()->OutputScalingEnabled.set_volatile_value(false);
-            State::Instance().changeBackend[Handle()->Id] = true;
-            return true;
-        }
-    }
-
-    // imgui
-    if (!Config::Instance()->OverlayMenu.value_or_default() && _frameCount > 30)
-    {
-        if (Imgui != nullptr && Imgui.get() != nullptr)
-        {
-            if (Imgui->IsHandleDifferent())
-            {
-                Imgui.reset();
-            }
-            else
-                Imgui->Render(InCommandList, paramOutput);
-        }
-        else
-        {
-            if (Imgui == nullptr || Imgui.get() == nullptr)
-                Imgui = std::make_unique<Menu_Dx12>(GetForegroundWindow(), Device);
-        }
     }
 
     // restore resource states

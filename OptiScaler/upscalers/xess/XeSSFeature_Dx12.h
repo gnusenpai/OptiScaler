@@ -21,9 +21,9 @@ class XeSSFeatureDx12 : public XeSSFeature, public IFeature_Dx12
         _moduleLoaded = XeSSProxy::Module() != nullptr && XeSSProxy::D3D12CreateContext() != nullptr;
     }
 
-    bool Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList,
-              NVSDK_NGX_Parameter* InParameters) override;
-    bool Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
+    bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
+    bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
+    Upscaler GetUpscalerType() final { return Upscaler::XeSS; }
 
     bool IsWithDx12() final { return false; }
 
