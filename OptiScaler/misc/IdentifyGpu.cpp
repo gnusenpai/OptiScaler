@@ -93,14 +93,6 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
             if (SUCCEEDED(adapter->QueryInterface(IID_PPV_ARGS(&dxvkAdapter))))
                 gpuInfo.usesDxvk = true;
 
-            // Needed to be able to query amdxc and check for vkd3d-proton
-            if (gpuInfo.vendorId == VendorId::AMD || gpuInfo.usesDxvk)
-            {
-                D3d12Proxy::Init();
-                D3d12Proxy::D3D12CreateDevice_()(adapter.Get(), D3D_FEATURE_LEVEL_12_0,
-                                                 IID_PPV_ARGS(&gpuInfo.d3d12device));
-            }
-
             if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 gpuInfo.softwareAdapter = true;
 
@@ -121,85 +113,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
 
     for (auto& gpuInfo : localCachedInfo)
     {
-        ComPtr<ID3D12DXVKInteropDevice> vkd3dInterop;
-        if (gpuInfo.d3d12device && SUCCEEDED(gpuInfo.d3d12device->QueryInterface(IID_PPV_ARGS(&vkd3dInterop))))
-            gpuInfo.usesVkd3dProton = true;
-
-        if (gpuInfo.vendorId == VendorId::AMD)
-        {
-            // Kinda questionable, may need to reconsider
-            if (Config::Instance()->Fsr4ForceCapable.value_or_default())
-                gpuInfo.fsr4Capable = true;
-
-            // Query vkd3d-proton for extensions it's using to look for the required one for FSR 4
-            if (!gpuInfo.fsr4Capable && gpuInfo.usesVkd3dProton)
-            {
-                UINT extensionCount = 0;
-
-                if (SUCCEEDED(vkd3dInterop->GetDeviceExtensions(&extensionCount, nullptr)) && extensionCount > 0)
-                {
-                    std::vector<const char*> exts(extensionCount);
-
-                    if (SUCCEEDED(vkd3dInterop->GetDeviceExtensions(&extensionCount, exts.data())))
-                    {
-                        for (UINT i = 0; i < extensionCount; i++)
-                        {
-                            // Only RDNA4+
-                            if (!strcmp("VK_EXT_shader_float8", exts[i]))
-                            {
-                                gpuInfo.fsr4Capable = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Pre-RDNA4 GPUs on Linux can support FSR 4 but require a special envvar
-            // check for the envvar and assume everything else is also setup for FSR 4 to work on those cards
-            if (!gpuInfo.fsr4Capable)
-            {
-                const char* envvar = getenv("DXIL_SPIRV_CONFIG");
-                if (envvar && strstr(envvar, "wmma_rdna3_workaround"))
-                    gpuInfo.fsr4Capable = true;
-            }
-
-            if (!gpuInfo.fsr4Capable)
-            {
-                auto moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
-
-                if (moduleAmdxc64 == nullptr)
-                    moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
-
-                if (moduleAmdxc64 == nullptr)
-                    continue;
-
-                ComPtr<IAmdExtD3DFactory> amdExtD3DFactory = nullptr;
-                auto AmdExtD3DCreateInterface = (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
-                    moduleAmdxc64, "AmdExtD3DCreateInterface");
-
-                // Query amdxc for a specific intrinsics support, FSR 4 checks more but hopefully this one is enough
-                // amdxc on Windows hates vkd3d-proton's device, on Linux it's fine
-                if (!gpuInfo.fsr4Capable && gpuInfo.d3d12device &&
-                    (State::Instance().isRunningOnLinux || !gpuInfo.usesVkd3dProton) && AmdExtD3DCreateInterface &&
-                    SUCCEEDED(AmdExtD3DCreateInterface(gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DFactory))))
-                {
-                    ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics = nullptr;
-
-                    if (amdExtD3DFactory && SUCCEEDED(amdExtD3DFactory->CreateInterface(
-                                                gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DShaderIntrinsics))))
-                    {
-                        HRESULT float8support =
-                            amdExtD3DShaderIntrinsics->CheckSupport(AmdExtD3DShaderIntrinsicsSupport_Float8Conversion);
-                        gpuInfo.fsr4Capable = float8support == S_OK;
-                    }
-                }
-            }
-
-            // TODO: could now try to ask amdxcffx for FSR 4 and see if it returns it
-            // but our FSR 4 upgrade code call this function so it gets complicated
-        }
-        else if (gpuInfo.vendorId == VendorId::Nvidia)
+        if (gpuInfo.vendorId == VendorId::Nvidia)
         {
             queryNvapi(gpuInfo);
         }
@@ -357,9 +271,6 @@ std::vector<GpuInformation> IdentifyGpu::getAllGpus()
     if (is_fetching)
         return {};
 
-    static std::mutex mutex;
-    static std::vector<GpuInformation> cache;
-
     std::scoped_lock lock(mutex);
 
     if (!cache.empty() && cache.front().deviceId != VendorId::Invalid)
@@ -371,6 +282,7 @@ std::vector<GpuInformation> IdentifyGpu::getAllGpus()
     cache = checkGpuInfo();
     is_fetching = false;
 
+    // TODO: try to reactivate DxgiSpoofing if was auto on Nvidia cards without DLSS
     return cache;
 }
 
@@ -378,4 +290,159 @@ GpuInformation IdentifyGpu::getPrimaryGpu()
 {
     auto allGpus = getAllGpus();
     return !allGpus.empty() ? allGpus.front() : GpuInformation {};
+}
+
+void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3D12CreateDevice)
+{
+    if (hasD3d12Capabilities)
+        return;
+
+    // Making sure the cache is filled
+    getAllGpus();
+
+    auto d3d12Module = KernelBaseProxy::GetModuleHandleW_()(L"d3d12.dll");
+    if (!d3d12Module)
+        return;
+
+    D3d12Proxy::Init(d3d12Module);
+
+    mutex.lock();
+
+    hasD3d12Capabilities = true;
+    for (auto& gpuInfo : cache)
+    {
+        if (gpuInfo.vendorId != VendorId::AMD && !gpuInfo.usesDxvk)
+            continue;
+
+        ComPtr<IDXGIFactory4> factory;
+        if (FAILED(DxgiProxy::CreateDxgiFactory_()(__uuidof(factory), (IDXGIFactory**) factory.GetAddressOf())))
+            continue;
+
+        ComPtr<IDXGIAdapter> adapter;
+        if (SUCCEEDED(factory->EnumAdapterByLuid(gpuInfo.luid, IID_PPV_ARGS(&adapter))))
+        {
+            D3d12Proxy::PFN_D3D12CreateDevice pD3D12CreateDevice = nullptr;
+            if (o_D3D12CreateDevice)
+                pD3D12CreateDevice = o_D3D12CreateDevice;
+            else
+                pD3D12CreateDevice = D3d12Proxy::D3D12CreateDevice_();
+
+            // Needed to be able to query amdxc and check for vkd3d-proton
+            if (SUCCEEDED(
+                    pD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device))))
+            {
+                ComPtr<ID3D12DXVKInteropDevice> vkd3dInterop;
+                if (gpuInfo.d3d12device && SUCCEEDED(gpuInfo.d3d12device->QueryInterface(IID_PPV_ARGS(&vkd3dInterop))))
+                    gpuInfo.usesVkd3dProton = true;
+
+                if (gpuInfo.vendorId == VendorId::AMD)
+                {
+                    // Kinda questionable, may need to reconsider
+                    if (Config::Instance()->Fsr4ForceCapable.value_or_default())
+                        gpuInfo.fsr4Capable = true;
+
+                    // Query vkd3d-proton for extensions it's using to look for the required one for FSR 4
+                    if (!gpuInfo.fsr4Capable && gpuInfo.usesVkd3dProton)
+                    {
+                        UINT extensionCount = 0;
+
+                        if (SUCCEEDED(vkd3dInterop->GetDeviceExtensions(&extensionCount, nullptr)) &&
+                            extensionCount > 0)
+                        {
+                            std::vector<const char*> exts(extensionCount);
+
+                            if (SUCCEEDED(vkd3dInterop->GetDeviceExtensions(&extensionCount, exts.data())))
+                            {
+                                for (UINT i = 0; i < extensionCount; i++)
+                                {
+                                    // Only RDNA4+
+                                    if (!strcmp("VK_EXT_shader_float8", exts[i]))
+                                    {
+                                        gpuInfo.fsr4Capable = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Pre-RDNA4 GPUs on Linux can support FSR 4 but require a special envvar
+                    // check for the envvar and assume everything else is also setup for FSR 4 to work on those
+                    // cards
+                    if (!gpuInfo.fsr4Capable)
+                    {
+                        const char* envvar = getenv("DXIL_SPIRV_CONFIG");
+                        if (envvar && strstr(envvar, "wmma_rdna3_workaround"))
+                            gpuInfo.fsr4Capable = true;
+                    }
+
+                    if (!gpuInfo.fsr4Capable)
+                    {
+                        auto moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
+
+                        if (moduleAmdxc64 == nullptr)
+                            moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
+
+                        if (moduleAmdxc64 == nullptr)
+                            continue;
+
+                        ComPtr<IAmdExtD3DFactory> amdExtD3DFactory = nullptr;
+                        auto AmdExtD3DCreateInterface =
+                            (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
+                                moduleAmdxc64, "AmdExtD3DCreateInterface");
+
+                        // Query amdxc for a specific intrinsics support, FSR 4 checks more but hopefully this one
+                        // is enough amdxc on Windows hates vkd3d-proton's device, on Linux it's fine
+                        if (!gpuInfo.fsr4Capable && gpuInfo.d3d12device &&
+                            (State::Instance().isRunningOnLinux || !gpuInfo.usesVkd3dProton) &&
+                            AmdExtD3DCreateInterface)
+                        {
+                            // GPU Info should be filled out by now but we must avoid our hooked
+                            // AmdExtD3DCreateInterface calling IdentifyGpu and deadlocking
+                            mutex.unlock();
+                            if (SUCCEEDED(
+                                    AmdExtD3DCreateInterface(gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DFactory))))
+                            {
+                                ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics = nullptr;
+
+                                if (amdExtD3DFactory &&
+                                    SUCCEEDED(amdExtD3DFactory->CreateInterface(
+                                        gpuInfo.d3d12device, IID_PPV_ARGS(&amdExtD3DShaderIntrinsics))))
+                                {
+                                    HRESULT float8support = amdExtD3DShaderIntrinsics->CheckSupport(
+                                        AmdExtD3DShaderIntrinsicsSupport_Float8Conversion);
+                                    gpuInfo.fsr4Capable = float8support == S_OK;
+                                }
+                            }
+                            mutex.lock();
+                        }
+                    }
+
+                    // TODO: could now try to ask amdxcffx for FSR 4 and see if it returns it
+                    // but our FSR 4 upgrade code call this function so it gets complicated
+                }
+
+                gpuInfo.d3d12device->Release();
+                gpuInfo.d3d12device = nullptr;
+            }
+        }
+    }
+
+    mutex.unlock();
+
+    auto detectedGpus = IdentifyGpu::getAllGpus();
+    std::string gpus = "Detected GPUs:\n";
+
+    std::string indent(22, ' ');
+
+    for (auto& gpu : detectedGpus)
+    {
+        gpus += std::format("{}{}\n", indent, gpu.name);
+        gpus += std::format("{}    vendorId: {:X}, deviceId: {:X}, VRAM: {}MB\n", indent, (uint32_t) gpu.vendorId,
+                            gpu.deviceId, gpu.dedicatedVramInBytes / (1024 * 1024));
+        gpus += std::format("{}    dxvk: {}, vkd3d-proton: {}\n", indent, gpu.usesDxvk, gpu.usesVkd3dProton);
+        gpus += std::format("{}    Upscaler support - fsr4: {}, dlss: {}\n", indent, gpu.fsr4Capable, gpu.dlssCapable);
+    }
+
+    spdlog::info(gpus);
 }

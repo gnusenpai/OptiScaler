@@ -1035,7 +1035,7 @@ void MenuCommon::GetCurrentBackendInfo(const API api, Upscaler& upscaler, std::s
 
 void MenuCommon::RenderUpscalerCombo(const API api, Upscaler currentUpscaler, const std::vector<Upscaler>& options)
 {
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     // Determine display name
     Upscaler targetBackend = State::Instance().newBackend;
@@ -2064,7 +2064,7 @@ bool MenuCommon::RenderMenu()
         // Check for gpu support
         // DXVK might call vulkan device creation which would destroy our objects
         State::Instance().vulkanSkipHooks = true;
-        static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+        auto primaryGpu = IdentifyGpu::getPrimaryGpu();
         State::Instance().vulkanSkipHooks = false;
 
         // Overlay font
@@ -6262,6 +6262,9 @@ void MenuCommon::Init(HWND InHwnd, bool isUWP)
     _isUWP = isUWP;
 
     LOG_DEBUG("Handle: {0:X}", (size_t) _handle);
+
+    // In case d3d12 wasn't yet used up to this point, try to update GPU info late here
+    IdentifyGpu::updateD3d12Capabilities();
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();

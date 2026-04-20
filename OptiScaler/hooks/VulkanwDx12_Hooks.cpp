@@ -1051,7 +1051,7 @@ void Vulkan_wDx12::hk_vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipe
                                            uint32_t imageMemoryBarrierCount,
                                            const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     if (State::Instance().gameQuirks & GameQuirk::VulkanDLSSBarrierFixup &&
         (primaryGpu.vendorId != VendorId::Nvidia || !primaryGpu.dlssCapable))
     {

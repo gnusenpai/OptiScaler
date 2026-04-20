@@ -141,7 +141,7 @@ void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
         else
             return nullptr;
 
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     // Disable flip metering
     if (InterfaceId == GET_ID(NvAPI_D3D12_SetFlipConfig) &&

@@ -408,6 +408,7 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
         debugController->Release();
     }
 #endif
+    IdentifyGpu::updateD3d12Capabilities(o_D3D12CreateDevice);
 
     DXGI_ADAPTER_DESC desc {};
     std::wstring szName;

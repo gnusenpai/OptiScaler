@@ -196,7 +196,7 @@ static void RunAgilityUpgrade(HMODULE dx12Module)
 
 void LoadAsiPlugins()
 {
-    std::filesystem::path pluginPath(Config::Instance()->PluginPath.value());
+    std::filesystem::path pluginPath(Config::Instance()->PluginPath.value_or(L"plugins"));
     auto folderPath = pluginPath.wstring();
 
     LOG_DEBUG(L"Checking {} for *.asi", folderPath);
@@ -266,7 +266,7 @@ static void CheckWorkingMode()
     bool modeFound = false;
     std::string filename = wstring_to_string(Util::DllPath().filename().wstring()); // .string() can crash
     std::string lCaseFilename(filename);
-    std::filesystem::path pluginPath(Config::Instance()->PluginPath.value());
+    std::filesystem::path pluginPath(Config::Instance()->PluginPath.value_or(L"plugins"));
 
     for (size_t i = 0; i < lCaseFilename.size(); i++)
         lCaseFilename[i] = std::tolower(lCaseFilename[i]);
@@ -1588,29 +1588,17 @@ void CheckMemoryForProxies()
     NVNGXProxy::InitNVNGX();
 }
 
-DWORD WINAPI InitThread(LPVOID hModuleVoid)
+DWORD WINAPI getGpuInfo(LPVOID hModuleVoid)
 {
-    HMODULE hModule = (HMODULE) hModuleVoid;
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
-    auto detectedGpus = IdentifyGpu::getAllGpus();
-    std::string gpus = "Detected GPUs:\n";
+    // We don't yet know if the GPU supports FSR 4 so hook any AMD
+    if (primaryGpu.vendorId == VendorId::AMD)
+        InitFSR4Update();
 
-    std::string indent(22, ' ');
-
-    for (auto& gpu : detectedGpus)
-    {
-        gpus += std::format("{}{}\n", indent, gpu.name);
-        gpus += std::format("{}    vendorId: {:X}, deviceId: {:X}, VRAM: {}MB\n", indent, (uint32_t) gpu.vendorId,
-                            gpu.deviceId, gpu.dedicatedVramInBytes / (1024 * 1024));
-        gpus += std::format("{}    dxvk: {}, vkd3d-proton: {}\n", indent, gpu.usesDxvk, gpu.usesVkd3dProton);
-        gpus += std::format("{}    Upscaler support - fsr4: {}, dlss: {}\n", indent, gpu.fsr4Capable, gpu.dlssCapable);
-    }
-
-    spdlog::info(gpus);
-
-    InitFSR4Update();
-
-    // TODO: try to reactivate DxgiSpoofing if was auto on Nvidia cards without DLSS
+    // If DX12 already loaded then grab the full GPU info right away
+    if (hModuleVoid)
+        IdentifyGpu::updateD3d12Capabilities();
 
     return 0;
 }
@@ -1937,7 +1925,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         spdlog::info("---------------------------------------------");
         spdlog::info("");
 
-        CreateThread(nullptr, 0, InitThread, hModule, 0, nullptr);
+        CreateThread(nullptr, 0, getGpuInfo, GetDllNameWModule(&dx12NamesW), 0, nullptr);
+
         break;
     }
 

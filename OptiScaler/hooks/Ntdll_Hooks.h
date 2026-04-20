@@ -86,7 +86,6 @@ class NtdllHooks
 
             if (moduleHandle != nullptr)
             {
-
                 LOG_TRACE("{}, caller: {}", wstring_to_string(name.data()), Util::WhoIsTheCaller(_ReturnAddress()));
                 *ModuleHandle = (HANDLE) moduleHandle;
                 return (NTSTATUS) 0x00000000L;

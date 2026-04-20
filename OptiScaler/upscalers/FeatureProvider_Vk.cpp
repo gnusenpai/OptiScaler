@@ -21,7 +21,7 @@ bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_
 {
     State& state = State::Instance();
     Config& cfg = *Config::Instance();
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     switch (upscaler)
     {

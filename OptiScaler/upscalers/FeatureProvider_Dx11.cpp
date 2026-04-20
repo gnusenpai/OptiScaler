@@ -22,7 +22,7 @@ bool FeatureProvider_Dx11::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NG
 {
     State& state = State::Instance();
     Config& cfg = *Config::Instance();
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     switch (upscaler)
     {

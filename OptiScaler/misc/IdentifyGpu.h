@@ -1,5 +1,6 @@
 #pragma once
 #include <nvapi.h>
+#include <proxies/D3D12_Proxy.h>
 
 // vkd3d-proton
 MIDL_INTERFACE("39da4e09-bd1c-4198-9fae-86bbe3be41fd")
@@ -67,6 +68,10 @@ inline constexpr bool IsEqualLUID(LUID luid1, LUID luid2)
 
 class IdentifyGpu
 {
+    inline static bool hasD3d12Capabilities = false;
+    inline static std::mutex mutex {};
+    inline static std::vector<GpuInformation> cache {};
+
     static std::vector<GpuInformation> checkGpuInfo();
     static void queryNvapi(GpuInformation& gpuInfo);
 
@@ -77,4 +82,5 @@ class IdentifyGpu
     // Sorted by priority, the first one should be treated as the primary one
     static std::vector<GpuInformation> getAllGpus();
     static GpuInformation getPrimaryGpu();
+    static void updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3D12CreateDevice = nullptr);
 };

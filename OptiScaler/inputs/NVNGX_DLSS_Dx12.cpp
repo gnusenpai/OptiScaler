@@ -500,7 +500,7 @@ static Upscaler GetUpscalerBackend()
 {
     Upscaler upscaler = Upscaler::XeSS; // Default
 
-    auto static primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     if (NVNGXProxy::IsDx12Inited() && primaryGpu.dlssCapable)
         upscaler = Upscaler::DLSS;

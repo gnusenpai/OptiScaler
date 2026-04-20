@@ -20,7 +20,7 @@ bool FeatureProvider_Dx12::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NG
 {
     State& state = State::Instance();
     Config& cfg = *Config::Instance();
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     ScopedSkipHeapCapture skipHeapCapture {};
 
     switch (upscaler)

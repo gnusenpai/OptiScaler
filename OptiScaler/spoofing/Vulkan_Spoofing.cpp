@@ -273,7 +273,7 @@ VkResult VulkanSpoofing::hkvkCreateInstance(VkInstanceCreateInfo* pCreateInfo, c
         newExtensionList.push_back(pCreateInfo->ppEnabledExtensionNames[i]);
     }
 
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     if (primaryGpu.dlssCapable && Config::Instance()->DLSSEnabled.value_or_default())
     {
@@ -399,7 +399,7 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
     static std::vector<const char*> newExtensionList;
     newExtensionList.clear();
 
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     LOG_DEBUG("Checking extensions and removing Streamline ones");
     for (size_t i = 0; i < pCreateInfo->enabledExtensionCount; i++)

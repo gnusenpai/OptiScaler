@@ -144,7 +144,7 @@ HMODULE WINAPI KernelHooks::hk_K32_GetModuleHandleA(LPCSTR lpModuleName)
 
             auto original = o_K32_GetModuleHandleA(lpModuleName);
 
-            static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
             if (original == nullptr && primaryGpu.fsr4Capable)
             {
                 LOG_INFO("amdxc64.dll is not loaded, giving a fake HMODULE");

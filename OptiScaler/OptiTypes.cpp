@@ -6,7 +6,7 @@
 
 std::string UpscalerDisplayName(Upscaler upscaler, API api)
 {
-    static bool fsr4Capable = IdentifyGpu::getPrimaryGpu().fsr4Capable;
+    bool fsr4Capable = IdentifyGpu::getPrimaryGpu().fsr4Capable;
 
     switch (upscaler)
     {

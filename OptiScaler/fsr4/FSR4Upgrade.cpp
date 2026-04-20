@@ -397,10 +397,6 @@ struct AmdExtD3DFactory : public IAmdExtD3DFactory
 
 void InitFSR4Update()
 {
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-    if (!primaryGpu.fsr4Capable)
-        return;
-
     if (o_AmdExtD3DCreateInterface != nullptr)
         return;
 
@@ -436,7 +432,7 @@ HMODULE GetFSR4Module() { return moduleAmdxcffx64; }
 
 HRESULT STDMETHODCALLTYPE hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
 {
-    static auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
     if (!primaryGpu.fsr4Capable && o_AmdExtD3DCreateInterface != nullptr)
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
