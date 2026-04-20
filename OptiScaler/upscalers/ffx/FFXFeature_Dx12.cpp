@@ -43,8 +43,6 @@ bool FFXFeatureDx12::EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, 
 
     auto& cfg = *Config::Instance();
 
-    Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-
     struct ffxDispatchDescUpscale params = { 0 };
     params.header.type = FFX_API_DISPATCH_DESC_TYPE_UPSCALE;
 

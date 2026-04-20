@@ -23,8 +23,6 @@ bool XeSSFeatureDx12::EvaluateInternal(ID3D12GraphicsCommandList* InCommandList,
         return false;
     }
 
-    Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-
     xess_result_t xessResult;
 
     if (State::Instance().xessDebug)

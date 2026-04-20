@@ -125,8 +125,6 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
     if (!OutputScaler->IsInit())
         Config::Instance()->OutputScalingEnabled = false;
 
-    Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-
     ID3D11DeviceContext4* dc;
     auto result = InDeviceContext->QueryInterface(IID_PPV_ARGS(&dc));
 

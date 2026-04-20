@@ -157,8 +157,24 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
                   rcasConstants.Sharpness = localSharpness;
                   InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_X, &rcasConstants.MvScaleX);
                   InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &rcasConstants.MvScaleY);
-                  rcasConstants.CameraNear = Config::Instance()->FsrCameraNear.value_or_default();
-                  rcasConstants.CameraFar = Config::Instance()->FsrCameraFar.value_or_default();
+
+                  float nearPlane = 0.0f;
+                  float farPlane = 0.0f;
+
+                  // TODO: Probably doesn't work for most cases, we need camera near and far for DLSSD
+                  // at it might provide linear depth, also DLSSG might be on a separate parameters instance
+                  // Might need to recalc this from camera matrices
+                  if (InParameters->Get("DLSSG.CameraNear", &nearPlane) == NVSDK_NGX_Result_Success &&
+                      InParameters->Get("DLSSG.CameraFar", &farPlane) == NVSDK_NGX_Result_Success)
+                  {
+                      rcasConstants.CameraNear = nearPlane;
+                      rcasConstants.CameraFar = farPlane;
+                  }
+                  else
+                  {
+                      rcasConstants.CameraNear = Config::Instance()->FsrCameraNear.value_or_default();
+                      rcasConstants.CameraFar = Config::Instance()->FsrCameraFar.value_or_default();
+                  }
 
                   if (!RCAS->Dispatch(Device, InCommandList, input, paramMotion, rcasConstants, output, paramDepth))
                   {

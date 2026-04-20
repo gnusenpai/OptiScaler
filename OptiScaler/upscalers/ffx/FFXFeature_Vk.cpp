@@ -235,8 +235,6 @@ bool FFXFeatureVk::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* In
     if (!OS->IsInit())
         Config::Instance()->OutputScalingEnabled.set_volatile_value(false);
 
-    Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-
     struct ffxDispatchDescUpscale params = { 0 };
     params.header.type = FFX_API_DISPATCH_DESC_TYPE_UPSCALE;
 

@@ -30,8 +30,6 @@ bool FSR2FeatureDx12::EvaluateInternal(ID3D12GraphicsCommandList* InCommandList,
     params.enableSharpening = _sharpness > 0.0f;
     params.sharpness = _sharpness;
 
-    Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-
     unsigned int reset;
     InParameters->Get(NVSDK_NGX_Parameter_Reset, &reset);
     params.reset = (reset == 1);
