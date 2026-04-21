@@ -15,23 +15,6 @@
 
 using namespace DirectX;
 
-const char* DLSSG_Dx12::Name()
-{
-    static std::string nameBuffer;
-
-    if (State::Instance().dlssgMaxInterpolationCount == 1)
-    {
-        nameBuffer = "DLSSG";
-    }
-    else
-    {
-        auto count = _framesToInterpolate + 1;
-        nameBuffer = "DLSSG " + std::to_string(count) + "x";
-    }
-
-    return nameBuffer.c_str();
-}
-
 feature_version DLSSG_Dx12::Version()
 {
     if (StreamlineProxy::LoadStreamline())
@@ -135,6 +118,8 @@ bool DLSSG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
 
         if (_framesToInterpolate > State::Instance().dlssgMaxInterpolationCount)
             _framesToInterpolate = maxCount;
+
+        State::Instance().dlssgOptiDMFGSupported = dlssgState.bIsDynamicMFGSupported == sl::Boolean::eTrue;
     }
 
     _gameCommandQueue = cmdQueue;
@@ -244,6 +229,8 @@ bool DLSSG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
 
         if (_framesToInterpolate > State::Instance().dlssgMaxInterpolationCount)
             _framesToInterpolate = maxCount;
+
+        State::Instance().dlssgOptiDMFGSupported = dlssgState.bIsDynamicMFGSupported == sl::Boolean::eTrue;
     }
 
     _gameCommandQueue = cmdQueue;
@@ -367,6 +354,13 @@ bool DLSSG_Dx12::Dispatch()
     options.mode = sl::DLSSGMode::eOn;
     options.numFramesToGenerate = _framesToInterpolate;
     options.queueParallelismMode = sl::DLSSGQueueParallelismMode::eBlockPresentingClientQueue;
+
+    if (Config::Instance()->FGDLSSGForceDMFG.value_or_default())
+    {
+        options.mode = sl::DLSSGMode::eDynamic;
+        options.dynamicTargetFrameRate = Config::Instance()->FGDLSSGFramerateTargetDMFG.value_or_default();
+    }
+
     StreamlineProxy::DLSSGSetOptions()(viewport, options);
 
     sl::ReflexOptions reflexConst = {};

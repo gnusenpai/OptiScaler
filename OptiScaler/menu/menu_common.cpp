@@ -1798,7 +1798,7 @@ bool MenuCommon::RenderMenu()
             auto fgText = (fg != nullptr && fg->IsActive() && !fg->IsPaused()) ? ("(" + std::string(fg->Name()) + ")")
                                                                                : std::string();
 
-            if (state.activeFgOutput == FGOutput::NvngxFG)
+            if (state.activeFgOutput == FGOutput::NvngxFG || state.activeFgOutput == FGOutput::DLSSGWithNvngx)
             {
                 if (Nvngx_FG::isMFG())
                 {
@@ -1816,6 +1816,13 @@ bool MenuCommon::RenderMenu()
                     else
                         fgText = std::format("(Nukems Doesn't support more than 2x)");
                 }
+            }
+            else if (state.activeFgOutput == FGOutput::DLSSG)
+            {
+                if (state.dlssgDetectedInterpolationCount == 0)
+                    fgText = "(DLSSG off)";
+                else
+                    fgText = std::format("(DLSSG x{})", state.dlssgDetectedInterpolationCount + 1);
             }
 
             // if (state.activeFgOutput == FGOutput::DLSSGWithNvngx)
@@ -3167,7 +3174,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::Spacing();
                     }
 
-                    ImGui::BeginDisabled(state.dlssgDMFGSupported &&
+                    ImGui::BeginDisabled(state.dlssgGameDMFGSupported &&
                                          config->FGDLSSGOverrideForceDMFG.value_or_default());
                     if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() >= 1 &&
                         state.activeFgInput != FGInput::DLSSG)
@@ -3222,7 +3229,7 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::EndDisabled();
 
-                    if (state.dlssgDMFGSupported)
+                    if (state.dlssgGameDMFGSupported)
                     {
                         ImGui::SameLine(0.0f, 16.0f);
 
@@ -3233,8 +3240,7 @@ bool MenuCommon::RenderMenu()
                             StreamlineHooks::updateDlssgOptions();
                         }
 
-                        // TODO: check if the game has set eDynamic mode
-                        ImGui::BeginDisabled(!config->FGDLSSGOverrideForceDMFG.value_or_default());
+                        ImGui::BeginDisabled(state.dlssgLastSetMode != sl::DLSSGMode::eDynamic);
                         static float fpsTarget = config->FGDLSSGFramerateTargetDMFG.value_or_default();
                         ImGui::SliderFloat("DMFG FPS Target", &fpsTarget, 0, 200, "%.0f");
 
@@ -3909,7 +3915,16 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::SeparatorText("Frame Generation (DLSSG)");
 
-                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
+                        ImGui::Text("Current DLSSG state:");
+                        ImGui::SameLine();
+                        if (auto count = state.dlssgDetectedInterpolationCount; count > 0)
+                        {
+                            ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), std::format("ON {}x", count + 1).c_str());
+                        }
+                        else
+                        {
+                            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "OFF");
+                        }
 
                         bool fgActive = config->FGEnabled.value_or_default();
                         if (ImGui::Checkbox("Active##4", &fgActive))
@@ -3928,6 +3943,8 @@ bool MenuCommon::RenderMenu()
                         if (maxInterpolationCount > 1)
                         {
                             ImGui::SameLine(0.0f, 16.0f);
+
+                            ImGui::BeginDisabled(config->FGDLSSGForceDMFG.value_or_default());
 
                             const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
                             auto currentSet = config->FGDLSSGInterpolationCount.value_or_default() - 1;
@@ -3952,6 +3969,40 @@ bool MenuCommon::RenderMenu()
                             ImGui::PopItemWidth();
 
                             ShowHelpMarker("Set DLSSG interpolation count");
+
+                            ImGui::EndDisabled();
+
+                            if (state.dlssgOptiDMFGSupported)
+                            {
+                                ImGui::SameLine(0.0f, 16.0f);
+
+                                if (bool dynamicMFG = config->FGDLSSGForceDMFG.value_or_default();
+                                    ImGui::Checkbox("Force Dynamic MFG", &dynamicMFG))
+                                {
+                                    config->FGDLSSGForceDMFG = dynamicMFG;
+                                }
+
+                                ImGui::BeginDisabled(!config->FGDLSSGForceDMFG.value_or_default());
+                                static float fpsTarget = config->FGDLSSGFramerateTargetDMFG.value_or_default();
+                                ImGui::SliderFloat("DMFG FPS Target", &fpsTarget, 0, 200, "%.0f");
+
+                                ShowHelpMarker("An active limit of 0 means auto-detect the display refresh rate");
+
+                                if (ImGui::Button("Apply Target"))
+                                {
+                                    config->FGDLSSGFramerateTargetDMFG = fpsTarget;
+                                }
+
+                                ImGui::SameLine(0.0f, 16.0f);
+
+                                if (ImGui::Button("Reset Target"))
+                                {
+                                    fpsTarget = 0.0f;
+                                    config->FGDLSSGFramerateTargetDMFG.reset();
+                                }
+
+                                ImGui::EndDisabled();
+                            }
                         }
 
                         bool useGamesMarkers = config->FGDLSSGUseGamesReflexMarkers.value_or_default();
@@ -4292,7 +4343,8 @@ bool MenuCommon::RenderMenu()
                         ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "Using a subset of features from DLSS Enabler");
                     }
 
-                    bool dmfgActive = state.dlssgDMFGSupported && config->FGDLSSGOverrideForceDMFG.value_or_default();
+                    bool dmfgActive =
+                        state.dlssgGameDMFGSupported && config->FGDLSSGOverrideForceDMFG.value_or_default();
 
                     if (!ReflexHooks::isReflexHooked())
                     {

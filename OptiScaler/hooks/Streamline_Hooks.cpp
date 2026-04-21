@@ -639,7 +639,9 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(sl::param::IParameters* params, con
     nlohmann::json configJson = nlohmann::json::parse(*pluginJSON);
 
     // Kill the DLSSG streamline swapchain hooks
-    if (State::Instance().activeFgInput == FGInput::DLSSG)
+    if (State::Instance().activeFgInput == FGInput::DLSSG ||
+        (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+         State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx))
     {
         if (configJson.contains("/hooks"_json_pointer))
             configJson["hooks"].clear();
@@ -804,18 +806,25 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
 
     newOptions.structVersion = newStructVer;
 
+    auto& state = State::Instance();
+
+    if (state.activeFgInput != FGInput::DLSSG &&
+        (state.activeFgOutput == FGOutput::DLSSG || state.activeFgOutput == FGOutput::DLSSGWithNvngx))
+    {
+        newOptions.mode = sl::DLSSGMode::eOff;
+        return o_slDLSSGSetOptions(viewport, newOptions);
+    }
+
     // Make DLSSG auto always mean On
     if (newOptions.mode == sl::DLSSGMode::eAuto)
         newOptions.mode = sl::DLSSGMode::eOn;
-
-    auto& state = State::Instance();
 
     const auto dlssgPotentiallyActive = newOptions.mode == sl::DLSSGMode::eOn ||
                                         newOptions.mode == sl::DLSSGMode::eAuto ||
                                         newOptions.mode == sl::DLSSGMode::eDynamic;
 
     bool enableDynamicMode = Config::Instance()->FGDLSSGOverrideForceDMFG.value_or_default() &&
-                             state.dlssgDMFGSupported && dlssgPotentiallyActive;
+                             state.dlssgGameDMFGSupported && dlssgPotentiallyActive;
 
     if (enableDynamicMode)
     {
@@ -911,18 +920,17 @@ sl::Result StreamlineHooks::hkslDLSSGGetState(const sl::ViewportHandle& viewport
                 newState.lastPresentInputsProcessingCompletionFenceValue;
         }
 
-        State::Instance().dlssgDMFGSupported = newState.bIsDynamicMFGSupported == sl::eTrue;
+        State::Instance().dlssgGameDMFGSupported = newState.bIsDynamicMFGSupported == sl::eTrue;
     }
     else
     {
         result = o_slDLSSGGetState(viewport, state, options);
-        State::Instance().dlssgDMFGSupported = state.bIsDynamicMFGSupported == sl::eTrue;
+        State::Instance().dlssgGameDMFGSupported = state.bIsDynamicMFGSupported == sl::eTrue;
     }
 
-    if (!State::Instance().dlssgDMFGSupported)
+    if (!State::Instance().dlssgGameDMFGSupported)
     {
         Config::Instance()->FGDLSSGOverrideForceDMFG.set_volatile_value(false);
-        Config::Instance()->FGDLSSGFramerateTargetDMFG.reset();
     }
 
     auto& optiState = State::Instance();

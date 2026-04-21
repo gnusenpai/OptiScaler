@@ -25,7 +25,7 @@ class DLSSG_Dx12 : public virtual IFGFeature_Dx12
 
   public:
     // IFGFeature
-    const char* Name() override final;
+    const char* Name() override final { return "DLSSG"; };
     feature_version Version() override final;
     HWND Hwnd() override final;
 
