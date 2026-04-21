@@ -1003,10 +1003,11 @@ bool IsFsr(Upscaler upscaler)
     {
     case Upscaler::FSR21:
     case Upscaler::FSR22:
+    case Upscaler::FSR31:
     case Upscaler::FFX:
-    case Upscaler::FSR21_11on12:
-    case Upscaler::FSR22_11on12:
-    case Upscaler::FFX_11on12:
+    case Upscaler::FSR21_on12:
+    case Upscaler::FSR22_on12:
+    case Upscaler::FFX_on12:
         return true;
     default:
         return false;
@@ -1066,8 +1067,8 @@ void MenuCommon::RenderUpscalerCombo(const API api, Upscaler currentUpscaler, co
 void MenuCommon::AddDx11Backends(Upscaler upscaler)
 {
     RenderUpscalerCombo(API::DX11, upscaler,
-                        { Upscaler::XeSS, Upscaler::FSR22, Upscaler::FFX, Upscaler::XeSS_11on12, Upscaler::FSR21_11on12,
-                          Upscaler::FSR22_11on12, Upscaler::FFX_11on12, Upscaler::DLSS });
+                        { Upscaler::XeSS, Upscaler::FSR22, Upscaler::FFX, Upscaler::XeSS_on12, Upscaler::FSR21_on12,
+                          Upscaler::FSR22_on12, Upscaler::FFX_on12, Upscaler::DLSS });
 }
 
 void MenuCommon::AddDx12Backends(Upscaler upscaler)
@@ -1079,8 +1080,8 @@ void MenuCommon::AddDx12Backends(Upscaler upscaler)
 void MenuCommon::AddVulkanBackends(Upscaler upscaler)
 {
     RenderUpscalerCombo(API::Vulkan, upscaler,
-                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FFX, Upscaler::FSR21_11on12,
-                          Upscaler::FFX_11on12, Upscaler::DLSS });
+                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FSR31, Upscaler::FSR21_on12,
+                          Upscaler::FFX_on12, Upscaler::DLSS });
 }
 
 template <HasDefaultValue B> void MenuCommon::AddResourceBarrier(std::string name, CustomOptional<int32_t, B>* value)
@@ -2502,7 +2503,7 @@ bool MenuCommon::RenderMenu()
 
                     // FFX -----------------
                     if (currentFeature->Name() != "DLSSD" &&
-                        (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FFX_11on12))
+                        (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FFX_on12))
                     {
                         ImGui::SeparatorText("FFX Settings");
 
@@ -2510,7 +2511,7 @@ bool MenuCommon::RenderMenu()
                             _ffxUpscalerIndex = config->FfxUpscalerIndex.value_or_default();
 
                         if (currentBackend == Upscaler::FFX ||
-                            currentBackend == Upscaler::FFX_11on12 && state.ffxUpscalerVersionNames.size() > 0)
+                            currentBackend == Upscaler::FFX_on12 && state.ffxUpscalerVersionNames.size() > 0)
                         {
                             ImGui::PushItemWidth(135.0f * menuResScale);
 

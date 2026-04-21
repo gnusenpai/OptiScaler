@@ -16,19 +16,22 @@ std::string UpscalerDisplayName(Upscaler upscaler, API api)
     case Upscaler::FSR22:
         return "FSR 2.2.1";
 
+    case Upscaler::FSR31:
+        return "FSR 3.1";
+
     case Upscaler::FFX:
         if (fsr4Capable && api == API::DX12)
             return "FSR 3.X/4";
         else
             return "FSR 3.X";
 
-    case Upscaler::FSR21_11on12:
+    case Upscaler::FSR21_on12:
         return "FSR 2.1.2 w/Dx12";
 
-    case Upscaler::FSR22_11on12:
+    case Upscaler::FSR22_on12:
         return "FSR 2.2.1 w/Dx12";
 
-    case Upscaler::FFX_11on12:
+    case Upscaler::FFX_on12:
         if (fsr4Capable)
             return "FSR 3.X/4 w/Dx12";
         else
@@ -37,7 +40,7 @@ std::string UpscalerDisplayName(Upscaler upscaler, API api)
     case Upscaler::XeSS:
         return "XeSS";
 
-    case Upscaler::XeSS_11on12:
+    case Upscaler::XeSS_on12:
         return "XeSS w/Dx12";
 
     case Upscaler::DLSS:
@@ -54,24 +57,26 @@ std::string UpscalerToCode(Upscaler upscaler)
     {
     case Upscaler::XeSS:
         return "xess";
-    case Upscaler::XeSS_11on12:
+    case Upscaler::XeSS_on12:
         return "xess_12";
     case Upscaler::FSR21:
         return "fsr21";
-    case Upscaler::FSR21_11on12:
+    case Upscaler::FSR21_on12:
         return "fsr21_12";
     case Upscaler::FSR22:
         return "fsr22";
-    case Upscaler::FSR22_11on12:
+    case Upscaler::FSR22_on12:
         return "fsr22_12";
     case Upscaler::FFX:
-        return "fsr31";
-    case Upscaler::FFX_11on12:
-        return "fsr31_12";
+        return "ffx";
+    case Upscaler::FFX_on12:
+        return "ffx_12";
     case Upscaler::DLSS:
         return "dlss";
     case Upscaler::DLSSD:
         return "dlssd";
+    case Upscaler::FSR31: // DX11 only
+        return "fsr31";
     default: // Upscaler::Reset and unknown
         return "";
     }
@@ -81,11 +86,12 @@ std::string UpscalerToCode(Upscaler upscaler)
 Upscaler CodeToUpscaler(const std::string& code)
 {
     static const std::unordered_map<std::string, Upscaler> mapping = {
-        { "xess", Upscaler::XeSS },   { "xess_12", Upscaler::XeSS_11on12 },
-        { "fsr21", Upscaler::FSR21 }, { "fsr21_12", Upscaler::FSR21_11on12 },
-        { "fsr22", Upscaler::FSR22 }, { "fsr22_12", Upscaler::FSR22_11on12 },
-        { "fsr31", Upscaler::FFX }, { "fsr31_12", Upscaler::FFX_11on12 },
-        { "dlss", Upscaler::DLSS },   { "dlssd", Upscaler::DLSSD }
+        { "xess", Upscaler::XeSS },   { "xess_12", Upscaler::XeSS_on12 },
+        { "fsr21", Upscaler::FSR21 }, { "fsr21_12", Upscaler::FSR21_on12 },
+        { "fsr22", Upscaler::FSR22 }, { "fsr22_12", Upscaler::FSR22_on12 },
+        { "ffx", Upscaler::FFX },     { "ffx_12", Upscaler::FFX_on12 },
+        { "dlss", Upscaler::DLSS },   { "dlssd", Upscaler::DLSSD },
+        { "fsr31", Upscaler::FSR31 },
     };
 
     auto it = mapping.find(code);

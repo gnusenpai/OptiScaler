@@ -42,25 +42,23 @@ typedef enum API
 enum class Upscaler
 {
 
-    XeSS, // "xess", used for the XeSS upscaler backend
+    XeSS, // "xess", used for the native XeSS upscaler backend
 
-    XeSS_11on12, // "xess_12", used for the XeSS upscaler backend used with the DirectX 11 on 12 compatibility
-                 // layer
+    XeSS_on12, // "xess_12", DirectX 12 upscaler with an appropriate compatibility layer
 
-    FSR21, // "fsr21", used for the FSR 2.1.x upscaler backend
+    FSR21, // "fsr21", used for the native FSR 2.1.x upscaler backend
 
-    FSR21_11on12, // "fsr21_12", used for the FSR 2.1.x upscaler backend used with the DirectX 11 on 12
-                  // compatibility layer
+    FSR21_on12, // "fsr21_12", DirectX 12 upscaler with an appropriate compatibility layer
 
-    FSR22, // "fsr22", used for the FSR 2.2.x upscaler backend
+    FSR22, // "fsr22", used for the native FSR 2.2.x upscaler backend
 
-    FSR22_11on12, // "fsr22_12", used for the FSR 2.2.x upscaler backend used with the DirectX 11 on 12
-                  // compatibility layer
+    FSR22_on12, // "fsr22_12", DirectX 12 upscaler with an appropriate compatibility layer
 
-    FFX, // "fsr31", used for the FSR 3.1+ upscaler backend
+    FSR31, // "fsr31", native DX11 version of FSR 3.1
 
-    FFX_11on12, // "fsr31_12", used for the FSR 3.1+ upscaler backend used with the DirectX 11 on 12
-                // compatibility layer
+    FFX, // "ffx", used for the native FSR 2.3; 3.1; 4.x
+
+    FFX_on12, // "ffx_12", DirectX 12 upscaler with an appropriate compatibility layer
 
     DLSS, // "dlss", used for the DLSS upscaler backend
 

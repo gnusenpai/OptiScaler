@@ -33,7 +33,7 @@ bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_
         *feature = std::make_unique<FSR2FeatureVk212>(handleId, parameters);
         break;
 
-    case Upscaler::FSR21_11on12:
+    case Upscaler::FSR21_on12:
         *feature = std::make_unique<FSR2FeatureVkOnDx12_212>(handleId, parameters);
         break;
 
@@ -45,7 +45,7 @@ bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_
         *feature = std::make_unique<FSR31FeatureVk>(handleId, parameters);
         break;
 
-    case Upscaler::FFX_11on12:
+    case Upscaler::FFX_on12:
         *feature = std::make_unique<FSR31FeatureVkOn12>(handleId, parameters);
         break;
 
