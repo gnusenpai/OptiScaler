@@ -222,12 +222,8 @@ bool Config::Reload(std::filesystem::path iniPath)
                 (FGDLSSGOverrideInterpolationCount.value() < 1 || FGDLSSGOverrideInterpolationCount.value() > 6))
                 FGDLSSGOverrideInterpolationCount.reset();
 
-            FGDLSSGFramerateTargetDMFG.set_from_config(readInt("DLSSG", "FramerateTargetDMFG"));
+            FGDLSSGFramerateTargetDMFG.set_from_config(readFloat("DLSSG", "FramerateTargetDMFG"));
             FGDLSSGOverrideForceDMFG.set_from_config(readBool("DLSSG", "OverrideForceDMFG"));
-
-            // DMFG target can currently only be set on launch, inform using the ForceDMFG
-            if (FGDLSSGFramerateTargetDMFG.has_value() && FGDLSSGFramerateTargetDMFG.value() > 0)
-                FGDLSSGOverrideForceDMFG.set_volatile_value(true);
         }
 
         // FSR FG Inputs
@@ -928,7 +924,7 @@ bool Config::SaveIni()
         ini.SetValue("DLSSG", "OverrideInterpolationCount",
                      GetIntValue(Instance()->FGDLSSGOverrideInterpolationCount.value_for_config()).c_str());
         ini.SetValue("DLSSG", "FramerateTargetDMFG",
-                     GetIntValue(Instance()->FGDLSSGFramerateTargetDMFG.value_for_config()).c_str());
+                     GetFloatValue(Instance()->FGDLSSGFramerateTargetDMFG.value_for_config()).c_str());
         ini.SetValue("DLSSG", "OverrideForceDMFG",
                      GetBoolValue(Instance()->FGDLSSGOverrideForceDMFG.value_for_config()).c_str());
     }

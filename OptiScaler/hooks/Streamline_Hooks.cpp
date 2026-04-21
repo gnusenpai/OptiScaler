@@ -797,7 +797,7 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
         memcpy(&newOptions, &options, 104);
     else if (options.structVersion == 2 || options.structVersion == 3)
         memcpy(&newOptions, &options, 112);
-    else if (options.structVersion == 4)
+    else if (options.structVersion == 4 || options.structVersion == 5)
         memcpy(&newOptions, &options, 120);
     else
         newOptions = options;
@@ -811,14 +811,20 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     auto& state = State::Instance();
 
     const auto dlssgPotentiallyActive = newOptions.mode == sl::DLSSGMode::eOn ||
-                                        newOptions.mode == sl::DLSSGMode::eAuto || newOptions.mode == (sl::DLSSGMode) 3;
+                                        newOptions.mode == sl::DLSSGMode::eAuto ||
+                                        newOptions.mode == sl::DLSSGMode::eDynamic;
 
     bool enableDynamicMode = Config::Instance()->FGDLSSGOverrideForceDMFG.value_or_default() &&
                              state.dlssgDMFGSupported && dlssgPotentiallyActive;
 
     if (enableDynamicMode)
     {
-        newOptions.mode = (sl::DLSSGMode) 3;
+        newOptions.mode = sl::DLSSGMode::eDynamic;
+    }
+
+    if (newOptions.mode == sl::DLSSGMode::eDynamic && Config::Instance()->FGDLSSGFramerateTargetDMFG.has_value())
+    {
+        newOptions.dynamicTargetFrameRate = Config::Instance()->FGDLSSGFramerateTargetDMFG.value();
     }
 
     if (state.swapchainApi == API::Vulkan)
@@ -874,27 +880,15 @@ sl::Result StreamlineHooks::hkslDLSSGSetOptions(const sl::ViewportHandle& viewpo
     return o_slDLSSGSetOptions(viewport, newOptions);
 }
 
-// TODO: update once sl::DLSSGState becomes v4
-struct DLSSGState4 : sl::DLSSGState
-{
-    sl::Boolean bIsDynamicMFGSupportAvailable = sl::eInvalid;
-};
-
 sl::Result StreamlineHooks::hkslDLSSGGetState(const sl::ViewportHandle& viewport, sl::DLSSGState& state,
                                               const sl::DLSSGOptions* options)
 {
     sl::Result result {};
 
-    {
-        static sl::DLSSGState s;
-        assert(s.structVersion == 3);
-    }
-
     const auto originalStructVersion = state.structVersion;
     if (originalStructVersion < 4)
     {
-        DLSSGState4 newState {};
-        newState.structVersion = 4;
+        sl::DLSSGState newState {};
 
         // We might be feeding a newer struct to an older SL but that seems to work just fine for this Get function
         result = o_slDLSSGGetState(viewport, dynamic_cast<sl::DLSSGState&>(newState), options);
@@ -917,20 +911,18 @@ sl::Result StreamlineHooks::hkslDLSSGGetState(const sl::ViewportHandle& viewport
                 newState.lastPresentInputsProcessingCompletionFenceValue;
         }
 
-        State::Instance().dlssgDMFGSupported = newState.bIsDynamicMFGSupportAvailable == sl::eTrue;
+        State::Instance().dlssgDMFGSupported = newState.bIsDynamicMFGSupported == sl::eTrue;
     }
     else
     {
         result = o_slDLSSGGetState(viewport, state, options);
-
-        auto ver4struct = reinterpret_cast<DLSSGState4&>(state);
-        State::Instance().dlssgDMFGSupported = ver4struct.bIsDynamicMFGSupportAvailable == sl::eTrue;
+        State::Instance().dlssgDMFGSupported = state.bIsDynamicMFGSupported == sl::eTrue;
     }
 
     if (!State::Instance().dlssgDMFGSupported)
     {
         Config::Instance()->FGDLSSGOverrideForceDMFG.set_volatile_value(false);
-        Config::Instance()->FGDLSSGFramerateTargetDMFG.set_volatile_value(0);
+        Config::Instance()->FGDLSSGFramerateTargetDMFG.reset();
     }
 
     auto& optiState = State::Instance();

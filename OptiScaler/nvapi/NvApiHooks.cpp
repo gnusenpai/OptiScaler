@@ -59,42 +59,44 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_DRS_GetSetting(NvDRSSessionHandle hSe
     auto result = o_NvAPI_DRS_GetSetting(hSession, hProfile, settingId, pSetting);
     if (pSetting && result == NVAPI_OK)
     {
-        const auto dmfgFpsTarget = Config::Instance()->FGDLSSGFramerateTargetDMFG.value_or_default();
-        if (settingId == NGX_DLSSG_MODE_ID && dmfgFpsTarget != 0)
-        {
-            pSetting->settingId = settingId;
-            // constexpr auto name = L"NGX_DLSSG_MODE_ID";
-            // memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
-            pSetting->settingType = NVDRS_DWORD_TYPE;
-            pSetting->isCurrentPredefined = 0;
-            pSetting->u32CurrentValue = NGX_DLSSG_MODE_DEFAULT;
+        // TODO: maybe check those values and inform if they are being overridden externally
 
-            LOG_DEBUG("Set NGX_DLSSG_MODE_ID to {}", pSetting->u32CurrentValue);
-        }
+        // const auto dmfgFpsTarget = Config::Instance()->FGDLSSGFramerateTargetDMFG.value_or_default();
+        // if (settingId == NGX_DLSSG_MODE_ID && dmfgFpsTarget != 0)
+        //{
+        //     pSetting->settingId = settingId;
+        //     // constexpr auto name = L"NGX_DLSSG_MODE_ID";
+        //     // memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
+        //     pSetting->settingType = NVDRS_DWORD_TYPE;
+        //     pSetting->isCurrentPredefined = 0;
+        //     pSetting->u32CurrentValue = NGX_DLSSG_MODE_DEFAULT;
 
-        if (settingId == NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID && dmfgFpsTarget != 0)
-        {
-            pSetting->settingId = settingId;
-            // constexpr auto name = L"NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID";
-            // memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
-            pSetting->settingType = NVDRS_DWORD_TYPE;
-            pSetting->isCurrentPredefined = 0;
-            pSetting->u32CurrentValue = dmfgFpsTarget;
+        //    LOG_DEBUG("Set NGX_DLSSG_MODE_ID to {}", pSetting->u32CurrentValue);
+        //}
 
-            LOG_DEBUG("Set NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID to {}", pSetting->u32CurrentValue);
-        }
+        // if (settingId == NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID && dmfgFpsTarget != 0)
+        //{
+        //     pSetting->settingId = settingId;
+        //     // constexpr auto name = L"NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID";
+        //     // memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
+        //     pSetting->settingType = NVDRS_DWORD_TYPE;
+        //     pSetting->isCurrentPredefined = 0;
+        //     pSetting->u32CurrentValue = dmfgFpsTarget;
 
-        if (settingId == NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_ID && dmfgFpsTarget != 0)
-        {
-            pSetting->settingId = settingId;
-            // constexpr auto name = L"NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_ID";
-            // memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
-            pSetting->settingType = NVDRS_DWORD_TYPE;
-            pSetting->isCurrentPredefined = 0;
-            pSetting->u32CurrentValue = NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_DEFAULT;
+        //    LOG_DEBUG("Set NGX_DLSSG_DYNAMIC_TARGET_FRAME_RATE_ID to {}", pSetting->u32CurrentValue);
+        //}
 
-            LOG_DEBUG("Set NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_ID to {}", pSetting->u32CurrentValue);
-        }
+        // if (settingId == NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_ID && dmfgFpsTarget != 0)
+        //{
+        //     pSetting->settingId = settingId;
+        //     // constexpr auto name = L"NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_ID";
+        //     // memcpy_s(pSetting->settingName, sizeof(pSetting->settingName), name, sizeof(*name) * wcslen(name));
+        //     pSetting->settingType = NVDRS_DWORD_TYPE;
+        //     pSetting->isCurrentPredefined = 0;
+        //     pSetting->u32CurrentValue = NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_DEFAULT;
+
+        //    LOG_DEBUG("Set NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_ID to {}", pSetting->u32CurrentValue);
+        //}
 
         if (settingId == NGX_DLSS_SR_OVERRIDE_RENDER_PRESET_SELECTION_ID)
         {

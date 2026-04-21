@@ -3226,8 +3226,6 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::SameLine(0.0f, 16.0f);
 
-                        ImGui::BeginDisabled(config->FGDLSSGFramerateTargetDMFG.value_or_default());
-
                         if (bool dynamicMFG = config->FGDLSSGOverrideForceDMFG.value_or_default();
                             ImGui::Checkbox("Force Dynamic MFG", &dynamicMFG))
                         {
@@ -3235,15 +3233,25 @@ bool MenuCommon::RenderMenu()
                             StreamlineHooks::updateDlssgOptions();
                         }
 
-                        if (config->FGDLSSGFramerateTargetDMFG.value_or_default())
+                        // TODO: check if the game has set eDynamic mode
+                        ImGui::BeginDisabled(!config->FGDLSSGOverrideForceDMFG.value_or_default());
+                        static float fpsTarget = config->FGDLSSGFramerateTargetDMFG.value_or_default();
+                        ImGui::SliderFloat("DMFG FPS Target", &fpsTarget, 0, 200, "%.0f");
+
+                        ShowHelpMarker("An active limit of 0 means auto-detect the display refresh rate");
+
+                        if (ImGui::Button("Apply Target"))
                         {
-                            ShowHelpMarker("You have set a custom FPS target in the config\n"
-                                           "You cannot disable DMFG while the game is running");
+                            config->FGDLSSGFramerateTargetDMFG = fpsTarget;
+                            StreamlineHooks::updateDlssgOptions();
                         }
-                        else
+
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        if (ImGui::Button("Reset Target"))
                         {
-                            ShowHelpMarker("Currently targets your monitors refresh rate\n"
-                                           "For custom targets set FramerateTargetDMFG in the config and restart");
+                            fpsTarget = 0.0f;
+                            config->FGDLSSGFramerateTargetDMFG.reset();
                         }
 
                         ImGui::EndDisabled();

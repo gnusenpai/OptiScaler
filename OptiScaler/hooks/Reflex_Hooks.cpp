@@ -645,12 +645,12 @@ void ReflexHooks::update(bool fgActive, bool isVulkan)
         if (fakenvapi::isUsingAsMainNvapi())
         {
             // Don't reload when using Dynamic MFG
-            if (State::Instance().dlssgLastSetMode != (sl::DLSSGMode) 3)
+            if (State::Instance().dlssgLastSetMode != sl::DLSSGMode::eDynamic)
                 State::Instance().fakenvapiReloadLowLatency = true;
 
             // fakenvapi's latency techs fall apart with more than 1 fake frame
             if (Config::Instance()->FN_ForceReflex.value_or_default() != ForceReflex::ForceEnable &&
-                (State::Instance().dlssgLastSetMode == (sl::DLSSGMode) 3 || _FgNumFramesToGenerate > 1))
+                (State::Instance().dlssgLastSetMode == sl::DLSSGMode::eDynamic || _FgNumFramesToGenerate > 1))
             {
                 Config::Instance()->FN_ForceReflex.set_volatile_value(ForceReflex::ForceDisable);
             }

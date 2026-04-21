@@ -545,8 +545,8 @@ class Config
     CustomOptional<int, NoDefault>
         FGDLSSGOverrideInterpolationCount; // For overriding game's value sent to SL, could be Nvngx FG, could be noFG
                                            // but someone just uses real DLSSG
-    CustomOptional<bool> FGDLSSGOverrideForceDMFG { false }; // Overrides game's DLSSG mode to Dynamic
-    CustomOptional<int> FGDLSSGFramerateTargetDMFG { 0 };    // Applies on launch
+    CustomOptional<bool> FGDLSSGOverrideForceDMFG { false };   // Overrides game's DLSSG mode to Dynamic
+    CustomOptional<float> FGDLSSGFramerateTargetDMFG { 0.0f }; // 0.0 means auto-detects the display refresh rate
 
     // fakenvapi
     CustomOptional<bool> UseFakenvapi { true };
