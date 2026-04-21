@@ -16,7 +16,7 @@ std::string UpscalerDisplayName(Upscaler upscaler, API api)
     case Upscaler::FSR22:
         return "FSR 2.2.1";
 
-    case Upscaler::FSR31:
+    case Upscaler::FFX:
         if (fsr4Capable && api == API::DX12)
             return "FSR 3.X/4";
         else
@@ -28,7 +28,7 @@ std::string UpscalerDisplayName(Upscaler upscaler, API api)
     case Upscaler::FSR22_11on12:
         return "FSR 2.2.1 w/Dx12";
 
-    case Upscaler::FSR31_11on12:
+    case Upscaler::FFX_11on12:
         if (fsr4Capable)
             return "FSR 3.X/4 w/Dx12";
         else
@@ -64,9 +64,9 @@ std::string UpscalerToCode(Upscaler upscaler)
         return "fsr22";
     case Upscaler::FSR22_11on12:
         return "fsr22_12";
-    case Upscaler::FSR31:
+    case Upscaler::FFX:
         return "fsr31";
-    case Upscaler::FSR31_11on12:
+    case Upscaler::FFX_11on12:
         return "fsr31_12";
     case Upscaler::DLSS:
         return "dlss";
@@ -84,7 +84,7 @@ Upscaler CodeToUpscaler(const std::string& code)
         { "xess", Upscaler::XeSS },   { "xess_12", Upscaler::XeSS_11on12 },
         { "fsr21", Upscaler::FSR21 }, { "fsr21_12", Upscaler::FSR21_11on12 },
         { "fsr22", Upscaler::FSR22 }, { "fsr22_12", Upscaler::FSR22_11on12 },
-        { "fsr31", Upscaler::FSR31 }, { "fsr31_12", Upscaler::FSR31_11on12 },
+        { "fsr31", Upscaler::FFX }, { "fsr31_12", Upscaler::FFX_11on12 },
         { "dlss", Upscaler::DLSS },   { "dlssd", Upscaler::DLSSD }
     };
 

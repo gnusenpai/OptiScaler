@@ -18,7 +18,8 @@ class FSR31FeatureDx12 : public FSR31Feature, public IFeature_Dx12
 
     bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
     bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
-    Upscaler GetUpscalerType() final { return Upscaler::FSR31; }
+    bool QueryProviders(ID3D12Device* device);
+    Upscaler GetUpscalerType() final { return Upscaler::FFX; }
 
     feature_version Version() override { return FSR31Feature::Version(); }
     std::string Name() const override { return FSR31Feature::Name(); }

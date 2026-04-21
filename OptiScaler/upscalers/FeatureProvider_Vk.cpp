@@ -41,11 +41,11 @@ bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_
         *feature = std::make_unique<FSR2FeatureVk>(handleId, parameters);
         break;
 
-    case Upscaler::FSR31:
+    case Upscaler::FFX:
         *feature = std::make_unique<FSR31FeatureVk>(handleId, parameters);
         break;
 
-    case Upscaler::FSR31_11on12:
+    case Upscaler::FFX_11on12:
         *feature = std::make_unique<FSR31FeatureVkOn12>(handleId, parameters);
         break;
 

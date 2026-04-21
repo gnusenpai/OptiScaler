@@ -530,20 +530,20 @@ bool FSR31FeatureDx12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
     {
         ScopedSkipSpoofing skipSpoofing {};
 
+        // Get number of versions for allocation
         ffxQueryDescGetVersions versionQuery {};
         versionQuery.header.type = FFX_API_QUERY_DESC_TYPE_GET_VERSIONS;
         versionQuery.createDescType = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
-        versionQuery.device = Device; // only for DirectX 12 applications
+        versionQuery.device = Device;
         uint64_t versionCount = 0;
         versionQuery.outputCount = &versionCount;
-        // get number of versions for allocation
         FfxApiProxy::D3D12_Query(nullptr, &versionQuery.header);
 
+        // Fill version ids and names arrays
         State::Instance().ffxUpscalerVersionIds.resize(versionCount);
         State::Instance().ffxUpscalerVersionNames.resize(versionCount);
         versionQuery.versionIds = State::Instance().ffxUpscalerVersionIds.data();
         versionQuery.versionNames = State::Instance().ffxUpscalerVersionNames.data();
-        // fill version ids and names arrays.
         FfxApiProxy::D3D12_Query(nullptr, &versionQuery.header);
 
         _contextDesc.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;

@@ -1003,10 +1003,10 @@ bool IsFsr(Upscaler upscaler)
     {
     case Upscaler::FSR21:
     case Upscaler::FSR22:
-    case Upscaler::FSR31:
+    case Upscaler::FFX:
     case Upscaler::FSR21_11on12:
     case Upscaler::FSR22_11on12:
-    case Upscaler::FSR31_11on12:
+    case Upscaler::FFX_11on12:
         return true;
     default:
         return false;
@@ -1066,21 +1066,21 @@ void MenuCommon::RenderUpscalerCombo(const API api, Upscaler currentUpscaler, co
 void MenuCommon::AddDx11Backends(Upscaler upscaler)
 {
     RenderUpscalerCombo(API::DX11, upscaler,
-                        { Upscaler::XeSS, Upscaler::FSR22, Upscaler::FSR31, Upscaler::XeSS_11on12,
-                          Upscaler::FSR21_11on12, Upscaler::FSR22_11on12, Upscaler::FSR31_11on12, Upscaler::DLSS });
+                        { Upscaler::XeSS, Upscaler::FSR22, Upscaler::FFX, Upscaler::XeSS_11on12, Upscaler::FSR21_11on12,
+                          Upscaler::FSR22_11on12, Upscaler::FFX_11on12, Upscaler::DLSS });
 }
 
 void MenuCommon::AddDx12Backends(Upscaler upscaler)
 {
     RenderUpscalerCombo(API::DX12, upscaler,
-                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FSR31, Upscaler::DLSS });
+                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FFX, Upscaler::DLSS });
 }
 
 void MenuCommon::AddVulkanBackends(Upscaler upscaler)
 {
     RenderUpscalerCombo(API::Vulkan, upscaler,
-                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FSR31, Upscaler::FSR21_11on12,
-                          Upscaler::FSR31_11on12, Upscaler::DLSS });
+                        { Upscaler::XeSS, Upscaler::FSR21, Upscaler::FSR22, Upscaler::FFX, Upscaler::FSR21_11on12,
+                          Upscaler::FFX_11on12, Upscaler::DLSS });
 }
 
 template <HasDefaultValue B> void MenuCommon::AddResourceBarrier(std::string name, CustomOptional<int32_t, B>* value)
@@ -2403,7 +2403,7 @@ bool MenuCommon::RenderMenu()
                     // Dx11 with Dx12
                     if (state.api == DX11 && config->Dx11Upscaler.value_or_default() != Upscaler::FSR22 &&
                         config->Dx11Upscaler.value_or_default() != Upscaler::DLSS &&
-                        config->Dx11Upscaler.value_or_default() != Upscaler::FSR31)
+                        config->Dx11Upscaler.value_or_default() != Upscaler::FFX)
                     {
                         ImGui::Spacing();
                         if (auto ch = ScopedCollapsingHeader("Dx11 with Dx12 Settings"); ch.IsHeaderOpen())
@@ -2502,15 +2502,15 @@ bool MenuCommon::RenderMenu()
 
                     // FFX -----------------
                     if (currentFeature->Name() != "DLSSD" &&
-                        (currentBackend == Upscaler::FSR31 || currentBackend == Upscaler::FSR31_11on12))
+                        (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FFX_11on12))
                     {
                         ImGui::SeparatorText("FFX Settings");
 
                         if (_ffxUpscalerIndex < 0)
                             _ffxUpscalerIndex = config->FfxUpscalerIndex.value_or_default();
 
-                        if (currentBackend == Upscaler::FSR31 ||
-                            currentBackend == Upscaler::FSR31_11on12 && state.ffxUpscalerVersionNames.size() > 0)
+                        if (currentBackend == Upscaler::FFX ||
+                            currentBackend == Upscaler::FFX_11on12 && state.ffxUpscalerVersionNames.size() > 0)
                         {
                             ImGui::PushItemWidth(135.0f * menuResScale);
 

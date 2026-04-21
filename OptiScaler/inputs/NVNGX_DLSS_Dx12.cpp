@@ -506,7 +506,7 @@ static Upscaler GetUpscalerBackend()
         upscaler = Upscaler::DLSS;
 
     if (primaryGpu.fsr4Capable)
-        upscaler = Upscaler::FSR31;
+        upscaler = Upscaler::FFX;
 
     if (Config::Instance()->Dx12Upscaler.has_value())
         upscaler = Config::Instance()->Dx12Upscaler.value();

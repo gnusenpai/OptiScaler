@@ -37,7 +37,7 @@ bool FeatureProvider_Dx12::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NG
         *feature = std::make_unique<FSR2FeatureDx12>(handleId, parameters);
         break;
 
-    case Upscaler::FSR31:
+    case Upscaler::FFX:
         *feature = std::make_unique<FSR31FeatureDx12>(handleId, parameters);
         break;
 

@@ -57,10 +57,10 @@ enum class Upscaler
     FSR22_11on12, // "fsr22_12", used for the FSR 2.2.x upscaler backend used with the DirectX 11 on 12
                   // compatibility layer
 
-    FSR31, // "fsr31", used for the FSR 3.1+ upscaler backend
+    FFX, // "fsr31", used for the FSR 3.1+ upscaler backend
 
-    FSR31_11on12, // "fsr31_12", used for the FSR 3.1+ upscaler backend used with the DirectX 11 on 12
-                  // compatibility layer
+    FFX_11on12, // "fsr31_12", used for the FSR 3.1+ upscaler backend used with the DirectX 11 on 12
+                // compatibility layer
 
     DLSS, // "dlss", used for the DLSS upscaler backend
 
