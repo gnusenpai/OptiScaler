@@ -4848,22 +4848,8 @@ bool MenuCommon::RenderMenu()
 
                         if (Config::Instance()->UseDepthAwareSharpen.value_or_default())
                         {
-                            bool depthLinear = config->DADepthIsLinear.value_or_default();
-                            if (ImGui::Checkbox("Linear Depth", &depthLinear))
-                            {
-                                if (depthLinear)
-                                    config->DADepthIsLinear = true;
-                                else
-                                    config->DADepthIsLinear.reset();
-                            }
-
-                            ShowHelpMarker("Most games use non-linear depth but\nDLSS-D might need this option to be "
-                                           "enabled.\nCould be verify via Debug view");
-
-                            ImGui::SameLine(0.0f, 6.0f);
-
                             if (bool overrideMSDebug = config->MotionSharpnessDebug.value_or_default();
-                                ImGui::Checkbox("DA Debug", &overrideMSDebug))
+                                ImGui::Checkbox("DA + MAS Debug", &overrideMSDebug))
                                 config->MotionSharpnessDebug = overrideMSDebug;
 
                             ShowHelpMarker("Enable DAS debug view");
@@ -4888,7 +4874,7 @@ bool MenuCommon::RenderMenu()
                                     "Recommended for LDR pipelines; optional for HDR depending on tone-mapping.\n\n"
                                     "When not set OptiScaler controls it via upscalers HDR flag");
 
-                                if (depthLinear)
+                                if (currentFeature->DepthLinear())
                                 {
                                     float depthBias = config->DADepthBias.value_or(0.0015f);
                                     if (ImGui::SliderFloat("Depth Bias", &depthBias, 0.005f, 0.03f, "%.4f"))

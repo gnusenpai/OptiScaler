@@ -880,21 +880,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
         return NVSDK_NGX_Result_Fail;
     }
 
-    uint32_t hwDepth = 10;
-    if (InParameters->Get("DLSS.Use.HW.Depth", &hwDepth) == NVSDK_NGX_Result_Success)
-    {
-        LOG_DEBUG("DLSS.Use.HW.Depth: {}", hwDepth);
-
-        if (hwDepth == 0)
-            Config::Instance()->DADepthIsLinear.set_volatile_value(true);
-        else
-            Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-    }
-    else
-    {
-        Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-    }
-
     auto handleId = InFeatureHandle->Id;
     if (VkContexts[handleId].feature == nullptr) // prevent source api name flicker when dlssg is active
         State::Instance().setInputApiName = State::Instance().currentInputApiName;

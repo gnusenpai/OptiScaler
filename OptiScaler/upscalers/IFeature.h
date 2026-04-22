@@ -64,6 +64,7 @@ class IFeature
     bool _accessToReactiveMask = false;
     bool _hasExposure = false;
     bool _hasOutput = false;
+    bool _depthLinear = false;
 
     unsigned int _renderWidth = 0;
     unsigned int _renderHeight = 0;
@@ -118,6 +119,7 @@ class IFeature
     bool HasOutput() const { return _hasOutput; }
     bool ModuleLoaded() const { return _moduleLoaded; }
     long FrameCount() { return _frameCount; }
+    bool DepthLinear() { return _depthLinear; }
 
     bool AutoExposure() { return _initFlags.AutoExposure; }
     bool DepthInverted() { return _initFlags.DepthInverted; }

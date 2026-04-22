@@ -79,7 +79,7 @@ void RCAS_Dx12::FillMotionConstants(InternalConstantsDA& OutConstants, const Rca
     OutConstants.DisplayWidth = feature->TargetWidth();
     OutConstants.DisplayHeight = feature->TargetHeight();
 
-    OutConstants.DepthIsLinear = Config::Instance()->DADepthIsLinear.value_or_default() ? 1 : 0;
+    OutConstants.DepthIsLinear = feature->DepthLinear() ? 1 : 0;
     OutConstants.DepthIsReversed = feature->DepthInverted() ? 1 : 0;
     OutConstants.DepthScale =
         Config::Instance()->DADepthScale.value_or(OutConstants.DepthIsLinear == 0 ? 4.0f : 250.0f);

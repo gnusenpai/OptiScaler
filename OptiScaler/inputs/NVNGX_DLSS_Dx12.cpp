@@ -1053,21 +1053,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         }
     }
 
-    uint32_t hwDepth = 10;
-    if (InParameters->Get("DLSS.Use.HW.Depth", &hwDepth) == NVSDK_NGX_Result_Success)
-    {
-        LOG_DEBUG("DLSS.Use.HW.Depth: {}", hwDepth);
-
-        if (hwDepth == 0)
-            Config::Instance()->DADepthIsLinear.set_volatile_value(true);
-        else
-            Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-    }
-    else
-    {
-        Config::Instance()->DADepthIsLinear.set_volatile_value(false);
-    }
-
     // Native DLSS passthrough
     if (handleId < DLSS_MOD_ID_OFFSET)
     {

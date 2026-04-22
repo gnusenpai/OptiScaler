@@ -275,7 +275,6 @@ class Config
 
     // DA Sharpening
     CustomOptional<bool> UseDepthAwareSharpen { false };
-    CustomOptional<bool> DADepthIsLinear { false };
     CustomOptional<float, NoDefault> DADepthScale;
     CustomOptional<float, NoDefault> DADepthBias;
     CustomOptional<bool, NoDefault> DAClampOutput;
