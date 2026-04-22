@@ -1,7 +1,7 @@
 #include <pch.h>
 #include <Config.h>
 #include <Util.h>
-#include "FFXFeature_Dx11.h"
+#include "FSR31Feature_Dx11.h"
 #include "MathUtils.h"
 
 using namespace OptiMath;
@@ -22,13 +22,14 @@ using namespace OptiMath;
         }                                                                                                              \
     } while ((void) 0, 0);
 
-FFXFeatureDx11::FFXFeatureDx11(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
-    : FFXFeature(InHandleId, InParameters), IFeature_Dx11(InHandleId, InParameters), IFeature(InHandleId, InParameters)
+FSR31FeatureDx11::FSR31FeatureDx11(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
+    : FSR31Feature(InHandleId, InParameters), IFeature_Dx11(InHandleId, InParameters),
+      IFeature(InHandleId, InParameters)
 {
     _moduleLoaded = true;
 }
 
-bool FFXFeatureDx11::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, NVSDK_NGX_Parameter* InParameters)
+bool FSR31FeatureDx11::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
@@ -72,8 +73,8 @@ Fsr31::FfxResource ffxGetResource(ID3D11Resource* dx11Resource, wchar_t const* f
     return resource;
 }
 
-bool FFXFeatureDx11::CopyTexture(ID3D11Resource* InResource, D3D11_TEXTURE2D_RESOURCE_C* OutTextureRes, UINT bindFlags,
-                                 bool InCopy)
+bool FSR31FeatureDx11::CopyTexture(ID3D11Resource* InResource, D3D11_TEXTURE2D_RESOURCE_C* OutTextureRes,
+                                   UINT bindFlags, bool InCopy)
 {
     ID3D11Texture2D* originalTexture = nullptr;
     D3D11_TEXTURE2D_DESC desc {};
@@ -126,7 +127,7 @@ bool FFXFeatureDx11::CopyTexture(ID3D11Resource* InResource, D3D11_TEXTURE2D_RES
     return true;
 }
 
-void FFXFeatureDx11::ReleaseResources()
+void FSR31FeatureDx11::ReleaseResources()
 {
     LOG_FUNC();
 
@@ -136,7 +137,7 @@ void FFXFeatureDx11::ReleaseResources()
     }
 }
 
-bool FFXFeatureDx11::Evaluate(ID3D11DeviceContext* DeviceContext, NVSDK_NGX_Parameter* InParameters)
+bool FSR31FeatureDx11::Evaluate(ID3D11DeviceContext* DeviceContext, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
@@ -606,7 +607,7 @@ bool FFXFeatureDx11::Evaluate(ID3D11DeviceContext* DeviceContext, NVSDK_NGX_Para
     return true;
 }
 
-FFXFeatureDx11::~FFXFeatureDx11()
+FSR31FeatureDx11::~FSR31FeatureDx11()
 {
     if (!IsInited())
         return;
@@ -616,7 +617,7 @@ FFXFeatureDx11::~FFXFeatureDx11()
         auto errorCode = Fsr31::ffxFsr3ContextDestroy(&_upscalerContext);
 
         if (errorCode != Fsr31::FFX_OK)
-            spdlog::error("FFXFeatureDx11::~FFXFeatureDx11 ffxFsr3ContextDestroy error: {0:x}", errorCode);
+            spdlog::error("FSR31FeatureDx11::~FSR31FeatureDx11 ffxFsr3ContextDestroy error: {0:x}", errorCode);
 
         free(_upscalerContextDesc.backendInterfaceUpscaling.scratchBuffer);
     }
@@ -624,7 +625,7 @@ FFXFeatureDx11::~FFXFeatureDx11()
     SetInit(false);
 }
 
-bool FFXFeatureDx11::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FSR31FeatureDx11::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
