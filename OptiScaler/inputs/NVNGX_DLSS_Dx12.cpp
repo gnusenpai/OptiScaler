@@ -914,8 +914,9 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     // Resolution change detection (only for upscalers that may require recreation)
     if (feature != nullptr)
     {
-        const bool isFSR31OrLater =
-            feature->Name().starts_with("FSR") && feature->Version() >= feature_version { 3, 1, 0 };
+        const bool isFFX =
+            feature->GetUpscalerType() == Upscaler::FFX || feature->GetUpscalerType() == Upscaler::FFX_on12;
+        const bool isFSR31OrLater = isFFX && feature->Version() >= feature_version { 3, 1, 0 };
 
         // FSR 3.1 supports upscaleSize that doesn't need reinit to change output resolution
         if (!isFSR31OrLater && feature->UpdateOutputResolution(InParameters))

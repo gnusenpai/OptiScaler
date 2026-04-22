@@ -12,7 +12,6 @@ class XeSSFeatureDx11on12 : public XeSSFeature, public IFeature_Dx11wDx12
   public:
     XeSSFeatureDx11on12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 
-    std::string Name() const { return "XeSS w/Dx12"; }
     feature_version Version() override { return XeSSFeature::Version(); }
     Upscaler GetUpscalerType() const final { return Upscaler::XeSS_on12; }
 

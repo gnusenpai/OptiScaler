@@ -22,7 +22,6 @@ class FSR2FeatureDx12 : public FSR2Feature, public IFeature_Dx12
     bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
 
     feature_version Version() override { return FSR2Feature::Version(); }
-    std::string Name() const override { return FSR2Feature::Name(); }
     Upscaler GetUpscalerType() const final { return Upscaler::FSR22; }
 
     bool IsWithDx12() override { return false; }

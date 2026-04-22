@@ -90,7 +90,6 @@ class FFXFeature : public virtual IFeature
 
   public:
     feature_version Version() override { return _version; }
-    std::string Name() const override { return _name.c_str(); }
 
     FFXFeature(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 

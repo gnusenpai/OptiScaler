@@ -249,7 +249,10 @@ void MenuCommon::ShowResetButton(CustomOptional<bool, NoDefault>* initFlag, std:
 
 inline void MenuCommon::ReInitUpscaler()
 {
-    if (State::Instance().currentFeature->Name() == "DLSSD")
+    if (!State::Instance().currentFeature)
+        return;
+
+    if (State::Instance().currentFeature->GetUpscalerType() == Upscaler::DLSSD)
         State::Instance().newBackend = Upscaler::DLSSD;
     else
         State::Instance().newBackend = currentBackend;
@@ -2302,6 +2305,8 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::PushItemWidth(180.0f * menuResScale);
 
+                    const bool usesDlssd = currentFeature->GetUpscalerType() == Upscaler::DLSSD;
+
                     switch (state.api)
                     {
                     case DX11:
@@ -2317,7 +2322,7 @@ bool MenuCommon::RenderMenu()
                         spoofingText = config->DxgiSpoofing.value_or_default() ? "On" : "Off";
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
-                        if (currentFeature->Name() != "DLSSD")
+                        if (!usesDlssd)
                             AddDx11Backends(currentBackend);
 
                         break;
@@ -2335,7 +2340,7 @@ bool MenuCommon::RenderMenu()
                         spoofingText = config->DxgiSpoofing.value_or_default() ? "On" : "Off";
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
-                        if (currentFeature->Name() != "DLSSD")
+                        if (!usesDlssd)
                             AddDx12Backends(currentBackend);
 
                         break;
@@ -2364,13 +2369,13 @@ bool MenuCommon::RenderMenu()
                         ImGui::SameLine(0.0f, 6.0f);
                         ImGui::Text("| Spoof: %s", spoofingText.c_str());
 
-                        if (currentFeature->Name() != "DLSSD")
+                        if (!usesDlssd)
                             AddVulkanBackends(currentBackend);
                     }
 
                     ImGui::PopItemWidth();
 
-                    if (currentFeature->Name() != "DLSSD")
+                    if (!usesDlssd)
                     {
                         ImGui::SameLine(0.0f, 6.0f);
 
@@ -2408,6 +2413,8 @@ bool MenuCommon::RenderMenu()
 
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                 {
+                    const bool usesDlssd = currentFeature->GetUpscalerType() == Upscaler::DLSSD;
+
                     // Dx11 with Dx12
                     if (state.api == DX11 && config->Dx11Upscaler.value_or_default() != Upscaler::FSR22 &&
                         config->Dx11Upscaler.value_or_default() != Upscaler::DLSS &&
@@ -2452,7 +2459,7 @@ bool MenuCommon::RenderMenu()
                     // UPSCALER SPECIFIC -----------------------------
 
                     // XeSS -----------------------------
-                    if (currentBackend == Upscaler::XeSS && currentFeature->Name() != "DLSSD")
+                    if (currentBackend == Upscaler::XeSS && !usesDlssd)
                     {
                         ImGui::Spacing();
                         if (auto ch = ScopedCollapsingHeader("XeSS Settings"); ch.IsHeaderOpen())
@@ -2509,8 +2516,7 @@ bool MenuCommon::RenderMenu()
                     }
 
                     // FFX -----------------
-                    if (currentFeature->Name() != "DLSSD" &&
-                        (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FFX_on12))
+                    if (!usesDlssd && (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FFX_on12))
                     {
                         ImGui::SeparatorText("FFX Settings");
 
@@ -2830,9 +2836,8 @@ bool MenuCommon::RenderMenu()
                     // DLSS -----------------
                     if ((config->DLSSEnabled.value_or_default() && currentBackend == Upscaler::DLSS &&
                          currentFeature->Version().major > 2) ||
-                        currentFeature->Name() == "DLSSD")
+                        usesDlssd)
                     {
-                        const bool usesDlssd = currentFeature->Name() == "DLSSD";
 
                         if (usesDlssd)
                             ImGui::SeparatorText("DLSSD Settings");
@@ -5170,7 +5175,8 @@ bool MenuCommon::RenderMenu()
 
                                 config->OutputScalingDownscaler = _ssDownsampler;
 
-                                if (currentFeature->Name() == "DLSSD")
+                                const bool usesDlssd = currentFeature->GetUpscalerType() == Upscaler::DLSSD;
+                                if (usesDlssd)
                                     state.newBackend = Upscaler::DLSSD;
                                 else
                                     state.newBackend = currentBackend;

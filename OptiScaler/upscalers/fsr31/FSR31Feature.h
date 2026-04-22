@@ -91,7 +91,6 @@ class FSR31Feature : public virtual IFeature
 
   public:
     feature_version Version() override { return _version; }
-    std::string Name() const override { return _name.c_str(); }
 
     FSR31Feature(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 

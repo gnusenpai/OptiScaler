@@ -8,7 +8,6 @@ class XeSSFeatureDx12 : public XeSSFeature, public IFeature_Dx12
   private:
   protected:
   public:
-    std::string Name() const override { return "XeSS"; }
     feature_version Version() override { return XeSSFeature::Version(); }
     Upscaler GetUpscalerType() const final { return Upscaler::XeSS; }
 

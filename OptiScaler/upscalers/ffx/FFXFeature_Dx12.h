@@ -21,7 +21,6 @@ class FFXFeatureDx12 : public FFXFeature, public IFeature_Dx12
     bool QueryProviders(ID3D12Device* device);
 
     feature_version Version() override { return FFXFeature::Version(); }
-    std::string Name() const override { return FFXFeature::Name(); }
     Upscaler GetUpscalerType() const final { return Upscaler::FFX; }
 
     bool IsWithDx12() final { return false; }

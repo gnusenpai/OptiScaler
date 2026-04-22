@@ -65,10 +65,13 @@ bool XeSSFeature::InitXeSS(ID3D12Device* device, const NVSDK_NGX_Parameter* InPa
 
         xessParams.initFlags = XESS_INIT_FLAG_NONE;
 
+        const bool isUE = State::Instance().NVNGX_Engine == NVSDK_NGX_ENGINE_TYPE_UNREAL ||
+                          State::Instance().gameQuirks & GameQuirk::ForceUnrealEngine;
+
         if (DepthInverted())
             xessParams.initFlags |= XESS_INIT_FLAG_INVERTED_DEPTH;
 
-        if (AutoExposure())
+        if (AutoExposure() || isUE)
             xessParams.initFlags |= XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE;
         else
             xessParams.initFlags |= XESS_INIT_FLAG_EXPOSURE_SCALE_TEXTURE;
