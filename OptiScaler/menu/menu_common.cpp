@@ -2716,9 +2716,9 @@ bool MenuCommon::RenderMenu()
                                 {
                                     config->FsrDebugView = dView;
 
+                                    // FSR 4's debug view requires backend reinit
                                     if (majorFsrVersion > 3)
                                     {
-                                        config->Fsr4EnableDebugView = dView;
                                         state.newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
                                     }

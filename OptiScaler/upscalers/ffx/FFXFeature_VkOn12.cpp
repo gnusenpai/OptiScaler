@@ -146,8 +146,7 @@ bool FFXFeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter
 
     params.flags = 0;
 
-    if (Config::Instance()->FsrDebugView.value_or_default() &&
-        (Version() < feature_version { 4, 0, 0 } || Config::Instance()->Fsr4EnableDebugView.value_or_default()))
+    if (Config::Instance()->FsrDebugView.value_or_default())
     {
         params.flags |= FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW;
     }
@@ -181,7 +180,7 @@ bool FFXFeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter
 
     // Force enable RCAS when in FSR4 debug view mode
     if (Version() >= feature_version { 4, 0, 2 } && Config::Instance()->FsrDebugView.value_or_default() &&
-        Config::Instance()->Fsr4EnableDebugView.value_or_default() && !params.enableSharpening)
+        !params.enableSharpening)
     {
         params.enableSharpening = true;
         params.sharpness = 0.01f;

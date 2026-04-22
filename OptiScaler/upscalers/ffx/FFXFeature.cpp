@@ -81,7 +81,7 @@ void FFXFeature::InitFlags()
     if (!LowResMV())
         _contextDesc.flags |= FFX_UPSCALE_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS;
 
-    if (Config::Instance()->Fsr4EnableDebugView.value_or_default())
+    if (Config::Instance()->FsrDebugView.value_or_default())
     {
         LOG_INFO("Debug view enabled!");
         _contextDesc.flags |= 512; // FFX_UPSCALE_ENABLE_DEBUG_VISUALIZATION
