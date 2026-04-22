@@ -1,11 +1,11 @@
 #pragma once
-#include "FSR31Feature.h"
+#include "FFXFeature.h"
 #include <upscalers/IFeature_Dx12.h>
 
 #include "dx12/ffx_api_dx12.h"
 #include "proxies/FfxApi_Proxy.h"
 
-class FSR31FeatureDx12 : public FSR31Feature, public IFeature_Dx12
+class FFXFeatureDx12 : public FFXFeature, public IFeature_Dx12
 {
   private:
     NVSDK_NGX_Parameter* SetParameters(NVSDK_NGX_Parameter* InParameters);
@@ -14,19 +14,19 @@ class FSR31FeatureDx12 : public FSR31Feature, public IFeature_Dx12
     bool InitFSR3(const NVSDK_NGX_Parameter* InParameters);
 
   public:
-    FSR31FeatureDx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
+    FFXFeatureDx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 
     bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
     bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
     bool QueryProviders(ID3D12Device* device);
     Upscaler GetUpscalerType() final { return Upscaler::FFX; }
 
-    feature_version Version() override { return FSR31Feature::Version(); }
-    std::string Name() const override { return FSR31Feature::Name(); }
+    feature_version Version() override { return FFXFeature::Version(); }
+    std::string Name() const override { return FFXFeature::Name(); }
 
     bool IsWithDx12() final { return false; }
 
-    ~FSR31FeatureDx12()
+    ~FFXFeatureDx12()
     {
         if (State::Instance().isShuttingDown)
             return;

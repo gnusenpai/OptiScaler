@@ -11,8 +11,8 @@
 #include "upscalers/fsr2/FSR2Feature_Dx11.h"
 #include "upscalers/fsr2/FSR2Feature_Dx11On12.h"
 #include "upscalers/fsr2_212/FSR2Feature_Dx11On12_212.h"
-#include "upscalers/fsr31/FSR31Feature_Dx11.h"
-#include "upscalers/fsr31/FSR31Feature_Dx11On12.h"
+#include "upscalers/ffx/FFXFeature_Dx11.h"
+#include "upscalers/ffx/FFXFeature_Dx11On12.h"
 #include "upscalers/xess/XeSSFeature_Dx11.h"
 #include "upscalers/xess/XeSSFeature_Dx11on12.h"
 #include <misc/IdentifyGpu.h>
@@ -47,11 +47,11 @@ bool FeatureProvider_Dx11::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NG
         break;
 
     case Upscaler::FSR31:
-        *feature = std::make_unique<FSR31FeatureDx11>(handleId, parameters);
+        *feature = std::make_unique<FFXFeatureDx11>(handleId, parameters);
         break;
 
     case Upscaler::FFX_on12:
-        *feature = std::make_unique<FSR31FeatureDx11on12>(handleId, parameters);
+        *feature = std::make_unique<FFXFeatureDx11on12>(handleId, parameters);
         break;
 
     case Upscaler::DLSS:

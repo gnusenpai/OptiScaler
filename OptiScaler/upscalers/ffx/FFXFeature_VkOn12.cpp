@@ -1,20 +1,20 @@
 #include <pch.h>
 
-#include "FSR31Feature_VkOn12.h"
+#include "FFXFeature_VkOn12.h"
 
 #include <Config.h>
 #include <Util.h>
 
 #include <proxies/FfxApi_Proxy.h>
 
-NVSDK_NGX_Parameter* FSR31FeatureVkOn12::SetParameters(NVSDK_NGX_Parameter* InParameters)
+NVSDK_NGX_Parameter* FFXFeatureVkOn12::SetParameters(NVSDK_NGX_Parameter* InParameters)
 {
     InParameters->Set("OptiScaler.SupportsUpscaleSize", true);
     return InParameters;
 }
 
-FSR31FeatureVkOn12::FSR31FeatureVkOn12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
-    : FSR31Feature(InHandleId, InParameters), IFeature_VkwDx12(InHandleId, InParameters),
+FFXFeatureVkOn12::FFXFeatureVkOn12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
+    : FFXFeature(InHandleId, InParameters), IFeature_VkwDx12(InHandleId, InParameters),
       IFeature_Vk(InHandleId, InParameters), IFeature(InHandleId, SetParameters(InParameters))
 {
     FfxApiProxy::InitFfxDx12();
@@ -27,9 +27,9 @@ FSR31FeatureVkOn12::FSR31FeatureVkOn12(unsigned int InHandleId, NVSDK_NGX_Parame
         LOG_ERROR("can't load amd_fidelityfx_dx12.dll methods!");
 }
 
-bool FSR31FeatureVkOn12::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice InDevice,
-                              VkCommandBuffer InCmdList, PFN_vkGetInstanceProcAddr InGIPA,
-                              PFN_vkGetDeviceProcAddr InGDPA, NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVkOn12::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice InDevice, VkCommandBuffer InCmdList,
+                            PFN_vkGetInstanceProcAddr InGIPA, PFN_vkGetDeviceProcAddr InGDPA,
+                            NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
@@ -47,7 +47,7 @@ bool FSR31FeatureVkOn12::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDe
     return _moduleLoaded;
 }
 
-bool FSR31FeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
@@ -543,7 +543,7 @@ bool FSR31FeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Paramet
     return evalResult;
 }
 
-bool FSR31FeatureVkOn12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVkOn12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 

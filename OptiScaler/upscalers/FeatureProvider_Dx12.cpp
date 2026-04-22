@@ -10,7 +10,7 @@
 #include "upscalers/dlssd/DLSSDFeature_Dx12.h"
 #include "upscalers/fsr2/FSR2Feature_Dx12.h"
 #include "upscalers/fsr2_212/FSR2Feature_Dx12_212.h"
-#include "upscalers/fsr31/FSR31Feature_Dx12.h"
+#include "upscalers/ffx/FFXFeature_Dx12.h"
 #include "upscalers/xess/XeSSFeature_Dx12.h"
 #include "FeatureProvider_Dx11.h"
 #include <misc/IdentifyGpu.h>
@@ -38,7 +38,7 @@ bool FeatureProvider_Dx12::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NG
         break;
 
     case Upscaler::FFX:
-        *feature = std::make_unique<FSR31FeatureDx12>(handleId, parameters);
+        *feature = std::make_unique<FFXFeatureDx12>(handleId, parameters);
         break;
 
     case Upscaler::DLSS:

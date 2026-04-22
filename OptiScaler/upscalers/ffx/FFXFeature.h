@@ -10,7 +10,7 @@ inline static void FfxLogCallback(uint32_t type, const wchar_t* message)
     LOG_DEBUG("FSR Runtime: {0}", wstring_to_string(string));
 }
 
-class FSR31Feature : public virtual IFeature
+class FFXFeature : public virtual IFeature
 {
   private:
     double _lastFrameTime;
@@ -93,7 +93,7 @@ class FSR31Feature : public virtual IFeature
     feature_version Version() override { return _version; }
     std::string Name() const override { return _name.c_str(); }
 
-    FSR31Feature(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
+    FFXFeature(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 
-    ~FSR31Feature();
+    ~FFXFeature();
 };

@@ -2,19 +2,19 @@
 #include <Config.h>
 #include <Util.h>
 #include <proxies/FfxApi_Proxy.h>
-#include "FSR31Feature_Dx11On12.h"
+#include "FFXFeature_Dx11On12.h"
 #include "MathUtils.h"
 
 using namespace OptiMath;
 
-NVSDK_NGX_Parameter* FSR31FeatureDx11on12::SetParameters(NVSDK_NGX_Parameter* InParameters)
+NVSDK_NGX_Parameter* FFXFeatureDx11on12::SetParameters(NVSDK_NGX_Parameter* InParameters)
 {
     InParameters->Set("OptiScaler.SupportsUpscaleSize", true);
     return InParameters;
 }
 
-FSR31FeatureDx11on12::FSR31FeatureDx11on12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
-    : FSR31Feature(InHandleId, InParameters), IFeature_Dx11wDx12(InHandleId, InParameters),
+FFXFeatureDx11on12::FFXFeatureDx11on12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
+    : FFXFeature(InHandleId, InParameters), IFeature_Dx11wDx12(InHandleId, InParameters),
       IFeature_Dx11(InHandleId, InParameters), IFeature(InHandleId, SetParameters(InParameters))
 {
     FfxApiProxy::InitFfxDx12();
@@ -27,8 +27,7 @@ FSR31FeatureDx11on12::FSR31FeatureDx11on12(unsigned int InHandleId, NVSDK_NGX_Pa
         LOG_ERROR("can't load amd_fidelityfx_dx12.dll methods!");
 }
 
-bool FSR31FeatureDx11on12::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext,
-                                NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureDx11on12::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
@@ -42,7 +41,7 @@ bool FSR31FeatureDx11on12::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InC
     return _moduleLoaded;
 }
 
-bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
@@ -587,7 +586,7 @@ bool FSR31FeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_
     return evalResult;
 }
 
-bool FSR31FeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 

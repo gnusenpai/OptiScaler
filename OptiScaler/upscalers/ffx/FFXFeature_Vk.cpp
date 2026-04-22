@@ -2,7 +2,7 @@
 #include <Config.h>
 #include <Util.h>
 #include <proxies/FfxApi_Proxy.h>
-#include "FSR31Feature_Vk.h"
+#include "FFXFeature_Vk.h"
 #include "nvsdk_ngx_vk.h"
 #include "MathUtils.h"
 
@@ -120,8 +120,8 @@ static inline FfxApiResourceDescription ffxApiGetImageResourceDescriptionVKLocal
     return resourceDescription;
 }
 
-FSR31FeatureVk::FSR31FeatureVk(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
-    : FSR31Feature(InHandleId, InParameters), IFeature_Vk(InHandleId, InParameters), IFeature(InHandleId, InParameters)
+FFXFeatureVk::FFXFeatureVk(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
+    : FFXFeature(InHandleId, InParameters), IFeature_Vk(InHandleId, InParameters), IFeature(InHandleId, InParameters)
 {
     _moduleLoaded = FfxApiProxy::InitFfxVk();
 
@@ -131,9 +131,9 @@ FSR31FeatureVk::FSR31FeatureVk(unsigned int InHandleId, NVSDK_NGX_Parameter* InP
         LOG_ERROR("Can't load amd_fidelityfx_vk.dll methods!");
 }
 
-bool FSR31FeatureVk::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVk::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
 {
-    LOG_DEBUG("FSR31FeatureVk::InitFSR3");
+    LOG_DEBUG("FFXFeatureVk::InitFSR3");
 
     if (!ModuleLoaded())
         return false;
@@ -293,9 +293,9 @@ bool FSR31FeatureVk::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
     return true;
 }
 
-bool FSR31FeatureVk::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice InDevice, VkCommandBuffer InCmdList,
-                          PFN_vkGetInstanceProcAddr InGIPA, PFN_vkGetDeviceProcAddr InGDPA,
-                          NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVk::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice InDevice, VkCommandBuffer InCmdList,
+                        PFN_vkGetInstanceProcAddr InGIPA, PFN_vkGetDeviceProcAddr InGDPA,
+                        NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 
@@ -317,7 +317,7 @@ bool FSR31FeatureVk::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice
     return InitFSR3(InParameters);
 }
 
-bool FSR31FeatureVk::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVk::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 

@@ -1,8 +1,8 @@
 #include <pch.h>
 #include <Config.h>
-#include "FSR31Feature.h"
+#include "FFXFeature.h"
 
-double FSR31Feature::GetDeltaTime()
+double FFXFeature::GetDeltaTime()
 {
     double currentTime = Util::MillisecondsNow();
     double deltaTime = (currentTime - _lastFrameTime);
@@ -10,14 +10,13 @@ double FSR31Feature::GetDeltaTime()
     return deltaTime;
 }
 
-FSR31Feature::FSR31Feature(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
-    : IFeature(InHandleId, InParameters)
+FFXFeature::FFXFeature(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters) : IFeature(InHandleId, InParameters)
 {
     _initParameters = SetInitParameters(InParameters);
     _lastFrameTime = Util::MillisecondsNow();
 }
 
-FSR31Feature::~FSR31Feature()
+FFXFeature::~FFXFeature()
 {
     if (!IsInited())
         return;

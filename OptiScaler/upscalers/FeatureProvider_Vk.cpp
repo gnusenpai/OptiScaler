@@ -11,9 +11,9 @@
 #include "upscalers/dlssd/DLSSDFeature_Vk.h"
 #include "upscalers/fsr2_212/FSR2Feature_Vk_212.h"
 #include "upscalers/fsr2_212/FSR2Feature_VkOnDx12_212.h"
-#include "upscalers/fsr31/FSR31Feature_Vk.h"
+#include "upscalers/ffx/FFXFeature_Vk.h"
 #include "upscalers/xess/XeSSFeature_Vk.h"
-#include "upscalers/fsr31/FSR31Feature_VkOn12.h"
+#include "upscalers/ffx/FFXFeature_VkOn12.h"
 #include <misc/IdentifyGpu.h>
 
 bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_Parameter* parameters,
@@ -42,11 +42,11 @@ bool FeatureProvider_Vk::GetFeature(Upscaler upscaler, UINT handleId, NVSDK_NGX_
         break;
 
     case Upscaler::FFX:
-        *feature = std::make_unique<FSR31FeatureVk>(handleId, parameters);
+        *feature = std::make_unique<FFXFeatureVk>(handleId, parameters);
         break;
 
     case Upscaler::FFX_on12:
-        *feature = std::make_unique<FSR31FeatureVkOn12>(handleId, parameters);
+        *feature = std::make_unique<FFXFeatureVkOn12>(handleId, parameters);
         break;
 
     case Upscaler::DLSS:

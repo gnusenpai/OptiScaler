@@ -1,5 +1,5 @@
 #pragma once
-#include "FSR31Feature.h"
+#include "FFXFeature.h"
 #include <upscalers/IFeature_Dx11.h>
 
 #include <fsr31/dx11/ffx_dx11.h>
@@ -7,7 +7,7 @@
 #include <fsr31/ffx_types.h>
 #include <fsr31/ffx_error.h>
 
-class FSR31FeatureDx11 : public FSR31Feature, public IFeature_Dx11
+class FFXFeatureDx11 : public FFXFeature, public IFeature_Dx11
 {
 
   private:
@@ -93,15 +93,15 @@ class FSR31FeatureDx11 : public FSR31Feature, public IFeature_Dx11
     bool InitFSR3(const NVSDK_NGX_Parameter* InParameters);
 
   public:
-    FSR31FeatureDx11(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
+    FFXFeatureDx11(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 
     bool Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, NVSDK_NGX_Parameter* InParameters) override;
     bool Evaluate(ID3D11DeviceContext* DeviceContext, NVSDK_NGX_Parameter* InParameters) override;
 
     feature_version Version() override { return feature_version { 3, 1, 2 }; }
-    std::string Name() const override { return FSR31Feature::Name(); }
+    std::string Name() const override { return FFXFeature::Name(); }
 
     bool IsWithDx12() final { return false; }
 
-    ~FSR31FeatureDx11();
+    ~FFXFeatureDx11();
 };
