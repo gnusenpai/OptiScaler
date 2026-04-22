@@ -2580,35 +2580,39 @@ bool MenuCommon::RenderMenu()
 
                                 if (ImGui::BeginTable("nonLinear", 2, ImGuiTableFlags_SizingStretchProp))
                                 {
+                                    bool nlSRGB = config->FsrNonLinearSRGB.value_or_default();
+                                    bool nlPQ = config->FsrNonLinearPQ.value_or_default();
 
-                                    ImGui::TableNextColumn();
-
-                                    if (bool nlSRGB = config->FsrNonLinearSRGB.value_or_default();
-                                        ImGui::Checkbox("Non-Linear sRGB Input", &nlSRGB))
+                                    // Helper to keep code DRY when updating the states
+                                    auto ApplyColorSpaceState = [&](bool srgb, bool pq)
                                     {
-                                        config->FsrNonLinearSRGB = nlSRGB;
+                                        config->FsrNonLinearSRGB = srgb;
+                                        config->FsrNonLinearPQ = pq;
 
-                                        if (nlSRGB)
+                                        if (srgb || pq)
                                         {
-                                            config->FsrNonLinearPQ = false;
                                             config->FsrNonLinearColorSpace.set_volatile_value(true);
                                         }
                                         else
                                         {
-                                            // If has config value revert back to it, otherwise reset
+                                            // Revert to config value if available, otherwise reset
                                             if (config->FsrNonLinearColorSpace.value_for_config().has_value())
-                                            {
                                                 config->FsrNonLinearColorSpace =
                                                     config->FsrNonLinearColorSpace.value_for_config();
-                                            }
                                             else
-                                            {
                                                 config->FsrNonLinearColorSpace.reset();
-                                            }
                                         }
 
                                         state.newBackend = currentBackend;
                                         MARK_ALL_BACKENDS_CHANGED();
+                                    };
+
+                                    ImGui::TableNextColumn();
+
+                                    // Using boolean overload: if clicked, we toggle its state and force the other off
+                                    if (ImGui::RadioButton("Non-Linear sRGB Input", nlSRGB))
+                                    {
+                                        ApplyColorSpaceState(!nlSRGB, false);
                                     }
                                     ShowHelpMarker("Indicates input color resource contains perceptual sRGB colors\n"
                                                    "Might improve upscaling quality of FSR4\n"
@@ -2616,32 +2620,9 @@ bool MenuCommon::RenderMenu()
 
                                     ImGui::TableNextColumn();
 
-                                    if (bool nlPQ = config->FsrNonLinearPQ.value_or_default();
-                                        ImGui::Checkbox("Non-Linear PQ Input", &nlPQ))
+                                    if (ImGui::RadioButton("Non-Linear PQ Input", nlPQ))
                                     {
-                                        config->FsrNonLinearPQ = nlPQ;
-
-                                        if (nlPQ)
-                                        {
-                                            config->FsrNonLinearSRGB = false;
-                                            config->FsrNonLinearColorSpace.set_volatile_value(true);
-                                        }
-                                        else
-                                        {
-                                            // If has config value revert back to it othervise reset
-                                            if (config->FsrNonLinearColorSpace.value_for_config().has_value())
-                                            {
-                                                config->FsrNonLinearColorSpace =
-                                                    config->FsrNonLinearColorSpace.value_for_config();
-                                            }
-                                            else
-                                            {
-                                                config->FsrNonLinearColorSpace.reset();
-                                            }
-                                        }
-
-                                        state.newBackend = currentBackend;
-                                        MARK_ALL_BACKENDS_CHANGED();
+                                        ApplyColorSpaceState(false, !nlPQ);
                                     }
                                     ShowHelpMarker("Indicates input color resource contains perceptual PQ colors\n"
                                                    "Might improve upscaling quality of FSR4\n"
@@ -4822,19 +4803,22 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::BeginDisabled(!config->RcasEnabled.value_or(rcasEnabled));
 
-                        bool useDA = Config::Instance()->UseDepthAwareSharpen.value_or_default();
-                        bool useRcas = !useDA;
+                        int useDA = Config::Instance()->UseDepthAwareSharpen.value_or_default();
 
-                        if (ImGui::Checkbox("Use RCAS", &useRcas))
-                            Config::Instance()->UseDepthAwareSharpen = !useRcas;
+                        if (ImGui::RadioButton("Use RCAS", &useDA, false))
+                        {
+                            Config::Instance()->UseDepthAwareSharpen = false;
+                        }
 
                         ShowHelpMarker("Use AMD's RCAS\n"
                                        "Modified to add Contrast parameter and MAS support");
 
                         ImGui::SameLine(0.0f, 6.0f);
 
-                        if (ImGui::Checkbox("Use Depth Aware", &useDA))
-                            Config::Instance()->UseDepthAwareSharpen = useDA;
+                        if (ImGui::RadioButton("Use Depth Aware", &useDA, true))
+                        {
+                            Config::Instance()->UseDepthAwareSharpen = true;
+                        }
 
                         ShowHelpMarker("Use Depth Aware Sharpening\n"
                                        "Smarter sharpening with less artifacts, but also more heavy");
