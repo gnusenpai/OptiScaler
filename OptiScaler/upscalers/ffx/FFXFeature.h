@@ -4,12 +4,6 @@
 
 #include <upscalers/IFeature.h>
 
-inline static void FfxLogCallback(uint32_t type, const wchar_t* message)
-{
-    std::wstring string(message);
-    LOG_DEBUG("FSR Runtime: {0}", wstring_to_string(string));
-}
-
 class FFXFeature : public virtual IFeature
 {
   private:
@@ -27,6 +21,11 @@ class FFXFeature : public virtual IFeature
     virtual bool InitFSR3(const NVSDK_NGX_Parameter* InParameters) = 0;
 
     double GetDeltaTime();
+
+    void QueryVersionsDx12(ID3D12Device* device);
+    void QueryVersionsVulkan();
+
+    void InitFlags();
 
     static inline void parse_version(const char* version_str) { _version.parse_version(version_str); }
 
