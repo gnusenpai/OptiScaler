@@ -29,6 +29,7 @@ class FSR2FeatureVkOnDx12_212 : public FSR2Feature212, public IFeature_VkwDx12
 
     feature_version Version() override { return FSR2Feature212::Version(); }
     std::string Name() const override { return FSR2Feature212::Name(); }
+    Upscaler GetUpscalerType() const final { return Upscaler::FSR21_on12; }
 
     bool IsWithDx12() override { return true; }
 };

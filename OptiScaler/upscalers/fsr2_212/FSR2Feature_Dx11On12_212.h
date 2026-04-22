@@ -26,6 +26,7 @@ class FSR2FeatureDx11on12_212 : public FSR2Feature212, public IFeature_Dx11wDx12
     bool Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NGX_Parameter* InParameters) override;
 
     feature_version Version() override { return FSR2Feature212::Version(); }
+    Upscaler GetUpscalerType() const final { return Upscaler::FSR21_on12; }
 
     bool IsWithDx12() override { return true; }
 

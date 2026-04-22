@@ -10,6 +10,7 @@ class XeSSFeatureDx12 : public XeSSFeature, public IFeature_Dx12
   public:
     std::string Name() const override { return "XeSS"; }
     feature_version Version() override { return XeSSFeature::Version(); }
+    Upscaler GetUpscalerType() const final { return Upscaler::XeSS; }
 
     XeSSFeatureDx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
         : IFeature(InHandleId, InParameters), IFeature_Dx12(InHandleId, InParameters),
@@ -23,7 +24,6 @@ class XeSSFeatureDx12 : public XeSSFeature, public IFeature_Dx12
 
     bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
     bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
-    Upscaler GetUpscalerType() final { return Upscaler::XeSS; }
 
     bool IsWithDx12() final { return false; }
 

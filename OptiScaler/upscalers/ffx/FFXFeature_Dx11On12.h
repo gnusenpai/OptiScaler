@@ -17,6 +17,7 @@ class FFXFeatureDx11on12 : public FFXFeature, public IFeature_Dx11wDx12
   public:
     std::string Name() const { return "FSR3 w/Dx12"; }
     feature_version Version() override { return FFXFeature::Version(); }
+    Upscaler GetUpscalerType() const final { return Upscaler::FFX_on12; }
 
     FFXFeatureDx11on12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 

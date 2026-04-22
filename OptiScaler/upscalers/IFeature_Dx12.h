@@ -37,7 +37,6 @@ class IFeature_Dx12 : public virtual IFeature
 
     virtual bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) = 0;
     virtual bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) = 0;
-    virtual Upscaler GetUpscalerType() = 0; // TODO: should be moved to IFeature in the future
 
   public:
     bool Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters);

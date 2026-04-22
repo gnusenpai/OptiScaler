@@ -45,6 +45,7 @@ class FSR2FeatureDx11 : public FSR2Feature, public IFeature_Dx11
 
     feature_version Version() override { return FSR2Feature::Version(); }
     std::string Name() const override { return FSR2Feature::Name(); }
+    Upscaler GetUpscalerType() const final { return Upscaler::FSR22; }
 
     bool IsWithDx12() override { return false; }
 

@@ -13,6 +13,7 @@ class DLSSFeatureDx11 : public DLSSFeature, public IFeature_Dx11
 
     feature_version Version() override { return DLSSFeature::Version(); }
     std::string Name() const override { return DLSSFeature::Name(); }
+    Upscaler GetUpscalerType() const final { return DLSSFeature::GetUpscalerType(); }
 
     bool IsWithDx12() override { return false; }
 

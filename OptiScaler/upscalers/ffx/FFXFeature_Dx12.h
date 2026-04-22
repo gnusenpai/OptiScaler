@@ -19,10 +19,10 @@ class FFXFeatureDx12 : public FFXFeature, public IFeature_Dx12
     bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
     bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
     bool QueryProviders(ID3D12Device* device);
-    Upscaler GetUpscalerType() final { return Upscaler::FFX; }
 
     feature_version Version() override { return FFXFeature::Version(); }
     std::string Name() const override { return FFXFeature::Name(); }
+    Upscaler GetUpscalerType() const final { return Upscaler::FFX; }
 
     bool IsWithDx12() final { return false; }
 

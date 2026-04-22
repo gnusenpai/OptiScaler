@@ -13,10 +13,10 @@ class DLSSDFeatureDx12 : public DLSSDFeature, public IFeature_Dx12
   public:
     bool InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
     bool EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters) override;
-    Upscaler GetUpscalerType() final { return Upscaler::DLSSD; }
 
     feature_version Version() override { return DLSSDFeature::Version(); }
     std::string Name() const override { return DLSSDFeature::Name(); }
+    Upscaler GetUpscalerType() const final { return DLSSDFeature::GetUpscalerType(); }
 
     bool IsWithDx12() override { return false; }
 

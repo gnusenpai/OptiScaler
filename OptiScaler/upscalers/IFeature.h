@@ -91,6 +91,7 @@ class IFeature
 
     virtual bool IsWithDx12() = 0;
     virtual feature_version Version() = 0;
+    virtual Upscaler GetUpscalerType() const = 0;
     virtual std::string Name() const = 0;
 
     size_t JitterCount() { return _jitterInfo.size(); }
