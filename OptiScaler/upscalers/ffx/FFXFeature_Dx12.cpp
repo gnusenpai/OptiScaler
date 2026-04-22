@@ -34,7 +34,7 @@ bool FFXFeatureDx12::InitInternal(ID3D12GraphicsCommandList* InCommandList, NVSD
     if (IsInited())
         return true;
 
-    return InitFSR3(InParameters);
+    return InitFFX(InParameters);
 }
 
 bool FFXFeatureDx12::EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters)
@@ -510,7 +510,7 @@ bool FFXFeatureDx12::EvaluateInternal(ID3D12GraphicsCommandList* InCommandList, 
     return true;
 }
 
-bool FFXFeatureDx12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureDx12::InitFFX(const NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 

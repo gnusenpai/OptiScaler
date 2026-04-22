@@ -9,7 +9,7 @@ class FFXFeatureVk : public FFXFeature, public IFeature_Vk
 {
   private:
   protected:
-    bool InitFSR3(const NVSDK_NGX_Parameter* InParameters);
+    bool InitFFX(const NVSDK_NGX_Parameter* InParameters);
 
   public:
     FFXFeatureVk(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);

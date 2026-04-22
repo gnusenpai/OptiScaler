@@ -95,7 +95,7 @@ bool FFXFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
 
         _baseInit = true;
 
-        LOG_DEBUG("calling InitFSR3");
+        LOG_DEBUG("calling InitFFX");
 
         if (_dx11on12Device == nullptr)
         {
@@ -103,9 +103,9 @@ bool FFXFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
             return false;
         }
 
-        if (!InitFSR3(InParameters))
+        if (!InitFFX(InParameters))
         {
-            LOG_ERROR("InitFSR3 fail!");
+            LOG_ERROR("InitFFX fail!");
             return false;
         }
 
@@ -585,7 +585,7 @@ bool FFXFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
     return evalResult;
 }
 
-bool FFXFeatureDx11on12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureDx11on12::InitFFX(const NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 

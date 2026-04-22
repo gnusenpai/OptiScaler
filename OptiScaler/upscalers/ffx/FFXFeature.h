@@ -18,7 +18,7 @@ class FFXFeature : public virtual IFeature
     ffxContext _context = nullptr;
     ffxCreateContextDescUpscale _contextDesc = {};
 
-    virtual bool InitFSR3(const NVSDK_NGX_Parameter* InParameters) = 0;
+    virtual bool InitFFX(const NVSDK_NGX_Parameter* InParameters) = 0;
 
     double GetDeltaTime();
 

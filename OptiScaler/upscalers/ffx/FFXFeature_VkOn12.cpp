@@ -103,7 +103,7 @@ bool FFXFeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter
 
         _baseInit = true;
 
-        LOG_DEBUG("calling InitFSR3");
+        LOG_DEBUG("calling InitFFX");
 
         if (_dx11on12Device == nullptr)
         {
@@ -111,9 +111,9 @@ bool FFXFeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter
             return false;
         }
 
-        if (!InitFSR3(InParameters))
+        if (!InitFFX(InParameters))
         {
-            LOG_ERROR("InitFSR3 failed!");
+            LOG_ERROR("InitFFX failed!");
             return false;
         }
 
@@ -542,7 +542,7 @@ bool FFXFeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter
     return evalResult;
 }
 
-bool FFXFeatureVkOn12::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVkOn12::InitFFX(const NVSDK_NGX_Parameter* InParameters)
 {
     LOG_FUNC();
 

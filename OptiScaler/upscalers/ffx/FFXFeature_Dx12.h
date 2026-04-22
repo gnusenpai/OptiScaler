@@ -11,7 +11,7 @@ class FFXFeatureDx12 : public FFXFeature, public IFeature_Dx12
     NVSDK_NGX_Parameter* SetParameters(NVSDK_NGX_Parameter* InParameters);
 
   protected:
-    bool InitFSR3(const NVSDK_NGX_Parameter* InParameters);
+    bool InitFFX(const NVSDK_NGX_Parameter* InParameters);
 
   public:
     FFXFeatureDx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);

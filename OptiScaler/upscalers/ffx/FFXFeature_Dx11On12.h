@@ -12,7 +12,7 @@ class FFXFeatureDx11on12 : public FFXFeature, public IFeature_Dx11wDx12
     NVSDK_NGX_Parameter* SetParameters(NVSDK_NGX_Parameter* InParameters);
 
   protected:
-    bool InitFSR3(const NVSDK_NGX_Parameter* InParameters);
+    bool InitFFX(const NVSDK_NGX_Parameter* InParameters);
 
   public:
     std::string Name() const { return "FSR3 w/Dx12"; }

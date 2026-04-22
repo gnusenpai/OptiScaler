@@ -131,9 +131,9 @@ FFXFeatureVk::FFXFeatureVk(unsigned int InHandleId, NVSDK_NGX_Parameter* InParam
         LOG_ERROR("Can't load amd_fidelityfx_vk.dll methods!");
 }
 
-bool FFXFeatureVk::InitFSR3(const NVSDK_NGX_Parameter* InParameters)
+bool FFXFeatureVk::InitFFX(const NVSDK_NGX_Parameter* InParameters)
 {
-    LOG_DEBUG("FFXFeatureVk::InitFSR3");
+    LOG_DEBUG("FFXFeatureVk::InitFFX");
 
     if (!ModuleLoaded())
         return false;
@@ -215,7 +215,7 @@ bool FFXFeatureVk::Init(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice I
     if (OS == nullptr)
         OS = std::make_unique<OS_Vk>("OS", InDevice, InPD, (TargetWidth() < DisplayWidth()));
 
-    return InitFSR3(InParameters);
+    return InitFFX(InParameters);
 }
 
 bool FFXFeatureVk::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* InParameters)
