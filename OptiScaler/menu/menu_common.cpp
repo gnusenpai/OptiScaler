@@ -4698,8 +4698,8 @@ bool MenuCommon::RenderMenu()
                     {
                         config->FN_ForceLatencyFlex = forceLFX;
                     }
-                    ShowHelpMarker("FSR Latency Reduction 2.0 / XeLL is used when available, this setting lets you "
-                                   "force LatencyFlex instead");
+                    ShowHelpMarker("By default, FSR Latency Reduction 2.0/XeLL is used when available.\n"
+                                   "This setting lets you force LatencyFlex instead");
                     ImGui::EndDisabled();
 
                     bool forceXell = config->ForceXeLL.value_or_default();
@@ -4731,7 +4731,8 @@ bool MenuCommon::RenderMenu()
                         { LFXMode::Aggressive, "Aggressive",
                             "Improves latency, but in some cases will lower FPS more than expected" },
                         { LFXMode::ReflexIDs, "Reflex ID",
-                            "Best when can be used, some games are not compatible (i.e. cyberpunk) and will fallback to Aggressive" }
+                            "Best when can be used, some games are not compatible (e.g. Cyberpunk)\n"
+                            "and will fallback to Aggressive" }
                     };
 
                     bool usingLFX = fakenvapi::getCurrentMode() == LowLatencyMode::LatencyFlex;
@@ -4795,11 +4796,12 @@ bool MenuCommon::RenderMenu()
                             ImGui::Checkbox("Enable RCAS/DA", &rcas))
                             config->RcasEnabled = rcas;
 
-                        ShowHelpMarker(
-                            "Enable OptiScaler's sharpening filter\n"
-                            "By default uses a sharpening value provided by the game\n"
-                            "Select 'Override' under 'Sharpness' and adjust the slider to change it\n\n"
-                            "Some upscalers have their own sharpness filter,\n so this option is not always needed");
+                        ShowHelpMarker("Enable OptiScaler's sharpening filter\n"
+                                       "By default uses a sharpening value provided by the game\n"
+                                       "Select 'Override' under 'Sharpness' and adjust the slider\n"
+                                       "to change it\n\n"
+                                       "Some upscalers have their own sharpness filter, so this\n"
+                                       "option is not always needed");
 
                         ImGui::BeginDisabled(!config->RcasEnabled.value_or(rcasEnabled));
 
@@ -4811,7 +4813,8 @@ bool MenuCommon::RenderMenu()
                         }
 
                         ShowHelpMarker("Use AMD's RCAS\n"
-                                       "Modified to add Contrast parameter and MAS support");
+                                       "Modified to add Contrast parameter\n"
+                                       "and MAS support");
 
                         ImGui::SameLine(0.0f, 6.0f);
 
@@ -4821,7 +4824,10 @@ bool MenuCommon::RenderMenu()
                         }
 
                         ShowHelpMarker("Use Depth Aware Sharpening\n"
-                                       "Smarter sharpening with less artifacts, but also more heavy");
+                                       "Smarter sharpening with less artifacts,\n"
+                                       "but also heavier\n\n"
+                                       "The farther away is the object, the more\n"
+                                       "sharpening is applied");
 
                         ImGui::Spacing();
 
@@ -4836,7 +4842,10 @@ bool MenuCommon::RenderMenu()
                                 ImGui::Checkbox("DA + MAS Debug", &overrideMSDebug))
                                 config->MotionSharpnessDebug = overrideMSDebug;
 
-                            ShowHelpMarker("Enable DAS debug view");
+                            ShowHelpMarker("Enable DA + MAS debug views\n"
+                                           "Blue tint for DA detected edges\n\n"
+                                           "More red areas will have more sharpness applied\n"
+                                           "Green areas will get reduced sharpness");
 
                             if (auto ch = ScopedCollapsingHeader("Advanced DA Parameters"); ch.IsHeaderOpen())
                             {
@@ -5003,9 +5012,8 @@ bool MenuCommon::RenderMenu()
                         if (upOverride)
                             config->QualityRatioOverrideEnabled = false;
                     }
-                    ShowHelpMarker("Lets you override every upscaler preset\n"
-                                   "with a value set below\n\n"
-                                   "1.5x on a 1080p screen means internal resolution of 720p\n"
+                    ShowHelpMarker("Overrides every upscaler preset with the set value\n\n"
+                                   "1.5x on a 1080p screen means an internal res of 720p\n"
                                    "1080 / 1.5 = 720");
 
                     if (bool qOverride = config->QualityRatioOverrideEnabled.value_or_default();
