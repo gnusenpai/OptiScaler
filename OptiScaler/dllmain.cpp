@@ -1777,6 +1777,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
                 State::Instance().NVNGX_DLSS_Path = Util::FindFilePath(dlssPath.remove_filename(), "nvngx_dlss.dll");
             }
 
+            if (!State::Instance().NVNGX_DLSS_Path.has_value() && Config::Instance()->MainDllPath.has_value())
+            {
+                std::filesystem::path dllsFolder(Config::Instance()->MainDllPath.value());
+                State::Instance().NVNGX_DLSS_Path = Util::FindFilePath(dllsFolder.remove_filename(), "nvngx_dlss.dll");
+            }
+
             if (State::Instance().NVNGX_DLSS_Path.has_value())
             {
                 spdlog::info("Enabling DLSS");
