@@ -327,9 +327,13 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
             else
                 pD3D12CreateDevice = D3d12Proxy::D3D12CreateDevice_();
 
-            // Needed to be able to query amdxc and check for vkd3d-proton
-            if (SUCCEEDED(
-                    pD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device))))
+            // D3D12 device is needed to be able to query amdxc and check for vkd3d-proton
+            mutex.unlock(); // To avoid VK hooks, not ideal
+            auto createResult =
+                pD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device));
+            mutex.lock();
+
+            if (SUCCEEDED(createResult))
             {
                 ComPtr<ID3D12DXVKInteropDevice> vkd3dInterop;
                 if (gpuInfo.d3d12device && SUCCEEDED(gpuInfo.d3d12device->QueryInterface(IID_PPV_ARGS(&vkd3dInterop))))
