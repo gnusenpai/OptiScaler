@@ -355,6 +355,9 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
     if (!Config::Instance()->FGXeFGInterpolationCount.has_value())
         Config::Instance()->FGXeFGInterpolationCount.set_volatile_value(intTarget);
 
+    if (Config::Instance()->ForceXeLL.value_or_default())
+        params.maxInterpolatedFrames = 1;
+
     params.maxInterpolatedFrames = intTarget;
 
     params.initFlags = XEFG_SWAPCHAIN_INIT_FLAG_NONE;
@@ -519,6 +522,9 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
 
     if (!Config::Instance()->FGXeFGInterpolationCount.has_value())
         Config::Instance()->FGXeFGInterpolationCount.set_volatile_value(intTarget);
+
+    if (Config::Instance()->ForceXeLL.value_or_default())
+        params.maxInterpolatedFrames = 1;
 
     params.maxInterpolatedFrames = intTarget;
 
