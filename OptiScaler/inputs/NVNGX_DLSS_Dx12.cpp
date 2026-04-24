@@ -700,7 +700,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_CreateFeature(ID3D12GraphicsComma
             }
             else
             {
-                LOG_INFO("Native CreateFeature failed: {:#x}", (uint32_t) res);
+                LOG_INFO("Native CreateFeature failed: 0x{:X}", (uint32_t) res);
             }
 
             return res;
@@ -1061,7 +1061,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             LOG_DEBUG("Passthrough to native DLSS EvaluateFeature for handle {}", handleId);
             NVSDK_NGX_Result result =
                 NVNGXProxy::D3D12_EvaluateFeature()(InCmdList, InFeatureHandle, InParameters, InCallback);
-            LOG_DEBUG("Native DLSS EvaluateFeature result: {:#x}", (uint32_t) result);
+            LOG_DEBUG("Native DLSS EvaluateFeature result: 0x{:X}", (uint32_t) result);
             return result;
         }
 

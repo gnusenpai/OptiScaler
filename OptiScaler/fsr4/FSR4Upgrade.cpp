@@ -238,7 +238,7 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
             auto result = o_UpdateFfxApiProviderEx(pData, dataSizeInBytes, &data);
 
             auto level = SUCCEEDED(result) ? spdlog::level::info : spdlog::level::err;
-            spdlog::log(level, "UpdateFfxApiProviderEx for: {}, result: {:#X}", effect, (UINT) result);
+            spdlog::log(level, "UpdateFfxApiProviderEx for: {}, result: 0x{:X}", effect, (UINT) result);
 
             State::EnableChecks(owner);
             return result;
@@ -252,7 +252,7 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
             auto result = o_UpdateFfxApiProvider(pData, dataSizeInBytes);
 
             auto level = SUCCEEDED(result) ? spdlog::level::info : spdlog::level::err;
-            spdlog::log(level, "UpdateFfxApiProvider for: {}, result: {:#X}", effect, (UINT) result);
+            spdlog::log(level, "UpdateFfxApiProvider for: {}, result: 0x{:X}", effect, (UINT) result);
 
             State::EnableChecks(owner);
             return result;
