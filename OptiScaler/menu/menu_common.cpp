@@ -1000,14 +1000,11 @@ void KeyUp(UINT vKey)
     inputFpsCycle = vKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
 }
 
-bool IsFsr(Upscaler upscaler)
+bool usesCompatLayer(Upscaler upscaler)
 {
     switch (upscaler)
     {
-    case Upscaler::FSR21:
-    case Upscaler::FSR22:
-    case Upscaler::FSR31:
-    case Upscaler::FFX:
+    case Upscaler::XeSS_on12:
     case Upscaler::FSR21_on12:
     case Upscaler::FSR22_on12:
     case Upscaler::FFX_on12:
@@ -1798,7 +1795,7 @@ bool MenuCommon::RenderMenu()
             std::string thirdLine = "";
 
             auto fg = state.currentFG;
-            auto fgText = (fg != nullptr && fg->IsActive() && !fg->IsPaused()) ? ("(" + std::string(fg->Name()) + ")")
+            auto fgText = (fg != nullptr && fg->IsActive() && !fg->IsPaused()) ? (" (" + std::string(fg->Name()) + ")")
                                                                                : std::string();
 
             if (state.activeFgOutput == FGOutput::NvngxFG || state.activeFgOutput == FGOutput::DLSSGWithNvngx)
@@ -1806,67 +1803,61 @@ bool MenuCommon::RenderMenu()
                 if (Nvngx_FG::isMFG())
                 {
                     if (state.dlssgDetectedInterpolationCount == 0)
-                        fgText = "(Enabler off)";
+                        fgText = " (Enabler off)";
                     else
-                        fgText = std::format("(Enabler x{})", state.dlssgDetectedInterpolationCount + 1);
+                        fgText = std::format(" (Enabler x{})", state.dlssgDetectedInterpolationCount + 1);
                 }
                 else
                 {
                     if (state.dlssgDetectedInterpolationCount == 0)
-                        fgText = "(Nukems off)";
+                        fgText = " (Nukems off)";
                     else if (state.dlssgDetectedInterpolationCount == 1)
-                        fgText = std::format("(Nukems x2)");
+                        fgText = std::format(" (Nukems x2)");
                     else
-                        fgText = std::format("(Nukems Doesn't support more than 2x)");
+                        fgText = std::format(" (Nukems Doesn't support more than 2x)");
                 }
             }
             else if (state.activeFgOutput == FGOutput::DLSSG)
             {
                 if (state.dlssgDetectedInterpolationCount == 0)
-                    fgText = "(DLSSG off)";
+                    fgText = " (DLSSG off)";
                 else
-                    fgText = std::format("(DLSSG x{})", state.dlssgDetectedInterpolationCount + 1);
+                    fgText = std::format(" (DLSSG x{})", state.dlssgDetectedInterpolationCount + 1);
             }
 
-            // if (state.activeFgOutput == FGOutput::DLSSGWithNvngx)
-            //{
-            // }
+            const auto overlayType = config->FpsOverlayType.value_or_default();
+            const bool hasFeature = currentFeature && !currentFeature->IsFrozen();
 
             // Prepare Line 1
-            if (config->FpsOverlayType.value_or_default() == FpsOverlay_JustFPS)
+            std::string featurePart;
+            std::string fpsPart;
+
+            if (hasFeature)
             {
-                firstLine = StrFmt("%s | FPS: %6.1f %s", api.c_str(), frameRate, fgText.c_str());
+                const bool usesDx12CompatLayer = usesCompatLayer(currentFeature->GetUpscalerType());
+
+                featurePart = StrFmt(" | %s -> %s %u.%u.%u%s", state.currentInputApiName.c_str(),
+                                     currentFeature->ShortName().c_str(), currentFeature->Version().major,
+                                     currentFeature->Version().minor, currentFeature->Version().patch,
+                                     usesDx12CompatLayer ? " w/Dx12" : "");
             }
-            else if (config->FpsOverlayType.value_or_default() == FpsOverlay_Simple)
+
+            switch (overlayType)
             {
-                if (currentFeature != nullptr && !currentFeature->IsFrozen())
-                {
-                    firstLine = StrFmt("%s | FPS: %6.1f, %7.2f ms %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
-                                       frameTime, fgText.c_str(), state.currentInputApiName.c_str(),
-                                       currentFeature->Name().c_str(), currentFeature->Version().major,
-                                       currentFeature->Version().minor, currentFeature->Version().patch);
-                }
-                else
-                {
-                    firstLine =
-                        StrFmt("%s | FPS: %6.1f, %7.2f ms %s", api.c_str(), frameRate, frameTime, fgText.c_str());
-                }
+            case FpsOverlay_JustFPS:
+                fpsPart = StrFmt("FPS: %6.1f", frameRate);
+                break;
+
+            case FpsOverlay_Simple:
+                fpsPart = StrFmt("FPS: %6.1f, %7.2f ms", frameRate, frameTime);
+                break;
+
+            default:
+                fpsPart = StrFmt("FPS: %6.1f, Avg: %6.1f", frameRate, 1000.0f / averageFrameTime);
+                break;
             }
-            else
-            {
-                if (currentFeature != nullptr && !currentFeature->IsFrozen())
-                {
-                    firstLine = StrFmt("%s | FPS: %6.1f, Avg: %6.1f %s | %s -> %s %u.%u.%u", api.c_str(), frameRate,
-                                       1000.0f / averageFrameTime, fgText.c_str(), state.currentInputApiName.c_str(),
-                                       currentFeature->Name().c_str(), currentFeature->Version().major,
-                                       currentFeature->Version().minor, currentFeature->Version().patch);
-                }
-                else
-                {
-                    firstLine = StrFmt("%s | FPS: %6.1f, Avg: %6.1f %s", api.c_str(), frameRate,
-                                       1000.0f / averageFrameTime, fgText.c_str());
-                }
-            }
+
+            firstLine = StrFmt("%s | %s%s%s", api.c_str(), fpsPart.c_str(), fgText.c_str(), featurePart.c_str());
 
             // Prepare Line 2
             if (config->FpsOverlayType.value_or_default() >= FpsOverlay_Detailed)
@@ -2306,15 +2297,17 @@ bool MenuCommon::RenderMenu()
                     ImGui::PushItemWidth(180.0f * menuResScale);
 
                     const bool usesDlssd = currentFeature->GetUpscalerType() == Upscaler::DLSSD;
+                    const bool usesDx12CompatLayer = usesCompatLayer(currentFeature->GetUpscalerType());
 
                     switch (state.api)
                     {
                     case DX11:
                         ImGui::Text(primaryGpu.name.c_str());
 
-                        ImGui::Text("D3D11 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
-                                    currentFeature->Name().c_str(), currentFeature->Version().major,
-                                    currentFeature->Version().minor, currentFeature->Version().patch);
+                        ImGui::Text("D3D11 %s| %s %d.%d.%d%s", primaryGpu.usesDxvk ? "(DXVK) " : "",
+                                    currentFeature->ShortName().c_str(), currentFeature->Version().major,
+                                    currentFeature->Version().minor, currentFeature->Version().patch,
+                                    usesDx12CompatLayer ? " w/Dx12" : "");
                         ImGui::SameLine(0.0f, 6.0f);
                         ImGui::Text("| Input: %s", state.currentInputApiName.c_str());
 
@@ -2331,7 +2324,7 @@ bool MenuCommon::RenderMenu()
                         ImGui::Text(primaryGpu.name.c_str());
 
                         ImGui::Text("D3D12 %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
-                                    currentFeature->Name().c_str(), currentFeature->Version().major,
+                                    currentFeature->ShortName().c_str(), currentFeature->Version().major,
                                     currentFeature->Version().minor, currentFeature->Version().patch);
                         ImGui::SameLine(0.0f, 6.0f);
                         ImGui::Text("| Input: %s", state.currentInputApiName.c_str());
@@ -2348,9 +2341,10 @@ bool MenuCommon::RenderMenu()
                     default:
                         ImGui::Text(primaryGpu.name.c_str());
 
-                        ImGui::Text("Vulkan %s| %s %d.%d.%d", primaryGpu.usesDxvk ? "(DXVK) " : "",
-                                    currentFeature->Name().c_str(), currentFeature->Version().major,
-                                    currentFeature->Version().minor, currentFeature->Version().patch);
+                        ImGui::Text("Vulkan %s| %s %d.%d.%d%s", primaryGpu.usesDxvk ? "(DXVK) " : "",
+                                    currentFeature->ShortName().c_str(), currentFeature->Version().major,
+                                    currentFeature->Version().minor, currentFeature->Version().patch,
+                                    usesDx12CompatLayer ? " w/Dx12" : "");
                         ImGui::SameLine(0.0f, 6.0f);
                         ImGui::Text("| Input: %s", state.currentInputApiName.c_str());
 

@@ -67,6 +67,8 @@ enum class Upscaler
 };
 
 std::string UpscalerDisplayName(Upscaler upscaler, API api = API::NotSelected);
+std::string UpscalerShortName(Upscaler upscaler);
+bool IsFsr(Upscaler upscaler);
 
 // Converts enum to the string codes for config
 std::string UpscalerToCode(Upscaler upscaler);

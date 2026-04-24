@@ -94,6 +94,7 @@ class IFeature
     virtual feature_version Version() = 0;
     virtual Upscaler GetUpscalerType() const = 0;
     std::string Name() const { return UpscalerDisplayName(GetUpscalerType()); };
+    std::string ShortName() const { return UpscalerShortName(GetUpscalerType()); }; // Without the version
 
     size_t JitterCount() { return _jitterInfo.size(); }
 

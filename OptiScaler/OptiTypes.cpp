@@ -45,6 +45,47 @@ std::string UpscalerDisplayName(Upscaler upscaler, API api)
 
     case Upscaler::DLSS:
         return "DLSS";
+
+    case Upscaler::DLSSD:
+        return "DLSSD";
+    }
+
+    return "????";
+}
+
+bool IsFsr(Upscaler upscaler)
+{
+    switch (upscaler)
+    {
+    case Upscaler::FSR21:
+    case Upscaler::FSR22:
+    case Upscaler::FSR31:
+    case Upscaler::FFX:
+    case Upscaler::FSR21_on12:
+    case Upscaler::FSR22_on12:
+    case Upscaler::FFX_on12:
+        return true;
+    default:
+        return false;
+    }
+}
+
+std::string UpscalerShortName(Upscaler upscaler)
+{
+    if (IsFsr(upscaler))
+        return "FSR";
+
+    switch (upscaler)
+    {
+    case Upscaler::XeSS:
+    case Upscaler::XeSS_on12:
+        return "XeSS";
+
+    case Upscaler::DLSS:
+        return "DLSS";
+
+    case Upscaler::DLSSD:
+        return "DLSSD";
     }
 
     return "????";
