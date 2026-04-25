@@ -136,7 +136,7 @@ FT_Dx12::FT_Dx12(std::string InName, ID3D12Device* InDevice, DXGI_FORMAT InForma
     }
     else
     {
-        _recEncodeShader = FT_CompileShader(FT_ShaderCode.c_str(), "CSMain", "cs_5_0");
+        _recEncodeShader = CompileShader(FT_ShaderCode.c_str(), "CSMain", "cs_5_0");
 
         if (_recEncodeShader == nullptr)
             LOG_ERROR("[{0}] CompileShader error!", _name);

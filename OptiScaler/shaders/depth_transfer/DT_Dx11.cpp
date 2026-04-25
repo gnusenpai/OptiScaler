@@ -2,6 +2,7 @@
 #include "DT_Dx11.h"
 
 #include "DT_Common.h"
+#include "../Shader_Common.h"
 #include "precompile/dt_dx11_Shader_Dx11.h"
 
 #include <Config.h>
@@ -158,7 +159,7 @@ DepthTransfer_Dx11::DepthTransfer_Dx11(std::string InName, ID3D11Device* InDevic
     else
     {
         // Compile shader blobs
-        ID3DBlob* shaderBlob = DT_CompileShader(shaderCode.c_str(), "CSMain", "cs_5_0");
+        ID3DBlob* shaderBlob = CompileShader(shaderCode.c_str(), "CSMain", "cs_5_0");
 
         if (shaderBlob == nullptr)
             LOG_ERROR("[{0}] CompileShader error!", _name);

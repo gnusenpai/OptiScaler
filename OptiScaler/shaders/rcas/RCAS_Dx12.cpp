@@ -29,7 +29,7 @@ bool RCAS_Dx12::CreatePipelineState(ID3D12Device* InDevice, const void* InShader
 bool RCAS_Dx12::CreatePipelineState(ID3D12Device* InDevice, const std::string& InShaderCode,
                                     ID3D12PipelineState** OutPipelineState, D3D12_SHADER_BYTECODE byteCode)
 {
-    ID3DBlob* shaderBlob = RCAS_CompileShader(InShaderCode.c_str(), "CSMain", "cs_5_0");
+    ID3DBlob* shaderBlob = CompileShader(InShaderCode.c_str(), "CSMain", "cs_5_0");
 
     auto result = Shader_Dx12::CreateComputeShader(InDevice, _rootSignature, OutPipelineState, shaderBlob, byteCode);
     shaderBlob->Release();

@@ -102,7 +102,7 @@ DI_Dx12::DI_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
         // Compile shader blobs
         ID3DBlob* _recEncodeShader = nullptr;
 
-        _recEncodeShader = DI_CompileShader(shaderCode.c_str(), "CSMain", "cs_5_0");
+        _recEncodeShader = CompileShader(shaderCode.c_str(), "CSMain", "cs_5_0");
 
         if (_recEncodeShader == nullptr)
             LOG_ERROR("[{0}] CompileShader error!", _name);

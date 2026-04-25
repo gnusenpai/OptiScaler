@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "RCAS_Dx11.h"
+#include "../Shader_Common.h"
 
 #include "precompile/RCAS_Shader_Dx11.h"
 #include "precompile/da_sharpen_Shader_Dx11.h"
@@ -426,7 +427,7 @@ RCAS_Dx11::RCAS_Dx11(std::string InName, ID3D11Device* InDevice) : _name(InName)
     else
     {
         // Compile shader blobs
-        ID3DBlob* shaderBlob = RCAS_CompileShader(rcasCode.c_str(), "CSMain", "cs_5_0");
+        ID3DBlob* shaderBlob = CompileShader(rcasCode.c_str(), "CSMain", "cs_5_0");
 
         HRESULT hr = E_FAIL;
 
@@ -455,7 +456,7 @@ RCAS_Dx11::RCAS_Dx11(std::string InName, ID3D11Device* InDevice) : _name(InName)
             return;
         }
 
-        shaderBlob = RCAS_CompileShader(daSharpenCode.c_str(), "CSMain", "cs_5_0");
+        shaderBlob = CompileShader(daSharpenCode.c_str(), "CSMain", "cs_5_0");
 
         if (shaderBlob != nullptr)
         {

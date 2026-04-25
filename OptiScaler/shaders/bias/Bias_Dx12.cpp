@@ -148,7 +148,7 @@ Bias_Dx12::Bias_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(I
     else
     {
         // Compile shader blobs
-        ID3DBlob* _recEncodeShader = Bias_CompileShader(biasShader.c_str(), "CSMain", "cs_5_0");
+        ID3DBlob* _recEncodeShader = CompileShader(biasShader.c_str(), "CSMain", "cs_5_0");
 
         if (_recEncodeShader == nullptr)
             LOG_ERROR("[{0}] CompileShader error!", _name);

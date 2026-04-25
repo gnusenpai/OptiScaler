@@ -2,6 +2,7 @@
 #include "Bias_Dx11.h"
 
 #include "Bias_Common.h"
+#include "../Shader_Common.h"
 #include "precompile/Bias_Shader_Dx11.h"
 
 #include <Config.h>
@@ -209,7 +210,7 @@ Bias_Dx11::Bias_Dx11(std::string InName, ID3D11Device* InDevice) : _name(InName)
     else
     {
         // Compile shader blobs
-        ID3DBlob* shaderBlob = Bias_CompileShader(biasShader.c_str(), "CSMain", "cs_5_0");
+        ID3DBlob* shaderBlob = CompileShader(biasShader.c_str(), "CSMain", "cs_5_0");
 
         HRESULT hr = E_FAIL;
 

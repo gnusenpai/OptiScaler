@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d12.h>
+#include "Shader_Common.h"
 
 class Shader_Dx12
 {
