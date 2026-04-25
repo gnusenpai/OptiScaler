@@ -191,37 +191,10 @@ bool RCAS_Dx12::DispatchDepthAdaptive(ID3D12Device* InDevice, ID3D12GraphicsComm
     if (InDepth == nullptr || _pipelineStateDA == nullptr)
         return false;
 
-    auto inDesc = InResource->GetDesc();
-    auto mvDesc = InMotionVectors->GetDesc();
-    auto depthDesc = InDepth->GetDesc();
-    auto outDesc = OutResource->GetDesc();
-
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Format = Shader_Dx12::TranslateTypelessFormats(inDesc.Format);
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = 1;
-    InDevice->CreateShaderResourceView(InResource, &srvDesc, currentHeap.GetSrvCPU(0));
-
-    D3D12_SHADER_RESOURCE_VIEW_DESC mvSrvDesc = {};
-    mvSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    mvSrvDesc.Format = Shader_Dx12::TranslateTypelessFormats(mvDesc.Format);
-    mvSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    mvSrvDesc.Texture2D.MipLevels = 1;
-    InDevice->CreateShaderResourceView(InMotionVectors, &mvSrvDesc, currentHeap.GetSrvCPU(1));
-
-    D3D12_SHADER_RESOURCE_VIEW_DESC depthSrvDesc = {};
-    depthSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    depthSrvDesc.Format = Shader_Dx12::TranslateTypelessFormats(depthDesc.Format);
-    depthSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    depthSrvDesc.Texture2D.MipLevels = 1;
-    InDevice->CreateShaderResourceView(InDepth, &depthSrvDesc, currentHeap.GetSrvCPU(2));
-
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = Shader_Dx12::TranslateTypelessFormats(outDesc.Format);
-    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    uavDesc.Texture2D.MipSlice = 0;
-    InDevice->CreateUnorderedAccessView(OutResource, nullptr, &uavDesc, currentHeap.GetUavCPU(0));
+    CreateShaderResourceView(InDevice, InResource, currentHeap.GetSrvCPU(0), false);
+    CreateShaderResourceView(InDevice, InMotionVectors, currentHeap.GetSrvCPU(1), false);
+    CreateShaderResourceView(InDevice, InDepth, currentHeap.GetSrvCPU(2), false);
+    CreateUnorderedAccessView(InDevice, OutResource, currentHeap.GetUavCPU(0), 0);
 
     InternalConstantsDA constants {};
     FillMotionConstants(constants, InConstants);
@@ -261,6 +234,7 @@ bool RCAS_Dx12::DispatchDepthAdaptive(ID3D12Device* InDevice, ID3D12GraphicsComm
     InCmdList->SetPipelineState(_pipelineStateDA);
     InCmdList->SetComputeRootDescriptorTable(0, currentHeap.GetTableGPUStart());
 
+    auto inDesc = InResource->GetDesc();
     UINT dispatchWidth = static_cast<UINT>((inDesc.Width + InNumThreadsX - 1) / InNumThreadsX);
     UINT dispatchHeight = (inDesc.Height + InNumThreadsY - 1) / InNumThreadsY;
     InCmdList->Dispatch(dispatchWidth, dispatchHeight, 1);

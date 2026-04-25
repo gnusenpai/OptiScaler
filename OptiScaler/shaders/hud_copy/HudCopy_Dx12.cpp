@@ -61,28 +61,10 @@ bool HudCopy_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* c
 
     ResourceBarrier(cmdList, hudless, hudlessState, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-    auto presentCopyDesc = _buffer->GetDesc();
-
-    // Create SRV for Input Texture
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc1 = {};
-    srvDesc1.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc1.Format = Shader_Dx12::TranslateTypelessFormats(hudlessDesc.Format);
-    srvDesc1.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc1.Texture2D.MipLevels = 1;
-    InDevice->CreateShaderResourceView(hudless, &srvDesc1, currentHeap.GetSrvCPU(0));
-
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc2 = {};
-    srvDesc2.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc2.Format = Shader_Dx12::TranslateTypelessFormats(presentDesc.Format);
-    srvDesc2.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc2.Texture2D.MipLevels = 1;
-    InDevice->CreateShaderResourceView(present, &srvDesc2, currentHeap.GetSrvCPU(1));
-
-    // Create UAV for Output Texture
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = Shader_Dx12::TranslateTypelessFormats(presentCopyDesc.Format);
-    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    InDevice->CreateUnorderedAccessView(_buffer, nullptr, &uavDesc, currentHeap.GetUavCPU(0));
+    // Create views
+    CreateShaderResourceView(InDevice, hudless, currentHeap.GetSrvCPU(0), false);
+    CreateShaderResourceView(InDevice, present, currentHeap.GetSrvCPU(1), false);
+    CreateUnorderedAccessView(InDevice, _buffer, currentHeap.GetUavCPU(0), 0);
 
     InternalCompareParams constants {};
     constants.DiffThreshold = hudDetectionThreshold;

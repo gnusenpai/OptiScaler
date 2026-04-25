@@ -275,30 +275,9 @@ bool RUI_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12GraphicsCommandList* cmdList,
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
     // Create views
-    {
-        D3D12_SHADER_RESOURCE_VIEW_DESC srv {};
-        srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srv.Texture2D.MipLevels = 1;
-        srv.Format = Shader_Dx12::TranslateTypelessFormats(hudlessDesc.Format);
-        _device->CreateShaderResourceView(hudless, &srv, currentHeap.GetSrvCPU(0));
-    }
-
-    {
-        D3D12_SHADER_RESOURCE_VIEW_DESC srv {};
-        srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srv.Texture2D.MipLevels = 1;
-        srv.Format = Shader_Dx12::TranslateTypelessFormats(scDesc.BufferDesc.Format);
-        _device->CreateShaderResourceView(_buffer[_counter], &srv, currentHeap.GetSrvCPU(1));
-    }
-
-    {
-        D3D12_RENDER_TARGET_VIEW_DESC rtv {};
-        rtv.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-        rtv.Format = Shader_Dx12::TranslateTypelessFormats(scDesc.BufferDesc.Format);
-        _device->CreateRenderTargetView(scBuffer, &rtv, currentHeap.GetRtvCPU(0));
-    }
+    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0), false);
+    CreateShaderResourceView(_device, _buffer[_counter], currentHeap.GetSrvCPU(1), false);
+    CreateRenderTargetView(_device, scBuffer, currentHeap.GetRtvCPU(0), 0);
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };
     cmdList->SetDescriptorHeaps(_countof(heaps), heaps);

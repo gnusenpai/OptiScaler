@@ -25,6 +25,23 @@ class Shader_Dx12
     static void SetBufferState(ID3D12GraphicsCommandList* InCommandList, D3D12_RESOURCE_STATES InState,
                                ID3D12Resource* Buffer, D3D12_RESOURCE_STATES* BufferState);
 
+    void CreateShaderResourceView(ID3D12Device* device, ID3D12Resource* tex, D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor,
+                                  bool isCubeMap);
+
+    void CreateUnorderedAccessView(ID3D12Device* device, ID3D12Resource* tex, D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptor,
+                                   uint32_t mipLevel);
+
+    void CreateRenderTargetView(ID3D12Device* device, ID3D12Resource* tex, D3D12_CPU_DESCRIPTOR_HANDLE rtvDescriptor,
+                                uint32_t mipLevel);
+
+    void CreateBufferShaderResourceView(ID3D12Device* device, ID3D12Resource* buffer,
+                                        D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor, uint32_t stride);
+
+    void CreateBufferUnorderedAccessView(ID3D12Device* device, ID3D12Resource* buffer,
+                                         D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptor, uint32_t stride,
+                                         D3D12_BUFFER_UAV_FLAGS flag, uint32_t counterOffset,
+                                         ID3D12Resource* counterResource);
+
   public:
     bool IsInit() const { return _init; }
 
