@@ -20,11 +20,10 @@ bool RF_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InR
     _counter = _counter % RF_NUM_OF_HEAPS;
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
-    auto inDesc = InResource->GetDesc();
-
     CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
+    auto inDesc = InResource->GetDesc();
     RFConstants constants {};
 
     constants.height = height - 1;

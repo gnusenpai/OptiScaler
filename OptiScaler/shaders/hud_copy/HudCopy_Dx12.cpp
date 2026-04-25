@@ -32,9 +32,6 @@ bool HudCopy_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* 
     _counter = _counter % HudCopy_NUM_OF_HEAPS;
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
-    auto hudlessDesc = hudless->GetDesc();
-    auto presentDesc = present->GetDesc();
-
     if (_buffer == nullptr)
     {
         LOG_DEBUG("[{0}] Start!", _name);
@@ -83,6 +80,7 @@ bool HudCopy_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* 
 
     cmdList->SetComputeRootDescriptorTable(0, currentHeap.GetTableGPUStart());
 
+    auto presentDesc = present->GetDesc();
     UINT dispatchWidth = static_cast<UINT>((presentDesc.Width + InNumThreadsX - 1) / InNumThreadsX);
     UINT dispatchHeight = (presentDesc.Height + InNumThreadsY - 1) / InNumThreadsY;
 

@@ -195,11 +195,6 @@ bool RUI_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12GraphicsCommandList* cmdList,
     _counter++;
     _counter = _counter % HC_NUM_OF_HEAPS;
 
-    // Check existing buffer
-    D3D12_RESOURCE_DESC bufferDesc {};
-    if (_buffer[_counter] != nullptr)
-        bufferDesc = _buffer[_counter]->GetDesc();
-
     if (!CreateBufferResource(_counter, _device, scBuffer, D3D12_RESOURCE_STATE_COPY_DEST))
     {
         LOG_ERROR("CreateBufferResource error!");
