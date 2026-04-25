@@ -62,6 +62,7 @@ HC_Dx12::HC_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
     CD3DX12_STATIC_SAMPLER_DESC sampler(0);
     sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 
     if (!SetupRootSignature(InDevice, 2, 0, 1, 1, 0, 1, &sampler,
                             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT))
@@ -191,7 +192,7 @@ bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12GraphicsCommandList* cmdList, 
     SetBufferState(_counter, cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
     ResourceBarrier(cmdList, scBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-    if (_buffer != nullptr)
+    if (_buffer[_counter] != nullptr)
         cmdList->CopyResource(_buffer[_counter], scBuffer);
 
     ResourceBarrier(cmdList, scBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);

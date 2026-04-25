@@ -160,8 +160,7 @@ OS_Dx12::OS_Dx12(std::string InName, ID3D12Device* InDevice, bool InUpsample)
 
     CD3DX12_STATIC_SAMPLER_DESC sampler(0);
     sampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-    sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    sampler.AddressU = sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP; // no sampler.AddressW ???
 
     if (!SetupRootSignature(InDevice, 1, 1, 1, 0, 0, 1, &sampler))
     {
