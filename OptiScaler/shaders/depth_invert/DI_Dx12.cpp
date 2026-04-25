@@ -77,59 +77,9 @@ DI_Dx12::DI_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
 
     LOG_DEBUG("{0} start!", _name);
 
-    CD3DX12_DESCRIPTOR_RANGE1 descriptorRanges[] = {
-        // 1 SRV starting at register t0, space 0
-        CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0),
-
-        // 1 UAV starting at register u0, space 0
-        CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0),
-    };
-
-    CD3DX12_ROOT_PARAMETER1 rootParameter {};
-    rootParameter.InitAsDescriptorTable(std::size(descriptorRanges), descriptorRanges);
-
-    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
-    rootSigDesc.Init_1_1(1, &rootParameter);
-
-    ID3DBlob* errorBlob;
-    ID3DBlob* signatureBlob;
-
-    do
+    if (!SetupRootSignature(InDevice, 1, 1, 0))
     {
-        auto hr = D3D12SerializeVersionedRootSignature(&rootSigDesc, &signatureBlob, &errorBlob);
-
-        if (FAILED(hr))
-        {
-            LOG_ERROR("[{0}] D3D12SerializeVersionedRootSignature error {1:x}", _name, hr);
-            break;
-        }
-
-        hr = InDevice->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(),
-                                           IID_PPV_ARGS(&_rootSignature));
-
-        if (FAILED(hr))
-        {
-            LOG_ERROR("[{0}] CreateRootSignature error {1:x}", _name, hr);
-            break;
-        }
-
-    } while (false);
-
-    if (errorBlob != nullptr)
-    {
-        errorBlob->Release();
-        errorBlob = nullptr;
-    }
-
-    if (signatureBlob != nullptr)
-    {
-        signatureBlob->Release();
-        signatureBlob = nullptr;
-    }
-
-    if (_rootSignature == nullptr)
-    {
-        LOG_ERROR("[{0}] _rootSignature is null!", _name);
+        LOG_ERROR("Failed to setup root signature");
         return;
     }
 
@@ -177,17 +127,7 @@ DI_Dx12::DI_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
 
     ScopedSkipHeapCapture skipHeapCapture {};
 
-    for (int i = 0; i < DI_NUM_OF_HEAPS; i++)
-    {
-        if (!_frameHeaps[i].Initialize(InDevice, 1, 1, 0))
-        {
-            LOG_ERROR("[{0}] Failed to init heap", _name);
-            _init = false;
-            return;
-        }
-    }
-
-    _init = true;
+    _init = InitHeaps(InDevice, _frameHeaps, DI_NUM_OF_HEAPS);
 }
 
 DI_Dx12::~DI_Dx12()

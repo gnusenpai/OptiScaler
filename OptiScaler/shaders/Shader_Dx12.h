@@ -3,6 +3,13 @@
 
 class Shader_Dx12
 {
+  private:
+    uint32_t _srcCount = 0;
+    uint32_t _uavCount = 0;
+    uint32_t _cbvCount = 0;
+    uint32_t _rtvCount = 0;
+    uint32_t _samplerCount = 0;
+
   protected:
     std::string _name = "";
     bool _init = false;
@@ -13,6 +20,8 @@ class Shader_Dx12
 
     ID3D12Device* _device = nullptr;
     ID3D12Resource* _constantBuffer = nullptr;
+
+    std::vector<CD3DX12_DESCRIPTOR_RANGE1> _descriptorRanges;
 
     static DXGI_FORMAT TranslateTypelessFormats(DXGI_FORMAT format);
     static bool CreateComputeShader(ID3D12Device* device, ID3D12RootSignature* rootSignature,
@@ -41,6 +50,13 @@ class Shader_Dx12
                                          D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptor, uint32_t stride,
                                          D3D12_BUFFER_UAV_FLAGS flag, uint32_t counterOffset,
                                          ID3D12Resource* counterResource);
+
+    bool SetupRootSignature(ID3D12Device* InDevice, uint32_t srcCount, uint32_t uavCount, uint32_t cbvCount,
+                            uint32_t rtvCount = 0, uint32_t samplerCount = 0, uint32_t staticSamplerCount = 0,
+                            const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers = nullptr,
+                            D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+    bool InitHeaps(ID3D12Device* InDevice, FrameDescriptorHeap* pHeaps, size_t numOFHeaps);
 
   public:
     bool IsInit() const { return _init; }

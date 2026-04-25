@@ -59,57 +59,14 @@ HC_Dx12::HC_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
         return;
     }
 
-    CD3DX12_DESCRIPTOR_RANGE1 descriptorRanges[] = {
-        // 2 SRVs starting at register t0, space 0
-        CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 0),
-
-        // 1 CBV starting at register b0, space 0
-        CD3DX12_DESCRIPTOR_RANGE1(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0)
-    };
-
-    CD3DX12_ROOT_PARAMETER1 rootParameter {};
-    rootParameter.InitAsDescriptorTable(std::size(descriptorRanges), descriptorRanges);
-
     CD3DX12_STATIC_SAMPLER_DESC sampler(0);
     sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
-    rootSigDesc.Init_1_1(1, &rootParameter, 1, &sampler, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-    ID3DBlob* signatureBlob;
-    ID3DBlob* errorBlob;
-
-    auto result = D3D12SerializeVersionedRootSignature(&rootSigDesc, &signatureBlob, &errorBlob);
-    if (result != S_OK)
+    if (!SetupRootSignature(InDevice, 2, 0, 1, 1, 0, 1, &sampler,
+                            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT))
     {
-        LOG_ERROR("D3D12SerializeVersionedRootSignature error: {:X}", (unsigned long) result);
-        return;
-    }
-
-    result = InDevice->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(),
-                                           IID_PPV_ARGS(&_rootSignature));
-    if (result != S_OK)
-    {
-        LOG_ERROR("CreateRootSignature error: {:X}", (unsigned long) result);
-        return;
-    }
-
-    if (errorBlob != nullptr)
-    {
-        errorBlob->Release();
-        errorBlob = nullptr;
-    }
-
-    if (signatureBlob != nullptr)
-    {
-        signatureBlob->Release();
-        signatureBlob = nullptr;
-    }
-
-    if (_rootSignature == nullptr)
-    {
-        LOG_ERROR("[{0}] _rootSignature is null!", _name);
+        LOG_ERROR("Failed to setup root signature");
         return;
     }
 
@@ -155,7 +112,7 @@ HC_Dx12::HC_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
         Shader_Dx12::TranslateTypelessFormats(scDesc.BufferDesc.Format); // match swapchain RTV format (can be *_SRGB)
     graphicsPsoDesc.SampleDesc = { 1, 0 };
 
-    result = InDevice->CreateGraphicsPipelineState(&graphicsPsoDesc, IID_PPV_ARGS(&_pipelineState));
+    auto result = InDevice->CreateGraphicsPipelineState(&graphicsPsoDesc, IID_PPV_ARGS(&_pipelineState));
     if (result != S_OK)
     {
         LOG_ERROR("CreateGraphicsPipelineState error: {:X}", (unsigned long) result);
@@ -178,17 +135,7 @@ HC_Dx12::HC_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
 
     ScopedSkipHeapCapture skipHeapCapture {};
 
-    for (int i = 0; i < HC_NUM_OF_HEAPS; i++)
-    {
-        if (!_frameHeaps[i].Initialize(InDevice, 2, 0, 1, 1))
-        {
-            LOG_ERROR("[{0}] Failed to init heap", _name);
-            _init = false;
-            return;
-        }
-    }
-
-    _init = true;
+    _init = InitHeaps(InDevice, _frameHeaps, HC_NUM_OF_HEAPS);
 }
 
 bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12GraphicsCommandList* cmdList, ID3D12Resource* hudless,

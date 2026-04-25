@@ -465,3 +465,90 @@ void Shader_Dx12::CreateBufferUnorderedAccessView(ID3D12Device* device, ID3D12Re
 
     device->CreateUnorderedAccessView(buffer, counterResource, &uavDesc, uavDescriptor);
 }
+
+bool Shader_Dx12::SetupRootSignature(ID3D12Device* InDevice, uint32_t srcCount, uint32_t uavCount, uint32_t cbvCount,
+                                     uint32_t rtvCount, uint32_t samplerCount, uint32_t staticSamplerCount,
+                                     const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
+{
+    _srcCount = srcCount;
+    _uavCount = uavCount;
+    _cbvCount = cbvCount;
+    _rtvCount = rtvCount;
+    _samplerCount = samplerCount;
+
+    if (_srcCount > 0)
+        _descriptorRanges.emplace_back(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, _srcCount, 0);
+
+    if (_uavCount > 0)
+        _descriptorRanges.emplace_back(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, _uavCount, 0);
+
+    if (_cbvCount > 0)
+        _descriptorRanges.emplace_back(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, _cbvCount, 0);
+
+    if (_samplerCount > 0)
+        _descriptorRanges.emplace_back(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, _samplerCount, 0);
+
+    CD3DX12_ROOT_PARAMETER1 rootParameter {};
+    rootParameter.InitAsDescriptorTable(static_cast<UINT>(_descriptorRanges.size()), _descriptorRanges.data());
+
+    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc {};
+    rootSigDesc.Init_1_1(1, &rootParameter, staticSamplerCount, pStaticSamplers, flags);
+
+    ID3DBlob* errorBlob;
+    ID3DBlob* signatureBlob;
+
+    do
+    {
+        auto hr = D3D12SerializeVersionedRootSignature(&rootSigDesc, &signatureBlob, &errorBlob);
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[{0}] D3D12SerializeVersionedRootSignature error {1:x}", _name, hr);
+            break;
+        }
+
+        hr = InDevice->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(),
+                                           IID_PPV_ARGS(&_rootSignature));
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[{0}] CreateRootSignature error {1:x}", _name, hr);
+            break;
+        }
+
+    } while (false);
+
+    if (errorBlob != nullptr)
+    {
+        errorBlob->Release();
+        errorBlob = nullptr;
+    }
+
+    if (signatureBlob != nullptr)
+    {
+        signatureBlob->Release();
+        signatureBlob = nullptr;
+    }
+
+    if (_rootSignature == nullptr)
+    {
+        LOG_ERROR("[{0}] _rootSignature is null!", _name);
+        return false;
+    }
+
+    return true;
+}
+
+bool Shader_Dx12::InitHeaps(ID3D12Device* InDevice, FrameDescriptorHeap* pHeaps, size_t numOFHeaps)
+{
+    for (size_t i = 0; i < numOFHeaps; i++)
+    {
+        if (!pHeaps[i].Initialize(InDevice, _srcCount, _uavCount, _cbvCount, _rtvCount))
+        {
+            LOG_ERROR("[{0}] Failed to init heap", _name);
+            return false;
+        }
+    }
+
+    return true;
+}
