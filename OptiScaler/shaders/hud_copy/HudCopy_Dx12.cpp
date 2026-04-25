@@ -59,8 +59,8 @@ bool HudCopy_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* 
     ResourceBarrier(cmdList, hudless, hudlessState, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
     // Create views
-    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0), false);
-    CreateShaderResourceView(_device, present, currentHeap.GetSrvCPU(1), false);
+    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0));
+    CreateShaderResourceView(_device, present, currentHeap.GetSrvCPU(1));
     CreateUnorderedAccessView(_device, _buffer, currentHeap.GetUavCPU(0), 0);
 
     InternalCompareParams constants {};

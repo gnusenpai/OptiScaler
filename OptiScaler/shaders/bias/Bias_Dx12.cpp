@@ -39,7 +39,7 @@ bool Bias_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* I
     _counter = _counter % BIAS_NUM_OF_HEAPS;
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
-    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0));
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     InternalConstants constants {};

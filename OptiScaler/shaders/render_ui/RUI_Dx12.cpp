@@ -221,8 +221,8 @@ bool RUI_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12GraphicsCommandList* cmdList,
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
     // Create views
-    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0), false);
-    CreateShaderResourceView(_device, _buffer[_counter], currentHeap.GetSrvCPU(1), false);
+    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0));
+    CreateShaderResourceView(_device, _buffer[_counter], currentHeap.GetSrvCPU(1));
     CreateRenderTargetView(_device, scBuffer, currentHeap.GetRtvCPU(0), 0);
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };

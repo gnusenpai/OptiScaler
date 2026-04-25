@@ -43,7 +43,7 @@ bool DI_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InR
     _counter = _counter % DI_NUM_OF_HEAPS;
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
-    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0));
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };

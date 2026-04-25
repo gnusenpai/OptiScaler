@@ -117,8 +117,8 @@ bool RCAS_Dx12::DispatchRCAS(ID3D12GraphicsCommandList* InCmdList, ID3D12Resourc
     if (InMotionVectors == nullptr || _device == nullptr)
         return false;
 
-    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
-    CreateShaderResourceView(_device, InMotionVectors, currentHeap.GetSrvCPU(1), false);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0));
+    CreateShaderResourceView(_device, InMotionVectors, currentHeap.GetSrvCPU(1));
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     InternalConstants constants {};
@@ -152,9 +152,9 @@ bool RCAS_Dx12::DispatchDepthAdaptive(ID3D12GraphicsCommandList* InCmdList, ID3D
     if (InDepth == nullptr || _pipelineStateDA == nullptr || _device == nullptr)
         return false;
 
-    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
-    CreateShaderResourceView(_device, InMotionVectors, currentHeap.GetSrvCPU(1), false);
-    CreateShaderResourceView(_device, InDepth, currentHeap.GetSrvCPU(2), false);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0));
+    CreateShaderResourceView(_device, InMotionVectors, currentHeap.GetSrvCPU(1));
+    CreateShaderResourceView(_device, InDepth, currentHeap.GetSrvCPU(2));
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     InternalConstantsDA constants {};

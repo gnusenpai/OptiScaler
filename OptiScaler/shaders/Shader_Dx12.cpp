@@ -180,17 +180,12 @@ void Shader_Dx12::SetBufferState(ID3D12GraphicsCommandList* InCommandList, D3D12
 
 // From DirectXHelpers.cpp licensed under MIT
 void Shader_Dx12::CreateShaderResourceView(ID3D12Device* device, ID3D12Resource* tex,
-                                           D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor, bool isCubeMap)
+                                           D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor)
 {
     if (!device || !tex)
         throw std::invalid_argument("Direct3D device and resource must be valid");
 
-#if defined(_MSC_VER) || !defined(_WIN32)
     const auto desc = tex->GetDesc();
-#else
-    D3D12_RESOURCE_DESC tmpDesc;
-    const auto& desc = *tex->GetDesc(&tmpDesc);
-#endif
 
     if ((desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) != 0)
     {
@@ -221,21 +216,7 @@ void Shader_Dx12::CreateShaderResourceView(ID3D12Device* device, ID3D12Resource*
         break;
 
     case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-        if (isCubeMap)
-        {
-            if (desc.DepthOrArraySize > 6)
-            {
-                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
-                srvDesc.TextureCubeArray.MipLevels = mipLevels;
-                srvDesc.TextureCubeArray.NumCubes = static_cast<UINT>(desc.DepthOrArraySize / 6);
-            }
-            else
-            {
-                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-                srvDesc.TextureCube.MipLevels = mipLevels;
-            }
-        }
-        else if (desc.DepthOrArraySize > 1)
+        if (desc.DepthOrArraySize > 1)
         {
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
             srvDesc.Texture2DArray.MipLevels = mipLevels;
@@ -274,12 +255,7 @@ void Shader_Dx12::CreateUnorderedAccessView(ID3D12Device* device, ID3D12Resource
     if (!device || !tex)
         throw std::invalid_argument("Direct3D device and resource must be valid");
 
-#if defined(_MSC_VER) || !defined(_WIN32)
     const auto desc = tex->GetDesc();
-#else
-    D3D12_RESOURCE_DESC tmpDesc;
-    const auto& desc = *tex->GetDesc(&tmpDesc);
-#endif
 
     if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == 0)
     {
@@ -347,12 +323,7 @@ void Shader_Dx12::CreateRenderTargetView(ID3D12Device* device, ID3D12Resource* t
     if (!device || !tex)
         throw std::invalid_argument("Direct3D device and resource must be valid");
 
-#if defined(_MSC_VER) || !defined(_WIN32)
     const auto desc = tex->GetDesc();
-#else
-    D3D12_RESOURCE_DESC tmpDesc;
-    const auto& desc = *tex->GetDesc(&tmpDesc);
-#endif
 
     if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) == 0)
     {
@@ -425,75 +396,16 @@ void Shader_Dx12::CreateRenderTargetView(ID3D12Device* device, ID3D12Resource* t
     device->CreateRenderTargetView(tex, &rtvDesc, rtvDescriptor);
 }
 
-void Shader_Dx12::CreateBufferShaderResourceView(ID3D12Device* device, ID3D12Resource* buffer,
-                                                 D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor, uint32_t stride)
-{
-    if (!device || !buffer)
-        throw std::invalid_argument("Direct3D device and resource must be valid");
-
-#if defined(_MSC_VER) || !defined(_WIN32)
-    const auto desc = buffer->GetDesc();
-#else
-    D3D12_RESOURCE_DESC tmpDesc;
-    const auto& desc = *buffer->GetDesc(&tmpDesc);
-#endif
-
-    if (desc.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER ||
-        (desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) != 0)
-    {
-        LOG_ERROR("ERROR: CreateBufferShaderResourceView called on an unsupported resource.");
-        throw std::runtime_error("invalid buffer resource");
-    }
-
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Buffer.FirstElement = 0;
-    srvDesc.Buffer.NumElements = (stride > 0) ? static_cast<UINT>(desc.Width / stride) : static_cast<UINT>(desc.Width);
-    srvDesc.Buffer.StructureByteStride = stride;
-
-    device->CreateShaderResourceView(buffer, &srvDesc, srvDescriptor);
-}
-
-void Shader_Dx12::CreateBufferUnorderedAccessView(ID3D12Device* device, ID3D12Resource* buffer,
-                                                  D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptor, uint32_t stride,
-                                                  D3D12_BUFFER_UAV_FLAGS flag, uint32_t counterOffset,
-                                                  ID3D12Resource* counterResource)
-{
-    if (!device || !buffer)
-        throw std::invalid_argument("Direct3D device and resource must be valid");
-
-#if defined(_MSC_VER) || !defined(_WIN32)
-    const auto desc = buffer->GetDesc();
-#else
-    D3D12_RESOURCE_DESC tmpDesc;
-    const auto& desc = *buffer->GetDesc(&tmpDesc);
-#endif
-
-    if (desc.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER ||
-        (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == 0)
-    {
-        LOG_ERROR("ERROR: CreateBufferUnorderedAccessView called on an unsupported resource.");
-        throw std::runtime_error("invalid buffer resource");
-    }
-
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.FirstElement = 0;
-    uavDesc.Buffer.NumElements = (stride > 0) ? static_cast<UINT>(desc.Width / stride) : static_cast<UINT>(desc.Width);
-    uavDesc.Buffer.StructureByteStride = stride;
-    uavDesc.Buffer.CounterOffsetInBytes = counterOffset;
-    uavDesc.Buffer.Flags = flag;
-
-    device->CreateUnorderedAccessView(buffer, counterResource, &uavDesc, uavDescriptor);
-}
-
 bool Shader_Dx12::SetupRootSignature(ID3D12Device* InDevice, uint32_t srcCount, uint32_t uavCount, uint32_t cbvCount,
                                      uint32_t rtvCount, uint32_t samplerCount, uint32_t staticSamplerCount,
                                      const D3D12_STATIC_SAMPLER_DESC* pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
 {
+    if (_init)
+    {
+        LOG_ERROR("Already inited");
+        return true;
+    }
+
     _srcCount = srcCount;
     _uavCount = uavCount;
     _cbvCount = cbvCount;

@@ -60,7 +60,7 @@ bool OS_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InR
     _counter = _counter % OS_NUM_OF_HEAPS;
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
-    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0));
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     FsrEasuCon(fsr1Constants.const0, fsr1Constants.const1, fsr1Constants.const2, fsr1Constants.const3,
