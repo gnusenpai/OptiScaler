@@ -189,20 +189,13 @@ OS_Dx12::OS_Dx12(std::string InName, ID3D12Device* InDevice, bool InUpsample)
     CD3DX12_ROOT_PARAMETER1 rootParameter {};
     rootParameter.InitAsDescriptorTable(std::size(descriptorRanges), descriptorRanges);
 
+    CD3DX12_STATIC_SAMPLER_DESC sampler(0);
+    sampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+    sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
-    rootSigDesc.Init_1_1(1, &rootParameter);
-
-    CD3DX12_STATIC_SAMPLER_DESC samplers[1] {};
-
-    {
-        samplers[0].Init(0, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT);
-        samplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-        samplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-        samplers[0].ShaderRegister = 0;
-
-        rootSigDesc.Desc_1_1.NumStaticSamplers = 1;
-        rootSigDesc.Desc_1_1.pStaticSamplers = samplers;
-    }
+    rootSigDesc.Init_1_1(1, &rootParameter, 1, &sampler);
 
     D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(Constants));
     auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);

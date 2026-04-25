@@ -70,12 +70,8 @@ RUI_Dx12::RUI_Dx12(std::string InName, ID3D12Device* InDevice, bool preMultiplie
     CD3DX12_ROOT_PARAMETER1 rootParameter {};
     rootParameter.InitAsDescriptorTable(std::size(descriptorRanges), descriptorRanges);
 
-    D3D12_STATIC_SAMPLER_DESC sampler {};
+    CD3DX12_STATIC_SAMPLER_DESC sampler(0);
     sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    sampler.MaxLOD = D3D12_FLOAT32_MAX;
-    sampler.ShaderRegister = 0;
-    sampler.RegisterSpace = 0;
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
