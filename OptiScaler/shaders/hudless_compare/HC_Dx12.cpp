@@ -216,34 +216,10 @@ bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12GraphicsCommandList* cmdList, 
     constants.DiffThreshold = 0.003f;
     constants.PinkAmount = 0.6f;
 
-    BYTE* pCBDataBegin;
-    CD3DX12_RANGE readRange(0, 0);
-    result = _constantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pCBDataBegin));
-    if (result != S_OK)
+    if (!CreateConstantsBuffer(_device, _constantBuffer, constants, currentHeap.GetCbvCPU(0)))
     {
-        LOG_ERROR("_constantBuffer->Map error {:X}", (unsigned int) result);
-
-        if (result == DXGI_ERROR_DEVICE_REMOVED && _device != nullptr)
-            Util::GetDeviceRemovedReason(_device);
-
+        LOG_ERROR("[{0}] Failed to create a constants buffer", _name);
         return false;
-    }
-
-    if (pCBDataBegin == nullptr)
-    {
-        _constantBuffer->Unmap(0, nullptr);
-        LOG_ERROR("pCBDataBegin is null!");
-        return false;
-    }
-
-    memcpy(pCBDataBegin, &constants, sizeof(constants));
-    _constantBuffer->Unmap(0, nullptr);
-
-    {
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbv {};
-        cbv.BufferLocation = _constantBuffer->GetGPUVirtualAddress();
-        cbv.SizeInBytes = sizeof(constants);
-        _device->CreateConstantBufferView(&cbv, currentHeap.GetCbvCPU(0));
     }
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };

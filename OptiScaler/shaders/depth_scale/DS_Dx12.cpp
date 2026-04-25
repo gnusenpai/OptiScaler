@@ -50,38 +50,13 @@ bool DS_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InR
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     DSConstants constants {};
-
     constants.DepthScale = Config::Instance()->FGDepthScaleMax.value_or_default();
 
-    // Copy the updated constant buffer data to the constant buffer resource
-    BYTE* pCBDataBegin;
-    CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU
-    auto result = _constantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pCBDataBegin));
-
-    if (result != S_OK)
+    if (!CreateConstantsBuffer(_device, _constantBuffer, constants, currentHeap.GetCbvCPU(0)))
     {
-        LOG_ERROR("[{0}] _constantBuffer->Map error {1:x}", _name, (unsigned int) result);
-
-        if (result == DXGI_ERROR_DEVICE_REMOVED && _device != nullptr)
-            Util::GetDeviceRemovedReason(_device);
-
+        LOG_ERROR("[{0}] Failed to create a constants buffer", _name);
         return false;
     }
-
-    if (pCBDataBegin == nullptr)
-    {
-        _constantBuffer->Unmap(0, nullptr);
-        LOG_ERROR("[{0}] pCBDataBegin is null!", _name);
-        return false;
-    }
-
-    memcpy(pCBDataBegin, &constants, sizeof(constants));
-    _constantBuffer->Unmap(0, nullptr);
-
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-    cbvDesc.BufferLocation = _constantBuffer->GetGPUVirtualAddress();
-    cbvDesc.SizeInBytes = sizeof(constants);
-    _device->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };
     InCmdList->SetDescriptorHeaps(_countof(heaps), heaps);

@@ -73,58 +73,23 @@ bool OS_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InR
     constants.destWidth = State::Instance().currentFeature->DisplayWidth();
     constants.destHeight = State::Instance().currentFeature->DisplayHeight();
 
-    // Create CBV for Constants
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-
     // fsr upscaling
+    bool createdConstantsBuffer = false;
     if (Config::Instance()->OutputScalingDownscaler.value_or_default() == Scaler::FSR1)
     {
-        // Copy the updated constant buffer data to the constant buffer resource
-        UINT8* pCBDataBegin;
-        CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU
-        auto result = _constantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pCBDataBegin));
-
-        if (result != S_OK)
-        {
-            LOG_ERROR("[{0}] _constantBuffer->Map error {1:x}", _name, (unsigned int) result);
-
-            if (result == DXGI_ERROR_DEVICE_REMOVED && _device != nullptr)
-                Util::GetDeviceRemovedReason(_device);
-
-            return false;
-        }
-
-        memcpy(pCBDataBegin, &fsr1Constants, sizeof(fsr1Constants));
-        _constantBuffer->Unmap(0, nullptr);
-
-        cbvDesc.BufferLocation = _constantBuffer->GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes = sizeof(fsr1Constants);
+        createdConstantsBuffer =
+            CreateConstantsBuffer(_device, _constantBuffer, fsr1Constants, currentHeap.GetCbvCPU(0));
     }
     else
     {
-        // Copy the updated constant buffer data to the constant buffer resource
-        UINT8* pCBDataBegin;
-        CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU
-        auto result = _constantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pCBDataBegin));
-
-        if (result != S_OK)
-        {
-            LOG_ERROR("[{0}] _constantBuffer->Map error {1:x}", _name, (unsigned int) result);
-
-            if (result == DXGI_ERROR_DEVICE_REMOVED && _device != nullptr)
-                Util::GetDeviceRemovedReason(_device);
-
-            return false;
-        }
-
-        memcpy(pCBDataBegin, &constants, sizeof(constants));
-        _constantBuffer->Unmap(0, nullptr);
-
-        cbvDesc.BufferLocation = _constantBuffer->GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes = sizeof(constants);
+        createdConstantsBuffer = CreateConstantsBuffer(_device, _constantBuffer, constants, currentHeap.GetCbvCPU(0));
     }
 
-    _device->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
+    if (!createdConstantsBuffer)
+    {
+        LOG_ERROR("[{0}] Failed to create a constants buffer", _name);
+        return false;
+    }
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };
     InCmdList->SetDescriptorHeaps(_countof(heaps), heaps);
