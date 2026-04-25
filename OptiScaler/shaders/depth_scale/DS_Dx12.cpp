@@ -192,18 +192,6 @@ DS_Dx12::~DS_Dx12()
     if (!_init || State::Instance().isShuttingDown)
         return;
 
-    if (_pipelineState != nullptr)
-    {
-        _pipelineState->Release();
-        _pipelineState = nullptr;
-    }
-
-    if (_rootSignature != nullptr)
-    {
-        _rootSignature->Release();
-        _rootSignature = nullptr;
-    }
-
     for (int i = 0; i < DS_NUM_OF_HEAPS; i++)
     {
         _frameHeaps[i].ReleaseHeaps();
@@ -213,11 +201,5 @@ DS_Dx12::~DS_Dx12()
     {
         _buffer->Release();
         _buffer = nullptr;
-    }
-
-    if (_constantBuffer != nullptr)
-    {
-        _constantBuffer->Release();
-        _constantBuffer = nullptr;
     }
 }

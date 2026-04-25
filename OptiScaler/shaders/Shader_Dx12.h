@@ -62,4 +62,6 @@ class Shader_Dx12
     bool IsInit() const { return _init; }
 
     Shader_Dx12(std::string InName, ID3D12Device* InDevice);
+
+    ~Shader_Dx12();
 };

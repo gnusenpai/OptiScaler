@@ -336,18 +336,6 @@ RCAS_Dx12::~RCAS_Dx12()
     if (!_init || State::Instance().isShuttingDown)
         return;
 
-    if (_rootSignature != nullptr)
-    {
-        _rootSignature->Release();
-        _rootSignature = nullptr;
-    }
-
-    if (_pipelineState != nullptr)
-    {
-        _pipelineState->Release();
-        _pipelineState = nullptr;
-    }
-
     if (_pipelineStateDA != nullptr)
     {
         _pipelineStateDA->Release();
@@ -363,11 +351,5 @@ RCAS_Dx12::~RCAS_Dx12()
     {
         _buffer->Release();
         _buffer = nullptr;
-    }
-
-    if (_constantBuffer != nullptr)
-    {
-        _constantBuffer->Release();
-        _constantBuffer = nullptr;
     }
 }

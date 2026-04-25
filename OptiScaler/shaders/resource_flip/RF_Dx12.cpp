@@ -173,26 +173,8 @@ RF_Dx12::~RF_Dx12()
     if (!_init || State::Instance().isShuttingDown)
         return;
 
-    if (_pipelineState != nullptr)
-    {
-        _pipelineState->Release();
-        _pipelineState = nullptr;
-    }
-
-    if (_rootSignature != nullptr)
-    {
-        _rootSignature->Release();
-        _rootSignature = nullptr;
-    }
-
     for (int i = 0; i < RF_NUM_OF_HEAPS; i++)
     {
         _frameHeaps[i].ReleaseHeaps();
-    }
-
-    if (_constantBuffer != nullptr)
-    {
-        _constantBuffer->Release();
-        _constantBuffer = nullptr;
     }
 }

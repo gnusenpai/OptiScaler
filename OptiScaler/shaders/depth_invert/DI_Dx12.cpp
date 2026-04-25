@@ -134,18 +134,6 @@ DI_Dx12::~DI_Dx12()
     if (!_init || State::Instance().isShuttingDown)
         return;
 
-    if (_pipelineState != nullptr)
-    {
-        _pipelineState->Release();
-        _pipelineState = nullptr;
-    }
-
-    if (_rootSignature != nullptr)
-    {
-        _rootSignature->Release();
-        _rootSignature = nullptr;
-    }
-
     for (int i = 0; i < DI_NUM_OF_HEAPS; i++)
     {
         _frameHeaps[i].ReleaseHeaps();

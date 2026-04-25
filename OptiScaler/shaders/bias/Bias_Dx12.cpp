@@ -179,18 +179,6 @@ Bias_Dx12::~Bias_Dx12()
     if (!_init || State::Instance().isShuttingDown)
         return;
 
-    if (_rootSignature != nullptr)
-    {
-        _rootSignature->Release();
-        _rootSignature = nullptr;
-    }
-
-    if (_pipelineState != nullptr)
-    {
-        _pipelineState->Release();
-        _pipelineState = nullptr;
-    }
-
     for (int i = 0; i < BIAS_NUM_OF_HEAPS; i++)
     {
         _frameHeaps[i].ReleaseHeaps();
@@ -200,11 +188,5 @@ Bias_Dx12::~Bias_Dx12()
     {
         _buffer->Release();
         _buffer = nullptr;
-    }
-
-    if (_constantBuffer != nullptr)
-    {
-        _constantBuffer->Release();
-        _constantBuffer = nullptr;
     }
 }

@@ -4,6 +4,30 @@
 
 Shader_Dx12::Shader_Dx12(std::string InName, ID3D12Device* InDevice) : _name(InName), _device(InDevice) {}
 
+Shader_Dx12::~Shader_Dx12()
+{
+    if (!_init || State::Instance().isShuttingDown)
+        return;
+
+    if (_pipelineState != nullptr)
+    {
+        _pipelineState->Release();
+        _pipelineState = nullptr;
+    }
+
+    if (_rootSignature != nullptr)
+    {
+        _rootSignature->Release();
+        _rootSignature = nullptr;
+    }
+
+    if (_constantBuffer != nullptr)
+    {
+        _constantBuffer->Release();
+        _constantBuffer = nullptr;
+    }
+}
+
 DXGI_FORMAT Shader_Dx12::TranslateTypelessFormats(DXGI_FORMAT format)
 {
     switch (format)
