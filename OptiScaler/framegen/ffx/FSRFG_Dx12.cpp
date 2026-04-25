@@ -164,7 +164,7 @@ bool FSRFG_Dx12::HudlessFormatTransfer(int index, ID3D12Device* device, DXGI_FOR
             ResourceBarrier(resource->cmdList, _hudlessCopyResource[index], D3D12_RESOURCE_STATE_COPY_DEST,
                             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-            _hudlessTransfer[index].get()->Dispatch(device, cmdList, _hudlessCopyResource[index],
+            _hudlessTransfer[index].get()->Dispatch(cmdList, _hudlessCopyResource[index],
                                                     _hudlessTransfer[index].get()->Buffer());
 
             ResourceBarrier(cmdList, _hudlessCopyResource[index], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
@@ -175,7 +175,7 @@ bool FSRFG_Dx12::HudlessFormatTransfer(int index, ID3D12Device* device, DXGI_FOR
             ResourceBarrier(cmdList, resource->GetResource(), resource->state,
                             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-            _hudlessTransfer[index].get()->Dispatch(device, cmdList, resource->GetResource(),
+            _hudlessTransfer[index].get()->Dispatch(cmdList, resource->GetResource(),
                                                     _hudlessTransfer[index].get()->Buffer());
 
             ResourceBarrier(cmdList, resource->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
@@ -213,8 +213,7 @@ bool FSRFG_Dx12::UIFormatTransfer(int index, ID3D12Device* device, ID3D12Graphic
         ResourceBarrier(cmdList, resource->GetResource(), resource->state,
                         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-        _uiTransfer[index].get()->Dispatch(device, cmdList, resource->GetResource(),
-                                           _uiTransfer[index].get()->Buffer());
+        _uiTransfer[index].get()->Dispatch(cmdList, resource->GetResource(), _uiTransfer[index].get()->Buffer());
 
         ResourceBarrier(cmdList, resource->GetResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
                         resource->state);
@@ -677,7 +676,7 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
                 if (isCyberpunk && State::Instance().activeFgInput != FGInput::FSRFG)
                     hudDetectionThreshold = 0.01f;
 
-                hudCopy->Dispatch(_device, cmdList, hudlessResource, presentWithHud, hudlessState,
+                hudCopy->Dispatch(cmdList, hudlessResource, presentWithHud, hudlessState,
                                   GetD3D12State((FfxApiResourceState) params->presentColor.state),
                                   hudDetectionThreshold);
             }

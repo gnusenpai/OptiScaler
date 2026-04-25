@@ -8,10 +8,10 @@
 
 #include "precompiled/RF_Shader.h"
 
-bool RF_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
-                       ID3D12Resource* OutResource, UINT64 width, UINT height, bool velocity)
+bool RF_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource, ID3D12Resource* OutResource,
+                       UINT64 width, UINT height, bool velocity)
 {
-    if (!_init || InDevice == nullptr || InCmdList == nullptr || InResource == nullptr || OutResource == nullptr)
+    if (!_init || _device == nullptr || InCmdList == nullptr || InResource == nullptr || OutResource == nullptr)
         return false;
 
     LOG_DEBUG("[{0}] Start!", _name);
@@ -22,8 +22,8 @@ bool RF_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdL
 
     auto inDesc = InResource->GetDesc();
 
-    CreateShaderResourceView(InDevice, InResource, currentHeap.GetSrvCPU(0), false);
-    CreateUnorderedAccessView(InDevice, OutResource, currentHeap.GetUavCPU(0), 0);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
+    CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     RFConstants constants {};
 
@@ -62,7 +62,7 @@ bool RF_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdL
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
     cbvDesc.BufferLocation = _constantBuffer->GetGPUVirtualAddress();
     cbvDesc.SizeInBytes = sizeof(constants);
-    InDevice->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
+    _device->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };
     InCmdList->SetDescriptorHeaps(_countof(heaps), heaps);

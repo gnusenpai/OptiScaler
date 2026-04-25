@@ -1411,7 +1411,7 @@ void FSR3FG::SetUpscalerInputs(ID3D12GraphicsCommandList* InCmdList, NVSDK_NGX_P
                 {
                     DepthScale->SetBufferState(InCmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-                    if (DepthScale->Dispatch(_device, InCmdList, paramDepth, DepthScale->Buffer()))
+                    if (DepthScale->Dispatch(InCmdList, paramDepth, DepthScale->Buffer()))
                     {
                         Dx12Resource setResource {};
                         setResource.type = FG_ResourceType::Depth;

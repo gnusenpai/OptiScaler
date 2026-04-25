@@ -215,7 +215,7 @@ bool FSR2FeatureDx11on12_212::Evaluate(ID3D11DeviceContext* InDeviceContext, NVS
                 Bias->SetBufferState(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
                 if (Config::Instance()->DlssReactiveMaskBias.value_or_default() > 0.0f &&
-                    Bias->Dispatch(_dx11on12Device, cmdList, dx11Reactive.Dx12Resource,
+                    Bias->Dispatch(cmdList, dx11Reactive.Dx12Resource,
                                    Config::Instance()->DlssReactiveMaskBias.value_or_default(), Bias->Buffer()))
                 {
                     Bias->SetBufferState(cmdList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -349,7 +349,7 @@ bool FSR2FeatureDx11on12_212::Evaluate(ID3D11DeviceContext* InDeviceContext, NVS
 
             if (useSS)
             {
-                if (!RCAS->Dispatch(_dx11on12Device, cmdList, (ID3D12Resource*) params.output.resource,
+                if (!RCAS->Dispatch(cmdList, (ID3D12Resource*) params.output.resource,
                                     (ID3D12Resource*) params.motionVectors.resource, rcasConstants,
                                     OutputScaler->Buffer(), (ID3D12Resource*) params.depth.resource))
                 {
@@ -359,7 +359,7 @@ bool FSR2FeatureDx11on12_212::Evaluate(ID3D11DeviceContext* InDeviceContext, NVS
             }
             else
             {
-                if (!RCAS->Dispatch(_dx11on12Device, cmdList, (ID3D12Resource*) params.output.resource,
+                if (!RCAS->Dispatch(cmdList, (ID3D12Resource*) params.output.resource,
                                     (ID3D12Resource*) params.motionVectors.resource, rcasConstants,
                                     dx11Out.Dx12Resource, (ID3D12Resource*) params.depth.resource))
                 {
@@ -374,7 +374,7 @@ bool FSR2FeatureDx11on12_212::Evaluate(ID3D11DeviceContext* InDeviceContext, NVS
             LOG_DEBUG("scaling output...");
             OutputScaler->SetBufferState(cmdList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-            if (!OutputScaler->Dispatch(_dx11on12Device, cmdList, OutputScaler->Buffer(), dx11Out.Dx12Resource))
+            if (!OutputScaler->Dispatch(cmdList, OutputScaler->Buffer(), dx11Out.Dx12Resource))
             {
                 Config::Instance()->OutputScalingEnabled.set_volatile_value(false);
                 State::Instance().changeBackend[Handle()->Id] = true;

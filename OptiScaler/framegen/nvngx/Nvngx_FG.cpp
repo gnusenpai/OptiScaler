@@ -442,8 +442,8 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
                     if (isCyberpunk && State::Instance().activeFgInput != FGInput::FSRFG)
                         hudDetectionThreshold = 0.01f;
 
-                    hudCopy->Dispatch(device, InCmdList, hudlessResource, presentWithHud, hudlessState,
-                                      presentWithHudState, hudDetectionThreshold);
+                    hudCopy->Dispatch(InCmdList, hudlessResource, presentWithHud, hudlessState, presentWithHudState,
+                                      hudDetectionThreshold);
                 }
             }
             else

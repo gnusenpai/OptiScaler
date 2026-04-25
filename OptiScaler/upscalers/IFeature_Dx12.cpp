@@ -116,7 +116,7 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
                   LOG_DEBUG("Scaling output...");
                   OutputScaler->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-                  if (!OutputScaler->Dispatch(Device, InCommandList, input, output))
+                  if (!OutputScaler->Dispatch(InCommandList, input, output))
                   {
                       Config::Instance()->OutputScalingEnabled.set_volatile_value(false);
                       State::Instance().changeBackend[Handle()->Id] = true;
@@ -176,7 +176,7 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
                       rcasConstants.CameraFar = Config::Instance()->FsrCameraFar.value_or_default();
                   }
 
-                  if (!RCAS->Dispatch(Device, InCommandList, input, paramMotion, rcasConstants, output, paramDepth))
+                  if (!RCAS->Dispatch(InCommandList, input, paramMotion, rcasConstants, output, paramDepth))
                   {
                       Config::Instance()->RcasEnabled.set_volatile_value(false);
                       return false;

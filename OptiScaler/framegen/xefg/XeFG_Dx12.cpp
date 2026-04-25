@@ -1434,7 +1434,7 @@ bool XeFG_Dx12::SetResource(Dx12Resource* inputResource)
 
                 _depthInvert->SetBufferState(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-                if (_depthInvert->Dispatch(_device, cmdList, fResource->GetResource(), _depthInvert->Buffer()))
+                if (_depthInvert->Dispatch(cmdList, fResource->GetResource(), _depthInvert->Buffer()))
                 {
                     fResource->copy = _depthInvert->Buffer();
                 }

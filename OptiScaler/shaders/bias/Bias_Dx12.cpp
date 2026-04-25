@@ -27,10 +27,10 @@ void Bias_Dx12::SetBufferState(ID3D12GraphicsCommandList* InCommandList, D3D12_R
     return Shader_Dx12::SetBufferState(InCommandList, InState, _buffer, &_bufferState);
 }
 
-bool Bias_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
-                         float InBias, ID3D12Resource* OutResource)
+bool Bias_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource, float InBias,
+                         ID3D12Resource* OutResource)
 {
-    if (!_init || InDevice == nullptr || InCmdList == nullptr || InResource == nullptr || OutResource == nullptr)
+    if (!_init || _device == nullptr || InCmdList == nullptr || InResource == nullptr || OutResource == nullptr)
         return false;
 
     LOG_DEBUG("[{0}] Start!", _name);
@@ -39,8 +39,8 @@ bool Bias_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCm
     _counter = _counter % BIAS_NUM_OF_HEAPS;
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
-    CreateShaderResourceView(InDevice, InResource, currentHeap.GetSrvCPU(0), false);
-    CreateUnorderedAccessView(InDevice, OutResource, currentHeap.GetUavCPU(0), 0);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
+    CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     InternalConstants constants {};
 
@@ -79,7 +79,7 @@ bool Bias_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCm
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
     cbvDesc.BufferLocation = _constantBuffer->GetGPUVirtualAddress();
     cbvDesc.SizeInBytes = sizeof(constants);
-    InDevice->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
+    _device->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };
     InCmdList->SetDescriptorHeaps(_countof(heaps), heaps);

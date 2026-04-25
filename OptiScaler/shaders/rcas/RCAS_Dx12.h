@@ -90,19 +90,17 @@ class RCAS_Dx12 : public Shader_Dx12
                              ID3D12PipelineState** OutPipelineState, D3D12_SHADER_BYTECODE byteCode);
     static void FillMotionConstants(InternalConstants& OutConstants, const RcasConstants& InConstants);
     static void FillMotionConstants(InternalConstantsDA& OutConstants, const RcasConstants& InConstants);
-    bool DispatchRCAS(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
-                      ID3D12Resource* InMotionVectors, RcasConstants InConstants, ID3D12Resource* OutResource,
-                      FrameDescriptorHeap& currentHeap);
-    bool DispatchDepthAdaptive(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
+    bool DispatchRCAS(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource, ID3D12Resource* InMotionVectors,
+                      RcasConstants InConstants, ID3D12Resource* OutResource, FrameDescriptorHeap& currentHeap);
+    bool DispatchDepthAdaptive(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
                                ID3D12Resource* InMotionVectors, ID3D12Resource* InDepth, RcasConstants InConstants,
                                ID3D12Resource* OutResource, FrameDescriptorHeap& currentHeap);
 
   public:
     bool CreateBufferResource(ID3D12Device* InDevice, ID3D12Resource* InSource, D3D12_RESOURCE_STATES InState);
     void SetBufferState(ID3D12GraphicsCommandList* InCommandList, D3D12_RESOURCE_STATES InState);
-    bool Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
-                  ID3D12Resource* InMotionVectors, RcasConstants InConstants, ID3D12Resource* OutResource,
-                  ID3D12Resource* InDepth = nullptr);
+    bool Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource, ID3D12Resource* InMotionVectors,
+                  RcasConstants InConstants, ID3D12Resource* OutResource, ID3D12Resource* InDepth = nullptr);
 
     ID3D12Resource* Buffer() { return _buffer; }
     bool CanRender() const { return _init && _buffer != nullptr; }

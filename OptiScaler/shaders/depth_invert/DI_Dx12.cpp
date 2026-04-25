@@ -32,10 +32,9 @@ void DI_Dx12::SetBufferState(ID3D12GraphicsCommandList* InCommandList, D3D12_RES
     return Shader_Dx12::SetBufferState(InCommandList, InState, _buffer, &_bufferState);
 }
 
-bool DI_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
-                       ID3D12Resource* OutResource)
+bool DI_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource, ID3D12Resource* OutResource)
 {
-    if (!_init || InDevice == nullptr || InCmdList == nullptr || InResource == nullptr || OutResource == nullptr)
+    if (!_init || _device == nullptr || InCmdList == nullptr || InResource == nullptr || OutResource == nullptr)
         return false;
 
     LOG_DEBUG("[{0}] Start!", _name);
@@ -44,8 +43,8 @@ bool DI_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdL
     _counter = _counter % DI_NUM_OF_HEAPS;
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
-    CreateShaderResourceView(InDevice, InResource, currentHeap.GetSrvCPU(0), false);
-    CreateUnorderedAccessView(InDevice, OutResource, currentHeap.GetUavCPU(0), 0);
+    CreateShaderResourceView(_device, InResource, currentHeap.GetSrvCPU(0), false);
+    CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };
     InCmdList->SetDescriptorHeaps(_countof(heaps), heaps);

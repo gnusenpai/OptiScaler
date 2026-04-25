@@ -21,11 +21,11 @@ void HudCopy_Dx12::ResourceBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Res
     cmdList->ResourceBarrier(1, &barrier);
 }
 
-bool HudCopy_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* cmdList, ID3D12Resource* hudless,
-                            ID3D12Resource* present, D3D12_RESOURCE_STATES hudlessState,
-                            D3D12_RESOURCE_STATES presentState, float hudDetectionThreshold)
+bool HudCopy_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* hudless, ID3D12Resource* present,
+                            D3D12_RESOURCE_STATES hudlessState, D3D12_RESOURCE_STATES presentState,
+                            float hudDetectionThreshold)
 {
-    if (!_init || InDevice == nullptr || hudless == nullptr || present == nullptr || cmdList == nullptr)
+    if (!_init || _device == nullptr || hudless == nullptr || present == nullptr || cmdList == nullptr)
         return false;
 
     _counter++;
@@ -42,7 +42,7 @@ bool HudCopy_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* c
         auto resourceFlags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS |
                              D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
 
-        auto result = Shader_Dx12::CreateBufferResource(InDevice, present, D3D12_RESOURCE_STATE_COPY_DEST, &_buffer,
+        auto result = Shader_Dx12::CreateBufferResource(_device, present, D3D12_RESOURCE_STATE_COPY_DEST, &_buffer,
                                                         resourceFlags);
 
         if (result)
@@ -62,9 +62,9 @@ bool HudCopy_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* c
     ResourceBarrier(cmdList, hudless, hudlessState, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
     // Create views
-    CreateShaderResourceView(InDevice, hudless, currentHeap.GetSrvCPU(0), false);
-    CreateShaderResourceView(InDevice, present, currentHeap.GetSrvCPU(1), false);
-    CreateUnorderedAccessView(InDevice, _buffer, currentHeap.GetUavCPU(0), 0);
+    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0), false);
+    CreateShaderResourceView(_device, present, currentHeap.GetSrvCPU(1), false);
+    CreateUnorderedAccessView(_device, _buffer, currentHeap.GetUavCPU(0), 0);
 
     InternalCompareParams constants {};
     constants.DiffThreshold = hudDetectionThreshold;
@@ -97,7 +97,7 @@ bool HudCopy_Dx12::Dispatch(ID3D12Device* InDevice, ID3D12GraphicsCommandList* c
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
     cbvDesc.BufferLocation = _constantBuffer->GetGPUVirtualAddress();
     cbvDesc.SizeInBytes = sizeof(constants);
-    InDevice->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
+    _device->CreateConstantBufferView(&cbvDesc, currentHeap.GetCbvCPU(0));
 
     ID3D12DescriptorHeap* heaps[] = { currentHeap.GetHeapCSU() };
     cmdList->SetDescriptorHeaps(_countof(heaps), heaps);

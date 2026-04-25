@@ -840,8 +840,7 @@ bool Hudfix_Dx12::CheckForHudless(ID3D12GraphicsCommandList* cmdList, ResourceIn
                 ResourceBarrier(fgCmdList, _captureBuffer[fIndex], D3D12_RESOURCE_STATE_COPY_DEST,
                                 D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-                _formatTransfer[fIndex]->Dispatch(s.currentD3D12Device, fgCmdList, _captureBuffer[fIndex],
-                                                  _formatTransfer[fIndex]->Buffer());
+                _formatTransfer[fIndex]->Dispatch(fgCmdList, _captureBuffer[fIndex], _formatTransfer[fIndex]->Buffer());
 
                 ResourceBarrier(fgCmdList, _captureBuffer[fIndex], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
                                 D3D12_RESOURCE_STATE_COPY_DEST);
