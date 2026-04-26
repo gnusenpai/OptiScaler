@@ -11,6 +11,78 @@ struct RcasConstants
 
     float CameraNear;
     float CameraFar;
+
+    bool DepthIsLinear;
+    bool DepthIsReversed;
+
+    bool IsHdr;
+};
+
+class RCAS_Common
+{
+  protected:
+    struct alignas(256) InternalConstants
+    {
+        float Sharpness;
+        float Contrast;
+
+        // Motion Vector Stuff
+        int DynamicSharpenEnabled;
+        int DisplaySizeMV;
+        int Debug;
+        int MotionWidth;
+        int MotionHeight;
+
+        float MotionSharpness;
+        float MotionTextureScale;
+        float MvScaleX;
+        float MvScaleY;
+        float Threshold;
+        float ScaleLimit;
+
+        int OutputWidth;
+        int OutputHeight;
+    };
+
+    struct alignas(256) InternalConstantsDA
+    {
+        float Sharpness;
+
+        int DepthIsLinear;
+        int DepthIsReversed;
+
+        float DepthScale;
+        float DepthBias;
+
+        float DepthLinearA;
+        float DepthLinearB;
+        float DepthLinearC;
+
+        int DynamicSharpenEnabled;
+        int DisplaySizeMV;
+        int Debug;
+
+        float MotionSharpness;
+        float MotionTextureScale;
+        float MvScaleX;
+        float MvScaleY;
+        float MotionThreshold;
+        float MotionScaleLimit;
+
+        float DepthTextureScale;
+
+        int ClampOutput;
+
+        int OutputWidth;
+        int OutputHeight;
+        int MotionWidth;
+        int MotionHeight;
+        int DepthWidth;
+        int DepthHeight;
+    };
+
+    void FillMotionConstants(InternalConstants& OutConstants, const RcasConstants& InConstants);
+    void FillMotionConstants(InternalConstantsDA& OutConstants, const RcasConstants& InConstants);
 };
 
 static std::string daSharpenCode = R"(
@@ -58,8 +130,8 @@ cbuffer Params : register(b0)
     int ClampOutput;
 
     // Dimensions
-    int DisplayWidth;
-    int DisplayHeight;
+    int OutputWidth;
+    int OutputHeight;
     int MotionWidth;
     int MotionHeight;
     int DepthWidth;
@@ -109,8 +181,8 @@ static const int2 kDiagOffsets[4] =
 int2 ClampCoord(int2 p)
 {
     return int2(
-        clamp(p.x, 0, DisplayWidth - 1),
-        clamp(p.y, 0, DisplayHeight - 1)
+        clamp(p.x, 0, OutputWidth - 1),
+        clamp(p.y, 0, OutputHeight - 1)
     );
 }
 
@@ -251,7 +323,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
     int2 p = int2(DTid.xy);
 
-    if (p.x >= DisplayWidth || p.y >= DisplayHeight)
+    if (p.x >= OutputWidth || p.y >= OutputHeight)
         return;
 
     float3 c = SafeLoadColor(p);
@@ -349,6 +421,8 @@ cbuffer Params : register(b0)
     int DynamicSharpenEnabled;
     int DisplaySizeMV;
     int Debug;
+    int MotionWidth;
+    int MotionHeight;
 
     float MotionSharpness;
     float MotionTextureScale;
@@ -356,8 +430,8 @@ cbuffer Params : register(b0)
     float MvScaleY;
     float Threshold;
     float ScaleLimit;
-    int DisplayWidth;
-    int DisplayHeight;
+    int OutputWidth;
+    int OutputHeight;
 };
 
 #ifdef VK_MODE
@@ -379,11 +453,11 @@ RWTexture2D<float3> Dest : register(u0);
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
     // Guard against oversized dispatch
-    if ((int) DTid.x >= DisplayWidth || (int) DTid.y >= DisplayHeight)
+    if ((int) DTid.x >= OutputWidth || (int) DTid.y >= OutputHeight)
         return;
 
     int2 pixel = int2(DTid.xy);
-    int2 maxPixel = int2(DisplayWidth - 1, DisplayHeight - 1);
+    int2 maxPixel = int2(OutputWidth - 1, OutputHeight - 1);
 
     float setSharpness = Sharpness;
 

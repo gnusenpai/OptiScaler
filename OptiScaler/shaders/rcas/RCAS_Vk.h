@@ -5,7 +5,7 @@
 #include <shaders/Shader_Vk.h>
 #include "RCAS_Common.h"
 
-class RCAS_Vk : public Shader_Vk
+class RCAS_Vk : public Shader_Vk, public RCAS_Common
 {
   public:
     RCAS_Vk(std::string InName, VkDevice InDevice, VkPhysicalDevice InPhysicalDevice);
@@ -33,63 +33,6 @@ class RCAS_Vk : public Shader_Vk
     bool CanRender() const { return _init && _pipeline != VK_NULL_HANDLE; }
 
   private:
-    struct alignas(256) InternalConstants
-    {
-        float Sharpness;
-        float Contrast;
-
-        // Motion Vector Stuff
-        int DynamicSharpenEnabled;
-        int DisplaySizeMV;
-        int Debug;
-
-        float MotionSharpness;
-        float MotionTextureScale;
-        float MvScaleX;
-        float MvScaleY;
-        float Threshold;
-        float ScaleLimit;
-        int DisplayWidth;
-        int DisplayHeight;
-    };
-
-    struct alignas(256) InternalConstantsDA
-    {
-        float Sharpness;
-
-        int DepthIsLinear;
-        int DepthIsReversed;
-
-        float DepthScale;
-        float DepthBias;
-
-        float DepthLinearA;
-        float DepthLinearB;
-        float DepthLinearC;
-
-        int DynamicSharpenEnabled;
-        int DisplaySizeMV;
-        int Debug;
-
-        float MotionSharpness;
-        float MotionTextureScale;
-        float MvScaleX;
-        float MvScaleY;
-        float MotionThreshold;
-        float MotionScaleLimit;
-
-        float DepthTextureScale;
-
-        int ClampOutput;
-
-        int DisplayWidth;
-        int DisplayHeight;
-        int MotionWidth;
-        int MotionHeight;
-        int DepthWidth;
-        int DepthHeight;
-    };
-
     VkBuffer _constantBuffer = VK_NULL_HANDLE;
     VkDeviceMemory _constantBufferMemory = VK_NULL_HANDLE;
     VkBuffer _constantBufferDA = VK_NULL_HANDLE;
@@ -117,8 +60,6 @@ class RCAS_Vk : public Shader_Vk
                              VkImageView outputView);
     void UpdateDescriptorSetDA(VkCommandBuffer cmdList, int setIndex, VkImageView inputView, VkImageView motionView,
                                VkImageView depthView, VkImageView outputView);
-    static void FillMotionConstants(InternalConstants& OutConstants, const RcasConstants& InConstants);
-    static void FillMotionConstants(InternalConstantsDA& OutConstants, const RcasConstants& InConstants);
     bool DispatchRCAS(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstants InConstants,
                       VkImageView InResourceView, VkImageView InMotionVectorsView, VkImageView OutResourceView,
                       VkExtent2D OutExtent);

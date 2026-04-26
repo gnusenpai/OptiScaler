@@ -14,6 +14,8 @@ cbuffer Params : register(b0)
     int DynamicSharpenEnabled;
     int DisplaySizeMV;
     int Debug;
+    int MotionWidth;
+    int MotionHeight;
 
     float MotionSharpness;
     float MotionTextureScale;
@@ -21,8 +23,8 @@ cbuffer Params : register(b0)
     float MvScaleY;
     float Threshold;
     float ScaleLimit;
-    int DisplayWidth;
-    int DisplayHeight;
+    int OutputWidth;
+    int OutputHeight;
 };
 
 #ifdef VK_MODE
@@ -44,11 +46,11 @@ RWTexture2D<float3> Dest : register(u0);
 void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
     // Guard against oversized dispatch
-    if ((int) DTid.x >= DisplayWidth || (int) DTid.y >= DisplayHeight)
+    if ((int) DTid.x >= OutputWidth || (int) DTid.y >= OutputHeight)
         return;
 
     int2 pixel = int2(DTid.xy);
-    int2 maxPixel = int2(DisplayWidth - 1, DisplayHeight - 1);
+    int2 maxPixel = int2(OutputWidth - 1, OutputHeight - 1);
 
     float setSharpness = Sharpness;
 

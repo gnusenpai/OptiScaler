@@ -45,87 +45,6 @@ inline static DXGI_FORMAT TranslateTypelessFormats(DXGI_FORMAT format)
     }
 }
 
-void RCAS_Dx11::FillMotionConstants(InternalConstants& OutConstants, const RcasConstants& InConstants)
-{
-    if (Config::Instance()->ContrastEnabled.value_or_default())
-        OutConstants.Contrast = Config::Instance()->Contrast.value_or_default();
-    else
-        OutConstants.Contrast = 0.0f;
-
-    auto feature = State::Instance().currentFeature;
-
-    OutConstants.Sharpness = InConstants.Sharpness;
-    OutConstants.MvScaleX = InConstants.MvScaleX;
-    OutConstants.MvScaleY = InConstants.MvScaleY;
-    OutConstants.DisplaySizeMV = feature->LowResMV() ? 0 : 1;
-
-    OutConstants.DisplayWidth = feature->TargetWidth();
-    OutConstants.DisplayHeight = feature->TargetHeight();
-    OutConstants.DynamicSharpenEnabled = Config::Instance()->MotionSharpnessEnabled.value_or_default() ? 1 : 0;
-    OutConstants.MotionSharpness = Config::Instance()->MotionSharpness.value_or_default();
-    OutConstants.Debug = Config::Instance()->MotionSharpnessDebug.value_or_default() ? 1 : 0;
-    OutConstants.Threshold = Config::Instance()->MotionThreshold.value_or_default();
-    OutConstants.ScaleLimit = Config::Instance()->MotionScaleLimit.value_or_default();
-
-    if (feature->LowResMV())
-    {
-        OutConstants.MotionTextureScale = (float) feature->RenderWidth() / (float) feature->TargetWidth();
-    }
-    else
-    {
-        OutConstants.MotionTextureScale = 1.0f;
-    }
-}
-
-void RCAS_Dx11::FillMotionConstants(InternalConstantsDA& OutConstants, const RcasConstants& InConstants)
-{
-    auto feature = State::Instance().currentFeature;
-
-    OutConstants.Sharpness = InConstants.Sharpness * 2.0f;
-    OutConstants.MvScaleX = InConstants.MvScaleX;
-    OutConstants.MvScaleY = InConstants.MvScaleY;
-    OutConstants.DisplaySizeMV = feature->LowResMV() ? 0 : 1;
-
-    OutConstants.DynamicSharpenEnabled = Config::Instance()->MotionSharpnessEnabled.value_or_default() ? 1 : 0;
-    OutConstants.Debug = Config::Instance()->MotionSharpnessDebug.value_or_default() ? 3 : 0;
-    OutConstants.MotionSharpness = Config::Instance()->MotionSharpness.value_or_default();
-    OutConstants.MotionThreshold = Config::Instance()->MotionThreshold.value_or_default();
-    OutConstants.MotionScaleLimit = Config::Instance()->MotionScaleLimit.value_or_default();
-    OutConstants.DisplayWidth = feature->TargetWidth();
-    OutConstants.DisplayHeight = feature->TargetHeight();
-
-    OutConstants.DepthIsLinear = feature->DepthLinear() ? 1 : 0;
-    OutConstants.DepthIsReversed = feature->DepthInverted() ? 1 : 0;
-    OutConstants.DepthScale =
-        Config::Instance()->DADepthScale.value_or(OutConstants.DepthIsLinear == 0 ? 4.0f : 250.0f);
-    OutConstants.DepthBias =
-        Config::Instance()->DADepthBias.value_or(OutConstants.DepthIsLinear == 0 ? 0.01f : 0.0015f);
-
-    OutConstants.DepthLinearA = InConstants.CameraNear * InConstants.CameraFar;
-    OutConstants.DepthLinearB = InConstants.CameraFar;
-    OutConstants.DepthLinearC = InConstants.CameraFar - InConstants.CameraNear;
-
-    OutConstants.DepthTextureScale = (float) feature->RenderWidth() / (float) feature->TargetWidth();
-
-    OutConstants.ClampOutput = Config::Instance()->DAClampOutput.value_or(feature->IsHdr()) ? 0 : 1;
-
-    if (feature->LowResMV())
-    {
-        OutConstants.MotionWidth = feature->RenderWidth();
-        OutConstants.MotionHeight = feature->RenderHeight();
-    }
-    else
-    {
-        OutConstants.MotionWidth = feature->TargetWidth();
-        OutConstants.MotionHeight = feature->TargetHeight();
-    }
-
-    OutConstants.DepthWidth = feature->RenderWidth();
-    OutConstants.DepthHeight = feature->RenderHeight();
-
-    OutConstants.MotionTextureScale = (float) OutConstants.MotionWidth / (float) feature->TargetWidth();
-}
-
 bool RCAS_Dx11::CreateBufferResource(ID3D11Device* InDevice, ID3D11Resource* InResource)
 {
     if (InDevice == nullptr || InResource == nullptr)
@@ -366,8 +285,8 @@ bool RCAS_Dx11::DispatchDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceContex
     InContext->CSSetShaderResources(0, 3, srvs);
     InContext->CSSetUnorderedAccessViews(0, 1, &_uavOutput, nullptr);
 
-    UINT dispatchWidth = (constants.DisplayWidth + InNumThreadsX - 1) / InNumThreadsX;
-    UINT dispatchHeight = (constants.DisplayHeight + InNumThreadsY - 1) / InNumThreadsY;
+    UINT dispatchWidth = (constants.OutputWidth + InNumThreadsX - 1) / InNumThreadsX;
+    UINT dispatchHeight = (constants.OutputHeight + InNumThreadsY - 1) / InNumThreadsY;
 
     InContext->Dispatch(dispatchWidth, dispatchHeight, 1);
 

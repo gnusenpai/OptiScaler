@@ -711,6 +711,9 @@ bool FFXFeatureVk::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* In
                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, range);
 
         RcasConstants rcasConstants {};
+        rcasConstants.DepthIsLinear = DepthLinear();
+        rcasConstants.DepthIsReversed = DepthInverted();
+        rcasConstants.IsHdr = IsHdr();
         rcasConstants.Sharpness = _sharpness;
         InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_X, &rcasConstants.MvScaleX);
         InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &rcasConstants.MvScaleY);

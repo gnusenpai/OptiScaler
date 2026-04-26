@@ -42,8 +42,8 @@ cbuffer Params : register(b0)
     int ClampOutput;
 
     // Dimensions
-    int DisplayWidth;
-    int DisplayHeight;
+    int OutputWidth;
+    int OutputHeight;
     int MotionWidth;
     int MotionHeight;
     int DepthWidth;
@@ -93,8 +93,8 @@ static const int2 kDiagOffsets[4] =
 int2 ClampCoord(int2 p)
 {
     return int2(
-        clamp(p.x, 0, DisplayWidth - 1),
-        clamp(p.y, 0, DisplayHeight - 1)
+        clamp(p.x, 0, OutputWidth - 1),
+        clamp(p.y, 0, OutputHeight - 1)
     );
 }
 
@@ -235,7 +235,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
     int2 p = int2(DTid.xy);
 
-    if (p.x >= DisplayWidth || p.y >= DisplayHeight)
+    if (p.x >= OutputWidth || p.y >= OutputHeight)
         return;
 
     float3 c = SafeLoadColor(p);

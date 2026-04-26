@@ -154,7 +154,12 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
                   RCAS->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
                   RcasConstants rcasConstants {};
+
                   rcasConstants.Sharpness = localSharpness;
+                  rcasConstants.DepthIsLinear = DepthLinear();
+                  rcasConstants.DepthIsReversed = DepthInverted();
+                  rcasConstants.IsHdr = IsHdr();
+
                   InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_X, &rcasConstants.MvScaleX);
                   InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &rcasConstants.MvScaleY);
 

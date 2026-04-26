@@ -39,86 +39,6 @@ bool RCAS_Dx12::CreatePipelineState(ID3D12Device* InDevice, const std::string& I
     return result;
 }
 
-void RCAS_Dx12::FillMotionConstants(InternalConstants& OutConstants, const RcasConstants& InConstants)
-{
-    if (Config::Instance()->ContrastEnabled.value_or_default())
-        OutConstants.Contrast = Config::Instance()->Contrast.value_or_default();
-    else
-        OutConstants.Contrast = 0.0f;
-
-    auto feature = State::Instance().currentFeature;
-
-    OutConstants.Sharpness = InConstants.Sharpness;
-    OutConstants.MvScaleX = InConstants.MvScaleX;
-    OutConstants.MvScaleY = InConstants.MvScaleY;
-    OutConstants.DisplaySizeMV = feature->LowResMV() ? 0 : 1;
-
-    OutConstants.DisplayWidth = feature->TargetWidth();
-    OutConstants.DisplayHeight = feature->TargetHeight();
-    OutConstants.DynamicSharpenEnabled = Config::Instance()->MotionSharpnessEnabled.value_or_default() ? 1 : 0;
-    OutConstants.MotionSharpness = Config::Instance()->MotionSharpness.value_or_default();
-    OutConstants.Debug = Config::Instance()->MotionSharpnessDebug.value_or_default() ? 1 : 0;
-    OutConstants.Threshold = Config::Instance()->MotionThreshold.value_or_default();
-    OutConstants.ScaleLimit = Config::Instance()->MotionScaleLimit.value_or_default();
-
-    if (feature->LowResMV())
-    {
-        OutConstants.MotionTextureScale = (float) feature->RenderWidth() / (float) feature->TargetWidth();
-    }
-    else
-    {
-        OutConstants.MotionTextureScale = 1.0f;
-    }
-}
-
-void RCAS_Dx12::FillMotionConstants(InternalConstantsDA& OutConstants, const RcasConstants& InConstants)
-{
-    auto feature = State::Instance().currentFeature;
-
-    OutConstants.Sharpness = InConstants.Sharpness * 2.0f;
-    OutConstants.MvScaleX = InConstants.MvScaleX;
-    OutConstants.MvScaleY = InConstants.MvScaleY;
-    OutConstants.DisplaySizeMV = feature->LowResMV() ? 0 : 1;
-
-    OutConstants.DynamicSharpenEnabled = Config::Instance()->MotionSharpnessEnabled.value_or_default() ? 1 : 0;
-    OutConstants.Debug = Config::Instance()->MotionSharpnessDebug.value_or_default() ? 3 : 0;
-    OutConstants.MotionSharpness = Config::Instance()->MotionSharpness.value_or_default();
-    OutConstants.MotionThreshold = Config::Instance()->MotionThreshold.value_or_default();
-    OutConstants.MotionScaleLimit = Config::Instance()->MotionScaleLimit.value_or_default();
-    OutConstants.DisplayWidth = feature->TargetWidth();
-    OutConstants.DisplayHeight = feature->TargetHeight();
-
-    OutConstants.DepthIsLinear = feature->DepthLinear() ? 1 : 0;
-    OutConstants.DepthIsReversed = feature->DepthInverted() ? 1 : 0;
-    OutConstants.DepthScale =
-        Config::Instance()->DADepthScale.value_or(OutConstants.DepthIsLinear == 0 ? 4.0f : 250.0f);
-    OutConstants.DepthBias =
-        Config::Instance()->DADepthBias.value_or(OutConstants.DepthIsLinear == 0 ? 0.01f : 0.0015f);
-
-    OutConstants.DepthLinearA = InConstants.CameraNear * InConstants.CameraFar;
-    OutConstants.DepthLinearB = InConstants.CameraFar;
-    OutConstants.DepthLinearC = InConstants.CameraFar - InConstants.CameraNear;
-
-    OutConstants.DepthTextureScale = (float) feature->RenderWidth() / (float) feature->TargetWidth();
-    OutConstants.ClampOutput = Config::Instance()->DAClampOutput.value_or(feature->IsHdr()) ? 0 : 1;
-
-    if (feature->LowResMV())
-    {
-        OutConstants.MotionWidth = feature->RenderWidth();
-        OutConstants.MotionHeight = feature->RenderHeight();
-        OutConstants.MotionTextureScale = (float) OutConstants.MotionWidth / (float) feature->TargetWidth();
-    }
-    else
-    {
-        OutConstants.MotionWidth = feature->TargetWidth();
-        OutConstants.MotionHeight = feature->TargetHeight();
-        OutConstants.MotionTextureScale = 1.0f;
-    }
-
-    OutConstants.DepthWidth = feature->RenderWidth();
-    OutConstants.DepthHeight = feature->RenderHeight();
-}
-
 bool RCAS_Dx12::DispatchRCAS(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
                              ID3D12Resource* InMotionVectors, RcasConstants InConstants, ID3D12Resource* OutResource,
                              FrameDescriptorHeap& currentHeap)
@@ -131,6 +51,15 @@ bool RCAS_Dx12::DispatchRCAS(ID3D12GraphicsCommandList* InCmdList, ID3D12Resourc
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     InternalConstants constants {};
+
+    auto outDesc = OutResource->GetDesc();
+    auto mvsDesc = InMotionVectors->GetDesc();
+
+    constants.OutputWidth = (uint32_t) outDesc.Width;
+    constants.OutputHeight = outDesc.Height;
+    constants.MotionWidth = (uint32_t) mvsDesc.Width;
+    constants.MotionHeight = mvsDesc.Height;
+
     FillMotionConstants(constants, InConstants);
 
     if (!CreateConstantsBuffer(_device, _constantBuffer, constants, currentHeap.GetCbvCPU(0)))
@@ -167,6 +96,18 @@ bool RCAS_Dx12::DispatchDepthAdaptive(ID3D12GraphicsCommandList* InCmdList, ID3D
     CreateUnorderedAccessView(_device, OutResource, currentHeap.GetUavCPU(0), 0);
 
     InternalConstantsDA constants {};
+
+    auto outDesc = OutResource->GetDesc();
+    auto mvsDesc = InMotionVectors->GetDesc();
+    auto depthDesc = InDepth->GetDesc();
+
+    constants.OutputWidth = (uint32_t) outDesc.Width;
+    constants.OutputHeight = outDesc.Height;
+    constants.MotionWidth = (uint32_t) mvsDesc.Width;
+    constants.MotionHeight = mvsDesc.Height;
+    constants.DepthWidth = (uint32_t) depthDesc.Width;
+    constants.DepthHeight = depthDesc.Height;
+
     FillMotionConstants(constants, InConstants);
 
     if (!CreateConstantsBuffer(_device, _constantBuffer, constants, currentHeap.GetCbvCPU(0)))
@@ -181,8 +122,8 @@ bool RCAS_Dx12::DispatchDepthAdaptive(ID3D12GraphicsCommandList* InCmdList, ID3D
     InCmdList->SetPipelineState(_pipelineStateDA);
     InCmdList->SetComputeRootDescriptorTable(0, currentHeap.GetTableGPUStart());
 
-    UINT dispatchWidth = static_cast<UINT>((constants.DisplayWidth + InNumThreadsX - 1) / InNumThreadsX);
-    UINT dispatchHeight = (constants.DisplayHeight + InNumThreadsY - 1) / InNumThreadsY;
+    UINT dispatchWidth = static_cast<UINT>((constants.OutputWidth + InNumThreadsX - 1) / InNumThreadsX);
+    UINT dispatchHeight = (constants.OutputHeight + InNumThreadsY - 1) / InNumThreadsY;
     InCmdList->Dispatch(dispatchWidth, dispatchHeight, 1);
 
     return true;

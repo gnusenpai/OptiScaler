@@ -610,6 +610,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="shaders\hud_copy\HudCopy_Dx12.cpp" />
     <ClCompile Include="shaders\depth_transfer\DT_Vk.cpp" />
     <ClCompile Include="shaders\output_scaling\OS_Vk.cpp" />
+    <ClCompile Include="shaders\rcas\RCAS_Common.cpp" />
     <ClCompile Include="shaders\rcas\RCAS_Vk.cpp" />
     <ClCompile Include="shaders\Shader_Common.cpp" />
     <ClCompile Include="shaders\render_ui\RUI_Dx12.cpp" />

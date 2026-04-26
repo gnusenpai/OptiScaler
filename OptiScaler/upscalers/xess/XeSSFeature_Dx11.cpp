@@ -526,7 +526,9 @@ bool XeSSFeature_Dx11::Evaluate(ID3D11DeviceContext* DeviceContext, NVSDK_NGX_Pa
         RCAS != nullptr && RCAS.get() != nullptr && RCAS->CanRender())
     {
         RcasConstants rcasConstants {};
-
+        rcasConstants.DepthIsLinear = DepthLinear();
+        rcasConstants.DepthIsReversed = DepthInverted();
+        rcasConstants.IsHdr = IsHdr();
         rcasConstants.Sharpness = _sharpness;
         InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_X, &rcasConstants.MvScaleX);
         InParameters->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &rcasConstants.MvScaleY);
