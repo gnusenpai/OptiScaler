@@ -839,6 +839,12 @@
     <ClInclude Include="shaders\Shader_Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\hudless_compare_compute\HCC_Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\hudless_compare_compute\HCC_Dx12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1305,6 +1311,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="shaders\Shader_Common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\hudless_compare_compute\HCC_Dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

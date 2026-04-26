@@ -415,7 +415,10 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
             }
         }
 
-        if (State::Instance().gameQuirks & GameQuirk::FSRFGHudlessMismatchFixup && !_mfg)
+        bool applyHudCutoff = Config::Instance()->FGHudCutoff.value_or_default() > 0.0f ||
+                              (State::Instance().gameQuirks & GameQuirk::FSRFGHudlessMismatchFixup && !_mfg);
+
+        if (applyHudCutoff)
         {
             ID3D12Resource* presentWithHud = nullptr;
             InParameters->Get("DLSSG.Backbuffer", &presentWithHud);
@@ -441,6 +444,9 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
 
                     if (isCyberpunk && State::Instance().activeFgInput != FGInput::FSRFG)
                         hudDetectionThreshold = 0.01f;
+
+                    if (Config::Instance()->FGHudCutoff.value_or_default() > 0.0f)
+                        hudDetectionThreshold = Config::Instance()->FGHudCutoff.value_or_default() / 10.0f;
 
                     hudCopy->Dispatch(InCmdList, hudlessResource, presentWithHud, hudlessState, presentWithHudState,
                                       hudDetectionThreshold);

@@ -640,7 +640,10 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
         }
     }
 
-    if (State::Instance().gameQuirks & GameQuirk::FSRFGHudlessMismatchFixup && !lastFGDisableHudless)
+    bool applyHudCutoff = Config::Instance()->FGHudCutoff.value_or_default() > 0.0f ||
+                          State::Instance().gameQuirks & GameQuirk::FSRFGHudlessMismatchFixup;
+
+    if ((applyHudCutoff || State::Instance().FGHudlessCompare) && !lastFGDisableHudless)
     {
         auto presentWithHud = (ID3D12Resource*) params->presentColor.resource;
         auto hudlessResource = _resourceCopy[fIndex][FG_ResourceType::HudlessColor];
@@ -661,24 +664,49 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
         {
             auto cmdList = (ID3D12GraphicsCommandList*) params->commandList;
 
-            if (_hudCopy[fIndex].get() == nullptr)
+            if (applyHudCutoff)
             {
-                _hudCopy[fIndex] = std::make_unique<HudCopy_Dx12>("HudCopy", _device);
+                if (_hudCopy[fIndex].get() == nullptr)
+                {
+                    _hudCopy[fIndex] = std::make_unique<HudCopy_Dx12>("HudCopy", _device);
+                }
+
+                if (auto hudCopy = _hudCopy[fIndex].get(); hudCopy && hudCopy->IsInit())
+                {
+                    // In Cyberprank - DLSSG has noise issues, FSR FG has noise + vignetting
+                    // In Death Stranding 2 - DLSSG has wrong colormapping it seems, FSR FG is fine
+                    const bool isCyberpunk = State::Instance().gameQuirks[GameQuirk::CyberpunkHudlessState];
+                    float hudDetectionThreshold = 0.03f;
+
+                    if (isCyberpunk && State::Instance().activeFgInput != FGInput::FSRFG)
+                        hudDetectionThreshold = 0.01f;
+
+                    if (Config::Instance()->FGHudCutoff.value_or_default() > 0.0f)
+                        hudDetectionThreshold = Config::Instance()->FGHudCutoff.value_or_default() / 10.0f;
+
+                    hudCopy->Dispatch(cmdList, hudlessResource, presentWithHud, hudlessState,
+                                      GetD3D12State((FfxApiResourceState) params->presentColor.state),
+                                      hudDetectionThreshold);
+                }
             }
 
-            if (auto hudCopy = _hudCopy[fIndex].get(); hudCopy && hudCopy->IsInit())
+            if (State::Instance().FGHudlessCompare)
             {
-                // In Cyberprank - DLSSG has noise issues, FSR FG has noise + vignetting
-                // In Death Stranding 2 - DLSSG has wrong colormapping it seems, FSR FG is fine
-                const bool isCyberpunk = State::Instance().gameQuirks[GameQuirk::CyberpunkHudlessState];
-                float hudDetectionThreshold = 0.03f;
+                if (hudlessResource != nullptr)
+                {
+                    if (_hudlessCompareCompute[fIndex].get() == nullptr)
+                    {
+                        _hudlessCompareCompute[fIndex] = std::make_unique<HCC_Dx12>("HudlessCompareCompute", _device);
+                    }
 
-                if (isCyberpunk && State::Instance().activeFgInput != FGInput::FSRFG)
-                    hudDetectionThreshold = 0.01f;
-
-                hudCopy->Dispatch(cmdList, hudlessResource, presentWithHud, hudlessState,
-                                  GetD3D12State((FfxApiResourceState) params->presentColor.state),
-                                  hudDetectionThreshold);
+                    if (auto hudlessCompareCompute = _hudlessCompareCompute[fIndex].get();
+                        hudlessCompareCompute && hudlessCompareCompute->IsInit())
+                    {
+                        hudlessCompareCompute->Dispatch(
+                            cmdList, hudlessResource, presentWithHud, hudlessState,
+                            GetD3D12State((FfxApiResourceState) params->presentColor.state));
+                    }
+                }
             }
         }
     }
@@ -1625,27 +1653,6 @@ bool FSRFG_Dx12::Present()
         else if (ui == nullptr)
         {
             LOG_WARN("UI resource is nullptr");
-        }
-    }
-
-    if (IsActive() && !IsPaused() && State::Instance().FGHudlessCompare)
-    {
-        auto hudless = GetResource(FG_ResourceType::HudlessColor, fIndex);
-        if (hudless != nullptr)
-        {
-            if (_hudlessCompare.get() == nullptr)
-            {
-                _hudlessCompare = std::make_unique<HC_Dx12>("HudlessCompare", _device);
-            }
-            else
-            {
-                if (_hudlessCompare->IsInit())
-                {
-                    auto commandList = GetSCCommandList(fIndex);
-                    _hudlessCompare->Dispatch((IDXGISwapChain3*) _swapChain, commandList, hudless->GetResource(),
-                                              hudless->state);
-                }
-            }
         }
     }
 

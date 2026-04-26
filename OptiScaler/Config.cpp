@@ -142,6 +142,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             FGSkipResizeBuffers.set_from_config(readBool("FrameGen", "SkipResizeBuffers"));
             FGModifyBufferState.set_from_config(readBool("FrameGen", "ModifyBufferState"));
             FGModifySCIndex.set_from_config(readBool("FrameGen", "ModifySCIndex"));
+            FGHudCutoff.set_from_config(readFloat("FrameGen", "HudCutoff"));
         }
 
         // FSR FG
@@ -871,6 +872,7 @@ bool Config::SaveIni()
         ini.SetValue("FrameGen", "ModifyBufferState",
                      GetBoolValue(Instance()->FGModifyBufferState.value_for_config()).c_str());
         ini.SetValue("FrameGen", "ModifySCIndex", GetBoolValue(Instance()->FGModifySCIndex.value_for_config()).c_str());
+        ini.SetValue("FrameGen", "HudCutoff", GetFloatValue(Instance()->FGHudCutoff.value_for_config()).c_str());
     }
 
     // FSR FG output

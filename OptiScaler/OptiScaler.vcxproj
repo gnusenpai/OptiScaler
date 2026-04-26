@@ -326,6 +326,8 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="hooks\Hook_Utils.h" />
     <ClInclude Include="hooks\LibraryLoad_Hooks.h" />
     <ClInclude Include="hooks\CommandBuffer_StateTracker.h" />
+    <ClInclude Include="shaders\hudless_compare_compute\HCC_Common.h" />
+    <ClInclude Include="shaders\hudless_compare_compute\HCC_Dx12.h" />
     <ClInclude Include="shaders\rcas\precompile\da_sharpen_Shader.h" />
     <ClInclude Include="shaders\rcas\precompile\da_sharpen_Shader_Dx11.h" />
     <ClInclude Include="shaders\rcas\precompile\da_sharpen_Shader_Vk.h" />
@@ -604,6 +606,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="shaders\depth_invert\DI_Dx12.cpp" />
+    <ClCompile Include="shaders\hudless_compare_compute\HCC_Dx12.cpp" />
     <ClCompile Include="shaders\hud_copy\HudCopy_Dx12.cpp" />
     <ClCompile Include="shaders\depth_transfer\DT_Vk.cpp" />
     <ClCompile Include="shaders\output_scaling\OS_Vk.cpp" />
