@@ -396,6 +396,8 @@ class FfxApiProxy
 
         if (upscaling_dx12.dll != nullptr)
         {
+            FSR4ModelSelection::Hook(upscaling_dx12.dll, FSR4Source::SDK);
+
             wchar_t modulePath[MAX_PATH];
             DWORD len = GetModuleFileNameW(upscaling_dx12.dll, modulePath, MAX_PATH);
             upscaling_dx12.filePath = std::wstring(modulePath);
