@@ -67,7 +67,14 @@ void RCAS_Dx11::FillMotionConstants(InternalConstants& OutConstants, const RcasC
     OutConstants.Threshold = Config::Instance()->MotionThreshold.value_or_default();
     OutConstants.ScaleLimit = Config::Instance()->MotionScaleLimit.value_or_default();
 
-    OutConstants.MotionTextureScale = (float) feature->RenderWidth() / (float) feature->TargetWidth();
+    if (feature->LowResMV())
+    {
+        OutConstants.MotionTextureScale = (float) feature->RenderWidth() / (float) feature->TargetWidth();
+    }
+    else
+    {
+        OutConstants.MotionTextureScale = 1.0f;
+    }
 }
 
 void RCAS_Dx11::FillMotionConstants(InternalConstantsDA& OutConstants, const RcasConstants& InConstants)
@@ -116,7 +123,7 @@ void RCAS_Dx11::FillMotionConstants(InternalConstantsDA& OutConstants, const Rca
     OutConstants.DepthWidth = feature->RenderWidth();
     OutConstants.DepthHeight = feature->RenderHeight();
 
-    OutConstants.MotionTextureScale = (float) feature->RenderWidth() / (float) feature->TargetWidth();
+    OutConstants.MotionTextureScale = (float) OutConstants.MotionWidth / (float) feature->TargetWidth();
 }
 
 bool RCAS_Dx11::CreateBufferResource(ID3D11Device* InDevice, ID3D11Resource* InResource)
@@ -359,9 +366,8 @@ bool RCAS_Dx11::DispatchDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceContex
     InContext->CSSetShaderResources(0, 3, srvs);
     InContext->CSSetUnorderedAccessViews(0, 1, &_uavOutput, nullptr);
 
-    auto feature = State::Instance().currentFeature;
-    UINT dispatchWidth = (feature->TargetWidth() + InNumThreadsX - 1) / InNumThreadsX;
-    UINT dispatchHeight = (feature->TargetHeight() + InNumThreadsY - 1) / InNumThreadsY;
+    UINT dispatchWidth = (constants.DisplayWidth + InNumThreadsX - 1) / InNumThreadsX;
+    UINT dispatchHeight = (constants.DisplayHeight + InNumThreadsY - 1) / InNumThreadsY;
 
     InContext->Dispatch(dispatchWidth, dispatchHeight, 1);
 
