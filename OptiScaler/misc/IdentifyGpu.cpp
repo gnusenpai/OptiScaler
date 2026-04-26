@@ -41,6 +41,8 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
 {
     auto localCachedInfo = std::vector<GpuInformation> {};
 
+    ScopedSkipSpoofing skipSpoofing {};
+
     DxgiProxy::Init();
 
     ComPtr<IDXGIFactory6> factory = nullptr;
@@ -71,10 +73,7 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
             continue;
         }
 
-        {
-            ScopedSkipSpoofing skipSpoofing {};
-            result = adapter->GetDesc1(&adapterDesc);
-        }
+        result = adapter->GetDesc1(&adapterDesc);
 
         if (result == S_OK)
         {
@@ -328,6 +327,8 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                 pD3D12CreateDevice = D3d12Proxy::D3D12CreateDevice_();
 
             // D3D12 device is needed to be able to query amdxc and check for vkd3d-proton
+            ScopedCreatingD3DDevice scopedCreating {};
+            ScopedSkipVulkanHooks skipVulkanHooks {};
             mutex.unlock(); // To avoid VK hooks, not ideal
             auto createResult =
                 pD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&gpuInfo.d3d12device));
