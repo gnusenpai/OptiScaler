@@ -383,6 +383,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_Vulkan_SetLatencyMarker(HANDLE vkDevice,
 #endif
 
     _updatesWithoutMarker = 0;
+    State::Instance().reflexFrameId = pSetLatencyMarkerParams->frameID;
 
     return o_NvAPI_Vulkan_SetLatencyMarker(vkDevice, pSetLatencyMarkerParams);
 }
@@ -532,41 +533,42 @@ bool ReflexHooks::updateTimingData()
         UPDATE_TIMING_ENTRY(osRenderQueue, OsRenderQueue)
         UPDATE_TIMING_ENTRY(gpuRender, GpuRender)
 
+        if (frameReport.frameID != 0)
+            State::Instance().reflexFrameId = frameReport.frameID;
+
         return true;
     };
 
-    if (_lastSleepDev)
+    if (_lastSleepDev && o_NvAPI_D3D_GetLatency)
     {
-        if (o_NvAPI_D3D_GetLatency)
+        // Not calling free on this but it's static so hopefully fine
+        static NV_LATENCY_RESULT_PARAMS* results = new NV_LATENCY_RESULT_PARAMS();
+        results->version = NV_LATENCY_RESULT_PARAMS_VER;
+
+        if (auto result = hkNvAPI_D3D_GetLatency(_lastSleepDev, results); result != NVAPI_OK)
         {
-            // Not calling free on this but it's static so hopefully fine
-            static NV_LATENCY_RESULT_PARAMS* results = new NV_LATENCY_RESULT_PARAMS();
-            results->version = NV_LATENCY_RESULT_PARAMS_VER;
-
-            if (auto result = hkNvAPI_D3D_GetLatency(_lastSleepDev, results); result != NVAPI_OK)
-            {
-                LOG_WARN("NvAPI_D3D_GetLatency failed: {}", magic_enum::enum_name(result));
-                return false;
-            }
-
-            // 64th element has the latest data
-            return processFrameReport(results->frameReport[63]);
+            LOG_WARN("NvAPI_D3D_GetLatency failed: {}", magic_enum::enum_name(result));
+            return false;
         }
-        else if (o_NvAPI_Vulkan_GetLatency)
+
+        // 64th element has the latest data
+        return processFrameReport(results->frameReport[63]);
+    }
+
+    if (_lastVkSleepDev && o_NvAPI_Vulkan_GetLatency)
+    {
+        // Not calling free on this but it's static so hopefully fine
+        static NV_VULKAN_LATENCY_RESULT_PARAMS* results = new NV_VULKAN_LATENCY_RESULT_PARAMS();
+        results->version = NV_VULKAN_LATENCY_RESULT_PARAMS_VER;
+
+        if (auto result = hkNvAPI_Vulkan_GetLatency(_lastVkSleepDev, results); result != NVAPI_OK)
         {
-            // Not calling free on this but it's static so hopefully fine
-            static NV_VULKAN_LATENCY_RESULT_PARAMS* results = new NV_VULKAN_LATENCY_RESULT_PARAMS();
-            results->version = NV_VULKAN_LATENCY_RESULT_PARAMS_VER;
-
-            if (auto result = hkNvAPI_Vulkan_GetLatency(_lastVkSleepDev, results); result != NVAPI_OK)
-            {
-                LOG_WARN("NvAPI_Vulkan_GetLatency failed: {}", magic_enum::enum_name(result));
-                return false;
-            }
-
-            // 64th element has the latest data
-            return processFrameReport(results->frameReport[63]);
+            LOG_WARN("NvAPI_Vulkan_GetLatency failed: {}", magic_enum::enum_name(result));
+            return false;
         }
+
+        // 64th element has the latest data
+        return processFrameReport(results->frameReport[63]);
     }
 
     return false;
