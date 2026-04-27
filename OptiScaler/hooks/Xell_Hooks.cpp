@@ -52,10 +52,42 @@ void XellHooks::blockExternalContexts(bool state) { blockExternal = state; }
 // Use context to determine blocking, otherwise just block calls from exe
 bool XellHooks::shouldBlock(xell_context_handle_t context)
 {
+    if (context && ourContext != context && gamesContext != context)
+        gamesContext = context;
+
+    if (!blockExternal)
+        return false;
+
     if (context)
-        return blockExternal && ourContext != context;
+        return ourContext != context;
     else
         return GetModuleHandle(nullptr) == Util::GetCallerModule(_ReturnAddress());
+}
+
+bool XellHooks::canLimit() { return gamesContextCanLimitFps; }
+
+// only DX12
+bool XellHooks::update()
+{
+    if (!o_xellGetSleepMode || !o_xellSetSleepMode || blockExternal || gamesContext == nullptr)
+        return false;
+
+    xell_sleep_params_t currentParams;
+    o_xellGetSleepMode(gamesContext, &currentParams);
+
+    if (!currentParams.bLowLatencyMode)
+        return false;
+
+    gamesContextCanLimitFps = true;
+
+    float fpsLimit = Config::Instance()->FramerateLimit.value_or_default();
+
+    if (fpsLimit < 0.0f)
+        fpsLimit = 0.0f;
+
+    currentParams.minimumIntervalUs = static_cast<uint32_t>(std::round(1'000'000 / fpsLimit));
+
+    return o_xellSetSleepMode(gamesContext, &currentParams) == XELL_RESULT_SUCCESS;
 }
 
 xell_result_t XellHooks::hkxellDestroyContext(xell_context_handle_t context)

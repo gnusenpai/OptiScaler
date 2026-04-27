@@ -1584,6 +1584,8 @@ void CheckMemoryForProxies()
     XeFGProxy::InitXeFG();
     XeLLProxy::InitXeLL();
 
+    XellHooks::Hook();
+
     NVNGXProxy::InitNVNGX();
 }
 

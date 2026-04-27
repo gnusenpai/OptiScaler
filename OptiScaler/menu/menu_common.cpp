@@ -26,6 +26,7 @@
 #include <array>
 #include <chrono>
 #include <misc/IdentifyGpu.h>
+#include <hooks/Xell_Hooks.h>
 
 #define MARK_ALL_BACKENDS_CHANGED()                                                                                    \
     for (auto& singleChangeBackend : State::Instance().changeBackend)                                                  \
@@ -4621,7 +4622,10 @@ bool MenuCommon::RenderMenu()
                     }
                     else
                     {
-                        currentMethod = "Fallback";
+                        if (XellHooks::canLimit())
+                            currentMethod = "Game's XeLL";
+                        else
+                            currentMethod = "Fallback";
                     }
 
                     if (state.rtssReflexInjection)

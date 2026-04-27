@@ -21,6 +21,8 @@ typedef decltype(&xellD3D12CreateContext) PFN_xellD3D12CreateContext;
 class XellHooks
 {
     inline static xell_context_handle_t ourContext = nullptr;
+    inline static xell_context_handle_t gamesContext = nullptr;
+    inline static bool gamesContextCanLimitFps = false;
     inline static bool blockExternal = false;
 
     inline static PFN_xellDestroyContext o_xellDestroyContext = nullptr;
@@ -38,6 +40,9 @@ class XellHooks
     static void setOurContext(xell_context_handle_t context);
     static void blockExternalContexts(bool state);
     static bool shouldBlock(xell_context_handle_t context);
+
+    static bool canLimit();
+    static bool update();
 
     static xell_result_t hkxellDestroyContext(xell_context_handle_t context);
     static xell_result_t hkxellSetSleepMode(xell_context_handle_t context, const xell_sleep_params_t* param);
