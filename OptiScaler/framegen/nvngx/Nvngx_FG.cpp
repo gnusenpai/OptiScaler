@@ -418,7 +418,10 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
         bool applyHudCutoff = Config::Instance()->FGHudCutoff.value_or_default() > 0.0f ||
                               (State::Instance().gameQuirks & GameQuirk::FSRFGHudlessMismatchFixup && !_mfg);
 
-        if (applyHudCutoff)
+        uint32_t frameIndex = 1;
+        InParameters->Get("DLSSG.MultiFrameIndex", &frameIndex);
+
+        if (applyHudCutoff && frameIndex == 1)
         {
             ID3D12Resource* presentWithHud = nullptr;
             InParameters->Get("DLSSG.Backbuffer", &presentWithHud);
