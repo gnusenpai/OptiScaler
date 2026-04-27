@@ -2,6 +2,8 @@
 #include "Shader_Dx12.h"
 #include <d3dx/d3dx12.h>
 
+using Microsoft::WRL::ComPtr;
+
 Shader_Dx12::Shader_Dx12(std::string InName, ID3D12Device* InDevice) : _name(InName), _device(InDevice) {}
 
 Shader_Dx12::~Shader_Dx12()
@@ -99,6 +101,19 @@ bool Shader_Dx12::CreateComputeShader(ID3D12Device* device, ID3D12RootSignature*
     }
 
     return true;
+}
+
+bool Shader_Dx12::CreateComputePipeline(ID3D12Device* device, ID3D12PipelineState** pipelineState, const void* bytecode,
+                                        size_t bytecodeSize, const char* source)
+{
+    ComPtr<ID3DBlob> shaderBlob;
+
+    // Compile if not using precompiled
+    if (!Config::Instance()->UsePrecompiledShaders.value_or_default() && source)
+        shaderBlob = CompileShader(source, "CSMain", "cs_5_0");
+
+    return CreateComputeShader(device, _rootSignature, pipelineState, shaderBlob.Get(),
+                               CD3DX12_SHADER_BYTECODE(bytecode, bytecodeSize));
 }
 
 bool Shader_Dx12::CreateBufferResource(ID3D12Device* InDevice, ID3D12Resource* InResource,
@@ -430,8 +445,8 @@ bool Shader_Dx12::SetupRootSignature(ID3D12Device* InDevice, uint32_t srcCount, 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc {};
     rootSigDesc.Init_1_1(1, &rootParameter, staticSamplerCount, pStaticSamplers, flags);
 
-    ID3DBlob* errorBlob;
-    ID3DBlob* signatureBlob;
+    ComPtr<ID3DBlob> errorBlob;
+    ComPtr<ID3DBlob> signatureBlob;
 
     do
     {
@@ -453,18 +468,6 @@ bool Shader_Dx12::SetupRootSignature(ID3D12Device* InDevice, uint32_t srcCount, 
         }
 
     } while (false);
-
-    if (errorBlob != nullptr)
-    {
-        errorBlob->Release();
-        errorBlob = nullptr;
-    }
-
-    if (signatureBlob != nullptr)
-    {
-        signatureBlob->Release();
-        signatureBlob = nullptr;
-    }
 
     if (_rootSignature == nullptr)
     {

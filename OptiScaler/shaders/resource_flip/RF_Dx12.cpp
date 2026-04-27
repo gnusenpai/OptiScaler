@@ -97,45 +97,10 @@ RF_Dx12::RF_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InNam
         return;
     }
 
-    if (Config::Instance()->UsePrecompiledShaders.value_or_default())
+    if (!CreateComputePipeline(InDevice, &_pipelineState, RF_cso, sizeof(RF_cso), rfCode.c_str()))
     {
-        D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
-        computePsoDesc.pRootSignature = _rootSignature;
-        computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-        computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(RF_cso), sizeof(RF_cso));
-        auto hr = InDevice->CreateComputePipelineState(&computePsoDesc, __uuidof(ID3D12PipelineState*),
-                                                       (void**) &_pipelineState);
-
-        if (FAILED(hr))
-        {
-            LOG_ERROR("[{0}] CreateComputePipelineState error: {1:X}", _name, hr);
-            return;
-        }
-    }
-    else
-    {
-        // Compile shader blobs
-        ID3DBlob* _recEncodeShader = nullptr;
-
-        _recEncodeShader = CompileShader(rfCode.c_str(), "CSMain", "cs_5_0");
-
-        if (_recEncodeShader == nullptr)
-            LOG_ERROR("[{0}] CompileShader error!", _name);
-
-        // create pso objects
-        if (!Shader_Dx12::CreateComputeShader(
-                InDevice, _rootSignature, &_pipelineState, _recEncodeShader,
-                CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(RF_cso), sizeof(RF_cso))))
-        {
-            LOG_ERROR("[{0}] CreateComputeShader error!", _name);
-            return;
-        }
-
-        if (_recEncodeShader != nullptr)
-        {
-            _recEncodeShader->Release();
-            _recEncodeShader = nullptr;
-        }
+        LOG_ERROR("[{0}] Failed to create compute pipeline", _name);
+        return;
     }
 
     ScopedSkipHeapCapture skipHeapCapture {};

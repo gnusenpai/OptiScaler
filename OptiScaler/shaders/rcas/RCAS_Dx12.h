@@ -27,10 +27,6 @@ class RCAS_Dx12 : public Shader_Dx12, public RCAS_Common
     uint32_t InNumThreadsX = 16;
     uint32_t InNumThreadsY = 16;
 
-    bool CreatePipelineState(ID3D12Device* InDevice, const void* InShaderData, size_t InShaderSize,
-                             ID3D12PipelineState** OutPipelineState);
-    bool CreatePipelineState(ID3D12Device* InDevice, const std::string& InShaderCode,
-                             ID3D12PipelineState** OutPipelineState, D3D12_SHADER_BYTECODE byteCode);
     bool DispatchRCAS(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource, ID3D12Resource* InMotionVectors,
                       RcasConstants InConstants, ID3D12Resource* OutResource, FrameDescriptorHeap& currentHeap);
     bool DispatchDepthAdaptive(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,

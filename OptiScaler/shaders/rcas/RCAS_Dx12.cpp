@@ -7,38 +7,6 @@
 
 #include <Config.h>
 
-bool RCAS_Dx12::CreatePipelineState(ID3D12Device* InDevice, const void* InShaderData, size_t InShaderSize,
-                                    ID3D12PipelineState** OutPipelineState)
-{
-    D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
-    computePsoDesc.pRootSignature = _rootSignature;
-    computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-    computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(InShaderData, InShaderSize);
-    auto hr = InDevice->CreateComputePipelineState(&computePsoDesc, __uuidof(ID3D12PipelineState*),
-                                                   (void**) OutPipelineState);
-
-    if (FAILED(hr))
-    {
-        LOG_ERROR("[{0}] CreateComputePipelineState error: {1:X}", _name, hr);
-        return false;
-    }
-
-    return true;
-}
-
-bool RCAS_Dx12::CreatePipelineState(ID3D12Device* InDevice, const std::string& InShaderCode,
-                                    ID3D12PipelineState** OutPipelineState, D3D12_SHADER_BYTECODE byteCode)
-{
-    ID3DBlob* shaderBlob = CompileShader(InShaderCode.c_str(), "CSMain", "cs_5_0");
-
-    auto result = Shader_Dx12::CreateComputeShader(InDevice, _rootSignature, OutPipelineState, shaderBlob, byteCode);
-
-    if (shaderBlob != nullptr)
-        shaderBlob->Release();
-
-    return result;
-}
-
 bool RCAS_Dx12::DispatchRCAS(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* InResource,
                              ID3D12Resource* InMotionVectors, RcasConstants InConstants, ID3D12Resource* OutResource,
                              FrameDescriptorHeap& currentHeap)
@@ -202,31 +170,17 @@ RCAS_Dx12::RCAS_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(I
         return;
     }
 
-    if (Config::Instance()->UsePrecompiledShaders.value_or_default())
+    if (!CreateComputePipeline(InDevice, &_pipelineState, rcas_cso, sizeof(rcas_cso), rcasCode.c_str()))
     {
-        if (!CreatePipelineState(InDevice, reinterpret_cast<const void*>(rcas_cso), sizeof(rcas_cso), &_pipelineState))
-            return;
-
-        if (!CreatePipelineState(InDevice, reinterpret_cast<const void*>(da_sharpen_cso), sizeof(da_sharpen_cso),
-                                 &_pipelineStateDA))
-            return;
+        LOG_ERROR("[{0}] Failed to create compute pipeline", _name);
+        return;
     }
-    else
-    {
-        if (!CreatePipelineState(InDevice, rcasCode, &_pipelineState,
-                                 CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(rcas_cso), sizeof(rcas_cso))))
-        {
-            LOG_ERROR("[{0}] CreateComputeShader error!", _name);
-            return;
-        }
 
-        if (!CreatePipelineState(
-                InDevice, daSharpenCode, &_pipelineStateDA,
-                CD3DX12_SHADER_BYTECODE(reinterpret_cast<const void*>(da_sharpen_cso), sizeof(da_sharpen_cso))))
-        {
-            LOG_ERROR("[{0}] CreateComputeShader error for depth adaptive shader!", _name);
-            return;
-        }
+    if (!CreateComputePipeline(InDevice, &_pipelineStateDA, da_sharpen_cso, sizeof(da_sharpen_cso),
+                               daSharpenCode.c_str()))
+    {
+        LOG_ERROR("[{0}] Failed to create compute pipeline", _name);
+        return;
     }
 
     ScopedSkipHeapCapture skipHeapCapture {};
