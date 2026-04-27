@@ -342,8 +342,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
             ScopedCreatingD3DDevice scopedCreating {};
             ScopedSkipVulkanHooks skipVulkanHooks {};
             ID3D12Device* localDevice = nullptr;
-            auto createResult =
-                pD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&localDevice));
+            auto createResult = pD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&localDevice));
 
             if (SUCCEEDED(createResult) && localDevice)
             {
@@ -413,17 +412,14 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                         // Query amdxc for a specific intrinsics support, FSR 4 checks more but hopefully this one
                         // is enough amdxc on Windows hates vkd3d-proton's device, on Linux it's fine
                         if (!res.fsr4Capable && localDevice &&
-                            (State::Instance().isRunningOnLinux || !res.usesVkd3dProton) &&
-                            AmdExtD3DCreateInterface)
+                            (State::Instance().isRunningOnLinux || !res.usesVkd3dProton) && AmdExtD3DCreateInterface)
                         {
-                            if (SUCCEEDED(
-                                AmdExtD3DCreateInterface(localDevice, IID_PPV_ARGS(&amdExtD3DFactory))))
+                            if (SUCCEEDED(AmdExtD3DCreateInterface(localDevice, IID_PPV_ARGS(&amdExtD3DFactory))))
                             {
                                 ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics = nullptr;
 
-                                if (amdExtD3DFactory &&
-                                    SUCCEEDED(amdExtD3DFactory->CreateInterface(
-                                        localDevice, IID_PPV_ARGS(&amdExtD3DShaderIntrinsics))))
+                                if (amdExtD3DFactory && SUCCEEDED(amdExtD3DFactory->CreateInterface(
+                                                            localDevice, IID_PPV_ARGS(&amdExtD3DShaderIntrinsics))))
                                 {
                                     HRESULT float8support = amdExtD3DShaderIntrinsics->CheckSupport(
                                         AmdExtD3DShaderIntrinsicsSupport_Float8Conversion);
