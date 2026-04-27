@@ -134,8 +134,6 @@ HCC_Dx12::HCC_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(InN
         return;
     }
 
-    ScopedSkipHeapCapture skipHeapCapture {};
-
     _init = InitHeaps(InDevice, _frameHeaps, HCC_NUM_OF_HEAPS);
 }
 

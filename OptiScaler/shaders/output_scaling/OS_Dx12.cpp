@@ -308,8 +308,6 @@ OS_Dx12::OS_Dx12(std::string InName, ID3D12Device* InDevice, bool InUpsample)
         }
     }
 
-    ScopedSkipHeapCapture skipHeapCapture {};
-
     _init = InitHeaps(InDevice, _frameHeaps, OS_NUM_OF_HEAPS);
 }
 

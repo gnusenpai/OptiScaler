@@ -106,8 +106,6 @@ Bias_Dx12::Bias_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(I
         return;
     }
 
-    ScopedSkipHeapCapture skipHeapCapture {};
-
     _init = InitHeaps(InDevice, _frameHeaps, BIAS_NUM_OF_HEAPS);
 }
 

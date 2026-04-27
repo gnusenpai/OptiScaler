@@ -152,8 +152,6 @@ RUI_Dx12::RUI_Dx12(std::string InName, ID3D12Device* InDevice, bool preMultiplie
         return;
     }
 
-    ScopedSkipHeapCapture skipHeapCapture {};
-
     _init = InitHeaps(InDevice, _frameHeaps, HC_NUM_OF_HEAPS);
 }
 

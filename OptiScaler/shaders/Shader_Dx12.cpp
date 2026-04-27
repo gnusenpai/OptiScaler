@@ -480,6 +480,8 @@ bool Shader_Dx12::SetupRootSignature(ID3D12Device* InDevice, uint32_t srcCount, 
 
 bool Shader_Dx12::InitHeaps(ID3D12Device* InDevice, FrameDescriptorHeap* pHeaps, size_t numOFHeaps)
 {
+    ScopedSkipHeapCapture skipHeapCapture {};
+
     for (size_t i = 0; i < numOFHeaps; i++)
     {
         if (!pHeaps[i].Initialize(InDevice, _srcCount, _uavCount, _cbvCount, _rtvCount))
