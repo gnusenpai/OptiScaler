@@ -142,6 +142,7 @@ static std::vector<std::string> splashText = { "Cope smarter, not harder",
 static std::string updateNoticeTag;
 static std::string updateNoticeUrl;
 static float lastMenuScale = 0.0f;
+static CustomOptional<uint32_t> comboPreset { 0 };
 
 template <typename T, size_t N> struct RingBuffer
 {
@@ -1137,6 +1138,153 @@ template <HasDefaultValue B> void MenuCommon::AddResourceBarrier(std::string nam
     }
 }
 
+static uint32_t GetPresetIndex(IFeature* feature, bool dlssd = false)
+{
+    auto ratio = (float) feature->TargetWidth() / (float) feature->RenderWidth();
+
+    if (!dlssd)
+    {
+        if (State::Instance().dlssPresetsOverridenByOpti)
+        {
+            LOG_DEBUG("DLSS Presets overridden by Opti, using Opti preset indices with ratio: {}", ratio);
+
+            if (ratio <= (Config::Instance()->QualityRatio_UltraPerformance.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->RenderPresetForAll.value_or(
+                    Config::Instance()->RenderPresetUltraPerformance.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Performance.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->RenderPresetForAll.value_or(
+                    Config::Instance()->RenderPresetPerformance.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Balanced.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->RenderPresetForAll.value_or(
+                    Config::Instance()->RenderPresetBalanced.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Quality.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->RenderPresetForAll.value_or(
+                    Config::Instance()->RenderPresetQuality.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_UltraQuality.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->RenderPresetForAll.value_or(
+                    Config::Instance()->RenderPresetUltraQuality.value_or_default());
+            }
+            else
+            {
+                return Config::Instance()->RenderPresetForAll.value_or(
+                    Config::Instance()->RenderPresetDLAA.value_or_default());
+            }
+        }
+        else if (State::Instance().dlssPresetsOverriddenExternally)
+        {
+            LOG_DEBUG("DLSS Presets overridden externally, using external preset index: {}",
+                      State::Instance().dlssRenderPresetExternal);
+
+            return State::Instance().dlssRenderPresetExternal;
+        }
+        else
+        {
+            if (ratio <= (Config::Instance()->QualityRatio_UltraPerformance.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssRenderPresetUltraPerformance;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Performance.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssRenderPresetPerformance;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Balanced.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssRenderPresetBalanced;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Quality.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssRenderPresetQuality;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_UltraQuality.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssRenderPresetUltraQuality;
+            }
+            else
+            {
+                return State::Instance().dlssRenderPresetDLAA;
+            }
+        }
+    }
+    else
+    {
+        if (State::Instance().dlssdPresetsOverridenByOpti)
+        {
+            if (ratio <= (Config::Instance()->QualityRatio_UltraPerformance.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->DLSSDRenderPresetForAll.value_or(
+                    Config::Instance()->DLSSDRenderPresetUltraPerformance.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Performance.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->DLSSDRenderPresetForAll.value_or(
+                    Config::Instance()->DLSSDRenderPresetPerformance.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Balanced.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->DLSSDRenderPresetForAll.value_or(
+                    Config::Instance()->DLSSDRenderPresetBalanced.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Quality.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->DLSSDRenderPresetForAll.value_or(
+                    Config::Instance()->DLSSDRenderPresetQuality.value_or_default());
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_UltraQuality.value_or_default() + 0.01f))
+            {
+                return Config::Instance()->DLSSDRenderPresetForAll.value_or(
+                    Config::Instance()->DLSSDRenderPresetUltraQuality.value_or_default());
+            }
+            else
+            {
+                return Config::Instance()->DLSSDRenderPresetForAll.value_or(
+                    Config::Instance()->DLSSDRenderPresetDLAA.value_or_default());
+            }
+        }
+        else if (State::Instance().dlssdPresetsOverriddenExternally)
+        {
+            return State::Instance().dlssdRenderPresetExternal;
+        }
+        else
+        {
+            if (ratio <= (Config::Instance()->QualityRatio_UltraPerformance.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssdRenderPresetUltraPerformance;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Performance.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssdRenderPresetPerformance;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Balanced.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssdRenderPresetBalanced;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_Quality.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssdRenderPresetQuality;
+            }
+            else if (ratio <= (Config::Instance()->QualityRatio_UltraQuality.value_or_default() + 0.01f))
+            {
+                return State::Instance().dlssdRenderPresetUltraQuality;
+            }
+            else
+            {
+                return State::Instance().dlssdRenderPresetDLAA;
+            }
+        }
+    }
+
+    return 0;
+}
+
 // TODO: disable presets based on the detected DLSS version
 template <HasDefaultValue B> void MenuCommon::AddDLSSRenderPreset(std::string name, CustomOptional<uint32_t, B>* value)
 {
@@ -1685,14 +1833,12 @@ bool MenuCommon::RenderMenu()
 
                 refreshRate = Util::GetActiveRefreshRate(_handle);
 
-                auto optiPath = std::filesystem::path(Config::Instance()->MainDllPath.value());
-                auto dllPath = optiPath / L"dlss-enabler-headless.dll";
-                state.NvngxFgFilesAvailable = gExists.Get(dllPath);
-
-                if (!state.NvngxFgFilesAvailable)
+                if (State::Instance().currentFeature != nullptr)
                 {
-                    dllPath = optiPath / L"dlssg_to_fsr3_amd_is_better.dll";
-                    state.NvngxFgFilesAvailable = gExists.Get(dllPath);
+                    if (State::Instance().currentFeature->GetUpscalerType() == Upscaler::DLSSD)
+                        comboPreset = config->DLSSDRenderPresetForAll.value_or_default();
+                    else if (State::Instance().currentFeature->GetUpscalerType() == Upscaler::DLSS)
+                        comboPreset = config->RenderPresetForAll.value_or_default();
                 }
 
                 if (pfn_ClipCursor_hooked)
@@ -3058,8 +3204,8 @@ bool MenuCommon::RenderMenu()
                             ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "Presets are overridden externally");
                             ShowHelpMarker("This usually happens due to using tools\n"
                                            "such as Nvidia App or Nvidia Inspector");
-                            ImGui::Text("Selecting setting below will disable that external override\n"
-                                        "but you need to Save INI and restart the game");
+                            // ImGui::Text("Selecting setting below will disable that external override\n"
+                            //             "but you need to Save INI and restart the game");
 
                             ImGui::Spacing();
                         }
@@ -3074,10 +3220,20 @@ bool MenuCommon::RenderMenu()
                                            "Override to potentially improve image quality\n"
                                            "Press apply after enable/disable");
 
-                            ImGui::BeginDisabled(!config->DLSSDRenderPresetOverride.value_or_default() || overridden);
+                            /*
+                            auto currentPresetIndex = GetPresetIndex(currentFeature, true);
+
+                            if (currentPresetIndex == 0)
+                                ImGui::Text("Current Preset: Default");
+                            else
+                                ImGui::Text("Current Preset: %c", 64 + currentPresetIndex);
+                            */
+
+                            ImGui::BeginDisabled(
+                                !config->DLSSDRenderPresetOverride.value_or_default() /*|| overridden*/);
                             ImGui::PushItemWidth(135.0f * menuResScale);
 
-                            AddDLSSDRenderPreset("Override Preset", &config->DLSSDRenderPresetForAll);
+                            AddDLSSDRenderPreset("Override Preset", &comboPreset);
 
                             ImGui::PopItemWidth();
                             ImGui::EndDisabled();
@@ -3092,11 +3248,20 @@ bool MenuCommon::RenderMenu()
                                            "Override to potentially improve image quality\n"
                                            "Press apply after enable/disable");
 
-                            ImGui::BeginDisabled(!config->RenderPresetOverride.value_or_default() || overridden);
+                            /*
+                            auto currentPresetIndex = GetPresetIndex(currentFeature, false);
+
+                            if (currentPresetIndex == 0)
+                                ImGui::Text("Current Preset: Default");
+                            else
+                                ImGui::Text("Current Preset: %c", 64 + currentPresetIndex);
+                            */
+
+                            ImGui::BeginDisabled(!config->RenderPresetOverride.value_or_default() /*|| overridden*/);
 
                             ImGui::PushItemWidth(135.0f * menuResScale);
 
-                            AddDLSSRenderPreset("Override Preset", &config->RenderPresetForAll);
+                            AddDLSSRenderPreset("Override Preset", &comboPreset);
 
                             ImGui::PopItemWidth();
                             ImGui::EndDisabled();
@@ -3106,10 +3271,19 @@ bool MenuCommon::RenderMenu()
 
                         if (ImGui::Button("Apply Changes"))
                         {
+                            LOG_DEBUG("Applying DLSS/DLSSD preset override changes, preset index: {}",
+                                      comboPreset.value_or_default());
+
                             if (usesDlssd)
+                            {
+                                config->DLSSDRenderPresetForAll = comboPreset.value_or_default();
                                 state.newBackend = Upscaler::DLSSD;
+                            }
                             else
+                            {
+                                config->RenderPresetForAll = comboPreset.value_or_default();
                                 state.newBackend = currentBackend;
+                            }
 
                             MARK_ALL_BACKENDS_CHANGED();
                         }
