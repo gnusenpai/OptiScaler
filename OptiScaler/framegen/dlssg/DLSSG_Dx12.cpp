@@ -283,7 +283,7 @@ void DLSSG_Dx12::Deactivate()
         sl::DLSSGOptions options {};
         options.mode = sl::DLSSGMode::eOff;
         options.queueParallelismMode = sl::DLSSGQueueParallelismMode::eBlockPresentingClientQueue;
-        StreamlineProxy::DLSSGSetOptions()(viewport, options);
+        StreamlineProxy::DLSSGSetOptions()(viewport, options); // Potential crash point on exit
 
         sl::ReflexOptions reflexConst = {};
         reflexConst.mode = sl::ReflexMode::eOff;

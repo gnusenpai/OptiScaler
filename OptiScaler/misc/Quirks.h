@@ -40,7 +40,6 @@ enum class GameQuirk : uint64_t
     SpoofRegistry,
     DisableFakenvapi,
     DoNotPreserveFGSwapChain,
-    DoNotSkipResize,
     OldOverlayMenu,
 
     // Quirks that are applied deeper in code
@@ -196,7 +195,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("em-win64-shipping.exe", GameQuirk::DontUseNtDllHooks),
 
     // The Talos Principle 2
-    QUIRK_ENTRY("talos2-win64-shipping.exe", GameQuirk::DoNotPreserveFGSwapChain, GameQuirk::DoNotSkipResize),
+    QUIRK_ENTRY("talos2-win64-shipping.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain),
 
     // The Callisto Protocol
     // FSR2 only, no spoof needed
@@ -269,7 +268,7 @@ static const QuirkEntry quirkTable[] = {
     // Dead Space Remake
     // Override Vsync required to avoid crash on boot
     QUIRK_ENTRY("dead space.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::OverrideVsyncWhenUsingXeFG,
-                GameQuirk::ForceBorderlessWhenUsingXeFG),
+                GameQuirk::ForceBorderlessWhenUsingXeFG, GameQuirk::DisableResizeSkip),
 
     // Metro Exodus Enhanced Edition
     // ForceBorderless required to avoid black screen with XeFG

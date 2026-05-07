@@ -1226,9 +1226,6 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
     if (quirks & GameQuirk::DoNotPreserveFGSwapChain)
         stringQuirks.push_back("Don't Preserve FG Swapchain");
 
-    if (quirks & GameQuirk::DoNotSkipResize)
-        stringQuirks.push_back("Don't Skip Resize");
-
     if (quirks & GameQuirk::OldOverlayMenu)
         stringQuirks.push_back("Using old overlay (draws on upscaled image)");
 
@@ -1435,11 +1432,6 @@ static void CheckQuirks(bool isNvidia)
     if (quirks & GameQuirk::DoNotPreserveFGSwapChain && !Config::Instance()->FGPreserveSwapChain.has_value())
     {
         Config::Instance()->FGPreserveSwapChain.set_volatile_value(false);
-    }
-
-    if (quirks & GameQuirk::DoNotSkipResize && !Config::Instance()->FGSkipResizeBuffers.has_value())
-    {
-        Config::Instance()->FGSkipResizeBuffers.set_volatile_value(false);
     }
 
     if (quirks & GameQuirk::OldOverlayMenu && !Config::Instance()->OverlayMenu.has_value())
