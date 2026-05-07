@@ -88,9 +88,55 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
             std::wstring szName(adapterDesc.Description);
             gpuInfo.name = wstring_to_string(szName);
 
-            ComPtr<IDXGIDXVKAdapter> dxvkAdapter;
-            if (SUCCEEDED(adapter->QueryInterface(IID_PPV_ARGS(&dxvkAdapter))))
+            ComPtr<IDXGIVkInteropAdapter> interopAdapter;
+            if (SUCCEEDED(adapter->QueryInterface(__uuidof(IDXGIVkInteropAdapter), (void**) &interopAdapter)))
+            {
                 gpuInfo.usesDxvk = true;
+
+                // Try to get the real GPU info when using dxvk.conf to spoof
+                ComPtr<IDXGIVkInteropFactory> interopFactory;
+                if (SUCCEEDED(factory->QueryInterface(__uuidof(IDXGIVkInteropFactory), (void**) &interopFactory)))
+                {
+                    VkInstance vkInst = VK_NULL_HANDLE;
+                    VkPhysicalDevice vkPhysDev = VK_NULL_HANDLE;
+                    interopAdapter->GetVulkanHandles(&vkInst, &vkPhysDev);
+
+                    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = VK_NULL_HANDLE;
+                    interopFactory->GetVulkanInstance(&vkInst, &vkGetInstanceProcAddr);
+
+                    if (vkPhysDev)
+                    {
+                        PFN_vkGetPhysicalDeviceProperties pvkGetProps = VK_NULL_HANDLE;
+                        if (vkGetInstanceProcAddr && vkInst)
+                        {
+                            pvkGetProps = (PFN_vkGetPhysicalDeviceProperties) vkGetInstanceProcAddr(
+                                vkInst, "vkGetPhysicalDeviceProperties");
+                        }
+
+                        if (!pvkGetProps)
+                        {
+                            HMODULE hVulkan = GetModuleHandleA("vulkan-1.dll");
+                            pvkGetProps = hVulkan ? (PFN_vkGetPhysicalDeviceProperties) GetProcAddress(
+                                                        hVulkan, "vkGetPhysicalDeviceProperties")
+                                                  : nullptr;
+                        }
+
+                        if (pvkGetProps)
+                        {
+                            VkPhysicalDeviceProperties props {};
+                            pvkGetProps(vkPhysDev, &props);
+                            if (props.vendorID != gpuInfo.vendorId)
+                            {
+                                LOG_INFO("DXVK: unspoofing vendorId {:04X} -> {:04X} ({})", (uint32_t) gpuInfo.vendorId,
+                                         props.vendorID, props.deviceName);
+                                gpuInfo.vendorId = (VendorId::Value) props.vendorID;
+                                gpuInfo.deviceId = props.deviceID;
+                                gpuInfo.name = props.deviceName;
+                            }
+                        }
+                    }
+                }
+            }
 
             if (adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 gpuInfo.softwareAdapter = true;

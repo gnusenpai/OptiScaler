@@ -32,12 +32,17 @@ ID3D12DXVKInteropDevice : public IUnknown
 };
 
 // dxvk
-MIDL_INTERFACE("907bf281-ea3c-43b4-a8e4-9f231107b4ff")
-IDXGIDXVKAdapter : public IDXGIAdapter4
+MIDL_INTERFACE("3a6d8f2c-b0e8-4ab4-b4dc-4fd24891bfa5")
+IDXGIVkInteropAdapter : public IUnknown
 {
-    virtual void* STDMETHODCALLTYPE GetDXVKAdapter() = 0;
+    virtual void STDMETHODCALLTYPE GetVulkanHandles(VkInstance * pInstance, VkPhysicalDevice * pPhysDev) = 0;
+};
 
-    virtual void* STDMETHODCALLTYPE GetDXVKInstance() = 0;
+MIDL_INTERFACE("4c5e1b0d-b0c8-4131-bfd8-9b2476f7f408")
+IDXGIVkInteropFactory : public IUnknown
+{
+    virtual void STDMETHODCALLTYPE GetVulkanInstance(VkInstance * pInstance,
+                                                     PFN_vkGetInstanceProcAddr * ppfnVkGetInstanceProcAddr) = 0;
 };
 
 struct GpuInformation
