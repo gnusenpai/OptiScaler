@@ -49,6 +49,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
     if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
          State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&
         Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
+        State::Instance().currentFG &&
         State::Instance().currentFG->IsActive() && !State::Instance().currentFG->IsPaused())
     {
         if (!skip)
@@ -128,6 +129,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
          State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&
         StreamlineProxy::IsD3D12Inited() && Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default() &&
+        State::Instance().currentFG &&
         State::Instance().currentFG->IsActive() && !State::Instance().currentFG->IsPaused())
     {
         sl::PCLMarker marker {};

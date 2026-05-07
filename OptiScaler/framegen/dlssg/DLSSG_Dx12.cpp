@@ -98,6 +98,8 @@ bool DLSSG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
         slFactory->Release();
     }
 
+    desc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
     ScopedSkipSpoofing skipSpoofing {};
     auto result = factory->CreateSwapChain(cmdQueue, desc, swapChain);
 
@@ -207,6 +209,7 @@ bool DLSSG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
 
     StreamlineProxy::SetFeatureLoaded()(sl::kFeatureDLSS_G, true);
 
+    desc->Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
     auto result = factory2->CreateSwapChainForHwnd(cmdQueue, hwnd, desc, pFullscreenDesc, nullptr, swapChain);
 
     factory2->Release();
