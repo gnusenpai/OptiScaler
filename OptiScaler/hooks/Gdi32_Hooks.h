@@ -53,34 +53,6 @@ static NTSTATUS hkD3DKMTQueryAdapterInfo(const D3DKMT_QUERYADAPTERINFO* data)
     return result;
 }
 
-// Only for Linux, Wine doesn't have this function
-VALIDATE_HOOK(customD3DKMTEnumAdapters2, PFN_D3DKMTEnumAdapters2)
-static NTSTATUS customD3DKMTEnumAdapters2(const D3DKMT_ENUMADAPTERS2* data)
-{
-    LOG_FUNC();
-
-    // Try to detect streamline
-    if (data->pAdapters != nullptr && data->NumAdapters == 8)
-    {
-        LOG_INFO("Streamline detected");
-
-        // Something's not quite right in here
-        // Can't just send all LUIDs from DXGI as streamline isn't happy
-        // Can't send a true number of adapters as streamline isn't happy
-        // 8th adapter sometimes has junk data so sending only 6 to be safe
-
-        for (uint32_t i = 0; i < 6; i++)
-        {
-            data->pAdapters[i].AdapterLuid = IdentifyGpu::getPrimaryGpu().luid;
-            LOG_DEBUG("sent {}.{}", data->pAdapters[i].AdapterLuid.HighPart, data->pAdapters[i].AdapterLuid.LowPart);
-        }
-
-        return 0;
-    }
-
-    return 0xFFFFFFFF;
-}
-
 // for spoofing HAGS, call early
 static void hookGdi32()
 {
