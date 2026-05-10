@@ -1801,6 +1801,16 @@ bool MenuCommon::RenderMenu()
 
                 refreshRate = Util::GetActiveRefreshRate(_handle);
 
+                auto optiPath = std::filesystem::path(Config::Instance()->MainDllPath.value());
+                auto dllPath = optiPath / L"dlss-enabler-headless.dll";
+                state.NvngxFgFilesAvailable = gExists.Get(dllPath);
+
+                if (!state.NvngxFgFilesAvailable)
+                {
+                    dllPath = optiPath / L"dlssg_to_fsr3_amd_is_better.dll";
+                    state.NvngxFgFilesAvailable = gExists.Get(dllPath);
+                }
+
                 if (State::Instance().currentFeature != nullptr)
                 {
                     if (State::Instance().currentFeature->GetUpscalerType() == Upscaler::DLSSD)
