@@ -740,9 +740,11 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
     WaitForGPUIdle(_device);
 
+    const bool outputRequiresRelease =
+        State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG;
+
     // Release swapchain backbuffers to prevent errors when resizing
-    if (State::Instance().activeFgOutput != FGOutput::NoFG && State::Instance().activeFgOutput != FGOutput::Nukems &&
-        State::Instance().currentFG != nullptr)
+    if (outputRequiresRelease && State::Instance().currentFG != nullptr)
     {
         IDXGISwapChain* skSC = nullptr;
         if (_real->QueryInterface(IID_IUnwrappedDXGISwapChain, (void**) &skSC) == S_OK && skSC != nullptr)
@@ -1114,9 +1116,11 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     WaitForGPUIdle(_device);
 
+    const bool outputRequiresRelease =
+        State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG;
+
     // Release swapchain backbuffers to prevent errors when resizing
-    if (State::Instance().activeFgOutput != FGOutput::NoFG && State::Instance().activeFgOutput != FGOutput::Nukems &&
-        State::Instance().currentFG != nullptr)
+    if (outputRequiresRelease && State::Instance().currentFG != nullptr)
     {
         IDXGISwapChain* skSC = nullptr;
         if (_real->QueryInterface(IID_IUnwrappedDXGISwapChain, (void**) &skSC) == S_OK && skSC != nullptr)
