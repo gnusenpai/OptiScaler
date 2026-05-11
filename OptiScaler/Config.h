@@ -470,7 +470,7 @@ class Config
     CustomOptional<bool> FGHudlessValidNow { false };
     CustomOptional<bool> FGOnlyAcceptFirstHudless { false };
     CustomOptional<bool> FGPreserveSwapChain { true };
-    CustomOptional<bool> FGSkipResizeBuffers { true };
+    CustomOptional<bool> FGSkipResizeBuffers { false };
     CustomOptional<bool> FGModifyBufferState { false };
     CustomOptional<bool> FGModifySCIndex { false };
     CustomOptional<float> FGHudCutoff { 0.0f };
