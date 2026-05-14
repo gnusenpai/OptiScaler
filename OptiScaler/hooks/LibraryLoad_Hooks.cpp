@@ -30,6 +30,7 @@
 
 #include <fsr4/FSR4ModelSelection.h>
 #include <misc/IdentifyGpu.h>
+#include <misc/UeLowLatency.h>
 
 // #define LOG_LIB_OPERATIONS
 
@@ -520,6 +521,28 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
 
         if (module != nullptr)
             FfxApiProxy::InitFfxVk(module);
+
+        return module;
+    }
+
+    // UeLL
+    // This will try to hook all UE4SS dll mods but only our one should be exporting those functions
+    if (CheckDllNameW(&libName, &uellNamesW))
+    {
+        LOG_INFO("{} call!", libNameA);
+
+        auto module = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, NULL);
+
+        auto setTickStartCallback =
+            (PFN_setTickCallback) KernelBaseProxy::GetProcAddress_()(module, "setTickStartCallback");
+        auto setTickEndCallback =
+            (PFN_setTickCallback) KernelBaseProxy::GetProcAddress_()(module, "setTickEndCallback");
+
+        if (setTickStartCallback)
+            setTickStartCallback(UeLowLatency::tickStart);
+
+        if (setTickEndCallback)
+            setTickEndCallback(UeLowLatency::tickEnd);
 
         return module;
     }

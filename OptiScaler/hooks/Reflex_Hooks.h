@@ -90,5 +90,5 @@ class ReflexHooks
     static void update(bool optiFg_FgState, bool isVulkan);
 
     // 0 - disables the fps cap
-    inline static void setFPSLimit(float fps);
+    static void setFPSLimit(float fps);
 };

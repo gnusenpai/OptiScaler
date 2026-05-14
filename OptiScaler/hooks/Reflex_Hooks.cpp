@@ -33,6 +33,13 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_
     if (_minimumIntervalUs != 0)
         pSetSleepModeParams->minimumIntervalUs = _minimumIntervalUs;
 
+    if (State::Instance().usingUeLL)
+    {
+        pSetSleepModeParams->minimumIntervalUs = 0;
+        pSetSleepModeParams->bLowLatencyMode = false;
+        pSetSleepModeParams->bLowLatencyBoost = false;
+    }
+
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
         return nvapi_calls::NvAPI_D3D_SetSleepMode(pDev, pSetSleepModeParams);
 
@@ -44,6 +51,11 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
 #ifdef LOG_REFLEX_CALLS
     LOG_FUNC();
 #endif
+
+    if (State::Instance().usingUeLL)
+    {
+        return NVAPI_OK;
+    }
 
     static bool skip = false;
     if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
@@ -64,7 +76,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_Sleep(IUnknown* pDev)
             StreamlineProxy::ReflexSleep()(*frameToken);
             skip = false;
 
-            return NvAPI_Status::NVAPI_OK;
+            return NVAPI_OK;
         }
         else
         {
@@ -85,6 +97,11 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESU
 #ifdef LOG_REFLEX_CALLS
     LOG_FUNC();
 #endif
+
+    if (State::Instance().usingUeLL)
+    {
+        return NVAPI_OK;
+    }
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
         return nvapi_calls::NvAPI_D3D_GetLatency(pDev, pGetLatencyParams);
@@ -119,6 +136,11 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     // if (pSetLatencyMarkerParams->markerType == PRESENT_END)
     _lastFrameId[pSetLatencyMarkerParams->markerType] = pSetLatencyMarkerParams->frameID;
     _lastDev[pSetLatencyMarkerParams->markerType] = pDev;
+
+    if (State::Instance().usingUeLL)
+    {
+        return NVAPI_OK;
+    }
 
     static bool skip[20] = {};
 
@@ -296,6 +318,11 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
 #endif
 
     _lastAsyncMarkerFrameId = pSetAsyncFrameMarkerParams->frameID;
+
+    if (State::Instance().usingUeLL)
+    {
+        return NVAPI_OK;
+    }
 
     if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START &&
         State::Instance().streamlineVersion.major < 2)

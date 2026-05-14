@@ -845,6 +845,18 @@
     <ClInclude Include="shaders\hudless_compare_compute\HCC_Dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\lc_da_sharpen_Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\lc_da_sharpen_Shader_Dx11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\lc_da_sharpen_Shader_Vk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="misc\UeLowLatency.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1314,6 +1326,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="shaders\hudless_compare_compute\HCC_Dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\rcas\RCAS_Common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="misc\UeLowLatency.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
