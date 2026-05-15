@@ -6,7 +6,6 @@
 #include "fakenvapi.h"
 #include "NvApiTypes.h"
 #include "fakenvapi/nvapi_calls.h"
-#include <low_latency/ll_vulkan_hooks.h>
 
 #define nvapi_interface_table nvapi_interface_table_extern
 #include <nvapi_interface.h>
@@ -20,30 +19,6 @@ void fakenvapi::init(bool onlyContext)
 
     if (onlyContext)
         return;
-
-    auto exe_path = State::Instance().GameExe;
-    to_lower_in_place(exe_path);
-
-    // TODO: won't work for late loaded vulkan-1.dll
-    auto vulkan_module = GetModuleHandleA("vulkan-1.dll");
-
-    // HACK: Force load vulkan-1 in rtx remix
-    // Avoids having to wait for the game to load it
-    const bool force_load = exe_path.contains("nvremixbridge.exe");
-    if (!vulkan_module && force_load)
-    {
-        vulkan_module = LoadLibraryA("vulkan-1.dll");
-        if (!vulkan_module)
-        {
-            LOG_WARN("Failed to load vulkan-1.dll");
-        }
-        else
-        {
-            LOG_INFO("vulkan-1.dll loaded");
-        }
-    }
-
-    LLVulkanHooks::hook_vulkan(vulkan_module);
 }
 
 void fakenvapi::deinit()

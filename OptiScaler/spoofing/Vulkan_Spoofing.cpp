@@ -572,6 +572,12 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
     }
 #endif
 
+    if (State::Instance().vkAntiLagSupported)
+    {
+        LOG_INFO("Adding AntiLag extension");
+        newExtensionList.push_back(VK_AMD_ANTI_LAG_EXTENSION_NAME);
+    }
+
     pCreateInfo->enabledExtensionCount = static_cast<uint32_t>(newExtensionList.size());
     pCreateInfo->ppEnabledExtensionNames = newExtensionList.data();
 

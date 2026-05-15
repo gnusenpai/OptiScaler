@@ -172,6 +172,7 @@ class State
     bool usingUeLL = false;
     UINT64 reflexFrameId = 0;
     UINT64 frameCount = 0;
+    bool vkAntiLagSupported = false;
 
     // for realtime changes
     ankerl::unordered_dense::map<unsigned int, bool> changeBackend;

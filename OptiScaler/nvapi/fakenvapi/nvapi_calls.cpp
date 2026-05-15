@@ -3,6 +3,7 @@
 #include "proxies/Dxgi_Proxy.h"
 #include <misc/IdentifyGpu.h>
 #include <NvApiDriverSettings.h>
+#include <hooks/Vulkan_Hooks.h>
 
 using Microsoft::WRL::ComPtr;
 
@@ -628,8 +629,8 @@ NvAPI_Status __cdecl NvAPI_Vulkan_InitLowLatencyDevice(HANDLE vkDevice, HANDLE* 
 
     VkResult res = VK_ERROR_UNKNOWN;
 
-    if (LLVulkanHooks::o_vkCreateSemaphore && low_latency_semaphore == VK_NULL_HANDLE)
-        res = LLVulkanHooks::o_vkCreateSemaphore(device, &createInfo, nullptr, &low_latency_semaphore);
+    if (VulkanHooks::o_vkCreateSemaphore && low_latency_semaphore == VK_NULL_HANDLE)
+        res = VulkanHooks::o_vkCreateSemaphore(device, &createInfo, nullptr, &low_latency_semaphore);
 
     if (res != VK_SUCCESS)
         return NVAPI_ERROR;
@@ -676,8 +677,8 @@ NvAPI_Status __cdecl NvAPI_Vulkan_Sleep(HANDLE vkDevice, NvU64 signalValue)
 
     VkDevice device = reinterpret_cast<VkDevice>(vkDevice);
 
-    if (LLVulkanHooks::o_vkSignalSemaphore)
-        LLVulkanHooks::o_vkSignalSemaphore(device, &signalInfo);
+    if (VulkanHooks::o_vkSignalSemaphore)
+        VulkanHooks::o_vkSignalSemaphore(device, &signalInfo);
 
     return LowLatencyCtx::get()->Sleep(vkDevice);
 }

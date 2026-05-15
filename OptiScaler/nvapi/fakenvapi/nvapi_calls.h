@@ -7,7 +7,6 @@
 #include "low_latency.h"
 
 #include "low_latency/ll_util.h"
-#include "low_latency/ll_vulkan_hooks.h"
 #include "log.h"
 
 namespace nvapi_calls
