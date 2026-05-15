@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ll_antilag2.h"
 #include <nvapi/fakenvapi/al2_proxy.h>
+#include <nvapi/fakenvapi/log.h>
 
 inline HRESULT AntiLag2::al2_sleep()
 {

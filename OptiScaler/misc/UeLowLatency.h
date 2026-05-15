@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nvapi/fakenvapi/low_latency_tech/low_latency_tech.h"
+#include <low_latency/low_latency_tech/low_latency_tech.h>
 
 typedef void (*PFN_FLTickExternal)(int64_t frameId, float DeltaSeconds, bool bIdleMode);
 typedef void (*PFN_setTickCallback)(PFN_FLTickExternal callback);

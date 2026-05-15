@@ -2,9 +2,9 @@
 #include "UeLowLatency.h"
 #include <hooks/Reflex_Hooks.h>
 
-#include "nvapi/fakenvapi/low_latency_tech/ll_antilag2.h"
-// #include "nvapi/fakenvapi/low_latency_tech/ll_xell.h"
-#include "nvapi/fakenvapi/low_latency_tech/ll_latencyflex.h"
+#include <low_latency/low_latency_tech/ll_antilag2.h>
+// #include <low_latency/low_latency_tech/ll_xell.h>
+#include <low_latency/low_latency_tech/ll_latencyflex.h>
 
 void UeLowLatency::init()
 {

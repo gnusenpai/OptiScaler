@@ -3,6 +3,7 @@
 
 #include <magic_enum.hpp>
 #include <proxies/XeLL_Proxy.h>
+#include <nvapi/fakenvapi/log.h>
 
 void XeLL::xell_sleep(uint32_t frame_id)
 {

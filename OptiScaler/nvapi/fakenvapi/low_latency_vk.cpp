@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "low_latency.h"
 
-#include "low_latency_tech/ll_antilag_vk.h"
-#include "low_latency_tech/ll_latencyflex.h"
+#include "low_latency/low_latency_tech/ll_antilag_vk.h"
+#include "low_latency/low_latency_tech/ll_latencyflex.h"
 
 #include "log.h"
 #include "config.h"

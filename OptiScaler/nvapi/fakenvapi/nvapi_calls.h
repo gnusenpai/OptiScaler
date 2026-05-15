@@ -6,7 +6,7 @@
 
 #include "low_latency.h"
 
-#include "fn_util.h"
+#include "low_latency/fn_util.h"
 #include "log.h"
 #include "fn_vulkan_hooks.h"
 

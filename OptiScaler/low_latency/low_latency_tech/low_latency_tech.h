@@ -3,8 +3,8 @@
 #include <dxgi.h>
 #include <d3d12.h>
 
-#include "../log.h"
 #include <magic_enum.hpp>
+#include "low_latency/fn_util.h"
 
 #define INVALID_ID 0xFFFFFFFFFFFFFFFF
 

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "low_latency_tech/low_latency_tech.h"
+#include "low_latency/low_latency_tech/low_latency_tech.h"
 
 #include <dxgi.h>
 #include <d3d12.h>
 
-#include "fn_util.h"
+#include "low_latency/fn_util.h"
 #include <optional>
 
 #define FRAME_REPORTS_BUFFER_SIZE 70
