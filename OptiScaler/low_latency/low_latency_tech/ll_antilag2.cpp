@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ll_antilag2.h"
-#include <nvapi/fakenvapi/al2_proxy.h>
 #include <nvapi/fakenvapi/log.h>
+#include <hooks/Amdxc64_Hooks.h>
 
 inline HRESULT AntiLag2::al2_sleep()
 {
@@ -65,10 +65,10 @@ bool AntiLag2::init(IUnknown* pDevice)
         HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
         if (hr == S_OK)
         {
-            AL2Proxy::disableAl2Kill = true;
+            Amdxc64Hooks::disableAl2Kill = true;
             ScopedSkipVulkanHooks skipVulkanHooks {};
             HRESULT init_return = AMD::AntiLag2DX12::Initialize(&dx12_ctx, device);
-            AL2Proxy::disableAl2Kill = false;
+            Amdxc64Hooks::disableAl2Kill = false;
             if (init_return == S_OK)
             {
                 LOG_INFO("FSR Latency Reduction 2.0 DX12 initialized");

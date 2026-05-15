@@ -2,6 +2,7 @@
 #include "Amdxc64_Hooks.h"
 
 #include <fsr4/FSR4Upgrade.h>
+#include <ffx_antilag2_dx12.h>
 #include <proxies/KernelBase_Proxy.h>
 #include <proxies/Ntdll_Proxy.h>
 #include <misc/IdentifyGpu.h>
@@ -137,6 +138,12 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
 
         return S_OK;
     }
+
+    // else if (riid == IID_IAmdExtAntiLagApi && !disableAl2Kill)
+    //{
+    //     LOG_INFO("Killing native AL2");
+    //     return E_NOINTERFACE;
+    // }
 
     else if (o_AmdExtD3DCreateInterface != nullptr)
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);

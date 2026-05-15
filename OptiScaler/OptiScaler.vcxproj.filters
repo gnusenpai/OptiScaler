@@ -749,9 +749,6 @@
     <ClInclude Include="spoofing\User32_Spoofing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="nvapi\fakenvapi\al2_proxy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="nvapi\fakenvapi\log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1251,9 +1248,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="spoofing\User32_Spoofing.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="nvapi\fakenvapi\al2_proxy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nvapi\fakenvapi\log.cpp">
