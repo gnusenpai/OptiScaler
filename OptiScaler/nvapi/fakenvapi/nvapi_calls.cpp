@@ -628,8 +628,8 @@ NvAPI_Status __cdecl NvAPI_Vulkan_InitLowLatencyDevice(HANDLE vkDevice, HANDLE* 
 
     VkResult res = VK_ERROR_UNKNOWN;
 
-    if (FnVulkanHooks::o_vkCreateSemaphore && low_latency_semaphore == VK_NULL_HANDLE)
-        res = FnVulkanHooks::o_vkCreateSemaphore(device, &createInfo, nullptr, &low_latency_semaphore);
+    if (LLVulkanHooks::o_vkCreateSemaphore && low_latency_semaphore == VK_NULL_HANDLE)
+        res = LLVulkanHooks::o_vkCreateSemaphore(device, &createInfo, nullptr, &low_latency_semaphore);
 
     if (res != VK_SUCCESS)
         return NVAPI_ERROR;
@@ -676,8 +676,8 @@ NvAPI_Status __cdecl NvAPI_Vulkan_Sleep(HANDLE vkDevice, NvU64 signalValue)
 
     VkDevice device = reinterpret_cast<VkDevice>(vkDevice);
 
-    if (FnVulkanHooks::o_vkSignalSemaphore)
-        FnVulkanHooks::o_vkSignalSemaphore(device, &signalInfo);
+    if (LLVulkanHooks::o_vkSignalSemaphore)
+        LLVulkanHooks::o_vkSignalSemaphore(device, &signalInfo);
 
     return LowLatencyCtx::get()->Sleep(vkDevice);
 }

@@ -6,6 +6,16 @@
 #include <map>
 #include <cstdint>
 
+// #define LOWLATENCY_TRACE_LOGGING
+
+#ifdef LOWLATENCY_TRACE_LOGGING
+#define LOG_TRACE_LOWLATENCY(msg, ...) LOG_TRACE(msg, ##__VA_ARGS__)
+#else
+#define LOG_TRACE_LOWLATENCY(msg, ...)                                                                                 \
+    {                                                                                                                  \
+    }
+#endif
+
 enum class LowLatencyMode
 {
     None,

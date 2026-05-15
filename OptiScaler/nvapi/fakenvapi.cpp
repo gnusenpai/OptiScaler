@@ -7,7 +7,7 @@
 #include "NvApiTypes.h"
 #include "fakenvapi/nvapi_calls.h"
 #include "fakenvapi/al2_proxy.h"
-#include "fakenvapi/fn_vulkan_hooks.h"
+#include <low_latency/ll_vulkan_hooks.h>
 
 #define nvapi_interface_table nvapi_interface_table_extern
 #include <nvapi_interface.h>
@@ -44,7 +44,7 @@ void fakenvapi::init(bool onlyContext)
         }
     }
 
-    FnVulkanHooks::hook_vulkan(vulkan_module);
+    LLVulkanHooks::hook_vulkan(vulkan_module);
 
     AL2Proxy::hookAntiLag();
 }

@@ -337,7 +337,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="hooks\Xell_Hooks.h" />
     <ClInclude Include="nvapi\fakenvapi\al2_proxy.h" />
     <ClInclude Include="low_latency\ll_util.h" />
-    <ClInclude Include="nvapi\fakenvapi\fn_vulkan_hooks.h" />
+    <ClInclude Include="low_latency\ll_vulkan_hooks.h" />
     <ClInclude Include="nvapi\fakenvapi\log.h" />
     <ClInclude Include="nvapi\fakenvapi\low_latency.h" />
     <ClInclude Include="low_latency\low_latency_tech\ll_antilag2.h" />
@@ -592,7 +592,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="inputs\XeSS_Dx11.cpp" />
     <ClCompile Include="nvapi\fakenvapi\al2_proxy.cpp" />
     <ClCompile Include="low_latency\ll_util.cpp" />
-    <ClCompile Include="nvapi\fakenvapi\fn_vulkan_hooks.cpp" />
+    <ClCompile Include="low_latency\ll_vulkan_hooks.cpp" />
     <ClCompile Include="nvapi\fakenvapi\log.cpp" />
     <ClCompile Include="nvapi\fakenvapi\low_latency.cpp" />
     <ClCompile Include="nvapi\fakenvapi\low_latency_d3d.cpp" />

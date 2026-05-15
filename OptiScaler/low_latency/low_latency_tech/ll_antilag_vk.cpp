@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "ll_antilag_vk.h"
-#include <nvapi/fakenvapi/fn_vulkan_hooks.h>
+#include "low_latency/ll_vulkan_hooks.h"
 
-bool AntiLagVk::init(IUnknown* pDevice) { return FnVulkanHooks::o_vkAntiLagUpdateAMD != nullptr; }
+bool AntiLagVk::init(IUnknown* pDevice) { return LLVulkanHooks::o_vkAntiLagUpdateAMD != nullptr; }
 
 // Unsupported
 bool AntiLagVk::init_using_ctx(void* context)
@@ -79,11 +79,11 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
         antiLagDataInput.pPresentationInfo = &inputInfo;
         antiLagDataInput.maxFPS = max_fps;
 
-        if (FnVulkanHooks::o_vkAntiLagUpdateAMD)
+        if (LLVulkanHooks::o_vkAntiLagUpdateAMD)
         {
-            LOG_TRACE_FAKENVAPI("AntiLag Input: {}, status: {}", marker_params->frame_id, is_enabled());
+            LOG_TRACE_LOWLATENCY("AntiLag Input: {}, status: {}", marker_params->frame_id, is_enabled());
 
-            FnVulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataInput);
+            LLVulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataInput);
         }
     }
 
@@ -102,11 +102,11 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
         antiLagDataPresent.pPresentationInfo = &presentInfo;
         antiLagDataPresent.maxFPS = max_fps;
 
-        if (FnVulkanHooks::o_vkAntiLagUpdateAMD)
+        if (LLVulkanHooks::o_vkAntiLagUpdateAMD)
         {
-            LOG_TRACE_FAKENVAPI("AntiLag Present: {}, status: {}", marker_params->frame_id, is_enabled());
+            LOG_TRACE_LOWLATENCY("AntiLag Present: {}, status: {}", marker_params->frame_id, is_enabled());
 
-            FnVulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataPresent);
+            LLVulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataPresent);
         }
     }
 }

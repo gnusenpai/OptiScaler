@@ -1,12 +1,10 @@
 #pragma once
 
-#include "log.h"
-
 #include <detours/detours.h>
 #include <vulkan/vulkan_core.h>
 #include <vector>
 
-class FnVulkanHooks
+class LLVulkanHooks
 {
   private:
     static PFN_vkCreateDevice o_vkCreateDevice;

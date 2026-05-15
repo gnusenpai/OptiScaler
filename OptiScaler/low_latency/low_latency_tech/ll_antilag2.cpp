@@ -34,8 +34,8 @@ inline HRESULT AntiLag2::al2_sleep()
 
     // log_event("al2_sleep", "{}", get_timestamp() - pre_sleep);
 
-    LOG_TRACE_FAKENVAPI("FSR Latency Reduction 2.0 Call Spot: {}",
-                        current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
+    LOG_TRACE_LOWLATENCY("FSR Latency Reduction 2.0 Call Spot: {}",
+                         current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
 
     return result;
 }
