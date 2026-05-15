@@ -483,7 +483,7 @@ VkResult VulkanSpoofing::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDev
             newExtensionList.push_back(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
         }
 
-        if (!primaryGpu.dlssCapable)
+        if (primaryGpu.dlssCapable)
         {
             if (vkDeviceExtensions.contains(std::string(VK_NVX_BINARY_IMPORT_EXTENSION_NAME)))
             {
