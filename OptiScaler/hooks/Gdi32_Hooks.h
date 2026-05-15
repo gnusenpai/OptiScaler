@@ -7,7 +7,9 @@
 #include <misc/IdentifyGpu.h>
 
 typedef decltype(&D3DKMTQueryAdapterInfo) PFN_D3DKMTQueryAdapterInfo;
+typedef decltype(&D3DKMTEnumAdapters) PFN_D3DKMTEnumAdapters;
 typedef decltype(&D3DKMTEnumAdapters2) PFN_D3DKMTEnumAdapters2;
+typedef decltype(&D3DKMTCloseAdapter) PFN_D3DKMTCloseAdapter;
 
 inline static PFN_D3DKMTQueryAdapterInfo o_D3DKMTQueryAdapterInfo = nullptr;
 

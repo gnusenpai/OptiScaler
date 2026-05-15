@@ -7,6 +7,7 @@
 #include <proxies/KernelBase_Proxy.h>
 
 #include <shlobj.h>
+#include <hooks/Gdi32_Hooks.h>
 
 typedef LONG(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
 typedef decltype(&GetFileVersionInfoSizeW) PFN_GetFileVersionInfoSizeW;
@@ -669,4 +670,91 @@ void Util::LoadProxyLibrary(const std::wstring& name, const std::wstring& optiPa
 
     if (*loadedModule == nullptr)
         LOG_WARN("Can't find {}, returning nullptr!", wstring_to_string(name));
+}
+
+std::vector<std::filesystem::path> Util::GetDriverStore()
+{
+    std::vector<std::filesystem::path> result;
+
+    // Load D3DKMT functions dynamically
+    bool libraryLoaded = false;
+    HMODULE hGdi32 = KernelBaseProxy::GetModuleHandleW_()(L"Gdi32.dll");
+
+    if (hGdi32 == nullptr)
+    {
+        hGdi32 = NtdllProxy::LoadLibraryExW_Ldr(L"Gdi32.dll", NULL, 0);
+        libraryLoaded = hGdi32 != nullptr;
+    }
+
+    if (hGdi32 == nullptr)
+    {
+        LOG_ERROR("Failed to load Gdi32.dll");
+        return result;
+    }
+
+    do
+    {
+        auto o_D3DKMTEnumAdapters =
+            (PFN_D3DKMTEnumAdapters) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTEnumAdapters");
+        auto o_D3DKMTQueryAdapterInfo =
+            (PFN_D3DKMTQueryAdapterInfo) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTQueryAdapterInfo");
+        auto o_D3DKMTCloseAdapter =
+            (PFN_D3DKMTCloseAdapter) KernelBaseProxy::GetProcAddress_()(hGdi32, "D3DKMTCloseAdapter");
+
+        if (o_D3DKMTEnumAdapters == nullptr || o_D3DKMTQueryAdapterInfo == nullptr || o_D3DKMTCloseAdapter == nullptr)
+        {
+            LOG_ERROR("Failed to resolve D3DKMT functions");
+            break;
+        }
+
+        D3DKMT_UMDFILENAMEINFO umdFileInfo = {};
+        D3DKMT_QUERYADAPTERINFO queryAdapterInfo = {};
+
+        queryAdapterInfo.Type = KMTQAITYPE_UMDRIVERNAME;
+        queryAdapterInfo.pPrivateDriverData = &umdFileInfo;
+        queryAdapterInfo.PrivateDriverDataSize = sizeof(umdFileInfo);
+
+        D3DKMT_ENUMADAPTERS enumAdapters = {};
+
+        // Query the number of adapters first
+        if (o_D3DKMTEnumAdapters(&enumAdapters) != 0)
+        {
+            LOG_ERROR("Failed to enumerate adapters.");
+            break;
+        }
+
+        // If there are any adapters, the first one should be in the list
+        if (enumAdapters.NumAdapters > 0)
+        {
+            for (size_t i = 0; i < enumAdapters.NumAdapters; i++)
+            {
+                D3DKMT_ADAPTERINFO adapter = enumAdapters.Adapters[i];
+                queryAdapterInfo.hAdapter = adapter.hAdapter;
+
+                auto hr = o_D3DKMTQueryAdapterInfo(&queryAdapterInfo);
+
+                if (hr != 0)
+                    LOG_WARN("Failed to query adapter info {:X}", hr);
+                else
+                    result.push_back(std::filesystem::path(umdFileInfo.UmdFileName).parent_path());
+
+                D3DKMT_CLOSEADAPTER closeAdapter = {};
+                closeAdapter.hAdapter = adapter.hAdapter;
+                auto closeResult = o_D3DKMTCloseAdapter(&closeAdapter);
+                if (closeResult != 0)
+                    LOG_ERROR("D3DKMTCloseAdapter error: {:X}", closeResult);
+            }
+        }
+        else
+        {
+            LOG_ERROR("No adapters found.");
+            break;
+        }
+
+    } while (false);
+
+    if (libraryLoaded)
+        NtdllProxy::FreeLibrary_Ldr(hGdi32);
+
+    return result;
 }

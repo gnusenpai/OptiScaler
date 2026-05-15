@@ -5,7 +5,6 @@
 #include "Streamline_Hooks.h"
 #include "LibraryLoad_Hooks.h"
 
-#include <fsr4/FSR4Upgrade.h>
 #include <fsr4/FSR4ModelSelection.h>
 
 #include <Util.h>
@@ -17,6 +16,7 @@
 
 #include "Hook_Utils.h"
 
+#include "Amdxc64_Hooks.h"
 #pragma intrinsic(_ReturnAddress)
 
 static inline void NormalizePath(std::string& path)
@@ -111,7 +111,7 @@ FARPROC WINAPI KernelHooks::hk_K32_GetProcAddress(HMODULE hModule, LPCSTR lpProc
         lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 && IdentifyGpu::getPrimaryGpu().fsr4Capable &&
         Util::GetCallerModule(_ReturnAddress()) != KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll"))
     {
-        return (FARPROC) &hkAmdExtD3DCreateInterface;
+        return (FARPROC) &Amdxc64Hooks::hkAmdExtD3DCreateInterface;
     }
 
     return o_K32_GetProcAddress(hModule, lpProcName);

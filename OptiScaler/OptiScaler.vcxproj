@@ -302,6 +302,8 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="fsr4\FSR4Upgrade.h" />
+    <ClInclude Include="hooks\Amdxc64_Hooks.h" />
     <ClInclude Include="DllNames.h" />
     <ClInclude Include="exports\d3d12.h" />
     <ClInclude Include="exports\dbghelp.h" />
@@ -509,7 +511,6 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="upscalers\fsr2\FSR2Feature_Dx11On12.h" />
     <ClInclude Include="upscalers\fsr2\FSR2Feature_Dx12.h" />
     <ClInclude Include="upscalers\fsr2\FSR2Feature_Vk.h" />
-    <ClInclude Include="fsr4\FSR4Upgrade.h" />
     <ClInclude Include="upscalers\IFeature_Dx11.h" />
     <ClInclude Include="upscalers\IFeature_Dx12.h" />
     <ClInclude Include="upscalers\IFeature.h" />
@@ -570,13 +571,14 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="NVNGX_Parameter.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="fsr4\FSR4Upgrade.cpp" />
+    <ClCompile Include="hooks\Amdxc64_Hooks.cpp" />
     <ClCompile Include="framegen\dlssg\DLSSG_Dx12.cpp" />
     <ClCompile Include="framegen\ffx\FSRFG_Dx12.cpp" />
     <ClCompile Include="framegen\IFGFeature.cpp" />
     <ClCompile Include="framegen\IFGFeature_Dx12.cpp" />
     <ClCompile Include="framegen\nvngx\Nvngx_FG.cpp" />
     <ClCompile Include="fsr4\FSR4ModelSelection.cpp" />
-    <ClCompile Include="fsr4\FSR4Upgrade.cpp" />
     <ClCompile Include="hooks\D3D12_Hooks.cpp" />
     <ClCompile Include="hooks\DxgiFactory_Hooks.cpp" />
     <ClCompile Include="hooks\DxgiFactory_WrappedCalls.cpp" />
@@ -785,6 +787,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ResourceCompile Include="OptiScaler.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="cpp.hint" />
     <None Include="Source.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

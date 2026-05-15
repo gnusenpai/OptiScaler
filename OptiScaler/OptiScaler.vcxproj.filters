@@ -524,9 +524,6 @@
     <ClInclude Include="fsr4\FSR4ModelSelection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fsr4\FSR4Upgrade.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="inputs\FG\FSR3_Dx12_FG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -857,6 +854,12 @@
     <ClInclude Include="misc\UeLowLatency.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hooks\Amdxc64_Hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fsr4\FSR4Upgrade.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1157,9 +1160,6 @@
     <ClCompile Include="upscalers\FeatureProvider_Vk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="fsr4\FSR4Upgrade.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="wrapped\wrapped_factory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1334,6 +1334,12 @@
     <ClCompile Include="misc\UeLowLatency.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hooks\Amdxc64_Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fsr4\FSR4Upgrade.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OptiScaler.rc" />
@@ -1342,5 +1348,6 @@
     <None Include="Source.def">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

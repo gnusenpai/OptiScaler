@@ -10,8 +10,6 @@
 
 #include <framegen/nvngx/Nvngx_FG.h>
 
-#include <fsr4/FSR4Upgrade.h>
-
 #include <nvapi/fakenvapi.h>
 #include <hooks/Reflex_Hooks.h>
 

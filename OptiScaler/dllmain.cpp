@@ -25,7 +25,6 @@
 #include "inputs/FSR3_Dx12.h"
 #include "inputs/FG/FSR3_Dx12_FG.h"
 
-#include "fsr4/FSR4Upgrade.h"
 #include <fsr4/FSR4ModelSelection.h>
 
 #include <hooks/Dxgi_Hooks.h>
@@ -735,7 +734,7 @@ static void CheckWorkingMode()
 
         if (igdext == nullptr)
         {
-            auto paths = GetDriverStore();
+            auto paths = Util::GetDriverStore();
 
             for (size_t i = 0; i < paths.size(); i++)
             {
@@ -1602,7 +1601,7 @@ DWORD WINAPI getGpuInfo(LPVOID hModuleVoid)
 
     // We don't yet know if the GPU supports FSR 4 so hook any AMD
     if (primaryGpu.vendorId == VendorId::AMD)
-        InitFSR4Update();
+        Amdxc64Hooks::Init();
 
     // If DX12 already loaded then grab the full GPU info right away
     if (hModuleVoid)

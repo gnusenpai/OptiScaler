@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "IdentifyGpu.h"
-#include "fsr4/FSR4Upgrade.h"
 
 #include <proxies/Dxgi_Proxy.h>
 #include <proxies/D3d12_Proxy.h>
 #include "nvapi/NvApiTypes.h"
 #include <magic_enum.hpp>
 
+#include <hooks/Amdxc64_Hooks.h>
 using Microsoft::WRL::ComPtr;
 
 // Prioritize Nvidia cards that can run DLSS and are connected to a display
