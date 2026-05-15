@@ -4,7 +4,7 @@
 #include <d3d12.h>
 
 #include <magic_enum.hpp>
-#include "low_latency/fn_util.h"
+#include "low_latency/ll_util.h"
 
 #define INVALID_ID 0xFFFFFFFFFFFFFFFF
 

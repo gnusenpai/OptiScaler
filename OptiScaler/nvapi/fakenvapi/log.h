@@ -7,7 +7,7 @@
 #include <nvapi.h>
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include "low_latency/fn_util.h"
+#include "low_latency/ll_util.h"
 #include "config.h"
 
 #define OK() Ok(__func__)

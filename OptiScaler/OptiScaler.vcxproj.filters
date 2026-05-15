@@ -779,7 +779,7 @@
     <ClInclude Include="nvapi\fakenvapi\nvapi_calls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="low_latency\fn_util.h">
+    <ClInclude Include="low_latency\ll_util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="nvapi\fakenvapi\fn_vulkan_hooks.h">
@@ -1283,7 +1283,7 @@
     <ClCompile Include="nvapi\fakenvapi\nvapi_calls.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="low_latency\fn_util.cpp">
+    <ClCompile Include="low_latency\ll_util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nvapi\fakenvapi\fn_vulkan_hooks.cpp">

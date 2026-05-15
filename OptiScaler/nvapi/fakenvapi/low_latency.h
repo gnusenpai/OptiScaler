@@ -5,7 +5,7 @@
 #include <dxgi.h>
 #include <d3d12.h>
 
-#include "low_latency/fn_util.h"
+#include "low_latency/ll_util.h"
 #include <optional>
 
 #define FRAME_REPORTS_BUFFER_SIZE 70
