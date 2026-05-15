@@ -41,27 +41,27 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
 
     if (o_UpdateFfxApiProvider == nullptr)
     {
-        HMODULE moduleAmdxcffx64 = nullptr;
+        FSR4Upgrade::moduleAmdxcffx64 = nullptr;
         HMODULE memModule = nullptr;
         auto optiPath = Config::Instance()->MainDllPath.value();
-        Util::LoadProxyLibrary(L"amdxcffx64.dll", L"", optiPath, &memModule, &moduleAmdxcffx64);
+        Util::LoadProxyLibrary(L"amdxcffx64.dll", L"", optiPath, &memModule, &FSR4Upgrade::moduleAmdxcffx64);
 
-        if (moduleAmdxcffx64 == nullptr && memModule != nullptr)
-            moduleAmdxcffx64 = memModule;
+        if (FSR4Upgrade::moduleAmdxcffx64 == nullptr && memModule != nullptr)
+            FSR4Upgrade::moduleAmdxcffx64 = memModule;
 
-        if (moduleAmdxcffx64 == nullptr)
+        if (FSR4Upgrade::moduleAmdxcffx64 == nullptr)
         {
             auto storePath = Util::GetDriverStore();
 
             for (size_t i = 0; i < storePath.size(); i++)
             {
-                if (moduleAmdxcffx64 == nullptr)
+                if (FSR4Upgrade::moduleAmdxcffx64 == nullptr)
                 {
                     auto dllPath = storePath[i] / L"amdxcffx64.dll";
                     LOG_DEBUG("Trying to load: {}", wstring_to_string(dllPath.c_str()));
-                    moduleAmdxcffx64 = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
+                    FSR4Upgrade::moduleAmdxcffx64 = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
 
-                    if (moduleAmdxcffx64 != nullptr)
+                    if (FSR4Upgrade::moduleAmdxcffx64 != nullptr)
                     {
                         LOG_INFO(L"amdxcffx64 loaded from {}", dllPath.wstring());
                         break;
@@ -74,9 +74,9 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
             LOG_INFO("amdxcffx64 loaded from game folder");
         }
 
-        if (moduleAmdxcffx64)
+        if (FSR4Upgrade::moduleAmdxcffx64)
         {
-            FSR4ModelSelection::Hook(moduleAmdxcffx64, FSR4Source::DriverDll);
+            FSR4ModelSelection::Hook(FSR4Upgrade::moduleAmdxcffx64, FSR4Source::DriverDll);
         }
         else
         {
@@ -84,10 +84,10 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
             return E_NOINTERFACE;
         }
 
-        o_UpdateFfxApiProvider =
-            (PFN_UpdateFfxApiProvider) KernelBaseProxy::GetProcAddress_()(moduleAmdxcffx64, "UpdateFfxApiProvider");
-        o_UpdateFfxApiProviderEx =
-            (PFN_UpdateFfxApiProviderEx) KernelBaseProxy::GetProcAddress_()(moduleAmdxcffx64, "UpdateFfxApiProviderEx");
+        o_UpdateFfxApiProvider = (PFN_UpdateFfxApiProvider) KernelBaseProxy::GetProcAddress_()(
+            FSR4Upgrade::moduleAmdxcffx64, "UpdateFfxApiProvider");
+        o_UpdateFfxApiProviderEx = (PFN_UpdateFfxApiProviderEx) KernelBaseProxy::GetProcAddress_()(
+            FSR4Upgrade::moduleAmdxcffx64, "UpdateFfxApiProviderEx");
 
         if (o_UpdateFfxApiProvider == nullptr)
         {

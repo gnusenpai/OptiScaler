@@ -106,13 +106,10 @@ void Amdxc64Hooks::Init()
 
 HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
 {
-    auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-
-    if (!primaryGpu.fsr4Capable && o_AmdExtD3DCreateInterface != nullptr)
-        return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
+    const bool runFsr4Upgrade = IdentifyGpu::getPrimaryGpu().fsr4Capable;
 
     // Proton bleeding edge ships amdxc64 that is missing some required functions
-    else if (riid == __uuidof(IAmdExtD3DFactory) && State::Instance().isRunningOnLinux)
+    if (runFsr4Upgrade && riid == __uuidof(IAmdExtD3DFactory) && State::Instance().isRunningOnLinux)
     {
         // Required for the custom AmdExtFfxApi, lack of it triggers visual glitches
         if (amdExtD3DFactory == nullptr)
@@ -128,7 +125,7 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
         return S_OK;
     }
 
-    else if (riid == __uuidof(IAmdExtFfxApi))
+    else if (runFsr4Upgrade && riid == __uuidof(IAmdExtFfxApi))
     {
         if (amdExtFfxApi == nullptr)
             amdExtFfxApi = new AmdExtFfxApi();
@@ -146,5 +143,3 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
 
     return E_NOINTERFACE;
 }
-
-HMODULE Amdxc64Hooks::GetFSR4Module() { return moduleAmdxcffx64; }

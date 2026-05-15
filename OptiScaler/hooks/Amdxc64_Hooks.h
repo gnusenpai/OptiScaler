@@ -131,7 +131,6 @@ class Amdxc64Hooks
 {
   public:
     inline static HMODULE moduleAmdxc64 = nullptr;
-    inline static HMODULE moduleAmdxcffx64 = nullptr;
 
     inline static AmdExtD3DDevice8* amdExtD3DDevice8 = nullptr;
     inline static AmdExtD3DShaderIntrinsics* amdExtD3DShaderIntrinsics = nullptr;
@@ -143,6 +142,4 @@ class Amdxc64Hooks
 
     static void Init();
     static HRESULT hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject);
-
-    static HMODULE GetFSR4Module();
 };
