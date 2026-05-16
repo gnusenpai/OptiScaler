@@ -2,6 +2,7 @@
 
 // Forward declarations
 struct AmdExtFfxApi;
+struct AmdExtAntiLagApi;
 struct AmdExtD3DFactory;
 struct AmdExtD3DShaderIntrinsics;
 struct AmdExtD3DDevice8;
@@ -137,6 +138,7 @@ class Amdxc64Hooks
     inline static AmdExtD3DFactory* amdExtD3DFactory = nullptr;
     inline static AmdExtD3DFactory* o_amdExtD3DFactory = nullptr;
     inline static AmdExtFfxApi* amdExtFfxApi = nullptr;
+    inline static AmdExtAntiLagApi* amdExtAntiLagApi = nullptr;
 
     inline static PFN_AmdExtD3DCreateInterface o_AmdExtD3DCreateInterface = nullptr;
 

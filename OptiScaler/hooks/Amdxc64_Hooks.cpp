@@ -5,6 +5,7 @@
 #include <ffx_antilag2_dx12.h>
 #include <proxies/KernelBase_Proxy.h>
 #include <proxies/Ntdll_Proxy.h>
+#include <low_latency/input/input_antilag2.h>
 #include <misc/IdentifyGpu.h>
 
 #pragma endregion
@@ -139,11 +140,24 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
         return S_OK;
     }
 
-    // else if (riid == IID_IAmdExtAntiLagApi && !disableAl2Kill)
+    // else if (riid == IID_IAmdExtAntiLagApi)
     //{
-    //     LOG_INFO("Killing native AL2");
-    //     return E_NOINTERFACE;
-    // }
+    //     if (amdExtAntiLagApi == nullptr)
+    //         amdExtAntiLagApi = new AmdExtAntiLagApi();
+
+    //    // Return custom one
+    //    *ppvObject = amdExtAntiLagApi;
+
+    //    LOG_INFO("IAmdExtAntiLagApi queried, returning custom AmdExtAntiLagApi");
+
+    //    return S_OK;
+
+    //    // if (!disableAl2Kill)
+    //    //{
+    //    //     LOG_INFO("Killing native AL2");
+    //    //     return E_NOINTERFACE;
+    //    // }
+    //}
 
     else if (o_AmdExtD3DCreateInterface != nullptr)
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
