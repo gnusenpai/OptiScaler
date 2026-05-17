@@ -3,8 +3,8 @@
 #include "RCAS_Vk.h"
 
 #include "precompile/RCAS_Shader_Vk.h"
-#include "precompile/da_sharpen_Shader_Vk.h"
-#include "precompile/lc_da_sharpen_Shader_Vk.h"
+#include "precompile/da_das_sharpen_Shader_Vk.h"
+#include "precompile/da_rcas_sharpen_Shader_Vk.h"
 
 #include <Config.h>
 
@@ -21,16 +21,16 @@ RCAS_Vk::RCAS_Vk(std::string InName, VkDevice InDevice, VkPhysicalDevice InPhysi
 
     CreateDescriptorSetLayout();
     CreateDescriptorSetLayoutDA(_descriptorSetLayoutDA, _pipelineLayoutDA);
-    CreateDescriptorSetLayoutDA(_descriptorSetLayoutLCDA, _pipelineLayoutLCDA);
+    CreateDescriptorSetLayoutDA(_descriptorSetLayoutDASDA, _pipelineLayoutDASDA);
     CreateConstantBuffer();
     CreateConstantBufferDA(_constantBufferDA, _constantBufferMemoryDA, _mappedConstantBufferDA);
-    CreateConstantBufferDA(_constantBufferLCDA, _constantBufferMemoryLCDA, _mappedConstantBufferLCDA);
+    CreateConstantBufferDA(_constantBufferDASDA, _constantBufferMemoryDASDA, _mappedConstantBufferDASDA);
     CreateDescriptorPool();
     CreateDescriptorPoolDA(_descriptorPoolDA);
-    CreateDescriptorPoolDA(_descriptorPoolLCDA);
+    CreateDescriptorPoolDA(_descriptorPoolDASDA);
     CreateDescriptorSets();
     CreateDescriptorSetsDA(_descriptorSetLayoutDA, _descriptorPoolDA, _descriptorSetsDA);
-    CreateDescriptorSetsDA(_descriptorSetLayoutLCDA, _descriptorPoolLCDA, _descriptorSetsLCDA);
+    CreateDescriptorSetsDA(_descriptorSetLayoutDASDA, _descriptorPoolDASDA, _descriptorSetsDASDA);
 
     // Create nearest sampler
     VkSamplerCreateInfo samplerInfo {};
@@ -49,7 +49,7 @@ RCAS_Vk::RCAS_Vk(std::string InName, VkDevice InDevice, VkPhysicalDevice InPhysi
         return;
     }
 
-    std::vector<char> shaderCodeDA(da_sharpen_spv, da_sharpen_spv + sizeof(da_sharpen_spv));
+    std::vector<char> shaderCodeDA(da_rcas_sharpen_spv, da_rcas_sharpen_spv + sizeof(da_rcas_sharpen_spv));
     if (!CreateComputePipeline(_device, _pipelineLayoutDA, &_pipelineDA, shaderCodeDA))
     {
         LOG_ERROR("Failed to create pipeline for RCAS_Vk depth adaptive");
@@ -57,10 +57,10 @@ RCAS_Vk::RCAS_Vk(std::string InName, VkDevice InDevice, VkPhysicalDevice InPhysi
         return;
     }
 
-    std::vector<char> shaderCodeLCDA(lc_da_sharpen_spv, lc_da_sharpen_spv + sizeof(lc_da_sharpen_spv));
-    if (!CreateComputePipeline(_device, _pipelineLayoutLCDA, &_pipelineLCDA, shaderCodeLCDA))
+    std::vector<char> shaderCodeDASDA(da_das_sharpen_spv, da_das_sharpen_spv + sizeof(da_das_sharpen_spv));
+    if (!CreateComputePipeline(_device, _pipelineLayoutDASDA, &_pipelineDASDA, shaderCodeDASDA))
     {
-        LOG_ERROR("Failed to create pipeline for RCAS_Vk LC depth aware");
+        LOG_ERROR("Failed to create pipeline for RCAS_Vk DAS depth aware");
         _init = false;
         return;
     }
@@ -76,10 +76,10 @@ RCAS_Vk::~RCAS_Vk()
         _pipelineDA = VK_NULL_HANDLE;
     }
 
-    if (_pipelineLCDA != VK_NULL_HANDLE)
+    if (_pipelineDASDA != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(_device, _pipelineLCDA, nullptr);
-        _pipelineLCDA = VK_NULL_HANDLE;
+        vkDestroyPipeline(_device, _pipelineDASDA, nullptr);
+        _pipelineDASDA = VK_NULL_HANDLE;
     }
 
     if (_descriptorPool != VK_NULL_HANDLE)
@@ -94,10 +94,10 @@ RCAS_Vk::~RCAS_Vk()
         _descriptorPoolDA = VK_NULL_HANDLE;
     }
 
-    if (_descriptorPoolLCDA != VK_NULL_HANDLE)
+    if (_descriptorPoolDASDA != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(_device, _descriptorPoolLCDA, nullptr);
-        _descriptorPoolLCDA = VK_NULL_HANDLE;
+        vkDestroyDescriptorPool(_device, _descriptorPoolDASDA, nullptr);
+        _descriptorPoolDASDA = VK_NULL_HANDLE;
     }
 
     if (_descriptorSetLayout != VK_NULL_HANDLE)
@@ -112,10 +112,10 @@ RCAS_Vk::~RCAS_Vk()
         _descriptorSetLayoutDA = VK_NULL_HANDLE;
     }
 
-    if (_descriptorSetLayoutLCDA != VK_NULL_HANDLE)
+    if (_descriptorSetLayoutDASDA != VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorSetLayout(_device, _descriptorSetLayoutLCDA, nullptr);
-        _descriptorSetLayoutLCDA = VK_NULL_HANDLE;
+        vkDestroyDescriptorSetLayout(_device, _descriptorSetLayoutDASDA, nullptr);
+        _descriptorSetLayoutDASDA = VK_NULL_HANDLE;
     }
 
     if (_pipelineLayout != VK_NULL_HANDLE)
@@ -130,10 +130,10 @@ RCAS_Vk::~RCAS_Vk()
         _pipelineLayoutDA = VK_NULL_HANDLE;
     }
 
-    if (_pipelineLayoutLCDA != VK_NULL_HANDLE)
+    if (_pipelineLayoutDASDA != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(_device, _pipelineLayoutLCDA, nullptr);
-        _pipelineLayoutLCDA = VK_NULL_HANDLE;
+        vkDestroyPipelineLayout(_device, _pipelineLayoutDASDA, nullptr);
+        _pipelineLayoutDASDA = VK_NULL_HANDLE;
     }
 
     if (_constantBuffer != VK_NULL_HANDLE)
@@ -148,10 +148,10 @@ RCAS_Vk::~RCAS_Vk()
         _constantBufferDA = VK_NULL_HANDLE;
     }
 
-    if (_constantBufferLCDA != VK_NULL_HANDLE)
+    if (_constantBufferDASDA != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(_device, _constantBufferLCDA, nullptr);
-        _constantBufferLCDA = VK_NULL_HANDLE;
+        vkDestroyBuffer(_device, _constantBufferDASDA, nullptr);
+        _constantBufferDASDA = VK_NULL_HANDLE;
     }
 
     if (_constantBufferMemory != VK_NULL_HANDLE)
@@ -166,10 +166,10 @@ RCAS_Vk::~RCAS_Vk()
         _constantBufferMemoryDA = VK_NULL_HANDLE;
     }
 
-    if (_constantBufferMemoryLCDA != VK_NULL_HANDLE)
+    if (_constantBufferMemoryDASDA != VK_NULL_HANDLE)
     {
-        vkFreeMemory(_device, _constantBufferMemoryLCDA, nullptr);
-        _constantBufferMemoryLCDA = VK_NULL_HANDLE;
+        vkFreeMemory(_device, _constantBufferMemoryDASDA, nullptr);
+        _constantBufferMemoryDASDA = VK_NULL_HANDLE;
     }
 
     if (_nearestSampler != VK_NULL_HANDLE)
@@ -604,13 +604,13 @@ bool RCAS_Vk::DispatchDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList
     return true;
 }
 
-bool RCAS_Vk::DispatchLCDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstants InConstants,
+bool RCAS_Vk::DispatchDASDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstants InConstants,
                                       VkImageInfo* InResourceInfo, VkImageInfo* InMotionVectorsInfo,
                                       VkImageInfo* OutResourceInfo, VkImageInfo* InDepthInfo)
 {
     (void) InDevice;
 
-    if (InDepthInfo == VK_NULL_HANDLE || _pipelineLCDA == VK_NULL_HANDLE)
+    if (InDepthInfo == VK_NULL_HANDLE || _pipelineDASDA == VK_NULL_HANDLE)
         return false;
 
     InternalConstantsDA constants {};
@@ -624,19 +624,19 @@ bool RCAS_Vk::DispatchLCDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdLi
 
     FillMotionConstants(constants, InConstants);
 
-    if (_mappedConstantBufferLCDA)
+    if (_mappedConstantBufferDASDA)
     {
-        memcpy(_mappedConstantBufferLCDA, &constants, sizeof(InternalConstantsDA));
+        memcpy(_mappedConstantBufferDASDA, &constants, sizeof(InternalConstantsDA));
     }
 
     _currentSetIndex = (_currentSetIndex + 1) % MAX_FRAMES_IN_FLIGHT;
-    UpdateDescriptorSetDA(_descriptorSetsLCDA[_currentSetIndex], _constantBufferLCDA, InResourceInfo->ImageView,
+    UpdateDescriptorSetDA(_descriptorSetsDASDA[_currentSetIndex], _constantBufferDASDA, InResourceInfo->ImageView,
                           InMotionVectorsInfo->ImageView, InDepthInfo->ImageView, OutResourceInfo->ImageView);
 
-    vkCmdBindPipeline(InCmdList, VK_PIPELINE_BIND_POINT_COMPUTE, _pipelineLCDA);
+    vkCmdBindPipeline(InCmdList, VK_PIPELINE_BIND_POINT_COMPUTE, _pipelineDASDA);
 
-    vkCmdBindDescriptorSets(InCmdList, VK_PIPELINE_BIND_POINT_COMPUTE, _pipelineLayoutLCDA, 0, 1,
-                            &_descriptorSetsLCDA[_currentSetIndex], 0, nullptr);
+    vkCmdBindDescriptorSets(InCmdList, VK_PIPELINE_BIND_POINT_COMPUTE, _pipelineLayoutDASDA, 0, 1,
+                            &_descriptorSetsDASDA[_currentSetIndex], 0, nullptr);
 
     uint32_t groupX = (constants.OutputWidth + 15) / 16;
     uint32_t groupY = (constants.OutputHeight + 15) / 16;
@@ -657,7 +657,7 @@ bool RCAS_Vk::Dispatch(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstan
 
     if (sharpnessShader == SharpenShader::LocalContrastDepthAware)
     {
-        return DispatchLCDepthAdaptive(InDevice, InCmdList, InConstants, InResourceInfo, InMotionVectorsInfo,
+        return DispatchDASDepthAdaptive(InDevice, InCmdList, InConstants, InResourceInfo, InMotionVectorsInfo,
                                        OutResourceInfo, InDepthInfo);
     }
     else if (sharpnessShader == SharpenShader::DepthAware)

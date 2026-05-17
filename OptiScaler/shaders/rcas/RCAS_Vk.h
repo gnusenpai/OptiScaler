@@ -35,20 +35,20 @@ class RCAS_Vk : public Shader_Vk, public RCAS_Common
     VkBuffer _constantBuffer = VK_NULL_HANDLE;
     VkDeviceMemory _constantBufferMemory = VK_NULL_HANDLE;
     VkBuffer _constantBufferDA = VK_NULL_HANDLE;
-    VkBuffer _constantBufferLCDA = VK_NULL_HANDLE;
+    VkBuffer _constantBufferDASDA = VK_NULL_HANDLE;
     VkDeviceMemory _constantBufferMemoryDA = VK_NULL_HANDLE;
-    VkDeviceMemory _constantBufferMemoryLCDA = VK_NULL_HANDLE;
+    VkDeviceMemory _constantBufferMemoryDASDA = VK_NULL_HANDLE;
     VkSampler _nearestSampler = VK_NULL_HANDLE;
     void* _mappedConstantBuffer = nullptr;
     void* _mappedConstantBufferDA = nullptr;
-    void* _mappedConstantBufferLCDA = nullptr;
+    void* _mappedConstantBufferDASDA = nullptr;
 
     VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
     VkDescriptorPool _descriptorPoolDA = VK_NULL_HANDLE;
-    VkDescriptorPool _descriptorPoolLCDA = VK_NULL_HANDLE;
+    VkDescriptorPool _descriptorPoolDASDA = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> _descriptorSets;
     std::vector<VkDescriptorSet> _descriptorSetsDA;
-    std::vector<VkDescriptorSet> _descriptorSetsLCDA;
+    std::vector<VkDescriptorSet> _descriptorSetsDASDA;
     uint32_t _currentSetIndex = 0;
     static const int MAX_FRAMES_IN_FLIGHT = 3;
 
@@ -71,9 +71,9 @@ class RCAS_Vk : public Shader_Vk, public RCAS_Common
     bool DispatchDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstants InConstants,
                                VkImageInfo* InResourceInfo, VkImageInfo* InMotionVectorsInfo,
                                VkImageInfo* OutResourceInfo, VkImageInfo* InDepthInfo);
-    bool DispatchLCDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstants InConstants,
-                                 VkImageInfo* InResourceInfo, VkImageInfo* InMotionVectorsInfo,
-                                 VkImageInfo* OutResourceInfo, VkImageInfo* InDepthInfo);
+    bool DispatchDASDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstants InConstants,
+                                  VkImageInfo* InResourceInfo, VkImageInfo* InMotionVectorsInfo,
+                                  VkImageInfo* OutResourceInfo, VkImageInfo* InDepthInfo);
 
     VkImageView _intermediateImageView = VK_NULL_HANDLE;
     VkImage _intermediateImage = VK_NULL_HANDLE;
@@ -86,7 +86,7 @@ class RCAS_Vk : public Shader_Vk, public RCAS_Common
     VkPipelineLayout _pipelineLayoutDA = VK_NULL_HANDLE;
     VkDescriptorSetLayout _descriptorSetLayoutDA = VK_NULL_HANDLE;
 
-    VkPipeline _pipelineLCDA = VK_NULL_HANDLE;
-    VkPipelineLayout _pipelineLayoutLCDA = VK_NULL_HANDLE;
-    VkDescriptorSetLayout _descriptorSetLayoutLCDA = VK_NULL_HANDLE;
+    VkPipeline _pipelineDASDA = VK_NULL_HANDLE;
+    VkPipelineLayout _pipelineLayoutDASDA = VK_NULL_HANDLE;
+    VkDescriptorSetLayout _descriptorSetLayoutDASDA = VK_NULL_HANDLE;
 };

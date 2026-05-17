@@ -1,3 +1,8 @@
+#pragma once
+
+#include "SysUtils.h"
+
+static std::string daRcasSharpenCode = R"(
 #ifdef VK_MODE
 cbuffer Params : register(b0, space0)
 #else
@@ -160,7 +165,7 @@ float2 EstimateDepthGradientFromTaps(
     float gx = abs(gxF) < abs(gxB) ? gxF : gxB;
     float gy = abs(gyF) < abs(gyB) ? gyF : gyB;
 
-    float maxGrad = abs(centerDepth) * 0.05;
+    float maxGrad = max(abs(centerDepth) * 0.05, 1e-4);
     return clamp(float2(gx, gy), -maxGrad, maxGrad);
 }
 
@@ -216,14 +221,8 @@ float ComputeAdaptiveSharpness(int2 pixelCoord)
     return clamp(setSharpness, 0.0, 2.0);
 }
 
-float3 ApplyDebugTint(
-    float3 color,
-    float baseSharpness,
-    float adaptiveSharpness,
-    float edgeSharpness,
-    float finalSharpness,
-    float distanceBoost,
-    int debugMode)
+float3 ApplyDebugTint(float3 color, float baseSharpness, float adaptiveSharpness, float edgeSharpness,
+                      float finalSharpness, float distanceBoost, int debugMode)
 {
     float motionBoost = max(adaptiveSharpness - baseSharpness, 0.0);
     float motionReduce = max(baseSharpness - adaptiveSharpness, 0.0);
@@ -245,18 +244,9 @@ float3 ApplyDebugTint(
     return color;
 }
 
-float ComputeEdgeFactorFromTaps(
-    float centerLuma,
-    float centerDepth,
-    float2 depthGrad,
-    float lumaUp,
-    float lumaLeft,
-    float lumaRight,
-    float lumaDown,
-    float depthUp,
-    float depthLeft,
-    float depthRight,
-    float depthDown)
+float ComputeEdgeFactorFromTaps(float centerLuma, float centerDepth, float2 depthGrad, 
+                                float lumaUp, float lumaLeft, float lumaRight, float lumaDown,
+                                float depthUp, float depthLeft, float depthRight, float depthDown)
 {
     float lumaSum = 0.0;
     lumaSum += abs(lumaUp - centerLuma);
@@ -279,7 +269,7 @@ float ComputeEdgeFactorFromTaps(
 
     // Luma is confirmation, not an edge source.
     // Even without luma confirmation, keep some depth protection.
-    float depthTrust = lerp(0.15, 1.0, lumaConfirm);
+    float depthTrust = lerp(0.40, 1.0, lumaConfirm);
 
     return lerp(1.0, depthEdge, depthTrust);
 }
@@ -379,10 +369,10 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 
     float2 depthGrad = EstimateDepthGradientFromTaps(centerDepth, depthUp, depthLeft, depthRight, depthDown);
 
-    float edgeFactor = ComputeEdgeFactorFromTaps(centerLuma, centerDepth, depthGrad, lumaUp, lumaLeft,
+    float edgeFactor = ComputeEdgeFactorFromTaps(centerLuma, centerDepth, depthGrad, lumaUp, lumaLeft, 
                                                  lumaRight, lumaDown, depthUp, depthLeft, depthRight, depthDown);
 
-    float edgeSharpness = adaptiveSharpness * lerp(0.2, 1.0, edgeFactor);
+    float edgeSharpness = adaptiveSharpness * lerp(0.12, 1.0, edgeFactor);
 
     float distanceBoost = DistanceSharpnessBoost(centerDepth);
     float motionStability = saturate(adaptiveSharpness / max(Sharpness, 1e-4));
@@ -417,7 +407,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
     localScale = max(localScale, Max3(dRaw));
     localScale = max(localScale, Max3(fRaw));
     localScale = max(localScale, Max3(hRaw));
-    localScale = max(localScale, 1e-4);
+    // localScale = max(localScale, 1e-4);
 
     // Depth weights for cross taps.
     float wb = DepthWeightGrad(centerDepth, depthUp, depthGrad, int2(0, -1));
@@ -453,7 +443,9 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
     float3 lobeRGB = max(-hitMin, hitMax);
 
     // RCAS is happier with roughly 0..1 range.
-    float rcasSharpness = saturate(finalSharpness);
+    // float rcasSharpness = saturate(finalSharpness);
+    float rcasSharpness = saturate(finalSharpness * 0.85);
+
     float lobe = max(-0.1875, min(max(lobeRGB.r, max(lobeRGB.g, lobeRGB.b)), 0.0)) * rcasSharpness;
     float rcpL = rcp(4.0 * lobe + 1.0);
 
@@ -468,3 +460,4 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 
     Dest[p] = float4(output, 1.0);
 }
+)";

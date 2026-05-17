@@ -4,8 +4,8 @@
 #include "../Shader_Common.h"
 
 #include "precompile/RCAS_Shader_Dx11.h"
-#include "precompile/da_sharpen_Shader_Dx11.h"
-#include "precompile/lc_da_sharpen_Shader_Dx11.h"
+#include "precompile/da_das_sharpen_Shader_Dx11.h"
+#include "precompile/da_rcas_sharpen_Shader_Dx11.h"
 
 #include <Config.h>
 
@@ -324,14 +324,14 @@ bool RCAS_Dx11::DispatchDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceContex
     return true;
 }
 
-bool RCAS_Dx11::DispatchLCDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceContext* InContext,
+bool RCAS_Dx11::DispatchDASDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceContext* InContext,
                                         ID3D11Texture2D* InResource, ID3D11Texture2D* InMotionVectors,
                                         ID3D11Texture2D* InDepth, RcasConstants InConstants,
                                         ID3D11Texture2D* OutResource)
 {
     (void) InDevice;
 
-    if (InDepth == nullptr || _computeShaderLCDA == nullptr)
+    if (InDepth == nullptr || _computeShaderDASDA == nullptr)
         return false;
 
     if (!InitializeViewsDA(InResource, InMotionVectors, InDepth, OutResource))
@@ -370,7 +370,7 @@ bool RCAS_Dx11::DispatchLCDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceCont
     memcpy(mappedResource.pData, &constants, sizeof(constants));
     InContext->Unmap(_constantBuffer, 0);
 
-    InContext->CSSetShader(_computeShaderLCDA, nullptr, 0);
+    InContext->CSSetShader(_computeShaderDASDA, nullptr, 0);
     InContext->CSSetConstantBuffers(0, 1, &_constantBuffer);
 
     ID3D11ShaderResourceView* srvs[3] = { _srvInput, _srvMotionVectors, _srvDepth };
@@ -408,7 +408,7 @@ bool RCAS_Dx11::Dispatch(ID3D11Device* InDevice, ID3D11DeviceContext* InContext,
 
     if (sharpnessShader == SharpenShader::LocalContrastDepthAware)
     {
-        return DispatchLCDepthAdaptive(InDevice, InContext, InResource, InMotionVectors, InDepth, InConstants,
+        return DispatchDASDepthAdaptive(InDevice, InContext, InResource, InMotionVectors, InDepth, InConstants,
                                        OutResource);
     }
     else if (sharpnessShader == SharpenShader::DepthAware)
@@ -446,19 +446,19 @@ RCAS_Dx11::RCAS_Dx11(std::string InName, ID3D11Device* InDevice) : _name(InName)
             return;
         }
 
-        hr = _device->CreateComputeShader(reinterpret_cast<const void*>(da_sharpen_cso), sizeof(da_sharpen_cso),
-                                          nullptr, &_computeShaderDA);
+        hr = _device->CreateComputeShader(reinterpret_cast<const void*>(da_rcas_sharpen_cso),
+                                          sizeof(da_rcas_sharpen_cso), nullptr, &_computeShaderDA);
         if (FAILED(hr))
         {
             LOG_ERROR("[{0}] CreateComputeShader error for depth aware shader: {1:X}", _name, hr);
             return;
         }
 
-        hr = _device->CreateComputeShader(reinterpret_cast<const void*>(lc_da_sharpen_cso), sizeof(lc_da_sharpen_cso),
-                                          nullptr, &_computeShaderLCDA);
+        hr = _device->CreateComputeShader(reinterpret_cast<const void*>(da_das_sharpen_cso), sizeof(da_das_sharpen_cso),
+                                          nullptr, &_computeShaderDASDA);
         if (FAILED(hr))
         {
-            LOG_ERROR("[{0}] CreateComputeShader error for LC depth aware shader: {1:X}", _name, hr);
+            LOG_ERROR("[{0}] CreateComputeShader error for DAS depth aware shader: {1:X}", _name, hr);
             return;
         }
     }
@@ -494,7 +494,7 @@ RCAS_Dx11::RCAS_Dx11(std::string InName, ID3D11Device* InDevice) : _name(InName)
             return;
         }
 
-        shaderBlob = CompileShader(daSharpenCode.c_str(), "CSMain", "cs_5_0");
+        shaderBlob = CompileShader(daRcasSharpenCode.c_str(), "CSMain", "cs_5_0");
 
         if (shaderBlob != nullptr)
         {
@@ -504,22 +504,22 @@ RCAS_Dx11::RCAS_Dx11(std::string InName, ID3D11Device* InDevice) : _name(InName)
         else
         {
             LOG_ERROR("[{0}] RCAS_CompileShader error for depth aware shader!", _name);
-            hr = _device->CreateComputeShader(reinterpret_cast<const void*>(da_sharpen_cso), sizeof(da_sharpen_cso),
-                                              nullptr, &_computeShaderDA);
+            hr = _device->CreateComputeShader(reinterpret_cast<const void*>(da_rcas_sharpen_cso),
+                                              sizeof(da_rcas_sharpen_cso), nullptr, &_computeShaderDA);
         }
 
-        shaderBlob = CompileShader(lcDASharpenCode.c_str(), "CSMain", "cs_5_0");
+        shaderBlob = CompileShader(dasDASharpenCode.c_str(), "CSMain", "cs_5_0");
 
         if (shaderBlob != nullptr)
         {
             hr = _device->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr,
-                                              &_computeShaderLCDA);
+                                              &_computeShaderDASDA);
         }
         else
         {
-            LOG_ERROR("[{0}] RCAS_CompileShader error for LC depth aware shader!", _name);
-            hr = _device->CreateComputeShader(reinterpret_cast<const void*>(lc_da_sharpen_cso),
-                                              sizeof(lc_da_sharpen_cso), nullptr, &_computeShaderLCDA);
+            LOG_ERROR("[{0}] RCAS_CompileShader error for DAS depth aware shader!", _name);
+            hr = _device->CreateComputeShader(reinterpret_cast<const void*>(da_das_sharpen_cso),
+                                              sizeof(da_das_sharpen_cso), nullptr, &_computeShaderDASDA);
         }
 
         if (shaderBlob != nullptr)

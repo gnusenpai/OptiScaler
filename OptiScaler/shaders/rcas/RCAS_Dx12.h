@@ -17,7 +17,7 @@ class RCAS_Dx12 : public Shader_Dx12, public RCAS_Common
     D3D12_RESOURCE_STATES _bufferState = D3D12_RESOURCE_STATE_COMMON;
 
     ID3D12PipelineState* _pipelineStateDA = nullptr;
-    ID3D12PipelineState* _pipelineStateLCDA = nullptr;
+    ID3D12PipelineState* _pipelineStateDASDA = nullptr;
 
     uint32_t InNumThreadsX = 16;
     uint32_t InNumThreadsY = 16;

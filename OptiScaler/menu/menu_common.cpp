@@ -5232,14 +5232,14 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::SameLine(0.0f, 6.0f);
 
-                        if (ImGui::RadioButton("Depth Aware (LC)", &sharpnessShader,
+                        if (ImGui::RadioButton("Depth Aware (DAS)", &sharpnessShader,
                                                (int32_t) SharpenShader::LocalContrastDepthAware))
                         {
                             Config::Instance()->SharpnessShader = SharpenShader::LocalContrastDepthAware;
                         }
 
-                        ShowHelpMarker("Use Depth Aware Sharpening (LC)\n"
-                                       "Local contrast based sharpening\n"
+                        ShowHelpMarker("Use Depth Aware Sharpening (DAS)\n"
+                                       "Depth-aware directional adaptive luma sharpener\n"
                                        "Smarter sharpening with less artifacts,\n"
                                        "but also heavier\n\n"
                                        "The farther away is the object, the more\n"

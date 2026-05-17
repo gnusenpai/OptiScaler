@@ -242,12 +242,6 @@
     <ClInclude Include="shaders\output_scaling\precompile\BCUS_Shader_Dx11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\RCAS_Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\RCAS_Shader_Dx11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="shaders\rcas\RCAS_Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -614,9 +608,6 @@
     <ClInclude Include="shaders\Shader_VkUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\RCAS_Shader_Vk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="shaders\rcas\RCAS_Vk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -797,15 +788,6 @@
     <ClInclude Include="hooks\Hook_Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\da_sharpen_Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\da_sharpen_Shader_Vk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\da_sharpen_Shader_Dx11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="framegen\nvngx\Nvngx_FG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -836,15 +818,6 @@
     <ClInclude Include="shaders\hudless_compare_compute\HCC_Dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\lc_da_sharpen_Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\lc_da_sharpen_Shader_Dx11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\rcas\precompile\lc_da_sharpen_Shader_Vk.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="misc\UeLowLatency.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -861,6 +834,42 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="low_latency\input\input_reflex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\da_das_sharpen_Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\da_das_sharpen_Shader_Dx11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\da_das_sharpen_Shader_Vk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\da_rcas_sharpen_Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\da_rcas_sharpen_Shader_Vk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\da_rcas_sharpen_Shader_Dx11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\RCAS_Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\RCAS_Shader_Dx11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\precompile\RCAS_Shader_Vk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\shaders\DA_DAS_Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\shaders\DA_RCAS_Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\rcas\shaders\RCAS_Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

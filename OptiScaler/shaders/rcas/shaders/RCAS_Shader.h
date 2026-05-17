@@ -1,3 +1,8 @@
+#pragma once
+
+#include "SysUtils.h"
+
+static std::string rcasCode = R"(
 // Based on this Reshade shader
 // https://github.com/RdenBlaauwen/RCAS-for-ReShade
 
@@ -164,6 +169,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 
     float rcpL = rcp(4.0 * lobe + 1.0);
     float3 output = (((bn + dn + fn + hn) * lobe + en) * rcpL) * localScale;
+    output = max(output, 0.0);
 
     if (Debug > 0 && DynamicSharpenEnabled > 0)
     {
@@ -175,3 +181,4 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 
     Dest[pixel] = output;
 }
+)";

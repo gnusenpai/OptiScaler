@@ -3,8 +3,8 @@
 #include "RCAS_Dx12.h"
 
 #include "precompile/RCAS_Shader.h"
-#include "precompile/da_sharpen_Shader.h"
-#include "precompile/lc_da_sharpen_Shader.h"
+#include "precompile/da_das_sharpen_Shader.h"
+#include "precompile/da_rcas_sharpen_Shader.h"
 
 #include <Config.h>
 
@@ -137,7 +137,7 @@ bool RCAS_Dx12::Dispatch(ID3D12GraphicsCommandList* InCmdList, ID3D12Resource* I
 
     if (sharpnessShader == SharpenShader::LocalContrastDepthAware)
     {
-        return DispatchDepthAdaptive(_pipelineStateLCDA, InCmdList, InResource, InMotionVectors, InDepth, InConstants,
+        return DispatchDepthAdaptive(_pipelineStateDASDA, InCmdList, InResource, InMotionVectors, InDepth, InConstants,
                                      OutResource, currentHeap);
     }
     else if (sharpnessShader == SharpenShader::DepthAware)
@@ -190,17 +190,17 @@ RCAS_Dx12::RCAS_Dx12(std::string InName, ID3D12Device* InDevice) : Shader_Dx12(I
         return;
     }
 
-    if (!CreateComputePipeline(InDevice, &_pipelineStateDA, da_sharpen_cso, sizeof(da_sharpen_cso),
-                               daSharpenCode.c_str()))
+    if (!CreateComputePipeline(InDevice, &_pipelineStateDA, da_rcas_sharpen_cso, sizeof(da_rcas_sharpen_cso),
+                               daRcasSharpenCode.c_str()))
     {
         LOG_ERROR("[{0}] Failed to create compute pipeline DA", _name);
         return;
     }
 
-    if (!CreateComputePipeline(InDevice, &_pipelineStateLCDA, lc_da_sharpen_cso, sizeof(lc_da_sharpen_cso),
-                               lcDASharpenCode.c_str()))
+    if (!CreateComputePipeline(InDevice, &_pipelineStateDASDA, da_das_sharpen_cso, sizeof(da_das_sharpen_cso),
+                               dasDASharpenCode.c_str()))
     {
-        LOG_ERROR("[{0}] Failed to create compute pipeline LCDA", _name);
+        LOG_ERROR("[{0}] Failed to create compute pipeline DAS DA", _name);
         return;
     }
 
@@ -213,7 +213,7 @@ RCAS_Dx12::~RCAS_Dx12()
         return;
 
     SAFE_RELEASE(_pipelineStateDA);
-    SAFE_RELEASE(_pipelineStateLCDA);
+    SAFE_RELEASE(_pipelineStateDASDA);
 
     for (int i = 0; i < RCAS_NUM_OF_HEAPS; i++)
     {
