@@ -325,9 +325,9 @@ bool RCAS_Dx11::DispatchDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceContex
 }
 
 bool RCAS_Dx11::DispatchDASDepthAdaptive(ID3D11Device* InDevice, ID3D11DeviceContext* InContext,
-                                        ID3D11Texture2D* InResource, ID3D11Texture2D* InMotionVectors,
-                                        ID3D11Texture2D* InDepth, RcasConstants InConstants,
-                                        ID3D11Texture2D* OutResource)
+                                         ID3D11Texture2D* InResource, ID3D11Texture2D* InMotionVectors,
+                                         ID3D11Texture2D* InDepth, RcasConstants InConstants,
+                                         ID3D11Texture2D* OutResource)
 {
     (void) InDevice;
 
@@ -409,7 +409,7 @@ bool RCAS_Dx11::Dispatch(ID3D11Device* InDevice, ID3D11DeviceContext* InContext,
     if (sharpnessShader == SharpenShader::LocalContrastDepthAware)
     {
         return DispatchDASDepthAdaptive(InDevice, InContext, InResource, InMotionVectors, InDepth, InConstants,
-                                       OutResource);
+                                        OutResource);
     }
     else if (sharpnessShader == SharpenShader::DepthAware)
     {

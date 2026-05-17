@@ -605,8 +605,8 @@ bool RCAS_Vk::DispatchDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList
 }
 
 bool RCAS_Vk::DispatchDASDepthAdaptive(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstants InConstants,
-                                      VkImageInfo* InResourceInfo, VkImageInfo* InMotionVectorsInfo,
-                                      VkImageInfo* OutResourceInfo, VkImageInfo* InDepthInfo)
+                                       VkImageInfo* InResourceInfo, VkImageInfo* InMotionVectorsInfo,
+                                       VkImageInfo* OutResourceInfo, VkImageInfo* InDepthInfo)
 {
     (void) InDevice;
 
@@ -658,7 +658,7 @@ bool RCAS_Vk::Dispatch(VkDevice InDevice, VkCommandBuffer InCmdList, RcasConstan
     if (sharpnessShader == SharpenShader::LocalContrastDepthAware)
     {
         return DispatchDASDepthAdaptive(InDevice, InCmdList, InConstants, InResourceInfo, InMotionVectorsInfo,
-                                       OutResourceInfo, InDepthInfo);
+                                        OutResourceInfo, InDepthInfo);
     }
     else if (sharpnessShader == SharpenShader::DepthAware)
     {
