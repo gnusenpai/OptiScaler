@@ -6150,6 +6150,7 @@ bool MenuCommon::RenderMenu()
                     ImVec4 colorGreen = { 0.25f, 1.00f, 0.00f, 1.0f };
                     ImVec4 colorRed = { 1.00f, 0.00f, 0.00f, 1.0f };
                     ImVec4 colorOrange = { 1.00f, 0.52f, 0.00f, 1.0f };
+                    ImVec4 colorPurple = { 0.576f, 0.00f, 1.00f, 1.0f };
 
                     ImVec4 color = {};
 
@@ -6299,6 +6300,25 @@ bool MenuCommon::RenderMenu()
                     }
 
                     ImGui::SameLine(0.0f, 6.0f);
+
+                    color = colorPurple;
+                    ImGui::PushStyleColor(ImGuiCol_Button, AccentSoft(color));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, AccentMed(color));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, AccentStrong(color));
+
+                    if (ImGui::Button("Purple"))
+                    {
+                        ImGui::PopStyleColor(3);
+
+                        config->MenuAccentColorR = color.x;
+                        config->MenuAccentColorG = color.y;
+                        config->MenuAccentColorB = color.z;
+                        ApplyThemeStyle();
+                    }
+                    else
+                    {
+                        ImGui::PopStyleColor(3);
+                    }
 
                     float accentColor[3] = { config->MenuAccentColorR.value_or_default(),
                                              config->MenuAccentColorG.value_or_default(),
@@ -6461,6 +6481,27 @@ bool MenuCommon::RenderMenu()
                     ImGui::PushStyleColor(ImGuiCol_ButtonActive, AccentStrong(color));
 
                     if (ImGui::Button("Orange##2"))
+                    {
+                        ImGui::PopStyleColor(3);
+
+                        config->MenuBGColorR = color.x;
+                        config->MenuBGColorG = color.y;
+                        config->MenuBGColorB = color.z;
+                        ApplyThemeStyle();
+                    }
+                    else
+                    {
+                        ImGui::PopStyleColor(3);
+                    }
+
+                    ImGui::SameLine(0.0f, 6.0f);
+
+                    color = colorPurple;
+                    ImGui::PushStyleColor(ImGuiCol_Button, AccentSoft(color));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, AccentMed(color));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, AccentStrong(color));
+
+                    if (ImGui::Button("Purple##2"))
                     {
                         ImGui::PopStyleColor(3);
 
