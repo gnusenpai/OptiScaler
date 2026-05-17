@@ -328,6 +328,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="hooks\Hook_Utils.h" />
     <ClInclude Include="hooks\LibraryLoad_Hooks.h" />
     <ClInclude Include="hooks\CommandBuffer_StateTracker.h" />
+    <ClInclude Include="low_latency\input\input_reflex.h" />
     <ClInclude Include="low_latency\input\input_xell.h" />
     <ClInclude Include="low_latency\input\input_antilag2.h" />
     <ClInclude Include="shaders\hudless_compare_compute\HCC_Common.h" />
@@ -588,6 +589,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="hooks\LibraryLoad_Hooks.cpp" />
     <ClCompile Include="hooks\VulkanwDx12_Hooks.cpp" />
     <ClCompile Include="hooks\Xell_Hooks.cpp" />
+    <ClCompile Include="low_latency\input\input_reflex.cpp" />
     <ClCompile Include="low_latency\input\input_xell.cpp" />
     <ClCompile Include="low_latency\input\input_antilag2.cpp" />
     <ClCompile Include="misc\IdentifyGpu.cpp" />
