@@ -1642,13 +1642,17 @@ static void ApplyThemeStyle()
 
     ImVec4* c = ImGui::GetStyle().Colors;
 
+    float minAlpha = Config::Instance()->MenuBGColorA.value_or_default() >= 0.5f
+                         ? Config::Instance()->MenuBGColorA.value_or_default()
+                         : 0.5f;
+
     c[ImGuiCol_Text] = textPrimary;
     c[ImGuiCol_TextDisabled] = textDim;
     c[ImGuiCol_TextLink] = AccentReadable();
 
     // MenuBGColor only.
-    c[ImGuiCol_WindowBg] = BgTint(bgDark, 1.00f);
-    c[ImGuiCol_ChildBg] = BgTint(bgMid, 1.10f);
+    c[ImGuiCol_WindowBg] = BgTint(bgDark, 1.00f, Config::Instance()->MenuBGColorA.value_or_default());
+    c[ImGuiCol_ChildBg] = BgTint(bgMid, 1.10f, minAlpha + 0.1f);
     c[ImGuiCol_PopupBg] =
         lightTheme ? BgTint(bgLight, 0.90f) : BgTint(ImVec4(0.09f, 0.10f, 0.13f, 0.97f), 0.90f, 0.97f);
     c[ImGuiCol_MenuBarBg] = BgTint(bgDark, 0.85f);
@@ -1658,7 +1662,7 @@ static void ApplyThemeStyle()
     c[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 
     // Neutral background, not MenuBGColor.
-    c[ImGuiCol_FrameBg] = BgTint(bgLight, 0.50f);
+    c[ImGuiCol_FrameBg] = BgTint(bgLight, 0.50f, minAlpha + 0.15f);
     c[ImGuiCol_FrameBgHovered] = SurfaceHover();
     c[ImGuiCol_FrameBgActive] = SurfaceActive();
 
@@ -1666,7 +1670,7 @@ static void ApplyThemeStyle()
     c[ImGuiCol_TitleBgActive] = TitleActive();
     c[ImGuiCol_TitleBgCollapsed] = ImVec4(bgTitle.x, bgTitle.y, bgTitle.z, 0.75f);
 
-    c[ImGuiCol_ScrollbarBg] = BgTint(bgDark, 0.60f);
+    c[ImGuiCol_ScrollbarBg] = BgTint(bgDark, 0.60f, minAlpha + 0.2f);
     c[ImGuiCol_ScrollbarGrab] = AccentSoft();
     c[ImGuiCol_ScrollbarGrabHovered] = AccentMed();
     c[ImGuiCol_ScrollbarGrabActive] = AccentStrong();
@@ -1707,10 +1711,10 @@ static void ApplyThemeStyle()
     c[ImGuiCol_PlotHistogram] = PlotAccent(0.85f);
     c[ImGuiCol_PlotHistogramHovered] = PlotAccentHovered();
 
-    c[ImGuiCol_TableHeaderBg] = BgTint(bgMid, 0.80f);
+    c[ImGuiCol_TableHeaderBg] = BgTint(bgMid, 0.80f, minAlpha + 0.25f);
     c[ImGuiCol_TableBorderStrong] = borderCol;
     c[ImGuiCol_TableBorderLight] = lightTheme ? ImVec4(0.68f, 0.72f, 0.80f, 1.00f) : AccentSoft();
-    c[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    c[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.0f);
     c[ImGuiCol_TableRowBgAlt] = lightTheme ? ImVec4(0.00f, 0.00f, 0.00f, 0.045f) : ImVec4(1.00f, 1.00f, 1.00f, 0.03f);
 
     c[ImGuiCol_TreeLines] = borderCol;
@@ -6294,6 +6298,8 @@ bool MenuCommon::RenderMenu()
                         ImGui::PopStyleColor(3);
                     }
 
+                    ImGui::SameLine(0.0f, 6.0f);
+
                     float accentColor[3] = { config->MenuAccentColorR.value_or_default(),
                                              config->MenuAccentColorG.value_or_default(),
                                              config->MenuAccentColorB.value_or_default() };
@@ -6482,11 +6488,21 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::Spacing();
 
+                    auto alpha = config->MenuBGColorA.value_or_default();
+                    if (ImGui::SliderFloat("Background Alpha", &alpha, 0.0f, 1.0f))
+                    {
+                        config->MenuBGColorA = alpha;
+                        ApplyThemeStyle();
+                    }
+
+                    ImGui::Spacing();
+
                     if (ImGui::Button("Reset BG Colour"))
                     {
                         config->MenuBGColorR.reset();
                         config->MenuBGColorG.reset();
                         config->MenuBGColorB.reset();
+                        config->MenuBGColorA.reset();
                         ApplyThemeStyle();
                     }
 
@@ -6991,7 +7007,7 @@ bool MenuCommon::RenderMenu()
 
                 ImGui::SameLine(0.0f, 15.0f);
 
-                if (ImGui::Button("Save INI"))
+                if (ImGui::Button("Save Settings"))
                     config->SaveIni();
 
                 ImGui::SameLine(0.0f, 6.0f);
