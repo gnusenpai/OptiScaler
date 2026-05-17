@@ -41,7 +41,6 @@ enum class GameQuirk : uint64_t
     DisableFakenvapi,
     DoNotPreserveFGSwapChain,
     OldOverlayMenu,
-    DoNotSkipResize,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessState,

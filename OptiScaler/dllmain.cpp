@@ -1500,13 +1500,6 @@ static void CheckQuirks(bool isNvidia)
     else
         quirks.reset(GameQuirk::DoNotPreserveFGSwapChain);
 
-    if (quirks & GameQuirk::DoNotSkipResize && !Config::Instance()->FGSkipResizeBuffers.has_value())
-    {
-        Config::Instance()->FGSkipResizeBuffers.set_volatile_value(false);
-    }
-    else
-        quirks.reset(GameQuirk::DoNotSkipResize);
-
     if (quirks & GameQuirk::OldOverlayMenu && !Config::Instance()->OverlayMenu.has_value())
     {
         Config::Instance()->OverlayMenu.set_volatile_value(false);
