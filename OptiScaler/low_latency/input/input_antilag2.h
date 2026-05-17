@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ffx_antilag2_dx12.h>
-#include <ffx_antilag2_dx11.h>
+// #include <ffx_antilag2_dx11.h>
 
 struct AmdExtAntiLagApi : public AMD::AntiLag2DX12::IAmdExtAntiLagApi
 {

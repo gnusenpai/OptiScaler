@@ -28,6 +28,7 @@ class KernelHooks
     inline static Kernel32Proxy::PFN_LoadLibraryExW o_K32_LoadLibraryExW = nullptr;
     inline static Kernel32Proxy::PFN_GetProcAddress o_K32_GetProcAddress = nullptr;
     inline static Kernel32Proxy::PFN_GetModuleHandleA o_K32_GetModuleHandleA = nullptr;
+    inline static Kernel32Proxy::PFN_GetModuleHandleExA o_K32_GetModuleHandleExA = nullptr;
     inline static Kernel32Proxy::PFN_GetModuleHandleExW o_K32_GetModuleHandleExW = nullptr;
     inline static Kernel32Proxy::PFN_GetFileAttributesW o_K32_GetFileAttributesW = nullptr;
     inline static Kernel32Proxy::PFN_CreateFileW o_K32_CreateFileW = nullptr;
@@ -44,6 +45,7 @@ class KernelHooks
 
     static FARPROC WINAPI hk_K32_GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
     static HMODULE WINAPI hk_K32_GetModuleHandleA(LPCSTR lpModuleName);
+    static BOOL WINAPI hk_K32_GetModuleHandleExA(DWORD dwFlags, LPCSTR lpModuleName, HMODULE* phModule);
     static BOOL WINAPI hk_K32_GetModuleHandleExW(DWORD dwFlags, LPCWSTR lpModuleName, HMODULE* phModule);
     static FARPROC WINAPI hk_KB_GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
     static DWORD WINAPI hk_K32_GetFileAttributesW(LPCWSTR lpFileName);
@@ -74,6 +76,11 @@ class KernelHooks
 
         o_K32_GetProcAddress = Kernel32Proxy::Hook_GetProcAddress(hk_K32_GetProcAddress);
         o_K32_GetModuleHandleA = Kernel32Proxy::Hook_GetModuleHandleA(hk_K32_GetModuleHandleA);
+
+#ifdef LOW_LATENCY_INPUTS
+        o_K32_GetModuleHandleExA = Kernel32Proxy::Hook_GetModuleHandleExA(hk_K32_GetModuleHandleExA);
+#endif
+
         o_K32_GetModuleHandleExW = Kernel32Proxy::Hook_GetModuleHandleExW(hk_K32_GetModuleHandleExW);
         o_K32_GetFileAttributesW = Kernel32Proxy::Hook_GetFileAttributesW(hk_K32_GetFileAttributesW);
         o_K32_CreateFileW = Kernel32Proxy::Hook_CreateFileW(hk_K32_CreateFileW);

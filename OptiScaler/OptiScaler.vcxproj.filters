@@ -857,6 +857,9 @@
     <ClInclude Include="low_latency\input\input_antilag2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="low_latency\input\input_xell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1334,6 +1337,9 @@
     <ClCompile Include="low_latency\input\input_antilag2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="low_latency\input\input_xell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OptiScaler.rc" />
@@ -1342,6 +1348,5 @@
     <None Include="Source.def">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

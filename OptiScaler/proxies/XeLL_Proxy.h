@@ -13,6 +13,7 @@
 #include <xell_d3d12.h>
 
 #include <magic_enum.hpp>
+#include <low_latency/input/input_xell.h>
 
 #pragma comment(lib, "Version.lib")
 
@@ -162,7 +163,13 @@ class XeLLProxy
             auto overridePath = Config::Instance()->XeLLLibrary.value_or(L"");
 
             HMODULE memModule = nullptr;
+
+#ifdef LOW_LATENCY_INPUTS
+            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               (LPCSTR) InputXeLL::D3D12CreateContext, &mainModule);
+#else
             Util::LoadProxyLibrary(dllNames[i], optiPath, overridePath, &memModule, &mainModule);
+#endif
 
             if (mainModule != nullptr)
             {

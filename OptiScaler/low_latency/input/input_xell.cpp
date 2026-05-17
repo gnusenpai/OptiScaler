@@ -1,0 +1,288 @@
+#include "pch.h"
+#include "input_xell.h"
+
+// Common
+xell_result_t InputXeLL::DestroyContext(xell_input_handle_t context)
+{
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    // TODO: cleanup everything
+
+    delete context;
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::SetSleepMode(xell_input_handle_t context, const xell_sleep_params_t* param)
+{
+    // TODO: impl
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::GetSleepMode(xell_input_handle_t context, xell_sleep_params_t* param)
+{
+    // TODO: impl
+
+    param->bLowLatencyMode = true;
+
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::Sleep(xell_input_handle_t context, uint32_t frame_id)
+{
+    // TODO: impl
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t frame_id,
+                                       xell_latency_marker_type_t marker)
+{
+    // TODO: impl
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::GetVersion(xell_version_t* pVersion)
+{
+    if (!pVersion)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    // TODO: make this mimic the version of loaded xefg dll so that both are seen as compatible
+    pVersion->major = 1;
+    pVersion->minor = 3;
+    pVersion->patch = 0;
+
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::SetLoggingCallback(xell_input_handle_t context, xell_logging_level_t loggingLevel,
+                                            xell_app_log_callback_t loggingCallback)
+{
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    // Not logging to the callback
+
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::GetFramesReports(xell_input_handle_t context, xell_frame_report_t* outdata)
+{
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    if (!outdata)
+        return XELL_RESULT_ERROR_INVALID_ARGUMENT;
+
+    // outdata should have 64 reports, hopefully the app allocated that much
+    // TODO: fillout
+
+    return XELL_RESULT_SUCCESS;
+}
+
+// D3D12
+xell_result_t InputXeLL::D3D12CreateContext(ID3D12Device* device, xell_input_handle_t* out_context)
+{
+    if (!device || !out_context)
+        return XELL_RESULT_ERROR_INVALID_ARGUMENT;
+
+    xell_input_handle_t newContext = new _xell_input_handle_t();
+    newContext->id = ++lastContextId;
+    // newContext->id = 0x47466558;
+    newContext->device = device;
+
+    *out_context = newContext;
+
+    return XELL_RESULT_SUCCESS;
+}
+
+// From dll exports
+xell_result_t InputXeLL::AILGetDecision(void* param1, void* param2)
+{
+    // TODO: idk what this is, might need to just passthrough when possible
+    return XELL_RESULT_ERROR_UNKNOWN;
+}
+uint32_t InputXeLL::AILGetVersion() { return 1; }
+bool InputXeLL::AILIsSupportedDevice(uint32_t param1)
+{
+    // TODO: idk what this is, might need to just passthrough when possible
+    return false;
+}
+xell_result_t InputXeLL::D3D12SetAppQueue(xell_input_handle_t context, void* appQueue)
+{
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    // It may need to do something extra but I'm not sure it matters for us
+
+    context->d3d12AppQueue = appQueue;
+
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::GetContextParameterP(xell_input_handle_t context, uint32_t param1, uint64_t param2)
+{
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::GetLastPresentStartFrameId(xell_input_handle_t context, uint32_t* p_frame_id)
+{
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    if (!p_frame_id)
+        return XELL_RESULT_ERROR_INVALID_ARGUMENT;
+
+    *p_frame_id = context->lastPresentStartFrameId;
+
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::QueryInterface(xell_input_handle_t context, LPCSTR lpProcName, FARPROC* outFunc)
+{
+    if (!outFunc)
+        return XELL_RESULT_ERROR_INVALID_ARGUMENT;
+
+    if (!lpProcName)
+    {
+        // Should return the internal context but well...
+        // TODO: do something about if it's actually used
+        *outFunc = (FARPROC) context;
+        return XELL_RESULT_SUCCESS;
+    }
+
+    std::string procName(lpProcName);
+
+    if (procName.contains("xellDestroyContext"))
+        *outFunc = (FARPROC) &DestroyContext;
+    else if (procName.contains("xellSetSleepMode"))
+        *outFunc = (FARPROC) &SetSleepMode;
+    else if (procName.contains("xellGetSleepMode"))
+        *outFunc = (FARPROC) &GetSleepMode;
+    else if (procName.contains("xellSleep"))
+        *outFunc = (FARPROC) &Sleep;
+    else if (procName.contains("xellAddMarkerData"))
+        *outFunc = (FARPROC) &AddMarkerData;
+    else if (procName.contains("xellGetVersion"))
+        *outFunc = (FARPROC) &GetVersion;
+    else if (procName.contains("xellSetLoggingCallback"))
+        *outFunc = (FARPROC) &SetLoggingCallback;
+    else if (procName.contains("xellGetFramesReports"))
+        *outFunc = (FARPROC) &GetFramesReports;
+    else if (procName.contains("xellD3D12CreateContext"))
+        *outFunc = (FARPROC) &D3D12CreateContext;
+    else if (procName.contains("xellAILGetDecision"))
+        *outFunc = (FARPROC) &AILGetDecision;
+    else if (procName.contains("xellAILGetVersion"))
+        *outFunc = (FARPROC) &AILGetVersion;
+    else if (procName.contains("xellAILIsSupportedDevice"))
+        *outFunc = (FARPROC) &AILIsSupportedDevice;
+    else if (procName.contains("xellD3D12SetAppQueue"))
+        *outFunc = (FARPROC) &D3D12SetAppQueue;
+    else if (procName.contains("xellGetContextParameterP"))
+        *outFunc = (FARPROC) &GetContextParameterP;
+    else if (procName.contains("xellGetLastPresentStartFrameId"))
+        *outFunc = (FARPROC) &GetLastPresentStartFrameId;
+    else if (procName.contains("xellQueryInterface"))
+        *outFunc = (FARPROC) &QueryInterface;
+    else if (procName.contains("xellSetContextParameterP"))
+        *outFunc = (FARPROC) &SetContextParameterP;
+    else if (procName.contains("xellSetDisplayInfo"))
+        *outFunc = (FARPROC) &SetDisplayInfo;
+    else if (procName.contains("xellSetFgEnabled"))
+        *outFunc = (FARPROC) &SetFgEnabled;
+    else if (procName.contains("xellSetGeneratedFramesCount"))
+        *outFunc = (FARPROC) &SetGeneratedFramesCount;
+
+    if (*outFunc)
+        return XELL_RESULT_SUCCESS;
+
+    return XELL_RESULT_ERROR_UNKNOWN;
+}
+
+xell_result_t InputXeLL::SetContextParameterP(xell_input_handle_t context, uint32_t param1, uint64_t param2)
+{
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::SetDisplayInfo(xell_input_handle_t context, void* displayInfo)
+{
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    context->displayInfo = displayInfo;
+
+    return XELL_RESULT_SUCCESS;
+}
+xell_result_t InputXeLL::SetFgEnabled(xell_input_handle_t context, uint32_t param1, uint32_t param2)
+{
+    // TODO: figure out params and impl
+    return XELL_RESULT_SUCCESS;
+}
+
+xell_result_t InputXeLL::SetGeneratedFramesCount(xell_input_handle_t context, uint32_t param1, uint32_t framesCount)
+{
+    // TODO: figure out params and impl
+    return XELL_RESULT_SUCCESS;
+}
+
+#ifdef LOW_LATENCY_INPUTS
+
+XELL_EXPORT xell_result_t xellDestroyContext(xell_context_handle_t context)
+{
+    return InputXeLL::DestroyContext((InputXeLL::xell_input_handle_t) context);
+}
+
+XELL_EXPORT xell_result_t xellSetSleepMode(xell_context_handle_t context, const xell_sleep_params_t* param)
+{
+    return InputXeLL::SetSleepMode((InputXeLL::xell_input_handle_t) context, param);
+}
+
+XELL_EXPORT xell_result_t xellGetSleepMode(xell_context_handle_t context, xell_sleep_params_t* param)
+{
+    return InputXeLL::GetSleepMode((InputXeLL::xell_input_handle_t) context, param);
+}
+
+XELL_EXPORT xell_result_t xellSleep(xell_context_handle_t context, uint32_t frame_id)
+{
+    return InputXeLL::Sleep((InputXeLL::xell_input_handle_t) context, frame_id);
+}
+
+XELL_EXPORT xell_result_t xellAddMarkerData(xell_context_handle_t context, uint32_t frame_id,
+                                            xell_latency_marker_type_t marker)
+{
+    return InputXeLL::AddMarkerData((InputXeLL::xell_input_handle_t) context, frame_id, marker);
+}
+
+XELL_EXPORT xell_result_t xellGetVersion(xell_version_t* pVersion) { return InputXeLL::GetVersion(pVersion); }
+
+XELL_EXPORT xell_result_t xellSetLoggingCallback(xell_context_handle_t hContext, xell_logging_level_t loggingLevel,
+                                                 xell_app_log_callback_t loggingCallback)
+{
+    return InputXeLL::SetLoggingCallback((InputXeLL::xell_input_handle_t) hContext, loggingLevel, loggingCallback);
+}
+
+XELL_EXPORT xell_result_t xellGetFramesReports(xell_context_handle_t context, xell_frame_report_t* outdata)
+{
+    return InputXeLL::GetFramesReports((InputXeLL::xell_input_handle_t) context, outdata);
+}
+
+XELL_EXPORT xell_result_t xellD3D12CreateContext(ID3D12Device* device, xell_context_handle_t* out_context)
+{
+    return InputXeLL::D3D12CreateContext(device, (InputXeLL::xell_input_handle_t*) out_context);
+}
+
+XELL_EXPORT xell_result_t xellD3D12SetAppQueue(xell_context_handle_t context, void* appQueue)
+{
+    return InputXeLL::D3D12SetAppQueue((InputXeLL::xell_input_handle_t) context, appQueue);
+}
+
+XELL_EXPORT xell_result_t xellSetDisplayInfo(xell_context_handle_t context, void* displayInfo)
+{
+    return InputXeLL::SetDisplayInfo((InputXeLL::xell_input_handle_t) context, displayInfo);
+}
+XELL_EXPORT xell_result_t xellSetFgEnabled(xell_context_handle_t context, uint32_t param1, uint32_t param2)
+{
+    return InputXeLL::SetFgEnabled((InputXeLL::xell_input_handle_t) context, param1, param2);
+}
+
+XELL_EXPORT xell_result_t xellSetGeneratedFramesCount(xell_context_handle_t context, uint32_t param1,
+                                                      uint32_t framesCount)
+{
+    return InputXeLL::SetGeneratedFramesCount((InputXeLL::xell_input_handle_t) context, param1, framesCount);
+}
+
+XELL_EXPORT xell_result_t xellGetLastPresentStartFrameId(xell_context_handle_t context, uint32_t* p_frame_id)
+{
+    return InputXeLL::GetLastPresentStartFrameId((InputXeLL::xell_input_handle_t) context, p_frame_id);
+};
+
+#endif

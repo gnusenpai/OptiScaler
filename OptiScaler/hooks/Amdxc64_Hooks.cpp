@@ -140,24 +140,26 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
         return S_OK;
     }
 
-    // else if (riid == IID_IAmdExtAntiLagApi)
-    //{
-    //     if (amdExtAntiLagApi == nullptr)
-    //         amdExtAntiLagApi = new AmdExtAntiLagApi();
+#ifdef LOW_LATENCY_INPUTS
+    else if (riid == IID_IAmdExtAntiLagApi)
+    {
+        if (amdExtAntiLagApi == nullptr)
+            amdExtAntiLagApi = new AmdExtAntiLagApi();
 
-    //    // Return custom one
-    //    *ppvObject = amdExtAntiLagApi;
+        // Return custom one
+        *ppvObject = amdExtAntiLagApi;
 
-    //    LOG_INFO("IAmdExtAntiLagApi queried, returning custom AmdExtAntiLagApi");
+        LOG_INFO("IAmdExtAntiLagApi queried, returning custom AmdExtAntiLagApi");
 
-    //    return S_OK;
+        return S_OK;
 
-    //    // if (!disableAl2Kill)
-    //    //{
-    //    //     LOG_INFO("Killing native AL2");
-    //    //     return E_NOINTERFACE;
-    //    // }
-    //}
+        // if (!disableAl2Kill)
+        //{
+        //     LOG_INFO("Killing native AL2");
+        //     return E_NOINTERFACE;
+        // }
+    }
+#endif
 
     else if (o_AmdExtD3DCreateInterface != nullptr)
         return o_AmdExtD3DCreateInterface(pOuter, riid, ppvObject);
