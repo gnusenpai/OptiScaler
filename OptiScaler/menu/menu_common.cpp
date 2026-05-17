@@ -133,6 +133,7 @@ static std::vector<std::string> splashText = { "Cope smarter, not harder",
                                                "2D AI filters, now powered by just 2x 5090s",
                                                "Neural Slop Sampling with DLSS5",
                                                "DLSS 5 - the way it's meant to be slopped",
+                                               "Just when I think I'm out, they scale me back in",
                                                "Like going in the first gear on the highway",
                                                "Nitec's Bizarre Upscaling",
                                                "<Your funny text goes here>" };
