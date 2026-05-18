@@ -743,10 +743,12 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
     WaitForGPUIdle(_device);
 
+    // Release swapchain backbuffers to prevent errors when resizing
+    /*
+
     const bool outputRequiresRelease =
         State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG;
 
-    // Release swapchain backbuffers to prevent errors when resizing
     if (outputRequiresRelease && State::Instance().currentFG != nullptr)
     {
         IDXGISwapChain* skSC = nullptr;
@@ -790,6 +792,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    */
 
 #ifdef DXGI_DEBUG_ENABLED
     ReportDXGILiveObjects();
@@ -1119,10 +1122,11 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     WaitForGPUIdle(_device);
 
+    // Release swapchain backbuffers to prevent errors when resizing
+    /*
     const bool outputRequiresRelease =
         State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG;
 
-    // Release swapchain backbuffers to prevent errors when resizing
     if (outputRequiresRelease && State::Instance().currentFG != nullptr)
     {
         IDXGISwapChain* skSC = nullptr;
@@ -1188,6 +1192,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    */
 
 #ifdef DXGI_DEBUG_ENABLED
     ReportDXGILiveObjects();
