@@ -44,6 +44,7 @@
 #include "spoofing/User32_Spoofing.h"
 
 #include <cwctype>
+#include <magic_enum.hpp>
 #include <version_check.h>
 #include <misc/IdentifyGpu.h>
 #include <sha1/sha1.hpp>
@@ -1222,29 +1223,12 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
 
 static void CheckQuirks(bool isNvidia)
 {
-    auto exePathFilename = Util::ExePath().filename().string();
+    Util::GetExeInfo();
 
-    State::Instance().GameExe = exePathFilename;
-    State::Instance().GameName = wstring_to_string(Util::GetExeProductName());
-
-    Util::version_t fileVersion;
-    Util::version_t productVersion;
-    Util::GetFileVersion(Util::ExePath().wstring(), &fileVersion, &productVersion);
-
-    LOG_INFO("Game's Exe: {0}", exePathFilename);
+    LOG_INFO("Game's Exe: {0}", State::Instance().GameExe);
     LOG_INFO("Game Name: {0}", State::Instance().GameName);
-
-    if (fileVersion != Util::version_t {})
-    {
-        LOG_INFO("Game's File Version: {}.{}.{}.{}", fileVersion.major, fileVersion.minor, fileVersion.patch,
-                 fileVersion.reserved);
-    }
-
-    if (productVersion != Util::version_t {})
-    {
-        LOG_INFO("Game's Product Version: {}.{}.{}.{}", productVersion.major, productVersion.minor,
-                 productVersion.patch, productVersion.reserved);
-    }
+    LOG_INFO("Game Version: {0}", State::Instance().GameVersion);
+    LOG_INFO("Game Engine: {0}", magic_enum::enum_name(State::Instance().GameEngine));
 
 #ifndef _DEBUG
     // Hash is very slow on Debug builds + we don't need to check our own hashes
@@ -1260,7 +1244,7 @@ static void CheckQuirks(bool isNvidia)
     }
 #endif
 
-    auto quirks = getQuirksForExe(exePathFilename);
+    auto quirks = getQuirksForExe(State::Instance().GameExe);
 
     auto state = &State::Instance();
 

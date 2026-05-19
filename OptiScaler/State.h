@@ -61,6 +61,14 @@ enum class PostCode : uint32_t
     _
 };
 
+enum class GameEngineType : uint32_t
+{
+    Unity,
+    Unreal,
+    Katana,
+    Other,
+};
+
 typedef struct CapturedHudlessInfo
 {
     UINT64 usageCount = 1;
@@ -77,8 +85,10 @@ class State
         return instance;
     }
 
-    std::string GameName;
     std::string GameExe;
+    std::string GameName;
+    std::string GameVersion;
+    GameEngineType GameEngine = GameEngineType::Other;
 
     bool NvngxDx11Inited = false;
     bool NvngxDx12Inited = false;
