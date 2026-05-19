@@ -196,7 +196,7 @@ void XeLL::sleep(std::optional<uint32_t> frame_id)
     }
 }
 
-xell_result_t XeLL::xellD3D12SetAppQueue(void* appQueue) const
+xell_result_t XeLL::xellD3D12SetAppQueue(ID3D12CommandQueue* appQueue) const
 {
     if (!o_xellD3D12SetAppQueue)
         return XELL_RESULT_ERROR_UNKNOWN;

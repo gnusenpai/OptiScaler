@@ -51,7 +51,7 @@ class XeLL : public LowLatencyTech
     void set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params) override {}; // Not used by XeLL
 
     // For passthrough
-    xell_result_t xellD3D12SetAppQueue(void* appQueue) const;
+    xell_result_t xellD3D12SetAppQueue(ID3D12CommandQueue* appQueue) const;
     xell_result_t xellSetDisplayInfo(void* displayInfo) const;
     xell_result_t xellSetFgEnabled(uint32_t param1, uint32_t param2) const;
     xell_result_t xellSetGeneratedFramesCount(uint32_t param1, uint32_t framesCount) const;

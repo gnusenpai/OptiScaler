@@ -90,9 +90,10 @@ class InputCommon
                                        // passthrough when possible, fillout with local frame_reports if not
 
     // XeLL-specific calls for passthrough, TODO: only allow when caller == activeOutput == activeInput == XeLL
-    static xell_result_t pass_xellD3D12SetAppQueue(
-        const InputContext& inputContext,
-        void* appQueue); // if it's ID3D12CommandQueue* then some translation with async markers can be made
+    static xell_result_t
+    pass_xellD3D12SetAppQueue(const InputContext& inputContext,
+                              ID3D12CommandQueue* appQueue); // if it's ID3D12CommandQueue* then some translation with
+                                                             // async markers can be made
     static xell_result_t pass_xellSetDisplayInfo(const InputContext& inputContext, void* displayInfo);
     static xell_result_t pass_xellSetFgEnabled(const InputContext& inputContext, uint32_t param1, uint32_t param2);
     static xell_result_t pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t param1,

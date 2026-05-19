@@ -11,7 +11,7 @@ class InputXeLL
         uint64_t id;
         ID3D12Device* device;
         uint32_t lastPresentStartFrameId;
-        void* d3d12AppQueue;
+        ID3D12CommandQueue* d3d12AppQueue;
         void* displayInfo;
     };
 
@@ -37,7 +37,7 @@ class InputXeLL
     static xell_result_t AILGetDecision(void* param1, void* param2);
     static uint32_t AILGetVersion(); // return 1
     static bool AILIsSupportedDevice(uint32_t param1);
-    static xell_result_t D3D12SetAppQueue(xell_input_handle_t context, void* appQueue);
+    static xell_result_t D3D12SetAppQueue(xell_input_handle_t context, ID3D12CommandQueue* appQueue);
     static xell_result_t GetContextParameterP(xell_input_handle_t context, uint32_t param1,
                                               uint64_t param2); // return 0
     static xell_result_t GetLastPresentStartFrameId(xell_input_handle_t context, uint32_t* p_frame_id);
@@ -55,7 +55,7 @@ class InputXeLL
 
 extern "C"
 {
-    XELL_EXPORT xell_result_t xellD3D12SetAppQueue(xell_context_handle_t context, void* appQueue);
+    XELL_EXPORT xell_result_t xellD3D12SetAppQueue(xell_context_handle_t context, ID3D12CommandQueue* appQueue);
     XELL_EXPORT xell_result_t xellSetDisplayInfo(xell_context_handle_t context, void* displayInfo);
     XELL_EXPORT xell_result_t xellSetFgEnabled(xell_context_handle_t context, uint32_t param1, uint32_t param2);
     XELL_EXPORT xell_result_t xellSetGeneratedFramesCount(xell_context_handle_t context, uint32_t param1,

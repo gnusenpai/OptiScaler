@@ -100,7 +100,7 @@ bool InputXeLL::AILIsSupportedDevice(uint32_t param1)
     // TODO: idk what this is, might need to just passthrough when possible
     return false;
 }
-xell_result_t InputXeLL::D3D12SetAppQueue(xell_input_handle_t context, void* appQueue)
+xell_result_t InputXeLL::D3D12SetAppQueue(xell_input_handle_t context, ID3D12CommandQueue* appQueue)
 {
     if (!context)
         return XELL_RESULT_ERROR_INVALID_CONTEXT;
@@ -260,7 +260,7 @@ XELL_EXPORT xell_result_t xellD3D12CreateContext(ID3D12Device* device, xell_cont
     return InputXeLL::D3D12CreateContext(device, (InputXeLL::xell_input_handle_t*) out_context);
 }
 
-XELL_EXPORT xell_result_t xellD3D12SetAppQueue(xell_context_handle_t context, void* appQueue)
+XELL_EXPORT xell_result_t xellD3D12SetAppQueue(xell_context_handle_t context, ID3D12CommandQueue* appQueue)
 {
     return InputXeLL::D3D12SetAppQueue((InputXeLL::xell_input_handle_t) context, appQueue);
 }

@@ -276,7 +276,7 @@ InputResult InputCommon::get_latency(const InputContext& inputContext, IUnknown*
     }
 }
 
-xell_result_t InputCommon::pass_xellD3D12SetAppQueue(const InputContext& inputContext, void* appQueue)
+xell_result_t InputCommon::pass_xellD3D12SetAppQueue(const InputContext& inputContext, ID3D12CommandQueue* appQueue)
 {
     if (inputContext.caller == LowLatencyInput::XeLL && activeInput == LowLatencyInput::XeLL &&
         activeOutput == LowLatencyMode::XeLL)
