@@ -371,6 +371,8 @@ class Config
     CustomOptional<bool> CheckForUpdate { true };
     CustomOptional<bool> DisableOverlays { false };
 
+    CustomOptional<bool> SimulateWaitableObject { false };
+
     CustomOptional<float, NoDefault> MipmapBiasOverride; // disabled by default
     CustomOptional<bool> MipmapBiasFixedOverride { false };
     CustomOptional<bool> MipmapBiasScaleOverride { false };

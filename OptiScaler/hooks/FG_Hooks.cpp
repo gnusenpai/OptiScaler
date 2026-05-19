@@ -25,10 +25,13 @@
 
 #define XEFG_RESOURCE_REF_LIMIT 1
 
-inline static ID3D12Fence* resizeFence = nullptr;
-inline static UINT64 resizeFenceValue = 0;
-inline static HANDLE resizeFenceEvent = nullptr;
-inline static IUnknown* oldSwapChain = nullptr;
+static ID3D12Fence* resizeFence = nullptr;
+static UINT64 resizeFenceValue = 0;
+static HANDLE resizeFenceEvent = nullptr;
+static IUnknown* oldSwapChain = nullptr;
+static ID3D12CommandQueue* currentCommandQueue = nullptr;
+static bool _forcedHdrForXeFG = false;
+static HANDLE _semaphore = nullptr;
 
 #if (XEFG_RESOURCE_REF_LIMIT == 0)
 inline static std::vector<void*> oldBackBuffers;
@@ -331,6 +334,7 @@ void FGHooks::HookFGSwapchain(IDXGISwapChain* pSwapChain)
     o_FGSCResizeTarget = (PFN_ResizeTarget) pFactoryVTable[14];
     o_FGSCGetFullscreenDesc = (PFN_GetFullscreenDesc) pFactoryVTable[19];
     o_FGSCPresent1 = (PFN_Present1) pFactoryVTable[22];
+    o_FGSCGetFrameLatencyWaitableObject = (PFN_GetFrameLatencyWaitableObject) pFactoryVTable[33];
     o_FGSCResizeBuffers1 = (PFN_ResizeBuffers1) pFactoryVTable[39];
 
     if (o_FGSCPresent != nullptr)
@@ -345,6 +349,7 @@ void FGHooks::HookFGSwapchain(IDXGISwapChain* pSwapChain)
         LOG_TRACE("FGSCGetFullscreenDesc: {:X}", (size_t) o_FGSCGetFullscreenDesc);
         LOG_TRACE("FGSCPresent1: {:X}", (size_t) o_FGSCPresent1);
         LOG_TRACE("FGSCResizeBuffers1: {:X}", (size_t) o_FGSCResizeBuffers1);
+        LOG_TRACE("FGSCGetFrameLatencyWaitableObject: {:X}", (size_t) o_FGSCGetFrameLatencyWaitableObject);
 
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
@@ -363,10 +368,19 @@ void FGHooks::HookFGSwapchain(IDXGISwapChain* pSwapChain)
 
         if (State::Instance().activeFgOutput == FGOutput::XeFG)
         {
-            DetourAttach(&(PVOID&) o_FGSCGetFullscreenState, hkGetFullscreenState);
+            if (o_FGSCGetFullscreenState != nullptr)
+                DetourAttach(&(PVOID&) o_FGSCGetFullscreenState, hkGetFullscreenState);
 
             if (o_FGSCGetFullscreenDesc != nullptr)
                 DetourAttach(&(PVOID&) o_FGSCGetFullscreenDesc, hkGetFullscreenDesc);
+
+            if ((Config::Instance()->SimulateWaitableObject.value_or_default() ||
+                 (State::Instance().gameEngine == GameEngineType::Unity &&
+                  State::Instance().activeFgOutput == FGOutput::XeFG)) &&
+                o_FGSCGetFrameLatencyWaitableObject != nullptr)
+            {
+                DetourAttach(&(PVOID&) o_FGSCGetFrameLatencyWaitableObject, hkGetFrameLatencyWaitableObject);
+            }
         }
 
         DetourTransactionCommit();
@@ -456,6 +470,30 @@ HRESULT FGHooks::hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDX
     }
 
     return result;
+}
+
+HANDLE FGHooks::hkGetFrameLatencyWaitableObject(IDXGISwapChain2* This)
+{
+    if (State::Instance().activeFgOutput != FGOutput::XeFG)
+        return o_FGSCGetFrameLatencyWaitableObject(This);
+
+    if (_semaphore == nullptr)
+    {
+        _semaphore = CreateSemaphore(nullptr, 16, 16, nullptr);
+
+        if (_semaphore == nullptr)
+            return nullptr;
+    }
+
+    HANDLE duplicatedHandle = nullptr;
+
+    if (!DuplicateHandle(GetCurrentProcess(), _semaphore, GetCurrentProcess(), &duplicatedHandle, 0, FALSE,
+                         DUPLICATE_SAME_ACCESS))
+    {
+        return nullptr;
+    }
+
+    return duplicatedHandle;
 }
 
 HRESULT FGHooks::hkGetFullscreenDesc(IDXGISwapChain1* This, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pDesc)
@@ -1161,6 +1199,14 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
         !IdentifyGpu::getPrimaryGpu().usesDxvk && !XellHooks::canLimit())
     {
         FrameLimit::sleep(fg != nullptr ? fg->IsActive() && !fg->IsPaused() : false);
+    }
+
+    if ((Config::Instance()->SimulateWaitableObject.value_or_default() ||
+         (State::Instance().gameEngine == GameEngineType::Unity &&
+          State::Instance().activeFgOutput == FGOutput::XeFG)) &&
+        _semaphore != nullptr)
+    {
+        ReleaseSemaphore(_semaphore, 1, nullptr);
     }
 
     if (mutexUsed && fg != nullptr)
