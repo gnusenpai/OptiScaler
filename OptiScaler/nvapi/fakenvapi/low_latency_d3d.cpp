@@ -278,7 +278,7 @@ NvAPI_Status LowLatency::SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARA
     marker_params.marker_type = (MarkerType) pSetLatencyMarkerParams->markerType; // requires enums to match
 
     if (auto current_tech = currently_active_tech.load())
-        current_tech->set_marker(pDev, &marker_params);
+        current_tech->set_marker(pDev, marker_params);
 
     LOG_TRACE_FAKENVAPI("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
@@ -325,7 +325,7 @@ NvAPI_Status LowLatency::SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue,
     }
 
     if (auto current_tech = currently_active_tech.load())
-        current_tech->set_async_marker(pCommandQueue, &marker_params);
+        current_tech->set_async_marker(pCommandQueue, marker_params);
 
     LOG_TRACE_FAKENVAPI("Async {}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 

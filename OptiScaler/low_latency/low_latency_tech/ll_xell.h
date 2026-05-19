@@ -4,6 +4,7 @@
 
 #include <xell_d3d12.h>
 #include "low_latency/input/input_xell.h"
+#include <proxies/XeLL_Proxy.h>
 
 class XeLL : public LowLatencyTech
 {
@@ -11,7 +12,18 @@ class XeLL : public LowLatencyTech
     uint64_t simulation_start_last_id {};
     uint64_t sleep_last_id {};
 
-    // TODO: set those
+    xell_context_handle_t xell_context {};
+
+    decltype(&xellDestroyContext) o_xellDestroyContext = nullptr;
+    decltype(&xellSetSleepMode) o_xellSetSleepMode = nullptr;
+    decltype(&xellGetSleepMode) o_xellGetSleepMode = nullptr;
+    decltype(&xellSleep) o_xellSleep = nullptr;
+    decltype(&xellAddMarkerData) o_xellAddMarkerData = nullptr;
+    decltype(&xellGetVersion) o_xellGetVersion = nullptr;
+    decltype(&xellSetLoggingCallback) o_xellSetLoggingCallback = nullptr;
+    decltype(&xellGetFramesReports) o_xellGetFramesReports = nullptr;
+    decltype(&xellD3D12CreateContext) o_xellD3D12CreateContext = nullptr;
+
     decltype(&xellD3D12SetAppQueue) o_xellD3D12SetAppQueue = nullptr;
     decltype(&xellSetDisplayInfo) o_xellSetDisplayInfo = nullptr;
     decltype(&xellSetFgEnabled) o_xellSetFgEnabled = nullptr;
@@ -22,11 +34,43 @@ class XeLL : public LowLatencyTech
     void add_marker(uint32_t frame_id, xell_latency_marker_type_t marker);
 
   public:
-    XeLL() : LowLatencyTech() {}
+    XeLL() : LowLatencyTech()
+    {
+        if (XeLLProxy::InitXeLL())
+        {
+#ifdef LOW_LATENCY_INPUTS
+            o_xellDestroyContext = XeLLProxy::RealDestroyContext();
+            o_xellSetSleepMode = XeLLProxy::RealSetSleepMode();
+            o_xellGetSleepMode = XeLLProxy::RealGetSleepMode();
+            o_xellSleep = XeLLProxy::RealSleep();
+            o_xellAddMarkerData = XeLLProxy::RealAddMarkerData();
+            o_xellGetVersion = XeLLProxy::RealGetVersion();
+            o_xellSetLoggingCallback = XeLLProxy::RealSetLoggingCallback();
+            o_xellGetFramesReports = XeLLProxy::RealGetFramesReports();
+            o_xellD3D12CreateContext = XeLLProxy::RealD3D12CreateContext();
+
+            o_xellD3D12SetAppQueue = XeLLProxy::RealD3D12SetAppQueue();
+            o_xellSetDisplayInfo = XeLLProxy::RealSetDisplayInfo();
+            o_xellSetFgEnabled = XeLLProxy::RealSetFgEnabled();
+            o_xellSetGeneratedFramesCount = XeLLProxy::RealSetGeneratedFramesCount();
+            o_xellGetLastPresentStartFrameId = XeLLProxy::RealGetLastPresentStartFrameId(); // Maybe not needed
+#else
+            o_xellDestroyContext = XeLLProxy::DestroyContext();
+            o_xellSetSleepMode = XeLLProxy::SetSleepMode();
+            o_xellGetSleepMode = XeLLProxy::GetSleepMode();
+            o_xellSleep = XeLLProxy::Sleep();
+            o_xellAddMarkerData = XeLLProxy::AddMarkerData();
+            o_xellGetVersion = XeLLProxy::GetVersion();
+            o_xellSetLoggingCallback = XeLLProxy::SetLoggingCallback();
+            o_xellGetFramesReports = XeLLProxy::GetFramesReports();
+            o_xellD3D12CreateContext = XeLLProxy::D3D12CreateContext();
+#endif
+        }
+    }
 
     // From LowLatencyTech
     bool init(IUnknown* pDevice) override;
-    bool init_using_ctx(void* context) override; // Context is always held by XeLLProxy
+    bool init_using_ctx(void* context) override;
     void deinit() override;
 
     LowLatencyMode get_mode() override { return LowLatencyMode::XeLL; };
@@ -47,8 +91,8 @@ class XeLL : public LowLatencyTech
     void get_sleep_status(SleepParams* sleep_params) override;
     void set_sleep_mode(SleepMode* sleep_mode) override;
     void sleep(std::optional<uint32_t> frame_id) override;
-    void set_marker(IUnknown* pDevice, MarkerParams* marker_params) override;
-    void set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params) override {}; // Not used by XeLL
+    void set_marker(IUnknown* pDevice, const MarkerParams& marker_params) override;
+    void set_async_marker(IUnknown* pCommandQueue, const MarkerParams& marker_params) override;
 
     // For passthrough
     xell_result_t xellD3D12SetAppQueue(ID3D12CommandQueue* appQueue) const;
@@ -56,4 +100,5 @@ class XeLL : public LowLatencyTech
     xell_result_t xellSetFgEnabled(uint32_t param1, uint32_t param2) const;
     xell_result_t xellSetGeneratedFramesCount(uint32_t param1, uint32_t framesCount) const;
     xell_result_t xellGetLastPresentStartFrameId(uint32_t* p_frame_id) const;
+    xell_result_t xellGetFramesReports(xell_frame_report_t* outdata) const;
 };

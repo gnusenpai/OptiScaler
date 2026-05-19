@@ -2,6 +2,7 @@
 
 #include <xell.h>
 #include <xell_d3d12.h>
+#include "input_common.h"
 
 class InputXeLL
 {
@@ -14,6 +15,10 @@ class InputXeLL
         ID3D12CommandQueue* d3d12AppQueue;
         void* displayInfo;
     };
+
+    const static inline InputContext inputContext { .caller = LowLatencyInput::XeLL,
+                                                    .noFrameId = false,
+                                                    .markerMode = InputMarkerMode::FullMarkers };
 
   public:
     typedef struct _xell_input_handle_t* xell_input_handle_t;

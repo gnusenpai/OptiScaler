@@ -193,9 +193,9 @@ void AntiLag2::sleep(std::optional<uint32_t> frame_id)
         al2_sleep();
 }
 
-void AntiLag2::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
+void AntiLag2::set_marker(IUnknown* pDevice, const MarkerParams& marker_params)
 {
-    switch (marker_params->marker_type)
+    switch (marker_params.marker_type)
     {
     case MarkerType::SIMULATION_START:
         simulation_framecount++;
@@ -219,12 +219,12 @@ void AntiLag2::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
     }
 }
 
-void AntiLag2::set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params)
+void AntiLag2::set_async_marker(IUnknown* pCommandQueue, const MarkerParams& marker_params)
 {
-    if (marker_params->marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
+    if (marker_params.marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
     {
-        static uint64_t previous_frame_id = marker_params->frame_id;
-        set_fg_type(previous_frame_id == marker_params->frame_id, marker_params->frame_id);
-        previous_frame_id = marker_params->frame_id;
+        static uint64_t previous_frame_id = marker_params.frame_id;
+        set_fg_type(previous_frame_id == marker_params.frame_id, marker_params.frame_id);
+        previous_frame_id = marker_params.frame_id;
     }
 }

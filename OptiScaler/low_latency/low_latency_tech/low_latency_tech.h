@@ -18,8 +18,13 @@ enum class CallSpot
 struct SleepParams
 {
     bool low_latency_enabled;
+    bool low_latency_boost;
+    uint32_t minimum_interval_us; // 0 -> no fps limit
     bool fullscreen_vrr;
     bool control_panel_vsync_override;
+    bool use_game_sleep;
+    bool fullscreen_i_flip;
+    uint8_t fg_multiplier;
 };
 
 struct SleepMode
@@ -28,6 +33,7 @@ struct SleepMode
     bool low_latency_boost;
     uint32_t minimum_interval_us; // 0 -> no fps limit
     bool use_markers_to_optimize; // TODO: log this if false
+    bool use_min_queue_time;
 };
 
 enum class MarkerType
@@ -85,6 +91,6 @@ class LowLatencyTech
     virtual void get_sleep_status(SleepParams* sleep_params) = 0;
     virtual void set_sleep_mode(SleepMode* sleep_mode) = 0;
     virtual void sleep(std::optional<uint32_t> frame_id = std::nullopt) = 0;
-    virtual void set_marker(IUnknown* pDevice, MarkerParams* marker_params) = 0;
-    virtual void set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params) = 0;
+    virtual void set_marker(IUnknown* pDevice, const MarkerParams& marker_params) = 0;
+    virtual void set_async_marker(IUnknown* pCommandQueue, const MarkerParams& marker_params) = 0;
 };

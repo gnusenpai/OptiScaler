@@ -2,6 +2,7 @@
 #include "input_common.h"
 #include <low_latency/low_latency_tech/ll_xell.h>
 
+// private
 bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode)
 {
     LowLatencyMode desiredMode = LowLatencyMode::None;
@@ -24,7 +25,18 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
         return true;
     }
 
+    // TODO: Add system for selecting input
+    if (activeInput == LowLatencyInput::XeLL)
+        return true;
+    activeInput = LowLatencyInput::XeLL;
+
     // TODO: init correct currently_active_tech, desiredMode == None -> Auto
+    auto new_tech_xell = std::make_shared<XeLL>();
+    if (new_tech_xell->init(pDevice))
+    {
+        LOG_INFO("LowLatency algo: XeLL");
+        currently_active_tech.store(std::move(new_tech_xell));
+    }
 
     if (auto current_tech = currently_active_tech.load())
     {
@@ -36,19 +48,19 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
     return false;
 }
 
-void InputCommon::add_marker_to_report(MarkerParams* marker_params)
+void InputCommon::add_marker_to_report(const MarkerParams& marker_params)
 {
     auto current_timestamp = get_timestamp() / 1000;
     static auto last_sim_start = current_timestamp;
     static auto _2nd_last_sim_start = current_timestamp;
-    auto current_report = &frame_reports[marker_params->frame_id % FRAME_REPORTS_BUFFER_SIZE];
+    auto current_report = &frame_reports[marker_params.frame_id % FRAME_REPORTS_BUFFER_SIZE];
 
-    if (current_report->frameID != marker_params->frame_id)
+    if (current_report->frameID != marker_params.frame_id)
     {
         *current_report = FrameReport {};
     }
 
-    current_report->frameID = marker_params->frame_id;
+    current_report->frameID = marker_params.frame_id;
     current_report->gpuFrameTimeUs = (uint32_t) (last_sim_start - _2nd_last_sim_start);
     current_report->gpuActiveRenderTimeUs = 100;
     current_report->driverStartTime = current_timestamp;
@@ -57,7 +69,7 @@ void InputCommon::add_marker_to_report(MarkerParams* marker_params)
     current_report->gpuRenderEndTime = current_timestamp + 100;
     current_report->osRenderQueueStartTime = current_timestamp;
     current_report->osRenderQueueEndTime = current_timestamp + 100;
-    switch (marker_params->marker_type)
+    switch (marker_params.marker_type)
     {
     case MarkerType::SIMULATION_START:
         _2nd_last_sim_start = last_sim_start;
@@ -87,6 +99,7 @@ void InputCommon::add_marker_to_report(MarkerParams* marker_params)
     }
 }
 
+// public
 InputResult InputCommon::set_low_latency_tech(IUnknown* pDevice, LowLatencyMode mode)
 {
     if (!update_low_latency_tech(pDevice, mode))
@@ -95,10 +108,13 @@ InputResult InputCommon::set_low_latency_tech(IUnknown* pDevice, LowLatencyMode 
     return InputResult::Ok;
 }
 
-InputResult InputCommon::sleep(IUnknown* pDevice, const InputContext& inputContext, std::optional<uint32_t> frame_id)
+InputResult InputCommon::sleep(const InputContext& inputContext, IUnknown* pDevice, std::optional<uint32_t> frame_id)
 {
     if (!update_low_latency_tech(pDevice))
         return InputResult::LowLatencyUpdateFail;
+
+    if (inputContext.caller != activeInput)
+        return InputResult::UsingDifferentInput;
 
     if (auto current_tech = currently_active_tech.load())
         current_tech->sleep(frame_id);
@@ -108,20 +124,21 @@ InputResult InputCommon::sleep(IUnknown* pDevice, const InputContext& inputConte
     return InputResult::Ok;
 }
 
-InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* pDevice, MarkerParams* marker_params)
+InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* pDevice,
+                                    const MarkerParams& marker_params)
 {
     if (!update_low_latency_tech(pDevice))
         return InputResult::LowLatencyUpdateFail;
 
-    if (!marker_params)
-        return InputResult::InvalidParameter;
+    if (inputContext.caller != activeInput)
+        return InputResult::UsingDifferentInput;
 
     if (inputContext.markerMode == InputMarkerMode::NoMarkers)
     {
         return InputResult::InputNotSupported;
     }
     else if (inputContext.markerMode == InputMarkerMode::PresentStartOnly &&
-             marker_params->marker_type != MarkerType::PRESENT_START)
+             marker_params.marker_type != MarkerType::PRESENT_START)
     {
         return InputResult::InputNotSupported;
     }
@@ -137,26 +154,26 @@ InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* 
     else
         return InputResult::GenericError;
 
-    LOG_TRACE_LOWLATENCY("{}: {}", magic_enum::enum_name(marker_params->marker_type), marker_params->frame_id);
+    LOG_TRACE_LOWLATENCY("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
     return InputResult::Ok;
 }
 
 InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D12CommandQueue* pCommandQueue,
-                                          MarkerParams* marker_params)
+                                          const MarkerParams& marker_params)
 {
+    if (inputContext.caller != activeInput)
+        return InputResult::UsingDifferentInput;
+
     if (!currently_active_tech.load()) // can't init using ID3D12CommandQueue, can only check if available
         return InputResult::LowLatencyUpdateFail;
-
-    if (!marker_params)
-        return InputResult::InvalidParameter;
 
     if (inputContext.markerMode == InputMarkerMode::NoMarkers)
     {
         return InputResult::InputNotSupported;
     }
     else if (inputContext.markerMode == InputMarkerMode::PresentStartOnly &&
-             marker_params->marker_type != MarkerType::OUT_OF_BAND_PRESENT_START)
+             marker_params.marker_type != MarkerType::OUT_OF_BAND_PRESENT_START)
     {
         return InputResult::InputNotSupported;
     }
@@ -169,7 +186,7 @@ InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D
     else
         return InputResult::GenericError;
 
-    LOG_TRACE_LOWLATENCY("{}: {}", magic_enum::enum_name(marker_params->marker_type), marker_params->frame_id);
+    LOG_TRACE_LOWLATENCY("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
     return InputResult::Ok;
 }
@@ -177,6 +194,17 @@ InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D
 // TODO: impl
 InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnknown* pDevice, SleepMode* sleep_mode)
 {
+    if (!update_low_latency_tech(pDevice))
+        return InputResult::LowLatencyUpdateFail;
+
+    if (inputContext.caller != activeInput)
+        return InputResult::UsingDifferentInput;
+
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->set_sleep_mode(sleep_mode);
+    else
+        return InputResult::GenericError;
+
     return InputResult::Ok;
 }
 
@@ -184,11 +212,28 @@ InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnkno
 InputResult InputCommon::get_sleep_status(const InputContext& inputContext, IUnknown* pDevice,
                                           SleepParams* sleep_params)
 {
+    if (!update_low_latency_tech(pDevice))
+        return InputResult::LowLatencyUpdateFail;
+
+    if (inputContext.caller != activeInput)
+        return InputResult::UsingDifferentInput;
+
+    if (auto current_tech = currently_active_tech.load())
+        current_tech->get_sleep_status(sleep_params);
+    else
+        return InputResult::GenericError;
+
     return InputResult::Ok;
 }
 
 InputResult InputCommon::get_latency(const InputContext& inputContext, IUnknown* pDev, void* latency_params)
 {
+    if (inputContext.caller != activeInput)
+        return InputResult::UsingDifferentInput;
+
+    if (!update_low_latency_tech(pDev))
+        return InputResult::LowLatencyUpdateFail;
+
     if (!latency_params)
         return InputResult::InvalidParameter;
 
@@ -243,14 +288,20 @@ InputResult InputCommon::get_latency(const InputContext& inputContext, IUnknown*
     }
     else if (inputContext.caller == LowLatencyInput::XeLL)
     {
-        if (activeOutput == LowLatencyMode::XeLL)
-        {
-            // TODO: passthrough call, if success return InputResult::Ok;
-            // return InputResult::Ok;
-        }
-
         xell_frame_report_t* reports = (xell_frame_report_t*) latency_params;
         constexpr size_t reportCount = 64; // 64 reports, if the app allocated less then it's on them
+
+        if (activeOutput == LowLatencyMode::XeLL)
+        {
+            if (auto current_tech = currently_active_tech.load())
+            {
+                auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
+                auto result = xell_tech->xellGetFramesReports(reports);
+
+                if (result == XELL_RESULT_SUCCESS)
+                    return InputResult::Ok;
+            }
+        }
 
         // Hopefully not too slow
         // XeLL doesn't seem to make any guarantees about ordering so no sort needed

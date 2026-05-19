@@ -168,9 +168,9 @@ void LatencyFlex::sleep(std::optional<uint32_t> frame_id)
     }
 };
 
-void LatencyFlex::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
+void LatencyFlex::set_marker(IUnknown* pDevice, const MarkerParams& marker_params)
 {
-    switch (marker_params->marker_type)
+    switch (marker_params.marker_type)
     {
     case MarkerType::SIMULATION_START:
         simulation_framecount++;
@@ -181,12 +181,12 @@ void LatencyFlex::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
             current_call_spot = CallSpot::SleepCall;
 
         if (current_call_spot == CallSpot::SimulationStart)
-            lfx_sleep(marker_params->frame_id);
+            lfx_sleep(marker_params.frame_id);
         break;
 
     case MarkerType::RENDERSUBMIT_END:
         if ((LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() != LFXMode::Conservative)
-            lfx_end_frame(marker_params->frame_id);
+            lfx_end_frame(marker_params.frame_id);
         break;
     }
 };

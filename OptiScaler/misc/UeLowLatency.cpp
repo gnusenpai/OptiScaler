@@ -59,7 +59,7 @@ void UeLowLatency::tickStart(int64_t frameId, float DeltaSeconds, bool bIdleMode
     MarkerParams marker {};
     marker.marker_type = MarkerType::SIMULATION_START;
     marker.frame_id = frameId;
-    lowLatencyFeature->set_marker(State::Instance().currentD3D12Device, &marker);
+    lowLatencyFeature->set_marker(State::Instance().currentD3D12Device, marker);
 }
 
 void UeLowLatency::tickEnd(int64_t frameId, float DeltaSeconds, bool bIdleMode)
@@ -69,5 +69,5 @@ void UeLowLatency::tickEnd(int64_t frameId, float DeltaSeconds, bool bIdleMode)
     MarkerParams marker {};
     marker.marker_type = MarkerType::SIMULATION_END;
     marker.frame_id = frameId;
-    lowLatencyFeature->set_marker(State::Instance().currentD3D12Device, &marker);
+    lowLatencyFeature->set_marker(State::Instance().currentD3D12Device, marker);
 }

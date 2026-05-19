@@ -14,32 +14,125 @@ xell_result_t InputXeLL::DestroyContext(xell_input_handle_t context)
 }
 xell_result_t InputXeLL::SetSleepMode(xell_input_handle_t context, const xell_sleep_params_t* param)
 {
-    // TODO: impl
-    return XELL_RESULT_SUCCESS;
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    if (!param)
+        return XELL_RESULT_ERROR_INVALID_ARGUMENT;
+
+    SleepMode sleepMode {};
+    sleepMode.low_latency_enabled = param->bLowLatencyMode;
+    sleepMode.low_latency_boost = param->bLowLatencyBoost;
+    sleepMode.minimum_interval_us = param->minimumIntervalUs;
+
+    // TODO: not fully filled out
+
+    auto result = InputCommon::set_sleep_mode(inputContext, context->device, &sleepMode);
+
+    if (result == InputResult::Ok)
+        return XELL_RESULT_SUCCESS;
+    else
+        LOG_ERROR("set_sleep_mode result: {}", magic_enum::enum_name(result));
+
+    return XELL_RESULT_ERROR_UNKNOWN;
 }
 xell_result_t InputXeLL::GetSleepMode(xell_input_handle_t context, xell_sleep_params_t* param)
 {
-    // TODO: impl
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
 
-    param->bLowLatencyMode = true;
+    if (!param)
+        return XELL_RESULT_ERROR_INVALID_ARGUMENT;
 
-    return XELL_RESULT_SUCCESS;
+    if (!context->device)
+        return XELL_RESULT_ERROR_DEVICE;
+
+    SleepParams sleepParams {};
+
+    auto result = InputCommon::get_sleep_status(inputContext, context->device, &sleepParams);
+
+    if (result == InputResult::Ok)
+    {
+        param->bLowLatencyMode = sleepParams.low_latency_enabled;
+        param->bLowLatencyBoost = sleepParams.low_latency_boost;
+        param->minimumIntervalUs = sleepParams.minimum_interval_us;
+
+        // TODO: not fully filled out
+
+        return XELL_RESULT_SUCCESS;
+    }
+    else
+    {
+        LOG_ERROR("get_sleep_status result: {}", magic_enum::enum_name(result));
+        return XELL_RESULT_ERROR_UNKNOWN;
+    }
 }
 xell_result_t InputXeLL::Sleep(xell_input_handle_t context, uint32_t frame_id)
 {
-    // TODO: impl
-    return XELL_RESULT_SUCCESS;
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    if (!context->device)
+        return XELL_RESULT_ERROR_DEVICE;
+
+    auto result = InputCommon::sleep(inputContext, context->device, frame_id);
+
+    if (result == InputResult::Ok)
+        return XELL_RESULT_SUCCESS;
+    else
+        LOG_ERROR("sleep result: {}", magic_enum::enum_name(result));
+
+    return XELL_RESULT_ERROR_UNKNOWN;
 }
 xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t frame_id,
                                        xell_latency_marker_type_t marker)
 {
-    // TODO: impl
-    return XELL_RESULT_SUCCESS;
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    if (marker >= XELL_MARKER_COUNT)
+    {
+        // TODO: call async, probably, need to understand the high markers
+        MarkerParams markerParams {};
+        markerParams.frame_id = frame_id;
+
+        if (marker == 80860000)
+            markerParams.marker_type = MarkerType::OUT_OF_BAND_RENDERSUBMIT_START;
+        else if (marker == 80860001)
+            markerParams.marker_type = MarkerType::OUT_OF_BAND_RENDERSUBMIT_END;
+        else
+            return XELL_RESULT_ERROR_UNKNOWN;
+
+        auto result = InputCommon::set_async_marker(inputContext, context->d3d12AppQueue, markerParams);
+
+        if (result == InputResult::Ok)
+            return XELL_RESULT_SUCCESS;
+        else
+            LOG_ERROR("sleep result: {}", magic_enum::enum_name(result));
+
+        return XELL_RESULT_ERROR_UNKNOWN;
+    }
+
+    MarkerParams markerParams {};
+    markerParams.frame_id = frame_id;
+    markerParams.marker_type = (MarkerType) marker; // Those should match 1:1
+
+    if (marker == XELL_PRESENT_START)
+        context->lastPresentStartFrameId = frame_id;
+
+    auto result = InputCommon::set_marker(inputContext, context->device, markerParams);
+
+    if (result == InputResult::Ok)
+        return XELL_RESULT_SUCCESS;
+    else
+        LOG_ERROR("set_marker result: {}", magic_enum::enum_name(result));
+
+    return XELL_RESULT_ERROR_UNKNOWN;
 }
 xell_result_t InputXeLL::GetVersion(xell_version_t* pVersion)
 {
     if (!pVersion)
-        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+        return XELL_RESULT_ERROR_INVALID_ARGUMENT;
 
     // TODO: make this mimic the version of loaded xefg dll so that both are seen as compatible
     pVersion->major = 1;
@@ -66,10 +159,14 @@ xell_result_t InputXeLL::GetFramesReports(xell_input_handle_t context, xell_fram
     if (!outdata)
         return XELL_RESULT_ERROR_INVALID_ARGUMENT;
 
-    // outdata should have 64 reports, hopefully the app allocated that much
-    // TODO: fillout
+    auto result = InputCommon::get_latency(inputContext, context->device, outdata);
 
-    return XELL_RESULT_SUCCESS;
+    if (result == InputResult::Ok)
+        return XELL_RESULT_SUCCESS;
+    else
+        LOG_ERROR("get_latency result: {}", magic_enum::enum_name(result));
+
+    return XELL_RESULT_ERROR_UNKNOWN;
 }
 
 // D3D12
@@ -109,7 +206,7 @@ xell_result_t InputXeLL::D3D12SetAppQueue(xell_input_handle_t context, ID3D12Com
 
     context->d3d12AppQueue = appQueue;
 
-    return XELL_RESULT_SUCCESS;
+    return InputCommon::pass_xellD3D12SetAppQueue(inputContext, appQueue);
 }
 xell_result_t InputXeLL::GetContextParameterP(xell_input_handle_t context, uint32_t param1, uint64_t param2)
 {
@@ -200,18 +297,20 @@ xell_result_t InputXeLL::SetDisplayInfo(xell_input_handle_t context, void* displ
 
     context->displayInfo = displayInfo;
 
-    return XELL_RESULT_SUCCESS;
+    return InputCommon::pass_xellSetDisplayInfo(inputContext, displayInfo);
 }
 xell_result_t InputXeLL::SetFgEnabled(xell_input_handle_t context, uint32_t param1, uint32_t param2)
 {
     // TODO: figure out params and impl
-    return XELL_RESULT_SUCCESS;
+    // This might need to take Opti's FG into account, unsure
+    return InputCommon::pass_xellSetFgEnabled(inputContext, param1, param2);
 }
 
 xell_result_t InputXeLL::SetGeneratedFramesCount(xell_input_handle_t context, uint32_t param1, uint32_t framesCount)
 {
     // TODO: figure out params and impl
-    return XELL_RESULT_SUCCESS;
+    // TODO: store framesCount for the SleepParams::fg_multiplier
+    return InputCommon::pass_xellSetGeneratedFramesCount(inputContext, param1, framesCount);
 }
 
 #ifdef LOW_LATENCY_INPUTS

@@ -13,7 +13,7 @@ void XeLL::xell_sleep(uint32_t frame_id)
     if (!inited_using_context || is_enabled())
     {
         LOG_TRACE_LOWLATENCY("Sleeping with frame_id: {}", frame_id);
-        XeLLProxy::Sleep()(XeLLProxy::Context(), frame_id);
+        o_xellSleep(xell_context, frame_id);
     }
 }
 
@@ -27,7 +27,7 @@ void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
     }
 
     if (!inited_using_context || is_enabled())
-        XeLLProxy::AddMarkerData()(XeLLProxy::Context(), frame_id, marker);
+        o_xellAddMarkerData(xell_context, frame_id, marker);
 }
 
 bool XeLL::init(IUnknown* pDevice)
@@ -43,7 +43,7 @@ bool XeLL::init(IUnknown* pDevice)
     if (hr != S_OK)
         return false;
 
-    auto result = XeLLProxy::CreateContext(dx12_pDevice);
+    auto result = o_xellD3D12CreateContext(dx12_pDevice, &xell_context) == XELL_RESULT_SUCCESS;
 
     if (result)
         XellHooks::blockExternalContexts(true);
@@ -59,16 +59,22 @@ bool XeLL::init_using_ctx(void* context)
         return false;
     }
 
-    if (!XeLLProxy::Context())
+    if (!context)
     {
         LOG_ERROR("XeLL handed over to fakenvapi but the context is null");
         return false;
     }
 
+    if (xell_context)
+    {
+        o_xellDestroyContext(xell_context);
+        xell_context = (xell_context_handle_t) context;
+    }
+
     // Context is handled and held inside XeLLProxy
     inited_using_context = true;
     XellHooks::blockExternalContexts(true);
-    LOG_INFO("XeLL initialized using existing context: {:X}", (uint64_t) XeLLProxy::Context());
+    LOG_INFO("XeLL initialized using existing context: {:X}", (uint64_t) xell_context);
 
     return true;
 }
@@ -85,17 +91,17 @@ void XeLL::deinit()
     }
     else
     {
-        XeLLProxy::DestroyXeLLContext();
+        o_xellDestroyContext(xell_context);
         LOG_INFO("XeLL deinitialized");
     }
 }
 
-void* XeLL::get_tech_context() { return XeLLProxy::Context(); }
+void* XeLL::get_tech_context() { return xell_context; }
 
 void XeLL::get_sleep_status(SleepParams* sleep_params)
 {
     xell_sleep_params_t xell_sleep_params {};
-    auto result = XeLLProxy::GetSleepMode()(XeLLProxy::Context(), &xell_sleep_params);
+    auto result = o_xellGetSleepMode(xell_context, &xell_sleep_params) == XELL_RESULT_SUCCESS;
 
     sleep_params->low_latency_enabled = xell_sleep_params.bLowLatencyMode;
     sleep_params->fullscreen_vrr = true;
@@ -130,7 +136,7 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode)
         xell_sleep_params.minimumIntervalUs != last_minimumIntervalUs ||
         xell_sleep_params.bLowLatencyBoost != last_bLowLatencyBoost)
     {
-        auto result = XeLLProxy::SetSleepMode()(XeLLProxy::Context(), &xell_sleep_params);
+        auto result = o_xellSetSleepMode(xell_context, &xell_sleep_params) == XELL_RESULT_SUCCESS;
 
         last_bLowLatencyMode = xell_sleep_params.bLowLatencyMode;
         last_minimumIntervalUs = xell_sleep_params.minimumIntervalUs;
@@ -138,21 +144,21 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode)
     }
 }
 
-void XeLL::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
+void XeLL::set_marker(IUnknown* pDevice, const MarkerParams& marker_params)
 {
-    if (!pDevice || !marker_params)
+    if (!pDevice)
     {
         LOG_ERROR("Invalid pointer");
         return;
     }
 
     // XeLL frame ids are uint64_t
-    auto frame_id = (uint32_t) marker_params->frame_id;
+    auto frame_id = (uint32_t) marker_params.frame_id;
 
-    switch (marker_params->marker_type)
+    switch (marker_params.marker_type)
     {
     case MarkerType::SIMULATION_START:
-        simulation_start_last_id = marker_params->frame_id;
+        simulation_start_last_id = marker_params.frame_id;
 
         // Call sleep just before simulation start if sleep isn't getting called
         if (sleep_last_id + 10 < simulation_start_last_id)
@@ -176,8 +182,32 @@ void XeLL::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
         add_marker(frame_id, XELL_PRESENT_END);
         break;
     // case MarkerType::INPUT_SAMPLE:
-    //     add_marker(marker_params->frame_id, XELL_INPUT_SAMPLE);
+    //     add_marker(marker_params.frame_id, XELL_INPUT_SAMPLE);
     // break;
+    default:
+        break;
+    }
+}
+
+void XeLL::set_async_marker(IUnknown* pCommandQueue, const MarkerParams& marker_params)
+{
+    if (!pCommandQueue)
+    {
+        LOG_ERROR("Invalid pointer");
+        return;
+    }
+
+    // XeLL frame ids are uint64_t
+    auto frame_id = (uint32_t) marker_params.frame_id;
+
+    switch (marker_params.marker_type)
+    {
+    case MarkerType::OUT_OF_BAND_RENDERSUBMIT_START:
+        add_marker(frame_id, (xell_latency_marker_type_t) 80860000);
+        break;
+    case MarkerType::OUT_OF_BAND_RENDERSUBMIT_END:
+        add_marker(frame_id, (xell_latency_marker_type_t) 80860001);
+        break;
     default:
         break;
     }
@@ -201,7 +231,7 @@ xell_result_t XeLL::xellD3D12SetAppQueue(ID3D12CommandQueue* appQueue) const
     if (!o_xellD3D12SetAppQueue)
         return XELL_RESULT_ERROR_UNKNOWN;
 
-    return o_xellD3D12SetAppQueue(XeLLProxy::Context(), appQueue);
+    return o_xellD3D12SetAppQueue(xell_context, appQueue);
 }
 
 xell_result_t XeLL::xellSetDisplayInfo(void* displayInfo) const
@@ -209,7 +239,7 @@ xell_result_t XeLL::xellSetDisplayInfo(void* displayInfo) const
     if (!o_xellSetDisplayInfo)
         return XELL_RESULT_ERROR_UNKNOWN;
 
-    return o_xellSetDisplayInfo(XeLLProxy::Context(), displayInfo);
+    return o_xellSetDisplayInfo(xell_context, displayInfo);
 }
 
 xell_result_t XeLL::xellSetFgEnabled(uint32_t param1, uint32_t param2) const
@@ -217,7 +247,7 @@ xell_result_t XeLL::xellSetFgEnabled(uint32_t param1, uint32_t param2) const
     if (!o_xellSetFgEnabled)
         return XELL_RESULT_ERROR_UNKNOWN;
 
-    return o_xellSetFgEnabled(XeLLProxy::Context(), param1, param2);
+    return o_xellSetFgEnabled(xell_context, param1, param2);
 }
 
 xell_result_t XeLL::xellSetGeneratedFramesCount(uint32_t param1, uint32_t framesCount) const
@@ -225,7 +255,7 @@ xell_result_t XeLL::xellSetGeneratedFramesCount(uint32_t param1, uint32_t frames
     if (!o_xellSetGeneratedFramesCount)
         return XELL_RESULT_ERROR_UNKNOWN;
 
-    return o_xellSetGeneratedFramesCount(XeLLProxy::Context(), param1, framesCount);
+    return o_xellSetGeneratedFramesCount(xell_context, param1, framesCount);
 }
 
 xell_result_t XeLL::xellGetLastPresentStartFrameId(uint32_t* p_frame_id) const
@@ -233,5 +263,13 @@ xell_result_t XeLL::xellGetLastPresentStartFrameId(uint32_t* p_frame_id) const
     if (!o_xellGetLastPresentStartFrameId)
         return XELL_RESULT_ERROR_UNKNOWN;
 
-    return o_xellGetLastPresentStartFrameId(XeLLProxy::Context(), p_frame_id);
+    return o_xellGetLastPresentStartFrameId(xell_context, p_frame_id);
+}
+
+xell_result_t XeLL::xellGetFramesReports(xell_frame_report_t* outdata) const
+{
+    if (!o_xellGetFramesReports)
+        return XELL_RESULT_ERROR_UNKNOWN;
+
+    return o_xellGetFramesReports(xell_context, outdata);
 }

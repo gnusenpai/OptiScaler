@@ -8,30 +8,6 @@
 #include "low_latency/ll_util.h"
 #include <optional>
 
-#define FRAME_REPORTS_BUFFER_SIZE 70
-#define NVAPI_BUFFER_SIZE 64
-
-struct FrameReport
-{
-    uint64_t frameID;
-    uint64_t inputSampleTime;
-    uint64_t simStartTime;
-    uint64_t simEndTime;
-    uint64_t renderSubmitStartTime;
-    uint64_t renderSubmitEndTime;
-    uint64_t presentStartTime;
-    uint64_t presentEndTime;
-    uint64_t driverStartTime;
-    uint64_t driverEndTime;
-    uint64_t osRenderQueueStartTime;
-    uint64_t osRenderQueueEndTime;
-    uint64_t gpuRenderStartTime;
-    uint64_t gpuRenderEndTime;
-    uint32_t gpuActiveRenderTimeUs;
-    uint32_t gpuFrameTimeUs;
-    uint8_t rsvd[120];
-};
-
 class LowLatency
 {
   private:

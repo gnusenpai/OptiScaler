@@ -38,9 +38,9 @@ void AntiLagVk::sleep(std::optional<uint32_t> frame_id)
     return;
 }
 
-void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
+void AntiLagVk::set_marker(IUnknown* pDevice, const MarkerParams& marker_params)
 {
-    if (!pDevice || !marker_params)
+    if (!pDevice)
     {
         LOG_ERROR("Invalid pointer");
         return;
@@ -55,7 +55,7 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 
     call_count++;
 
-    if (marker_params->marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
+    if (marker_params.marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
     {
         last_oob_present = call_count;
         if (!using_oob_present)
@@ -65,13 +65,13 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
     if (using_oob_present && call_count - last_oob_present > allowed_gap)
         using_oob_present = false;
 
-    if (marker_params->marker_type == MarkerType::SIMULATION_START)
+    if (marker_params.marker_type == MarkerType::SIMULATION_START)
     {
         // Before processing user input
         VkAntiLagPresentationInfoAMD inputInfo = {};
         inputInfo.sType = VK_STRUCTURE_TYPE_ANTI_LAG_PRESENTATION_INFO_AMD;
         inputInfo.stage = VK_ANTI_LAG_STAGE_INPUT_AMD;
-        inputInfo.frameIndex = marker_params->frame_id;
+        inputInfo.frameIndex = marker_params.frame_id;
 
         VkAntiLagDataAMD antiLagDataInput = {};
         antiLagDataInput.sType = VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
@@ -81,20 +81,21 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 
         if (VulkanHooks::o_vkAntiLagUpdateAMD)
         {
-            LOG_TRACE_LOWLATENCY("AntiLag Input: {}, status: {}", marker_params->frame_id, is_enabled());
+            LOG_TRACE_LOWLATENCY("AntiLag Input: {}, status: {}", marker_params.frame_id, is_enabled());
 
+            // TODO: somehow confirm that pDevice is actually VkDevice
             VulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataInput);
         }
     }
 
-    if ((marker_params->marker_type == MarkerType::PRESENT_START && !using_oob_present) ||
-        marker_params->marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
+    if ((marker_params.marker_type == MarkerType::PRESENT_START && !using_oob_present) ||
+        marker_params.marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
     {
         // Before calling vkQueuePresentKHR
         VkAntiLagPresentationInfoAMD presentInfo = {};
         presentInfo.sType = VK_STRUCTURE_TYPE_ANTI_LAG_PRESENTATION_INFO_AMD;
         presentInfo.stage = VK_ANTI_LAG_STAGE_PRESENT_AMD;
-        presentInfo.frameIndex = marker_params->frame_id;
+        presentInfo.frameIndex = marker_params.frame_id;
 
         VkAntiLagDataAMD antiLagDataPresent = {};
         antiLagDataPresent.sType = VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
@@ -104,7 +105,7 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
 
         if (VulkanHooks::o_vkAntiLagUpdateAMD)
         {
-            LOG_TRACE_LOWLATENCY("AntiLag Present: {}, status: {}", marker_params->frame_id, is_enabled());
+            LOG_TRACE_LOWLATENCY("AntiLag Present: {}, status: {}", marker_params.frame_id, is_enabled());
 
             VulkanHooks::o_vkAntiLagUpdateAMD((VkDevice) pDevice, &antiLagDataPresent);
         }

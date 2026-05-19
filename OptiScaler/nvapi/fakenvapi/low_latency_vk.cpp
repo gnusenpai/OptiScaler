@@ -220,7 +220,7 @@ NvAPI_Status LowLatency::SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MAR
 
     // This cast is not ideal as it needs to be cast to VkDevice while knowing it's vulkan
     if (auto current_tech = currently_active_tech.load())
-        current_tech->set_marker((IUnknown*) vkDevice, &marker_params);
+        current_tech->set_marker((IUnknown*) vkDevice, marker_params);
 
     LOG_TRACE_FAKENVAPI("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 

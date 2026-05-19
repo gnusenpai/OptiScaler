@@ -26,6 +26,33 @@ enum class LowLatencyMode
     Reflex
 };
 
+#define FRAME_REPORTS_BUFFER_SIZE 70
+#define NVAPI_BUFFER_SIZE 64
+
+struct FrameReport
+{
+    uint64_t frameID;
+    uint64_t inputSampleTime;
+    uint64_t simStartTime;
+    uint64_t simEndTime;
+    uint64_t renderSubmitStartTime;
+    uint64_t renderSubmitEndTime;
+    uint64_t presentStartTime;
+    uint64_t presentEndTime;
+    uint64_t driverStartTime;
+    uint64_t driverEndTime;
+    uint64_t osRenderQueueStartTime;
+    uint64_t osRenderQueueEndTime;
+    uint64_t gpuRenderStartTime;
+    uint64_t gpuRenderEndTime;
+    uint32_t gpuActiveRenderTimeUs;
+    uint32_t gpuFrameTimeUs;
+    uint64_t cameraConstructedTime;
+    uint32_t crossAdapterCopyTimeUs;
+    uint32_t aiFrameTimeUs;
+    uint8_t rsvd[104];
+};
+
 void tonvss(NvAPI_ShortString nvss, std::string str);
 
 #define INSERT_AND_RETURN_WHEN_EQUALS(method)                                                                          \
