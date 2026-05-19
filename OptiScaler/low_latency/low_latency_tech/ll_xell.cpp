@@ -183,10 +183,55 @@ void XeLL::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
     }
 }
 
-void XeLL::sleep()
+void XeLL::sleep(std::optional<uint32_t> frame_id)
 {
-    // This can either be better than sleeping in XELL_SIMULATION_START
-    // or be a total mess if +1 is not correct
-    sleep_last_id = simulation_start_last_id + 1;
-    xell_sleep((uint32_t) sleep_last_id);
+    if (frame_id.has_value())
+        xell_sleep(frame_id.value());
+    else
+    {
+        // This can either be better than sleeping in XELL_SIMULATION_START
+        // or be a total mess if +1 is not correct
+        sleep_last_id = simulation_start_last_id + 1;
+        xell_sleep((uint32_t) sleep_last_id);
+    }
+}
+
+xell_result_t XeLL::xellD3D12SetAppQueue(void* appQueue) const
+{
+    if (!o_xellD3D12SetAppQueue)
+        return XELL_RESULT_ERROR_UNKNOWN;
+
+    return o_xellD3D12SetAppQueue(XeLLProxy::Context(), appQueue);
+}
+
+xell_result_t XeLL::xellSetDisplayInfo(void* displayInfo) const
+{
+    if (!o_xellSetDisplayInfo)
+        return XELL_RESULT_ERROR_UNKNOWN;
+
+    return o_xellSetDisplayInfo(XeLLProxy::Context(), displayInfo);
+}
+
+xell_result_t XeLL::xellSetFgEnabled(uint32_t param1, uint32_t param2) const
+{
+    if (!o_xellSetFgEnabled)
+        return XELL_RESULT_ERROR_UNKNOWN;
+
+    return o_xellSetFgEnabled(XeLLProxy::Context(), param1, param2);
+}
+
+xell_result_t XeLL::xellSetGeneratedFramesCount(uint32_t param1, uint32_t framesCount) const
+{
+    if (!o_xellSetGeneratedFramesCount)
+        return XELL_RESULT_ERROR_UNKNOWN;
+
+    return o_xellSetGeneratedFramesCount(XeLLProxy::Context(), param1, framesCount);
+}
+
+xell_result_t XeLL::xellGetLastPresentStartFrameId(uint32_t* p_frame_id) const
+{
+    if (!o_xellGetLastPresentStartFrameId)
+        return XELL_RESULT_ERROR_UNKNOWN;
+
+    return o_xellGetLastPresentStartFrameId(XeLLProxy::Context(), p_frame_id);
 }

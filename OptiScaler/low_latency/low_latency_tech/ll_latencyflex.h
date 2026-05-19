@@ -3,7 +3,7 @@
 #include "low_latency_tech.h"
 #include <latencyflex.h>
 
-class LatencyFlex : public virtual LowLatencyTech
+class LatencyFlex : public LowLatencyTech
 {
   private:
     lfx::LatencyFleX* ctx = nullptr;
@@ -51,7 +51,7 @@ class LatencyFlex : public virtual LowLatencyTech
 
     void get_sleep_status(SleepParams* sleep_params) override;
     void set_sleep_mode(SleepMode* sleep_mode) override;
-    void sleep() override;
+    void sleep(std::optional<uint32_t> frame_id) override;
     void set_marker(IUnknown* pDevice, MarkerParams* marker_params) override;
-    void set_async_marker(MarkerParams* marker_params) override {}; // Not used by LFX
+    void set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params) override {}; // Not used by LFX
 };

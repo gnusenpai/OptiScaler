@@ -2,7 +2,7 @@
 
 #include "low_latency_tech.h"
 
-class AntiLagVk : public virtual LowLatencyTech
+class AntiLagVk : public LowLatencyTech
 {
   private:
     uint32_t max_fps = 0;
@@ -32,7 +32,7 @@ class AntiLagVk : public virtual LowLatencyTech
 
     void get_sleep_status(SleepParams* sleep_params) override;
     void set_sleep_mode(SleepMode* sleep_mode) override;
-    void sleep() override;
+    void sleep(std::optional<uint32_t> frame_id) override;
     void set_marker(IUnknown* pDevice, MarkerParams* marker_params) override;
-    void set_async_marker(MarkerParams* marker_params) override {}; // Not used by AntiLag VK
+    void set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params) override {}; // Not used by AntiLag VK
 };

@@ -22,7 +22,8 @@ enum class LowLatencyMode
     LatencyFlex,
     AntiLag2,
     XeLL,
-    AntiLagVk
+    AntiLagVk,
+    Reflex
 };
 
 void tonvss(NvAPI_ShortString nvss, std::string str);

@@ -152,14 +152,19 @@ void LatencyFlex::set_sleep_mode(SleepMode* sleep_mode)
     minimum_interval_us = sleep_mode->minimum_interval_us;
 };
 
-void LatencyFlex::sleep()
+void LatencyFlex::sleep(std::optional<uint32_t> frame_id)
 {
     if ((LFXMode) Config::Instance()->FN_LatencyFlexMode.value_or_default() != LFXMode::ReflexIDs)
     {
         last_sleep_framecount = simulation_framecount;
 
         if (current_call_spot == CallSpot::SleepCall)
-            lfx_sleep(INVALID_ID);
+        {
+            if (frame_id.has_value())
+                lfx_sleep(frame_id.value());
+            else
+                lfx_sleep(INVALID_ID);
+        }
     }
 };
 

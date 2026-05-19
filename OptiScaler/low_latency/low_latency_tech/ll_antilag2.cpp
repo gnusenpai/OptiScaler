@@ -185,7 +185,7 @@ void AntiLag2::set_sleep_mode(SleepMode* sleep_mode)
         sleep_mode->minimum_interval_us; // don't convert to fps due to fg fps limit fallback using intervals
 }
 
-void AntiLag2::sleep()
+void AntiLag2::sleep(std::optional<uint32_t> frame_id)
 {
     last_sleep_framecount = simulation_framecount;
 
@@ -219,7 +219,7 @@ void AntiLag2::set_marker(IUnknown* pDevice, MarkerParams* marker_params)
     }
 }
 
-void AntiLag2::set_async_marker(MarkerParams* marker_params)
+void AntiLag2::set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params)
 {
     if (marker_params->marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
     {

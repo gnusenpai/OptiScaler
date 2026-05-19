@@ -84,7 +84,7 @@ class LowLatencyTech
 
     virtual void get_sleep_status(SleepParams* sleep_params) = 0;
     virtual void set_sleep_mode(SleepMode* sleep_mode) = 0;
-    virtual void sleep() = 0;
+    virtual void sleep(std::optional<uint32_t> frame_id = std::nullopt) = 0;
     virtual void set_marker(IUnknown* pDevice, MarkerParams* marker_params) = 0;
-    virtual void set_async_marker(MarkerParams* marker_params) = 0;
+    virtual void set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params) = 0;
 };

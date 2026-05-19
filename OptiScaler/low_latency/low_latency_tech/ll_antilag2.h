@@ -5,7 +5,7 @@
 #include <ffx_antilag2_dx12.h>
 #include <ffx_antilag2_dx11.h>
 
-class AntiLag2 : public virtual LowLatencyTech
+class AntiLag2 : public LowLatencyTech
 {
   private:
     AMD::AntiLag2DX12::Context dx12_ctx = {};
@@ -47,7 +47,7 @@ class AntiLag2 : public virtual LowLatencyTech
 
     void get_sleep_status(SleepParams* sleep_params) override;
     void set_sleep_mode(SleepMode* sleep_mode) override;
-    void sleep() override;
+    void sleep(std::optional<uint32_t> frame_id) override;
     void set_marker(IUnknown* pDevice, MarkerParams* marker_params) override;
-    void set_async_marker(MarkerParams* marker_params) override;
+    void set_async_marker(IUnknown* pCommandQueue, MarkerParams* marker_params) override;
 };

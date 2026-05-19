@@ -32,7 +32,7 @@ void AntiLagVk::set_sleep_mode(SleepMode* sleep_mode)
         sleep_mode->minimum_interval_us > 0 ? (uint32_t) std::round(1000000.0f / sleep_mode->minimum_interval_us) : 0;
 }
 
-void AntiLagVk::sleep()
+void AntiLagVk::sleep(std::optional<uint32_t> frame_id)
 {
     // This can be supported but prefer using markers with frame ids instead
     return;
