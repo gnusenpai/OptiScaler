@@ -152,6 +152,12 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext2(
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
 
+    State::Instance().NVNGX_ApplicationId = InApplicationId;
+    State::Instance().NVNGX_ApplicationDataPath = std::wstring(InApplicationDataPath);
+    State::Instance().NVNGX_Version = InSDKVersion;
+    State::Instance().NVNGX_FeatureInfo = &localFeatureInfo;
+    State::Instance().NVNGX_Version = InSDKVersion;
+
     if (Config::Instance()->DLSSEnabled.value_or_default() && !_skipInit)
     {
         if (Config::Instance()->UseGenericAppIdWithDlss.value_or_default())
@@ -172,15 +178,21 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext2(
         }
     }
 
-    Nvngx_FG::InitDLSSGMod_Vulkan();
-    Nvngx_FG::VULKAN_Init_Ext2(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InGIPA, InGDPA,
-                               InSDKVersion, &localFeatureInfo);
+    if (InFeatureInfo != nullptr && InSDKVersion > 0x0000013)
+        State::Instance().NVNGX_Logger = InFeatureInfo->LoggingInfo;
 
-    State::Instance().NVNGX_ApplicationId = InApplicationId;
-    State::Instance().NVNGX_ApplicationDataPath = std::wstring(InApplicationDataPath);
-    State::Instance().NVNGX_Version = InSDKVersion;
-    State::Instance().NVNGX_FeatureInfo = &localFeatureInfo;
-    State::Instance().NVNGX_Version = InSDKVersion;
+    if (State::Instance().nvngxVkInited)
+    {
+        LOG_WARN("NVNGX already inited");
+        return NVSDK_NGX_Result_Success;
+    }
+
+    if (State::Instance().activeFgInput == FGInput::NvngxFG)
+    {
+        Nvngx_FG::InitDLSSGMod_Vulkan();
+        Nvngx_FG::VULKAN_Init_Ext2(InApplicationId, InApplicationDataPath, InInstance, InPD, InDevice, InGIPA, InGDPA,
+                                   InSDKVersion, &localFeatureInfo);
+    }
 
     State::Instance().NVNGX_FeatureInfo_Paths.clear();
 
@@ -470,6 +482,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_GetParameters(NVSDK_NGX_Paramete
     static NVNGX_Parameters oldParams = NVNGX_Parameters("OptiVk", true);
     *OutParameters = &oldParams;
     InitNGXParameters(*OutParameters);
+
+    LOG_DEBUG("Returning custom Opti parameters");
 
     return NVSDK_NGX_Result_Success;
 }
