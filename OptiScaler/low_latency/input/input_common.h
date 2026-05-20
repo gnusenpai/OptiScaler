@@ -35,6 +35,17 @@ enum class InputResult : uint32_t
     GenericError,
 };
 
+struct TimingData
+{
+    std::optional<TimingEntry> timeRange; // in ns, value stored in length
+    std::optional<TimingEntry> simulation;
+    std::optional<TimingEntry> renderSubmit;
+    std::optional<TimingEntry> present;
+    std::optional<TimingEntry> driver;
+    std::optional<TimingEntry> osRenderQueue;
+    std::optional<TimingEntry> gpuRender;
+};
+
 class InputCommon
 {
     inline static std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
@@ -62,7 +73,8 @@ class InputCommon
     static InputResult
     get_latency(const InputContext& inputContext, IUnknown* pDev,
                 void* latency_params); // NV_LATENCY_RESULT_PARAMS* for reflex, xell_frame_report_t* for xell,
-                                       // passthrough when possible, fillout with local frame_reports if not
+    static bool get_timing_data(TimingData& timingDataOut);
+    // passthrough when possible, fillout with local frame_reports if not
 
     // XeLL-specific calls for passthrough, TODO: only allow when caller == activeOutput == activeInput == XeLL
     static xell_result_t

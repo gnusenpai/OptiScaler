@@ -26,9 +26,9 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
     }
 
     // TODO: Add system for selecting input
-    if (activeInput == LowLatencyInput::XeLL)
+    if (activeInput == LowLatencyInput::Reflex)
         return true;
-    activeInput = LowLatencyInput::XeLL;
+    activeInput = LowLatencyInput::Reflex;
 
     // TODO: init correct currently_active_tech, desiredMode == None -> Auto
     auto new_tech_xell = std::make_shared<XeLL>();
@@ -162,7 +162,12 @@ InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* 
 InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D12CommandQueue* pCommandQueue,
                                           const MarkerParams& marker_params)
 {
-    if (inputContext.caller != activeInput)
+    // Always allow XeLL's async markers through
+    bool xellAsyncMarker = inputContext.caller == LowLatencyInput::XeLL &&
+                           (marker_params.marker_type == MarkerType::OUT_OF_BAND_RENDERSUBMIT_START ||
+                            marker_params.marker_type == MarkerType::OUT_OF_BAND_RENDERSUBMIT_END);
+
+    if (inputContext.caller != activeInput && !xellAsyncMarker)
         return InputResult::UsingDifferentInput;
 
     if (!currently_active_tech.load()) // can't init using ID3D12CommandQueue, can only check if available
@@ -208,15 +213,15 @@ InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnkno
     return InputResult::Ok;
 }
 
-// TODO: impl
 InputResult InputCommon::get_sleep_status(const InputContext& inputContext, IUnknown* pDevice,
                                           SleepParams* sleep_params)
 {
     if (!update_low_latency_tech(pDevice))
         return InputResult::LowLatencyUpdateFail;
 
-    if (inputContext.caller != activeInput)
-        return InputResult::UsingDifferentInput;
+    // Get functions don't really need to worry about this check
+    // if (inputContext.caller != activeInput)
+    //     return InputResult::UsingDifferentInput;
 
     if (auto current_tech = currently_active_tech.load())
         current_tech->get_sleep_status(sleep_params);
@@ -228,8 +233,8 @@ InputResult InputCommon::get_sleep_status(const InputContext& inputContext, IUnk
 
 InputResult InputCommon::get_latency(const InputContext& inputContext, IUnknown* pDev, void* latency_params)
 {
-    if (inputContext.caller != activeInput)
-        return InputResult::UsingDifferentInput;
+    // if (inputContext.caller != activeInput)
+    //     return InputResult::UsingDifferentInput;
 
     if (!update_low_latency_tech(pDev))
         return InputResult::LowLatencyUpdateFail;
@@ -327,10 +332,156 @@ InputResult InputCommon::get_latency(const InputContext& inputContext, IUnknown*
     }
 }
 
+#define UPDATE_TIMING_ENTRY(name, type)                                                                                \
+    if (frameReport.name##EndTime >= frameReport.name##StartTime)                                                      \
+    {                                                                                                                  \
+        double name##Pos = (double) (frameReport.name##StartTime - start) / rangeNs;                                   \
+        double name##Length = (double) (frameReport.name##EndTime - frameReport.name##StartTime) / rangeNs;            \
+        timingDataOut.type = TimingEntry { .position = name##Pos, .length = name##Length };                            \
+    }                                                                                                                  \
+    else                                                                                                               \
+    {                                                                                                                  \
+        timingDataOut.type.reset();                                                                                    \
+    }
+
+bool InputCommon::get_timing_data(TimingData& timingDataOut)
+{
+    InputContext tempContext {};
+    if (activeOutput == LowLatencyMode::Reflex)
+    {
+        // TODO: allocate struct and get everything from reflex
+        return true;
+    }
+
+    // auto processFrameReport = [&](const auto& frameReport) -> bool
+    //{
+    //     uint64_t start = UINT64_MAX;
+    //     uint64_t end = 0;
+
+    //    // Please don't look, just thought it would be least work
+    //    auto pTimes = (const uint64_t*) &frameReport.simStartTime;
+    //    for (auto i = 0; i < 11; i++)
+    //    {
+    //        auto& time = pTimes[i];
+    //        if (time == 0)
+    //            continue;
+
+    //        if (time < start)
+    //            start = time;
+
+    //        if (time > end)
+    //            end = time;
+    //    }
+
+    //    if (end < start)
+    //        return false;
+
+    //    double rangeNs = static_cast<double>(end - start);
+
+    //    timingData[TimingType::TimeRange] = TimingEntry { .position = 0, .length = rangeNs };
+    //    UPDATE_TIMING_ENTRY(sim, Simulation)
+    //    UPDATE_TIMING_ENTRY(renderSubmit, RenderSubmit)
+    //    UPDATE_TIMING_ENTRY(present, Present)
+    //    UPDATE_TIMING_ENTRY(driver, Driver)
+    //    UPDATE_TIMING_ENTRY(osRenderQueue, OsRenderQueue)
+    //    UPDATE_TIMING_ENTRY(gpuRender, GpuRender)
+
+    //    if (frameReport.frameID != 0)
+    //        State::Instance().reflexFrameId = frameReport.frameID;
+
+    //    return true;
+    //};
+
+    // if (_lastSleepDev && o_NvAPI_D3D_GetLatency)
+    //{
+    //     // Not calling free on this but it's static so hopefully fine
+    //     static NV_LATENCY_RESULT_PARAMS* results = new NV_LATENCY_RESULT_PARAMS();
+    //     results->version = NV_LATENCY_RESULT_PARAMS_VER;
+
+    //    if (auto result = hkNvAPI_D3D_GetLatency(_lastSleepDev, results); result != NVAPI_OK)
+    //    {
+    //        LOG_WARN("NvAPI_D3D_GetLatency failed: {}", magic_enum::enum_name(result));
+    //        return false;
+    //    }
+
+    //    // 64th element has the latest data
+    //    return processFrameReport(results->frameReport[63]);
+    //}
+
+    // if (_lastVkSleepDev && o_NvAPI_Vulkan_GetLatency)
+    //{
+    //     // Not calling free on this but it's static so hopefully fine
+    //     static NV_VULKAN_LATENCY_RESULT_PARAMS* results = new NV_VULKAN_LATENCY_RESULT_PARAMS();
+    //     results->version = NV_VULKAN_LATENCY_RESULT_PARAMS_VER;
+
+    //    if (auto result = hkNvAPI_Vulkan_GetLatency(_lastVkSleepDev, results); result != NVAPI_OK)
+    //    {
+    //        LOG_WARN("NvAPI_Vulkan_GetLatency failed: {}", magic_enum::enum_name(result));
+    //        return false;
+    //    }
+
+    //    // 64th element has the latest data
+    //    return processFrameReport(results->frameReport[63]);
+    //}
+
+    {
+        size_t maxIdx = 0;
+        uint64_t maxID = frame_reports[0].frameID;
+        for (size_t i = 1; i < FRAME_REPORTS_BUFFER_SIZE; i++)
+        {
+            if (frame_reports[i].frameID > maxID)
+            {
+                maxID = frame_reports[i].frameID;
+                maxIdx = i;
+            }
+        }
+
+        auto highestValidId = (NVAPI_BUFFER_SIZE + maxIdx) % FRAME_REPORTS_BUFFER_SIZE;
+        auto& frameReport = frame_reports[highestValidId]; // grab last one
+
+        uint64_t start = UINT64_MAX;
+        uint64_t end = 0;
+
+        // Please don't look, just thought it would be least work
+        auto pTimes = (const uint64_t*) &frameReport.simStartTime;
+        for (auto i = 0; i < 11; i++)
+        {
+            auto& time = pTimes[i];
+            if (time == 0)
+                continue;
+
+            if (time < start)
+                start = time;
+
+            if (time > end)
+                end = time;
+        }
+
+        if (end < start)
+            return false;
+
+        double rangeNs = static_cast<double>(end - start);
+
+        timingDataOut.timeRange = TimingEntry { .position = 0, .length = rangeNs };
+        UPDATE_TIMING_ENTRY(sim, simulation)
+        UPDATE_TIMING_ENTRY(renderSubmit, renderSubmit)
+        UPDATE_TIMING_ENTRY(present, present)
+        UPDATE_TIMING_ENTRY(driver, driver)
+        UPDATE_TIMING_ENTRY(osRenderQueue, osRenderQueue)
+        UPDATE_TIMING_ENTRY(gpuRender, gpuRender)
+
+        if (frameReport.frameID != 0)
+            State::Instance().reflexFrameId = frameReport.frameID;
+
+        return true;
+    };
+
+    return false;
+}
+
 xell_result_t InputCommon::pass_xellD3D12SetAppQueue(const InputContext& inputContext, ID3D12CommandQueue* appQueue)
 {
-    if (inputContext.caller == LowLatencyInput::XeLL && activeInput == LowLatencyInput::XeLL &&
-        activeOutput == LowLatencyMode::XeLL)
+    if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
     {
         if (auto current_tech = currently_active_tech.load())
         {
@@ -344,8 +495,7 @@ xell_result_t InputCommon::pass_xellD3D12SetAppQueue(const InputContext& inputCo
 
 xell_result_t InputCommon::pass_xellSetDisplayInfo(const InputContext& inputContext, void* displayInfo)
 {
-    if (inputContext.caller == LowLatencyInput::XeLL && activeInput == LowLatencyInput::XeLL &&
-        activeOutput == LowLatencyMode::XeLL)
+    if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
     {
         if (auto current_tech = currently_active_tech.load())
         {
@@ -359,8 +509,7 @@ xell_result_t InputCommon::pass_xellSetDisplayInfo(const InputContext& inputCont
 
 xell_result_t InputCommon::pass_xellSetFgEnabled(const InputContext& inputContext, uint32_t param1, uint32_t param2)
 {
-    if (inputContext.caller == LowLatencyInput::XeLL && activeInput == LowLatencyInput::XeLL &&
-        activeOutput == LowLatencyMode::XeLL)
+    if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
     {
         if (auto current_tech = currently_active_tech.load())
         {
@@ -375,8 +524,7 @@ xell_result_t InputCommon::pass_xellSetFgEnabled(const InputContext& inputContex
 xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t param1,
                                                             uint32_t framesCount)
 {
-    if (inputContext.caller == LowLatencyInput::XeLL && activeInput == LowLatencyInput::XeLL &&
-        activeOutput == LowLatencyMode::XeLL)
+    if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
     {
         if (auto current_tech = currently_active_tech.load())
         {
@@ -390,8 +538,7 @@ xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& 
 
 xell_result_t InputCommon::pass_xellGetLastPresentStartFrameId(const InputContext& inputContext, uint32_t* p_frame_id)
 {
-    if (inputContext.caller == LowLatencyInput::XeLL && activeInput == LowLatencyInput::XeLL &&
-        activeOutput == LowLatencyMode::XeLL)
+    if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
     {
         if (auto current_tech = currently_active_tech.load())
         {

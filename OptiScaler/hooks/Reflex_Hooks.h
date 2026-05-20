@@ -3,6 +3,7 @@
 #include <nvapi/NvApiTypes.h>
 
 #include "Hook_Utils.h"
+#include "low_latency/ll_util.h"
 
 enum TimingType : uint32_t
 {
@@ -15,13 +16,6 @@ enum TimingType : uint32_t
     GpuRender,
 
     TimingTypeCOUNT
-};
-
-// Normalized values, position + length <= 1
-struct TimingEntry
-{
-    double position;
-    double length;
 };
 
 class ReflexHooks
@@ -43,6 +37,7 @@ class ReflexHooks
 
     // D3D
     inline static decltype(&NvAPI_D3D_SetSleepMode) o_NvAPI_D3D_SetSleepMode = nullptr;
+    inline static decltype(&NvAPI_D3D_GetSleepStatus) o_NvAPI_D3D_GetSleepStatus = nullptr;
     inline static decltype(&NvAPI_D3D_Sleep) o_NvAPI_D3D_Sleep = nullptr;
     inline static decltype(&NvAPI_D3D_GetLatency) o_NvAPI_D3D_GetLatency = nullptr;
     inline static decltype(&NvAPI_D3D_SetLatencyMarker) o_NvAPI_D3D_SetLatencyMarker = nullptr;

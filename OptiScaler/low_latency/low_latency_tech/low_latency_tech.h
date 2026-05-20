@@ -20,6 +20,7 @@ struct SleepParams
     bool low_latency_enabled;
     bool low_latency_boost;
     uint32_t minimum_interval_us; // 0 -> no fps limit
+    uint32_t sleep_interval_us;   // length of the last sleep
     bool fullscreen_vrr;
     bool control_panel_vsync_override;
     bool use_game_sleep;

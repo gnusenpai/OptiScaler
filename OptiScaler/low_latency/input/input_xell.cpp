@@ -34,6 +34,9 @@ xell_result_t InputXeLL::SetSleepMode(xell_input_handle_t context, const xell_sl
     else
         LOG_ERROR("set_sleep_mode result: {}", magic_enum::enum_name(result));
 
+    // TOOD: XeFG needs this as it needs low latency always enabled, figure something out
+    return XELL_RESULT_SUCCESS;
+
     return XELL_RESULT_ERROR_UNKNOWN;
 }
 xell_result_t InputXeLL::GetSleepMode(xell_input_handle_t context, xell_sleep_params_t* param)
@@ -108,7 +111,7 @@ xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t fra
         if (result == InputResult::Ok)
             return XELL_RESULT_SUCCESS;
         else
-            LOG_ERROR("sleep result: {}", magic_enum::enum_name(result));
+            LOG_ERROR("set_async_marker result: {}", magic_enum::enum_name(result));
 
         return XELL_RESULT_ERROR_UNKNOWN;
     }

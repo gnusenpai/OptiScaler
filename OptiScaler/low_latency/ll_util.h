@@ -53,6 +53,13 @@ struct FrameReport
     uint8_t rsvd[104];
 };
 
+// Normalized values, position + length <= 1
+struct TimingEntry
+{
+    double position;
+    double length;
+};
+
 void tonvss(NvAPI_ShortString nvss, std::string str);
 
 #define INSERT_AND_RETURN_WHEN_EQUALS(method)                                                                          \

@@ -25,6 +25,7 @@
 #include <chrono>
 #include <misc/IdentifyGpu.h>
 #include <hooks/Xell_Hooks.h>
+#include <low_latency/input/input_common.h>
 
 #define MARK_ALL_BACKENDS_CHANGED()                                                                                    \
     for (auto& singleChangeBackend : State::Instance().changeBackend)                                                  \
@@ -2337,6 +2338,68 @@ bool MenuCommon::RenderMenu()
                 constexpr auto delayBetweenPollsMs = 500;
                 static auto previousPoll = 0.0;
                 static bool gotData = false;
+
+#ifdef LOW_LATENCY_INPUTS
+                static TimingData timingData {};
+
+                if (previousPoll <= 0.001 || previousPoll + delayBetweenPollsMs < now)
+                {
+                    gotData = InputCommon::get_timing_data(timingData);
+                    previousPoll = now;
+                }
+
+                if (gotData && timingData.timeRange.has_value())
+                {
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    constexpr float offsetForText = 155;
+
+                    const auto& rangeInNs = timingData.timeRange.value().length;
+
+                    UINT64 localFrameCount = 0;
+
+                    if (fg != nullptr)
+                        localFrameCount = fg->FrameCount();
+
+                    ImGui::Text("FGId: %llu, RfxId: %llu", localFrameCount, state.reflexFrameId);
+                    ImGui::Text("Low latency timings, whole frame: %.1fms", rangeInNs / 1000.0);
+
+                    const auto maxWidth =
+                        config->FpsOverlayHorizontal.value_or_default() ? ImGui::GetWindowWidth() : plotSize.x;
+
+                    const auto drawTiming = [&](const auto& timingOpt, const char* desc, ImVec4 color)
+                    {
+                        if (!timingOpt.has_value())
+                            return;
+
+                        auto toneMappedColor = State::Instance().isHdrActive ? toneMapColor(color) : color;
+
+                        const auto& timing = timingOpt.value();
+                        float duration = static_cast<float>(timing.length * rangeInNs / 1000.0);
+
+                        ImGui::TextColored(toneMappedColor, "%-12s %4.1fms", desc, duration);
+
+                        auto leftLimit = ImGui::GetItemRectMin().x + offsetForText * fpsScale;
+
+                        auto start = static_cast<float>(leftLimit + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) *
+                                                                        timing.position);
+
+                        auto end = static_cast<float>(start + (ImGui::GetItemRectMin().x + maxWidth - leftLimit) *
+                                                                  timing.length);
+
+                        auto pos = ImVec2(start, ImGui::GetItemRectMin().y);
+                        auto size = ImVec2(end, ImGui::GetItemRectMax().y);
+
+                        drawList->AddRectFilled(pos, size, ImGui::ColorConvertFloat4ToU32(toneMappedColor));
+                    };
+
+                    drawTiming(timingData.simulation, "Simulation", ImVec4(0.768f, 0.169f, 0.169f, 1.0f));
+                    drawTiming(timingData.renderSubmit, "RenderSubmit", ImVec4(0.235f, 0.705f, 0.294f, 1.0f));
+                    drawTiming(timingData.present, "Present", ImVec4(1.0f, 0.88f, 0.098f, 1.0f));
+                    drawTiming(timingData.driver, "Driver", ImVec4(0.263f, 0.388f, 0.847f, 1.0f));
+                    drawTiming(timingData.osRenderQueue, "RenderQueue", ImVec4(0.76f, 0.51f, 0.188f, 1.0f));
+                    drawTiming(timingData.gpuRender, "GpuRender", ImVec4(0.569f, 0.117f, 0.705f, 1.0f));
+                }
+#else
                 if (previousPoll <= 0.001 || previousPoll + delayBetweenPollsMs < now)
                 {
                     gotData = ReflexHooks::updateTimingData();
@@ -2390,6 +2453,7 @@ bool MenuCommon::RenderMenu()
                     drawTiming(TimingType::OsRenderQueue, "RenderQueue", ImVec4(0.76f, 0.51f, 0.188f, 1.0f));
                     drawTiming(TimingType::GpuRender, "GpuRender", ImVec4(0.569f, 0.117f, 0.705f, 1.0f));
                 }
+#endif
             }
         }
 
