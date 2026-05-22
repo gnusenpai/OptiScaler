@@ -3226,7 +3226,7 @@ bool MenuCommon::RenderMenu()
                                         config->Fsr4EnableWatermark = fsr4wm;
                                     }
 
-                                    ShowHelpMarker("After changing this option, please Save INI\n"
+                                    ShowHelpMarker("After changing this option, please Save Settings\n"
                                                    "It will be applied on next launch.");
                                 }
                             }
@@ -3323,7 +3323,7 @@ bool MenuCommon::RenderMenu()
                             ShowHelpMarker("This usually happens due to using tools\n"
                                            "such as Nvidia App or Nvidia Inspector");
                             // ImGui::Text("Selecting setting below will disable that external override\n"
-                            //             "but you need to Save INI and restart the game");
+                            //             "but you need to Save Settings and restart the game");
 
                             ImGui::Spacing();
                         }
@@ -3674,7 +3674,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Spacing();
                         ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.f, 0.0f, 1.f)),
-                                           "Save INI and restart to apply the changes");
+                                           "Save Settings and restart to apply the changes");
                         ImGui::Spacing();
                     }
 
@@ -4071,7 +4071,7 @@ bool MenuCommon::RenderMenu()
                                 config->FSRFGEnableWatermark = fgwm;
                             }
 
-                            ShowHelpMarker("After changing this option, please Save INI\n"
+                            ShowHelpMarker("After changing this option, please Save Settings\n"
                                            "It will be applied on next launch.");
                         }
 
