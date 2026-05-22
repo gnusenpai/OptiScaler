@@ -63,7 +63,9 @@ struct MonitorInfo
 std::filesystem::path ExePath();
 std::filesystem::path DllPath();
 std::optional<std::filesystem::path> NvngxPath();
+
 double MillisecondsNow();
+std::wstring ToLower(std::wstring value);
 
 HWND GetProcessWindow();
 bool GetFileVersion(std::wstring dllPath, version_t* fileVersionOut, version_t* productVersionOut = nullptr);
