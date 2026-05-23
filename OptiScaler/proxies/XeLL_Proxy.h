@@ -409,6 +409,9 @@ class XeLLProxy
         }
         else
         {
+#ifdef LOW_LATENCY_INPUTS
+            ((InputXeLL::xell_input_handle_t) _xellContext)->inputContext.localContext = true;
+#endif
             LOG_INFO("XeLL context created");
             XellHooks::setOurContext(_xellContext);
         }

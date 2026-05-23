@@ -167,12 +167,10 @@ InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* 
 InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D12CommandQueue* pCommandQueue,
                                           const MarkerParams& marker_params)
 {
-    // Always allow XeLL's async markers through
-    bool xellAsyncMarker = inputContext.caller == LowLatencyInput::XeLL &&
-                           (marker_params.marker_type == MarkerType::OUT_OF_BAND_RENDERSUBMIT_START ||
-                            marker_params.marker_type == MarkerType::OUT_OF_BAND_RENDERSUBMIT_END);
+    // Always allow Opti's XeLL context through
+    bool localXell = inputContext.caller == LowLatencyInput::XeLL && inputContext.localContext;
 
-    if (inputContext.caller != activeInput && !xellAsyncMarker)
+    if (inputContext.caller != activeInput && !localXell)
         return InputResult::UsingDifferentInput;
 
     if (!currently_active_tech.load()) // can't init using ID3D12CommandQueue, can only check if available

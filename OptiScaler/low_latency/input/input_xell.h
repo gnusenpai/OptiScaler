@@ -10,14 +10,14 @@ class InputXeLL
     struct _xell_input_handle_t
     {
         uint64_t id;
+        InputContext inputContext { .caller = LowLatencyInput::XeLL,
+                                    .localContext = false,
+                                    .noFrameId = false,
+                                    .markerMode = InputMarkerMode::FullMarkers };
         ID3D12Device* device;
         ID3D12CommandQueue* d3d12AppQueue;
         void* displayInfo;
     };
-
-    const static inline InputContext inputContext { .caller = LowLatencyInput::XeLL,
-                                                    .noFrameId = false,
-                                                    .markerMode = InputMarkerMode::FullMarkers };
 
   public:
     typedef struct _xell_input_handle_t* xell_input_handle_t;

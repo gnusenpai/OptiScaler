@@ -20,7 +20,7 @@ enum class InputMarkerMode
 struct InputContext
 {
     LowLatencyInput caller;
-    // bool sleepWithFrameId;
+    bool localContext; // input created by Opti
     bool noFrameId;
     InputMarkerMode markerMode;
 };

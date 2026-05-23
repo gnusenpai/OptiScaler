@@ -27,7 +27,7 @@ xell_result_t InputXeLL::SetSleepMode(xell_input_handle_t context, const xell_sl
 
     // TODO: not fully filled out
 
-    auto result = InputCommon::set_sleep_mode(inputContext, context->device, &sleepMode);
+    auto result = InputCommon::set_sleep_mode(context->inputContext, context->device, &sleepMode);
 
     if (result == InputResult::Ok)
         return XELL_RESULT_SUCCESS;
@@ -52,7 +52,7 @@ xell_result_t InputXeLL::GetSleepMode(xell_input_handle_t context, xell_sleep_pa
 
     SleepParams sleepParams {};
 
-    auto result = InputCommon::get_sleep_status(inputContext, context->device, &sleepParams);
+    auto result = InputCommon::get_sleep_status(context->inputContext, context->device, &sleepParams);
 
     if (result == InputResult::Ok)
     {
@@ -78,7 +78,7 @@ xell_result_t InputXeLL::Sleep(xell_input_handle_t context, uint32_t frame_id)
     if (!context->device)
         return XELL_RESULT_ERROR_DEVICE;
 
-    auto result = InputCommon::sleep(inputContext, context->device, frame_id);
+    auto result = InputCommon::sleep(context->inputContext, context->device, frame_id);
 
     if (result == InputResult::Ok)
         return XELL_RESULT_SUCCESS;
@@ -106,7 +106,7 @@ xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t fra
         else
             return XELL_RESULT_ERROR_UNKNOWN;
 
-        auto result = InputCommon::set_async_marker(inputContext, context->d3d12AppQueue, markerParams);
+        auto result = InputCommon::set_async_marker(context->inputContext, context->d3d12AppQueue, markerParams);
 
         if (result == InputResult::Ok)
             return XELL_RESULT_SUCCESS;
@@ -120,7 +120,7 @@ xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t fra
     markerParams.frame_id = frame_id;
     markerParams.marker_type = (MarkerType) marker; // Those should match 1:1
 
-    auto result = InputCommon::set_marker(inputContext, context->device, markerParams);
+    auto result = InputCommon::set_marker(context->inputContext, context->device, markerParams);
 
     if (result == InputResult::Ok)
         return XELL_RESULT_SUCCESS;
@@ -159,7 +159,7 @@ xell_result_t InputXeLL::GetFramesReports(xell_input_handle_t context, xell_fram
     if (!outdata)
         return XELL_RESULT_ERROR_INVALID_ARGUMENT;
 
-    auto result = InputCommon::get_latency(inputContext, context->device, outdata);
+    auto result = InputCommon::get_latency(context->inputContext, context->device, outdata);
 
     if (result == InputResult::Ok)
         return XELL_RESULT_SUCCESS;
@@ -206,7 +206,7 @@ xell_result_t InputXeLL::D3D12SetAppQueue(xell_input_handle_t context, ID3D12Com
 
     context->d3d12AppQueue = appQueue;
 
-    return InputCommon::pass_xellD3D12SetAppQueue(inputContext, appQueue);
+    return InputCommon::pass_xellD3D12SetAppQueue(context->inputContext, appQueue);
 }
 xell_result_t InputXeLL::GetContextParameterP(xell_input_handle_t context, uint32_t param1, uint64_t param2)
 {
@@ -297,20 +297,20 @@ xell_result_t InputXeLL::SetDisplayInfo(xell_input_handle_t context, void* displ
 
     context->displayInfo = displayInfo;
 
-    return InputCommon::pass_xellSetDisplayInfo(inputContext, displayInfo);
+    return InputCommon::pass_xellSetDisplayInfo(context->inputContext, displayInfo);
 }
 xell_result_t InputXeLL::SetFgEnabled(xell_input_handle_t context, uint32_t param1, uint32_t param2)
 {
     // TODO: figure out params and impl
     // This might need to take Opti's FG into account, unsure
-    return InputCommon::pass_xellSetFgEnabled(inputContext, param1, param2);
+    return InputCommon::pass_xellSetFgEnabled(context->inputContext, param1, param2);
 }
 
 xell_result_t InputXeLL::SetGeneratedFramesCount(xell_input_handle_t context, uint32_t param1, uint32_t framesCount)
 {
     // TODO: figure out params and impl
     // TODO: store framesCount for the SleepParams::fg_multiplier
-    return InputCommon::pass_xellSetGeneratedFramesCount(inputContext, param1, framesCount);
+    return InputCommon::pass_xellSetGeneratedFramesCount(context->inputContext, param1, framesCount);
 }
 
 #ifdef LOW_LATENCY_INPUTS
