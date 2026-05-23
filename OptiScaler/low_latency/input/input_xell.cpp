@@ -120,9 +120,6 @@ xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t fra
     markerParams.frame_id = frame_id;
     markerParams.marker_type = (MarkerType) marker; // Those should match 1:1
 
-    if (marker == XELL_PRESENT_START)
-        context->lastPresentStartFrameId = frame_id;
-
     auto result = InputCommon::set_marker(inputContext, context->device, markerParams);
 
     if (result == InputResult::Ok)
@@ -223,7 +220,7 @@ xell_result_t InputXeLL::GetLastPresentStartFrameId(xell_input_handle_t context,
     if (!p_frame_id)
         return XELL_RESULT_ERROR_INVALID_ARGUMENT;
 
-    *p_frame_id = context->lastPresentStartFrameId;
+    *p_frame_id = InputCommon::get_last_present_start_frame_id();
 
     return XELL_RESULT_SUCCESS;
 }

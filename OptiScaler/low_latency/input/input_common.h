@@ -50,6 +50,7 @@ class InputCommon
 {
     inline static std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
+    inline static uint32_t last_present_start_frame_id = 0;
 
     inline static LowLatencyInput activeInput = LowLatencyInput::None;
     inline static LowLatencyMode activeOutput = LowLatencyMode::None;
@@ -74,6 +75,8 @@ class InputCommon
     get_latency(const InputContext& inputContext, IUnknown* pDev,
                 void* latency_params); // NV_LATENCY_RESULT_PARAMS* for reflex, xell_frame_report_t* for xell,
     static bool get_timing_data(TimingData& timingDataOut);
+    static uint32_t get_last_present_start_frame_id() { return last_present_start_frame_id; };
+
     // passthrough when possible, fillout with local frame_reports if not
 
     // XeLL-specific calls for passthrough, TODO: only allow when caller == activeOutput == activeInput == XeLL

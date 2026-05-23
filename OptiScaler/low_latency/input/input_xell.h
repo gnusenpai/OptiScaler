@@ -11,7 +11,6 @@ class InputXeLL
     {
         uint64_t id;
         ID3D12Device* device;
-        uint32_t lastPresentStartFrameId;
         ID3D12CommandQueue* d3d12AppQueue;
         void* displayInfo;
     };
