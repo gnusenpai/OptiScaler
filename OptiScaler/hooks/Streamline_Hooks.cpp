@@ -1192,6 +1192,15 @@ void* StreamlineHooks::hkreflex_slGetPluginFunction(const char* functionName)
         return &hkslReflexSleep;
     }
 
+    // TODO: Hopefully a game doesn't call both, maybe separate
+    if (strcmp(functionName, "slReflexSetMarker") == 0 &&
+        (State::Instance().gameQuirks & GameQuirk::FixSlSimulationMarkers ||
+         State::Instance().activeFgInput == FGInput::DLSSG))
+    {
+        o_slPCLSetMarker = (decltype(&slPCLSetMarker)) o_reflex_slGetPluginFunction(functionName);
+        return &hkslPCLSetMarker;
+    }
+
     return o_reflex_slGetPluginFunction(functionName);
 }
 
@@ -1204,24 +1213,39 @@ sl::Result StreamlineHooks::hkslPCLSetMarker(sl::PCLMarker marker, const sl::Fra
     // }
 
     // HACK for broken games
-    static uint64_t last_simulation_end_id = 0;
-    if (marker == sl::PCLMarker::eSimulationEnd)
+    if (State::Instance().gameQuirks & GameQuirk::FixSlSimulationMarkers)
     {
-        last_simulation_end_id = frame;
+        static uint64_t last_simulation_end_id = 0;
+        if (marker == sl::PCLMarker::eSimulationEnd)
+        {
+            last_simulation_end_id = frame;
+        }
+
+        if (marker == sl::PCLMarker::eSimulationStart && last_simulation_end_id >= frame && o_slGetNewFrameToken)
+        {
+            const uint64_t correction_offset = last_simulation_end_id - frame + 1;
+            uint32_t newFrameId = static_cast<uint32_t>(frame + correction_offset);
+
+            sl::FrameToken* newFramePointer {};
+            auto result = o_slGetNewFrameToken(newFramePointer, &newFrameId);
+
+            LOG_WARN("Simulation start marker sent after end marker, offset: {}", correction_offset);
+
+            result = o_slPCLSetMarker(marker, *newFramePointer);
+            return result;
+        }
     }
 
-    if (marker == sl::PCLMarker::eSimulationStart && last_simulation_end_id >= frame && o_slGetNewFrameToken)
+    if (State::Instance().activeFgInput == FGInput::DLSSG)
     {
-        const uint64_t correction_offset = last_simulation_end_id - frame + 1;
-        uint32_t newFrameId = static_cast<uint32_t>(frame + correction_offset);
-
-        sl::FrameToken* newFramePointer {};
-        auto result = o_slGetNewFrameToken(newFramePointer, &newFrameId);
-
-        LOG_WARN("Simulation start marker sent after end marker, offset: {}", correction_offset);
-
-        result = o_slPCLSetMarker(marker, *newFramePointer);
-        return result;
+        if (marker == sl::PCLMarker::eRenderSubmitStart)
+        {
+            State::Instance().slFGInputs.evaluateState();
+        }
+        else if (marker == sl::PCLMarker::ePresentStart)
+        {
+            State::Instance().slFGInputs.markPresent(frame);
+        }
     }
 
     return o_slPCLSetMarker(marker, frame);
@@ -1252,7 +1276,9 @@ void* StreamlineHooks::hkpcl_slGetPluginFunction(const char* functionName)
 {
     // LOG_DEBUG("{}", functionName);
 
-    if (strcmp(functionName, "slPCLSetMarker") == 0 && State::Instance().gameQuirks & GameQuirk::FixSlSimulationMarkers)
+    if (strcmp(functionName, "slPCLSetMarker") == 0 &&
+        (State::Instance().gameQuirks & GameQuirk::FixSlSimulationMarkers ||
+         State::Instance().activeFgInput == FGInput::DLSSG))
     {
         o_slPCLSetMarker = (decltype(&slPCLSetMarker)) o_pcl_slGetPluginFunction(functionName);
         return &hkslPCLSetMarker;

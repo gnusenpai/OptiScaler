@@ -143,37 +143,6 @@ InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* 
         return InputResult::InputNotSupported;
     }
 
-    // Could move this to SL hooks
-    if (State::Instance().activeFgInput == FGInput::DLSSG)
-    {
-        if (marker_params.marker_type == MarkerType::RENDERSUBMIT_START)
-        {
-            static ID3D12Device* device12 = nullptr;
-            static IUnknown* lastDevice = nullptr;
-
-            if (pDevice != lastDevice)
-            {
-                lastDevice = pDevice;
-                device12 = nullptr;
-            }
-
-            if (pDevice && !device12)
-            {
-                pDevice->QueryInterface(IID_PPV_ARGS(&device12));
-
-                if (device12)
-                    device12->Release();
-            }
-
-            if (device12)
-                State::Instance().slFGInputs.evaluateState(device12);
-        }
-        else if (marker_params.marker_type == MarkerType::PRESENT_START)
-        {
-            State::Instance().slFGInputs.markPresent(marker_params.frame_id);
-        }
-    }
-
     if (marker_params.marker_type == MarkerType::SIMULATION_START)
         State::Instance().reflexFrameId = marker_params.frame_id;
     else if (marker_params.marker_type == MarkerType::PRESENT_START)
