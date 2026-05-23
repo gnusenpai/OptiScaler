@@ -25,10 +25,15 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
         return true;
     }
 
-    // TODO: Add system for selecting input
-    if (activeInput == LowLatencyInput::Reflex)
+    // TODO: unsure if this is good thing to do, unsupported input can be selected via the config
+    // TODO: add option for totally disabling specific inputs on boot
+    activeInput = Config::Instance()->LowLatencyInput.value_or_default();
+
+    // TODO: for testing
+    Config::Instance()->LowLatencyOutput.set_volatile_value(LowLatencyMode::XeLL);
+
+    if (activeOutput == Config::Instance()->LowLatencyOutput.value_or_default())
         return true;
-    activeInput = LowLatencyInput::Reflex;
 
     // TODO: init correct currently_active_tech, desiredMode == None -> Auto
     auto new_tech_xell = std::make_shared<XeLL>();
@@ -113,6 +118,10 @@ InputResult InputCommon::sleep(const InputContext& inputContext, IUnknown* pDevi
     if (!update_low_latency_tech(pDevice))
         return InputResult::LowLatencyUpdateFail;
 
+    // Ignore context that Opti creates
+    if (!inputContext.localContext)
+        set_input_avaliable(inputContext.caller);
+
     if (inputContext.caller != activeInput)
         return InputResult::UsingDifferentInput;
 
@@ -129,6 +138,10 @@ InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* 
 {
     if (!update_low_latency_tech(pDevice))
         return InputResult::LowLatencyUpdateFail;
+
+    // Ignore context that Opti creates
+    if (!inputContext.localContext)
+        set_input_avaliable(inputContext.caller);
 
     if (inputContext.caller != activeInput)
         return InputResult::UsingDifferentInput;

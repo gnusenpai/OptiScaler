@@ -29,7 +29,7 @@ xell_result_t InputXeLL::SetSleepMode(xell_input_handle_t context, const xell_sl
 
     auto result = InputCommon::set_sleep_mode(context->inputContext, context->device, &sleepMode);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return XELL_RESULT_SUCCESS;
     else
         LOG_ERROR("set_sleep_mode result: {}", magic_enum::enum_name(result));
@@ -54,7 +54,7 @@ xell_result_t InputXeLL::GetSleepMode(xell_input_handle_t context, xell_sleep_pa
 
     auto result = InputCommon::get_sleep_status(context->inputContext, context->device, &sleepParams);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
     {
         param->bLowLatencyMode = sleepParams.low_latency_enabled;
         param->bLowLatencyBoost = sleepParams.low_latency_boost;
@@ -80,7 +80,7 @@ xell_result_t InputXeLL::Sleep(xell_input_handle_t context, uint32_t frame_id)
 
     auto result = InputCommon::sleep(context->inputContext, context->device, frame_id);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return XELL_RESULT_SUCCESS;
     else
         LOG_ERROR("sleep result: {}", magic_enum::enum_name(result));
@@ -108,7 +108,7 @@ xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t fra
 
         auto result = InputCommon::set_async_marker(context->inputContext, context->d3d12AppQueue, markerParams);
 
-        if (result == InputResult::Ok)
+        if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
             return XELL_RESULT_SUCCESS;
         else
             LOG_ERROR("set_async_marker result: {}", magic_enum::enum_name(result));
@@ -122,7 +122,7 @@ xell_result_t InputXeLL::AddMarkerData(xell_input_handle_t context, uint32_t fra
 
     auto result = InputCommon::set_marker(context->inputContext, context->device, markerParams);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return XELL_RESULT_SUCCESS;
     else
         LOG_ERROR("set_marker result: {}", magic_enum::enum_name(result));
@@ -161,7 +161,7 @@ xell_result_t InputXeLL::GetFramesReports(xell_input_handle_t context, xell_fram
 
     auto result = InputCommon::get_latency(context->inputContext, context->device, outdata);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return XELL_RESULT_SUCCESS;
     else
         LOG_ERROR("get_latency result: {}", magic_enum::enum_name(result));

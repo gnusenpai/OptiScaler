@@ -2,14 +2,6 @@
 #include <low_latency/low_latency_tech/low_latency_tech.h>
 #include <xell.h>
 
-enum class LowLatencyInput
-{
-    None,
-    AntiLag2,
-    Reflex,
-    XeLL
-};
-
 enum class InputMarkerMode
 {
     NoMarkers,
@@ -52,12 +44,14 @@ class InputCommon
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
     inline static uint32_t last_present_start_frame_id = 0;
 
+    inline static flag_set<LowLatencyInput> avaliableInputs {};
     inline static LowLatencyInput activeInput = LowLatencyInput::None;
     inline static LowLatencyMode activeOutput = LowLatencyMode::None;
     inline static bool enabled = false;
 
     static bool update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode = std::nullopt);
     static void add_marker_to_report(const MarkerParams& marker_params);
+    static void set_input_avaliable(LowLatencyInput input) { avaliableInputs.set(input); };
 
   public:
     static InputResult set_low_latency_tech(IUnknown* pDevice, LowLatencyMode mode);
@@ -76,6 +70,7 @@ class InputCommon
                 void* latency_params); // NV_LATENCY_RESULT_PARAMS* for reflex, xell_frame_report_t* for xell,
     static bool get_timing_data(TimingData& timingDataOut);
     static uint32_t get_last_present_start_frame_id() { return last_present_start_frame_id; };
+    static flag_set<LowLatencyInput> get_avaliable_inputs() { return avaliableInputs; };
 
     // passthrough when possible, fillout with local frame_reports if not
 

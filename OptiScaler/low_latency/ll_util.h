@@ -16,16 +16,6 @@
     }
 #endif
 
-enum class LowLatencyMode
-{
-    None,
-    LatencyFlex,
-    AntiLag2,
-    XeLL,
-    AntiLagVk,
-    Reflex
-};
-
 #define FRAME_REPORTS_BUFFER_SIZE 70
 #define NVAPI_BUFFER_SIZE 64
 

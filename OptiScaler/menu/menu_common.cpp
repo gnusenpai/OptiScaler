@@ -5155,6 +5155,51 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::SeparatorText("fakenvapi");
 
+                    if (ImGui::BeginTable("lowLatencySelection", 2, ImGuiTableFlags_SizingStretchSame))
+                    {
+                        ImGui::TableNextColumn();
+
+                        auto avalibleInputs = InputCommon::get_avaliable_inputs();
+                        static std::vector<MenuOption<LowLatencyInput>> lowLatencyInput = {
+                            { LowLatencyInput::None, "None (Off)" },
+                            { LowLatencyInput::AntiLag2, "AntiLag 2" },
+                            { LowLatencyInput::Reflex, "Reflex" },
+                            { LowLatencyInput::XeLL, "XeLL" },
+                        };
+
+                        lowLatencyInput[(uint32_t) LowLatencyInput::AntiLag2].set_disabled(
+                            !avalibleInputs[LowLatencyInput::AntiLag2]);
+                        lowLatencyInput[(uint32_t) LowLatencyInput::Reflex].set_disabled(
+                            !avalibleInputs[LowLatencyInput::Reflex]);
+                        lowLatencyInput[(uint32_t) LowLatencyInput::XeLL].set_disabled(
+                            !avalibleInputs[LowLatencyInput::XeLL]);
+
+                        // need to have a value before combo
+                        if (!config->LowLatencyInput.has_value())
+                            config->LowLatencyInput = config->LowLatencyInput.value_or_default();
+
+                        PopulateCombo("Input", config->LowLatencyInput, lowLatencyInput);
+
+                        ImGui::TableNextColumn();
+
+                        static std::vector<MenuOption<LowLatencyMode>> lowLatencyOutput = {
+                            { LowLatencyMode::None, "None (Off)" },      { LowLatencyMode::LatencyFlex, "LatencyFlex" },
+                            { LowLatencyMode::AntiLag2, "AntiLag 2" },   { LowLatencyMode::XeLL, "XeLL" },
+                            { LowLatencyMode::AntiLagVk, "AntiLag Vk" }, { LowLatencyMode::Reflex, "Reflex" },
+                        };
+
+                        lowLatencyOutput[(uint32_t) LowLatencyMode::AntiLagVk].set_disabled(true, "No support");
+                        lowLatencyOutput[(uint32_t) LowLatencyMode::Reflex].set_disabled(true, "No support");
+
+                        // need to have a value before combo
+                        if (!config->LowLatencyOutput.has_value())
+                            config->LowLatencyOutput = config->LowLatencyOutput.value_or_default();
+
+                        PopulateCombo("Output", config->LowLatencyOutput, lowLatencyOutput);
+
+                        ImGui::EndTable();
+                    }
+
                     ImGui::BeginDisabled(state.activeFgOutput == FGOutput::XeFG ||
                                          state.activeFgInput == FGInput::ForceXeLL);
                     if (bool forceLFX = config->FN_ForceLatencyFlex.value_or_default();

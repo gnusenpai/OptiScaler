@@ -15,7 +15,7 @@ NvAPI_Status InputReflex::D3D_SetSleepMode(IUnknown* pDev, NV_SET_SLEEP_MODE_PAR
 
     auto result = InputCommon::set_sleep_mode(inputContext, pDev, &sleepMode);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return NVAPI_OK;
     else
         LOG_ERROR("set_sleep_mode result: {}", magic_enum::enum_name(result));
@@ -32,7 +32,7 @@ NvAPI_Status InputReflex::D3D_GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STA
 
     auto result = InputCommon::get_sleep_status(inputContext, pDevice, &sleepParams);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
     {
         pGetSleepStatusParams->bLowLatencyMode = sleepParams.low_latency_enabled;
         pGetSleepStatusParams->bFsVrr = sleepParams.fullscreen_vrr;
@@ -59,7 +59,7 @@ NvAPI_Status InputReflex::D3D_Sleep(IUnknown* pDev)
 
     auto result = InputCommon::sleep(inputContext, pDev);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return NVAPI_OK;
     else
         LOG_ERROR("sleep result: {}", magic_enum::enum_name(result));
@@ -74,7 +74,7 @@ NvAPI_Status InputReflex::D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAM
 
     auto result = InputCommon::get_latency(inputContext, pDev, pGetLatencyParams);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return NVAPI_OK;
     else
         LOG_ERROR("get_latency result: {}", magic_enum::enum_name(result));
@@ -94,7 +94,7 @@ NvAPI_Status InputReflex::D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER
 
     auto result = InputCommon::set_marker(inputContext, pDev, markerParams);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return NVAPI_OK;
     else
         LOG_ERROR("set_marker result: {}", magic_enum::enum_name(result));
@@ -115,7 +115,7 @@ NvAPI_Status InputReflex::D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommand
 
     auto result = InputCommon::set_async_marker(inputContext, pCommandQueue, markerParams);
 
-    if (result == InputResult::Ok)
+    if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return NVAPI_OK;
     else
         LOG_ERROR("set_async_marker result: {}", magic_enum::enum_name(result));
