@@ -392,7 +392,7 @@ class Config
     CustomOptional<bool> RestoreGraphicSignature { false };
     CustomOptional<bool> ExtendedStateRestore { false };
 
-    CustomOptional<bool> UsePrecompiledShaders { false };
+    CustomOptional<bool> UsePrecompiledShaders { true };
 
     CustomOptional<bool> UseGenericAppIdWithDlss { false };
     CustomOptional<bool> PreferDedicatedGpu { true };
