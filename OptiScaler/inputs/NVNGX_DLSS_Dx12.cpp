@@ -155,7 +155,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
@@ -234,7 +236,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init(unsigned long long InApplica
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
@@ -291,7 +295,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_ProjectID(const char* InProj
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);

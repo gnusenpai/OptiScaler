@@ -147,7 +147,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext2(
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
@@ -284,7 +286,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext(unsigned long long InAp
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
@@ -327,7 +331,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_ProjectID_Ext(
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
@@ -375,7 +381,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init(unsigned long long InApplic
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
@@ -418,7 +426,9 @@ NVSDK_NGX_VULKAN_Init_ProjectID(const char* InProjectId, NVSDK_NGX_EngineType In
     LOG_FUNC();
 
     NVSDK_NGX_FeatureCommonInfo localFeatureInfo = {};
-    std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
+
+    if (InFeatureInfo != nullptr)
+        std::memcpy(&localFeatureInfo, InFeatureInfo, sizeof(NVSDK_NGX_FeatureCommonInfo));
 
     if (!_skipInit)
         UpdateInitPaths(&localFeatureInfo);
