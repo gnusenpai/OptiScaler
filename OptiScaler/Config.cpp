@@ -590,6 +590,7 @@ bool Config::Reload(std::filesystem::path iniPath)
         {
             CheckForUpdate.set_from_config(readBool("Hotfix", "CheckForUpdate"));
             DisableOverlays.set_from_config(readBool("Hotfix", "DisableOverlays"));
+            ManualInputPolling.set_from_config(readBool("Hotfix", "ManualInputPolling"));
 
             SimulateWaitableObject.set_from_config(readBool("Hotfix", "SimulateWaitableObject"));
 
@@ -1282,6 +1283,8 @@ bool Config::SaveIni()
         ini.SetValue("Hotfix", "SimulateWaitableObject",
                      GetBoolValue(Instance()->SimulateWaitableObject.value_for_config()).c_str());
         ini.SetValue("Hotfix", "DisableOverlays", GetBoolValue(Instance()->DisableOverlays.value_for_config()).c_str());
+        ini.SetValue("Hotfix", "ManualInputPolling",
+                     GetBoolValue(Instance()->ManualInputPolling.value_for_config()).c_str());
 
         ini.SetValue("Hotfix", "RoundInternalResolution",
                      GetIntValue(Instance()->RoundInternalResolution.value_for_config()).c_str());
