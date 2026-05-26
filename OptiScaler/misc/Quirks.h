@@ -60,6 +60,7 @@ enum class GameQuirk : uint64_t
     ForceCreateD3D12Device,
     ForceDepthD32S8,
     PregmataFixDLSSModes,
+    RestoreDescriptorHeapsWithSigs,
     // Don't forget to add the new entry to printQuirks
     _
 };
@@ -210,6 +211,11 @@ static const QuirkEntry quirkTable[] = {
     // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::HitmanReflexHacks,
                 GameQuirk::DisableFSR2Inputs),
+
+    // 007 First Light
+    // SL spoof enough to unlock everything DLSS, RestoreCompute like Crapcom
+    QUIRK_ENTRY("007firstlight.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::RestoreComputeSigOnNonNvidia,
+                GameQuirk::RestoreComputeSigOnNvidia, GameQuirk::RestoreDescriptorHeapsWithSigs),
 
     // ELDEN RING (for ERSS mod) and ER NIGHTREIGN (for NRSS mod)
     // no spoof needed for DLSS inputs
