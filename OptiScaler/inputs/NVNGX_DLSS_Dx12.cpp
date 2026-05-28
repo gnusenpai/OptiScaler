@@ -719,7 +719,7 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     if (shouldRestore)
     {
         if (restoreCompute)
-            D3D12Hooks::RestoreComputeRootSignature(InCmdList);
+            D3D12Hooks::RestoreComputeRoot(InCmdList);
 
         if (restoreGraphic)
             D3D12Hooks::RestoreGraphicsRootSignature(InCmdList);
@@ -1083,7 +1083,7 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     if (shouldRestore)
     {
         if (restoreCompute)
-            D3D12Hooks::RestoreComputeRootSignature(InCmdList);
+            D3D12Hooks::RestoreComputeRoot(InCmdList);
 
         if (restoreGraphic)
             D3D12Hooks::RestoreGraphicsRootSignature(InCmdList);

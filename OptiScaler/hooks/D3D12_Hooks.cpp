@@ -109,7 +109,7 @@ enum class ComputeRootType
 
 struct RootState
 {
-    ComputeRootType type;
+    ComputeRootType type = ComputeRootType::Invalid;
 
     // Table
     D3D12_GPU_DESCRIPTOR_HANDLE computeRootDescriptorTable;
@@ -124,11 +124,11 @@ static ankerl::unordered_dense::map<ID3D12GraphicsCommandList*, ID3D12RootSignat
 static ankerl::unordered_dense::map<ID3D12GraphicsCommandList*, ID3D12RootSignature*> graphicSignatures;
 static ankerl::unordered_dense::map<ID3D12GraphicsCommandList*, DescriptorHeap> descriptorHeaps;
 static ankerl::unordered_dense::map<ID3D12GraphicsCommandList*, ID3D12PipelineState*> pipelineStates;
-
 static ankerl::unordered_dense::map<ID3D12GraphicsCommandList*, std::vector<RootState>> rootStates;
-
 static ankerl::unordered_dense::map<ID3D12RootSignature*, UINT> rootSigParameterCount;
+
 static bool isUpscalerActive = false;
+
 static std::shared_mutex computeSigatureMutex;
 static std::shared_mutex graphSigatureMutex;
 static std::shared_mutex descriptorHeapsMutex;
@@ -329,11 +329,8 @@ static void hkSetComputeRootSignature(ID3D12GraphicsCommandList* commandList, ID
     {
         {
             std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
-            if (rootStates.contains(commandList))
-            {
-                auto& table = rootStates[commandList];
-                table.resize(GetRootParameterCount(pRootSignature));
-            }
+            auto& table = rootStates[commandList];
+            table.resize(GetRootParameterCount(pRootSignature));
         }
 
         std::unique_lock<std::shared_mutex> lock(computeSigatureMutex);
@@ -383,7 +380,7 @@ static void hkSetComputeRootDescriptorTable(ID3D12GraphicsCommandList* commandLi
     {
         std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
         auto& table = rootStates[commandList];
-        if (table.size() > 0)
+        if (RootParameterIndex < table.size())
         {
             table[RootParameterIndex].type = ComputeRootType::Table;
             table[RootParameterIndex].computeRootDescriptorTable = BaseDescriptor;
@@ -401,7 +398,7 @@ static void hkSetComputeRoot32BitConstants(ID3D12GraphicsCommandList* commandLis
     {
         std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
         auto& table = rootStates[commandList];
-        if (table.size() > 0)
+        if (RootParameterIndex < table.size())
         {
             table[RootParameterIndex].type = ComputeRootType::Constants;
             table[RootParameterIndex].Num32BitValues = Num32BitValuesToSet;
@@ -419,11 +416,11 @@ VALIDATE_HOOK(hkSetComputeRoot32BitConstant, PFN_SetComputeRoot32BitConstant)
 static void hkSetComputeRoot32BitConstant(ID3D12GraphicsCommandList* commandList, UINT RootParameterIndex, UINT SrcData,
                                           UINT DestOffsetIn32BitValues)
 {
-    if (!hookedLate && !isUpscalerActive && commandList != nullptr && SrcData)
+    if (!hookedLate && !isUpscalerActive && commandList != nullptr)
     {
         std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
         auto& table = rootStates[commandList];
-        if (table.size() > 0)
+        if (RootParameterIndex < table.size())
         {
             table[RootParameterIndex].type = ComputeRootType::Constant;
             table[RootParameterIndex].DestOffset = DestOffsetIn32BitValues;
@@ -455,11 +452,8 @@ static void hkSetComputeRootSignatureLate(ID3D12GraphicsCommandList* commandList
     {
         {
             std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
-            if (rootStates.contains(commandList))
-            {
-                auto& table = rootStates[commandList];
-                table.resize(GetRootParameterCount(pRootSignature));
-            }
+            auto& table = rootStates[commandList];
+            table.resize(GetRootParameterCount(pRootSignature));
         }
 
         std::unique_lock<std::shared_mutex> lock(computeSigatureMutex);
@@ -509,7 +503,7 @@ static void hkSetComputeRootDescriptorTableLate(ID3D12GraphicsCommandList* comma
     {
         std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
         auto& table = rootStates[commandList];
-        if (table.size() > 0)
+        if (RootParameterIndex < table.size())
         {
             table[RootParameterIndex].type = ComputeRootType::Table;
             table[RootParameterIndex].computeRootDescriptorTable = BaseDescriptor;
@@ -528,7 +522,7 @@ static void hkSetComputeRoot32BitConstantsLate(ID3D12GraphicsCommandList* comman
     {
         std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
         auto& table = rootStates[commandList];
-        if (table.size() > 0)
+        if (RootParameterIndex < table.size())
         {
             table[RootParameterIndex].type = ComputeRootType::Constants;
             table[RootParameterIndex].Num32BitValues = Num32BitValuesToSet;
@@ -546,11 +540,11 @@ VALIDATE_HOOK(hkSetComputeRoot32BitConstantLate, PFN_SetComputeRoot32BitConstant
 static void hkSetComputeRoot32BitConstantLate(ID3D12GraphicsCommandList* commandList, UINT RootParameterIndex,
                                               UINT SrcData, UINT DestOffsetIn32BitValues)
 {
-    if (!isUpscalerActive && commandList != nullptr && SrcData)
+    if (!isUpscalerActive && commandList != nullptr)
     {
         std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
         auto& table = rootStates[commandList];
-        if (table.size() > 0)
+        if (RootParameterIndex < table.size())
         {
             table[RootParameterIndex].type = ComputeRootType::Constant;
             table[RootParameterIndex].DestOffset = DestOffsetIn32BitValues;
@@ -1685,6 +1679,7 @@ void D3D12Hooks::SetRootSignatureTracking(bool enable) { isUpscalerActive = !ena
 
 bool D3D12Hooks::CanRestoreComputeRootSignature(ID3D12GraphicsCommandList* cmdList)
 {
+    std::unique_lock<std::shared_mutex> lock(computeSigatureMutex);
     return computeSignatures.contains(cmdList);
 }
 
@@ -1693,31 +1688,35 @@ bool D3D12Hooks::CanRestoreGraphicsRootSignature(ID3D12GraphicsCommandList* cmdL
     return graphicSignatures.contains(cmdList);
 }
 
-void D3D12Hooks::RestoreDescriptorHeaps(ID3D12GraphicsCommandList* cmdList)
+bool D3D12Hooks::RestoreDescriptorHeaps(ID3D12GraphicsCommandList* cmdList)
 {
+    std::unique_lock<std::shared_mutex> lock(descriptorHeapsMutex);
     if (descriptorHeaps.contains(cmdList))
     {
         auto& heaps = descriptorHeaps[cmdList];
 
         if (heaps.NumDescriptorHeaps > 0 && heaps.Heaps[0] != nullptr)
         {
-            LOG_TRACE("Restore DescriptorHeaps: {:X}, for CmdList: {:X}", (UINT64) heaps.Heaps[0], (UINT64) cmdList);
             if (o_SetDescriptorHeapsLate)
                 o_SetDescriptorHeapsLate(cmdList, heaps.NumDescriptorHeaps, heaps.Heaps);
             else if (o_SetDescriptorHeaps)
                 o_SetDescriptorHeaps(cmdList, heaps.NumDescriptorHeaps, heaps.Heaps);
             else
+            {
                 LOG_ERROR("Couldn't restore DescriptorHeaps, no original SetDescriptorHeaps");
+                return false;
+            }
         }
+
+        return true;
     }
-    else
-    {
-        LOG_TRACE("Can't restore DescriptorHeaps for CmdList: {:X}", (UINT64) cmdList);
-    }
+
+    return false;
 }
 
-void D3D12Hooks::RestorePipelineState(ID3D12GraphicsCommandList* cmdList)
+bool D3D12Hooks::RestorePipelineState(ID3D12GraphicsCommandList* cmdList)
 {
+    std::unique_lock<std::shared_mutex> lock(pipelineStatesMutex);
     if (pipelineStates.contains(cmdList))
     {
         auto& pipelineState = pipelineStates[cmdList];
@@ -1727,16 +1726,20 @@ void D3D12Hooks::RestorePipelineState(ID3D12GraphicsCommandList* cmdList)
         else if (o_SetPipelineState)
             o_SetPipelineState(cmdList, pipelineState);
         else
+        {
             LOG_ERROR("Couldn't restore PipelineState, no original SetPipelineState");
+            return false;
+        }
+
+        return true;
     }
-    else
-    {
-        LOG_TRACE("Can't restore PipelineState for CmdList: {:X}", (UINT64) cmdList);
-    }
+
+    return false;
 }
 
-void D3D12Hooks::RestoreComputeRoot(ID3D12GraphicsCommandList* cmdList)
+bool D3D12Hooks::RestoreComputeRootState(ID3D12GraphicsCommandList* cmdList)
 {
+    std::unique_lock<std::shared_mutex> lock(rootStatesMutex);
     if (rootStates.contains(cmdList))
     {
         auto& table = rootStates[cmdList];
@@ -1783,38 +1786,65 @@ void D3D12Hooks::RestoreComputeRoot(ID3D12GraphicsCommandList* cmdList)
                 LOG_WARN("Can't restore index: {} for CmdList: {:X}", i, (UINT64) cmdList);
             }
         }
+
+        return true;
     }
-    else
-    {
-        LOG_TRACE("Can't restore ComputeRoot for CmdList: {:X}", (UINT64) cmdList);
-    }
+
+    return false;
 }
 
 void D3D12Hooks::RestoreComputeRootSignature(ID3D12GraphicsCommandList* cmdList)
 {
-    if (Config::Instance()->RestoreComputeSignature.value_or_default() && computeSignatures.contains(cmdList))
+    // Checks are done by RestoreComputeRoot
+    auto signature = computeSignatures[cmdList];
+    LOG_TRACE("Restore ComputeRootSig: {:X}, for CmdList: {:X}", (UINT64) signature, (UINT64) cmdList);
+
+    if (o_SetComputeRootSignatureLate)
+        o_SetComputeRootSignatureLate(cmdList, signature);
+    else if (o_SetComputeRootSignature)
+        o_SetComputeRootSignature(cmdList, signature);
+    else
+        LOG_ERROR("Couldn't restore ComputeRootSignature, no original SetComputeRootSignature");
+}
+
+void D3D12Hooks::RestoreComputeRoot(ID3D12GraphicsCommandList* cmdList)
+{
+    if (Config::Instance()->RestoreComputeSignature.value_or_default())
     {
-        const bool extendedRestoreSignature = Config::Instance()->ExtendedStateRestore.value_or_default();
-
-        if (extendedRestoreSignature)
-            RestoreDescriptorHeaps(cmdList);
-
-        auto signature = computeSignatures[cmdList];
-        LOG_TRACE("Restore ComputeRootSig: {:X}, for CmdList: {:X}", (UINT64) signature, (UINT64) cmdList);
-        if (o_SetComputeRootSignatureLate)
-            o_SetComputeRootSignatureLate(cmdList, signature);
-        else
-            o_SetComputeRootSignature(cmdList, signature);
-
-        if (extendedRestoreSignature)
+        // Restoring root signature is the most important and a key element
+        // Don't restore anything if we can't restore that
+        std::unique_lock<std::shared_mutex> lock(computeSigatureMutex);
+        if (computeSignatures.contains(cmdList))
         {
-            RestoreComputeRoot(cmdList);
-            RestorePipelineState(cmdList);
+            const bool extendedRestoreSignature = Config::Instance()->ExtendedStateRestore.value_or_default();
+
+            if (extendedRestoreSignature)
+            {
+                if (RestoreDescriptorHeaps(cmdList))
+                    LOG_TRACE("Restored DescriptorHeaps for CmdList: {:X}", (UINT64) cmdList);
+                else
+                    LOG_WARN("Can't restore DescriptorHeaps for CmdList: {:X}", (UINT64) cmdList);
+            }
+
+            RestoreComputeRootSignature(cmdList);
+
+            if (extendedRestoreSignature)
+            {
+                if (RestoreComputeRootState(cmdList))
+                    LOG_TRACE("Restored ComputeRootState for CmdList: {:X}", (UINT64) cmdList);
+                else
+                    LOG_WARN("Can't restore ComputeRootState for CmdList: {:X}", (UINT64) cmdList);
+
+                if (RestorePipelineState(cmdList))
+                    LOG_TRACE("Restored PipelineState for CmdList: {:X}", (UINT64) cmdList);
+                else
+                    LOG_TRACE("Can't restore PipelineState for CmdList: {:X}", (UINT64) cmdList);
+            }
         }
-    }
-    else if (Config::Instance()->RestoreComputeSignature.value_or_default())
-    {
-        LOG_TRACE("Can't restore ComputeRootSig for CmdList: {:X}", (UINT64) cmdList);
+        else
+        {
+            LOG_TRACE("Can't restore ComputeRootSig for CmdList: {:X}", (UINT64) cmdList);
+        }
     }
 }
 
@@ -1835,7 +1865,12 @@ void D3D12Hooks::RestoreGraphicsRootSignature(ID3D12GraphicsCommandList* cmdList
             o_SetGraphicsRootSignature(cmdList, signature);
 
         if (extendedRestoreSignature)
-            RestorePipelineState(cmdList);
+        {
+            if (RestorePipelineState(cmdList))
+                LOG_TRACE("Restored PipelineState for CmdList: {:X}", (UINT64) cmdList);
+            else
+                LOG_TRACE("Can't restore PipelineState for CmdList: {:X}", (UINT64) cmdList);
+        }
     }
     else if (Config::Instance()->RestoreGraphicSignature.value_or_default())
     {
