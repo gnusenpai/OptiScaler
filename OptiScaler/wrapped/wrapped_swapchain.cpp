@@ -360,14 +360,17 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
     else
         presentResult = ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
 
-    LOG_DEBUG("Original present result: {:X}", (UINT) presentResult);
-
     if (presentResult == S_OK)
-        LOG_TRACE("4 {}, Present result: {:X}", _frameCounter, (UINT) presentResult);
+    {
+        LOG_DEBUG("Original present result: {:X}", (UINT) presentResult);
+    }
     else
-        LOG_ERROR("4 {:X}", (UINT) presentResult);
+    {
+        LOG_ERROR("Original present result: {:X}", (UINT) presentResult);
 
-    LOG_DEBUG("Done");
+        if (presentResult == DXGI_ERROR_DEVICE_REMOVED && State::Instance().currentD3D12Device != nullptr)
+            Util::GetDeviceRemovedReason(State::Instance().currentD3D12Device);
+    }
 
     return presentResult;
 }
@@ -812,6 +815,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
         result = _real->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
     }
 
+    if (result == DXGI_ERROR_DEVICE_REMOVED && State::Instance().currentD3D12Device != nullptr)
+        Util::GetDeviceRemovedReason(State::Instance().currentD3D12Device);
+
 #ifdef DXGI_DEBUG_ENABLED
     if (result != S_OK)
         ReadDxgiInfoQueue();
@@ -1211,6 +1217,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
                                             ppPresentQueue);
         }
     }
+
+    if (result == DXGI_ERROR_DEVICE_REMOVED && State::Instance().currentD3D12Device != nullptr)
+        Util::GetDeviceRemovedReason(State::Instance().currentD3D12Device);
 
 #ifdef DXGI_DEBUG_ENABLED
     if (result != S_OK)
