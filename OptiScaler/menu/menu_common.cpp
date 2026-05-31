@@ -488,7 +488,25 @@ void MenuCommon::AttachHooks()
     if (pfn_SendMessageW)
         pfn_SendMessageW_hooked = (DetourAttach(&(PVOID&) pfn_SendMessageW, hkSendMessageW) == 0);
 
-    DetourTransactionCommit();
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("DetourTransactionCommit failed: {:X}", detourResult);
+
+        pfn_SetPhysicalCursorPos = nullptr;
+        pfn_SetCursorPos = nullptr;
+        pfn_ClipCursor = nullptr;
+        pfn_mouse_event = nullptr;
+        pfn_SendInput = nullptr;
+        pfn_SendMessageW = nullptr;
+
+        pfn_SetPhysicalCursorPos_hooked = false;
+        pfn_SetCursorPos_hooked = false;
+        pfn_ClipCursor_hooked = false;
+        pfn_mouse_event_hooked = false;
+        pfn_SendInput_hooked = false;
+        pfn_SendMessageW_hooked = false;
+    }
 }
 
 void MenuCommon::DetachHooks()
@@ -514,19 +532,27 @@ void MenuCommon::DetachHooks()
     if (pfn_SendMessageW_hooked)
         DetourDetach(&(PVOID&) pfn_SendMessageW, hkSendMessageW);
 
-    pfn_SetPhysicalCursorPos_hooked = false;
-    pfn_SetCursorPos_hooked = false;
-    pfn_mouse_event_hooked = false;
-    pfn_SendInput_hooked = false;
-    pfn_SendMessageW_hooked = false;
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("DetourTransactionCommit failed: {:X}", detourResult);
+    }
+    else
+    {
+        pfn_SetPhysicalCursorPos_hooked = false;
+        pfn_SetCursorPos_hooked = false;
+        pfn_ClipCursor_hooked = false;
+        pfn_mouse_event_hooked = false;
+        pfn_SendInput_hooked = false;
+        pfn_SendMessageW_hooked = false;
 
-    pfn_SetPhysicalCursorPos = nullptr;
-    pfn_SetCursorPos = nullptr;
-    pfn_mouse_event = nullptr;
-    pfn_SendInput = nullptr;
-    pfn_SendMessageW = nullptr;
-
-    DetourTransactionCommit();
+        pfn_SetPhysicalCursorPos = nullptr;
+        pfn_SetCursorPos = nullptr;
+        pfn_ClipCursor = nullptr;
+        pfn_mouse_event = nullptr;
+        pfn_SendInput = nullptr;
+        pfn_SendMessageW = nullptr;
+    }
 }
 
 ImGuiKey MenuCommon::ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam)
@@ -1905,6 +1931,9 @@ bool MenuCommon::RenderMenu()
 {
     if (!_isInited)
         return false;
+
+    if (!pfn_SetCursorPos_hooked)
+        AttachHooks();
 
     auto& state = State::Instance();
     auto config = Config::Instance();
@@ -7710,9 +7739,6 @@ void MenuCommon::Init(HWND InHwnd, bool isUWP)
 
         inputManual = true;
     }
-
-    if (!pfn_SetCursorPos_hooked)
-        AttachHooks();
 
     ApplyThemeStyle();
     _isInited = true;

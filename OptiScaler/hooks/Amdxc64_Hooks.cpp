@@ -97,7 +97,13 @@ void Amdxc64Hooks::Init()
             DetourTransactionBegin();
             DetourUpdateThread(GetCurrentThread());
             DetourAttach(&(PVOID&) o_AmdExtD3DCreateInterface, hkAmdExtD3DCreateInterface);
-            DetourTransactionCommit();
+
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                o_AmdExtD3DCreateInterface = nullptr;
+            }
         }
     }
     else

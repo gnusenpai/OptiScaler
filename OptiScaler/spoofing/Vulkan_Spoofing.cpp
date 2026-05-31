@@ -949,7 +949,14 @@ void VulkanSpoofing::HookForVulkanSpoofing(HMODULE vulkanModule)
             if (o_vkGetPhysicalDeviceProperties2KHR)
                 DetourAttach(&(PVOID&) o_vkGetPhysicalDeviceProperties2KHR, hkvkGetPhysicalDeviceProperties2KHR);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach Vulkan device spoofing hooks: {:X}", detourResult);
+                o_vkGetPhysicalDeviceProperties = nullptr;
+                o_vkGetPhysicalDeviceProperties2 = nullptr;
+                o_vkGetPhysicalDeviceProperties2KHR = nullptr;
+            }
         }
     }
 }
@@ -983,7 +990,13 @@ void VulkanSpoofing::HookForVulkanExtensionSpoofing(HMODULE vulkanModule)
             if (o_vkEnumerateDeviceExtensionProperties)
                 DetourAttach(&(PVOID&) o_vkEnumerateDeviceExtensionProperties, hkvkEnumerateDeviceExtensionProperties);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach Vulkan extensions spoofing hooks: {:X}", detourResult);
+                o_vkEnumerateInstanceExtensionProperties = nullptr;
+                o_vkEnumerateDeviceExtensionProperties = nullptr;
+            }
         }
     }
 }
@@ -1021,7 +1034,14 @@ void VulkanSpoofing::HookForVulkanVRAMSpoofing(HMODULE vulkanModule)
                 DetourAttach(&(PVOID&) o_vkGetPhysicalDeviceMemoryProperties2KHR,
                              hkvkGetPhysicalDeviceMemoryProperties2KHR);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach Vulkan VRAM spoofing hooks: {:X}", detourResult);
+                o_vkGetPhysicalDeviceMemoryProperties = nullptr;
+                o_vkGetPhysicalDeviceMemoryProperties2 = nullptr;
+                o_vkGetPhysicalDeviceMemoryProperties2KHR = nullptr;
+            }
         }
     }
 }

@@ -321,14 +321,25 @@ class FfxApiProxy
             if (main_dx12_hooked.Query != nullptr)
                 DetourAttach(&(PVOID&) main_dx12_hooked.Query, ffxQuery_Dx12);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("DetourTransactionCommit result: {:X}", detourResult);
+                main_dx12_hooked.Configure = nullptr;
+                main_dx12_hooked.CreateContext = nullptr;
+                main_dx12_hooked.DestroyContext = nullptr;
+                main_dx12_hooked.Dispatch = nullptr;
+                main_dx12_hooked.Query = nullptr;
+            }
+            else
+            {
+                // If we are hooking Opti's dlls then we need to use original method ptrs
+                if (main_dx12_hooked.dll == main_dx12.dll)
+                    main_dx12 = main_dx12_hooked;
 
-            // If we are hooking Opti's dlls then we need to use original method ptrs
-            if (main_dx12_hooked.dll == main_dx12.dll)
-                main_dx12 = main_dx12_hooked;
-
-            main_dx12_hooked.hooked = true;
-            State::Instance().fsrHooks = true;
+                main_dx12_hooked.hooked = true;
+                State::Instance().fsrHooks = true;
+            }
         }
 
         InitFfxDx12_SR();
@@ -462,13 +473,24 @@ class FfxApiProxy
             if (upscaling_dx12_hooked.Query != nullptr)
                 DetourAttach(&(PVOID&) upscaling_dx12_hooked.Query, ffxQuery_Dx12);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("DetourTransactionCommit result: {:X}", detourResult);
+                upscaling_dx12_hooked.Configure = nullptr;
+                upscaling_dx12_hooked.CreateContext = nullptr;
+                upscaling_dx12_hooked.DestroyContext = nullptr;
+                upscaling_dx12_hooked.Dispatch = nullptr;
+                upscaling_dx12_hooked.Query = nullptr;
+            }
+            else
+            {
+                if (upscaling_dx12.dll == upscaling_dx12_hooked.dll)
+                    upscaling_dx12 = upscaling_dx12_hooked;
 
-            if (upscaling_dx12.dll == upscaling_dx12_hooked.dll)
-                upscaling_dx12 = upscaling_dx12_hooked;
-
-            upscaling_dx12_hooked.hooked = true;
-            State::Instance().fsrHooks = true;
+                upscaling_dx12_hooked.hooked = true;
+                State::Instance().fsrHooks = true;
+            }
         }
 
         bool loadResult = upscaling_dx12.CreateContext != nullptr;
@@ -589,13 +611,24 @@ class FfxApiProxy
             if (fg_dx12_hooked.Query != nullptr)
                 DetourAttach(&(PVOID&) fg_dx12_hooked.Query, ffxQuery_Dx12);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("DetourTransactionCommit result: {:X}", detourResult);
+                fg_dx12.Configure = nullptr;
+                fg_dx12.CreateContext = nullptr;
+                fg_dx12.DestroyContext = nullptr;
+                fg_dx12.Dispatch = nullptr;
+                fg_dx12.Query = nullptr;
+            }
+            else
+            {
+                if (fg_dx12.dll == fg_dx12_hooked.dll)
+                    fg_dx12 = fg_dx12_hooked;
 
-            if (fg_dx12.dll == fg_dx12_hooked.dll)
-                fg_dx12 = fg_dx12_hooked;
-
-            fg_dx12_hooked.hooked = true;
-            State::Instance().fsrHooks = true;
+                fg_dx12_hooked.hooked = true;
+                State::Instance().fsrHooks = true;
+            }
         }
 
         bool loadResult = fg_dx12.CreateContext != nullptr;
@@ -720,13 +753,24 @@ class FfxApiProxy
             if (denoiser_dx12_hooked.Query != nullptr)
                 DetourAttach(&(PVOID&) denoiser_dx12_hooked.Query, ffxQuery_Dx12);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("DetourTransactionCommit result: {:X}", detourResult);
+                denoiser_dx12.Configure = nullptr;
+                denoiser_dx12.CreateContext = nullptr;
+                denoiser_dx12.DestroyContext = nullptr;
+                denoiser_dx12.Dispatch = nullptr;
+                denoiser_dx12.Query = nullptr;
+            }
+            else
+            {
+                if (denoiser_dx12.dll == denoiser_dx12_hooked.dll)
+                    denoiser_dx12 = denoiser_dx12_hooked;
 
-            if (denoiser_dx12.dll == denoiser_dx12_hooked.dll)
-                denoiser_dx12 = denoiser_dx12_hooked;
-
-            denoiser_dx12_hooked.hooked = true;
-            State::Instance().fsrHooks = true;
+                denoiser_dx12_hooked.hooked = true;
+                State::Instance().fsrHooks = true;
+            }
         }
 
         bool loadResult = denoiser_dx12.CreateContext != nullptr;
@@ -851,13 +895,24 @@ class FfxApiProxy
             if (radiance_dx12_hooked.Query != nullptr)
                 DetourAttach(&(PVOID&) radiance_dx12_hooked.Query, ffxQuery_Dx12);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("DetourTransactionCommit result: {:X}", detourResult);
+                radiance_dx12.Configure = nullptr;
+                radiance_dx12.CreateContext = nullptr;
+                radiance_dx12.DestroyContext = nullptr;
+                radiance_dx12.Dispatch = nullptr;
+                radiance_dx12.Query = nullptr;
+            }
+            else
+            {
+                if (radiance_dx12.dll == radiance_dx12_hooked.dll)
+                    radiance_dx12 = radiance_dx12_hooked;
 
-            if (radiance_dx12.dll == radiance_dx12_hooked.dll)
-                radiance_dx12 = radiance_dx12_hooked;
-
-            radiance_dx12_hooked.hooked = true;
-            State::Instance().fsrHooks = true;
+                radiance_dx12_hooked.hooked = true;
+                State::Instance().fsrHooks = true;
+            }
         }
 
         bool loadResult = radiance_dx12.CreateContext != nullptr;
@@ -1489,9 +1544,20 @@ class FfxApiProxy
                 if (main_vk.Query != nullptr)
                     DetourAttach(&(PVOID&) main_vk.Query, ffxQuery_Vk);
 
-                State::Instance().fsrHooks = true;
-
-                DetourTransactionCommit();
+                auto detourResult = DetourTransactionCommit();
+                if (detourResult != NO_ERROR)
+                {
+                    LOG_ERROR("DetourTransactionCommit result: {:X}", detourResult);
+                    main_vk.Configure = nullptr;
+                    main_vk.CreateContext = nullptr;
+                    main_vk.DestroyContext = nullptr;
+                    main_vk.Dispatch = nullptr;
+                    main_vk.Query = nullptr;
+                }
+                else
+                {
+                    State::Instance().fsrHooks = true;
+                }
             }
         }
 

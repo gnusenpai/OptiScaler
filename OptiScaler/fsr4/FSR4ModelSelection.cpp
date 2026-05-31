@@ -94,7 +94,7 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
         if (o_createModelSDK)
             DetourDetach(&(PVOID&) o_createModelSDK, hkcreateModelSDK);
 
-        if (DetourTransactionCommit() == 0)
+        if (DetourTransactionCommit() == NO_ERROR)
         {
             LOG_DEBUG("Unhooked old model selection hooks for SDK");
 
@@ -113,7 +113,7 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
         else if (o_createModelDriver)
             DetourDetach(&(PVOID&) o_createModelDriver, hkcreateModelDriver);
 
-        if (DetourTransactionCommit() == 0)
+        if (DetourTransactionCommit() == NO_ERROR)
         {
             LOG_DEBUG("Unhooked old model selection hooks for the driver dll");
 
@@ -139,7 +139,12 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
 
             DetourAttach(&(PVOID&) o_getModelBlobSDK, hkgetModelBlobSDK);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                o_getModelBlobSDK = nullptr;
+            }
         }
     }
     else if (!o_getModelBlobDriver && source == FSR4Source::DriverDll)
@@ -155,7 +160,12 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
 
             DetourAttach(&(PVOID&) o_getModelBlobDriver, hkgetModelBlobDriver);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                o_getModelBlobDriver = nullptr;
+            }
         }
     }
 
@@ -189,7 +199,12 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
 
             DetourAttach(&(PVOID&) o_createModelSDK, hkcreateModelSDK);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                o_createModelSDK = nullptr;
+            }
         }
     }
     else if (!o_createModelDriver && source == FSR4Source::DriverDll)
@@ -213,7 +228,12 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
 
             DetourAttach(&(PVOID&) o_createModelDriver, hkcreateModelDriver);
 
-            DetourTransactionCommit();
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
+            {
+                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                o_createModelDriver = nullptr;
+            }
         }
     }
 

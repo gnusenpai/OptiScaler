@@ -191,15 +191,19 @@ class NtdllHooks
         if (!Config::Instance()->UseNtdllHooks.value_or_default())
             return;
 
-        if (o_LdrLoadDll != nullptr)
-            return;
-
         if (NtdllProxy::Module() == nullptr)
             return;
 
-        o_RtlGetVersion = NtdllProxy::Hook_RtlGetVersion(hkRtlGetVersion);
-        o_NtLoadDll = NtdllProxy::Hook_NtLoadDll(hkNtLoadDll);
-        o_LdrLoadDll = NtdllProxy::Hook_LdrLoadDll(hkLdrLoadDll);
-        o_LdrUnloadDll = NtdllProxy::Hook_LdrUnloadDll(hkLdrUnloadDll);
+        if (o_RtlGetVersion == nullptr)
+            o_RtlGetVersion = NtdllProxy::Hook_RtlGetVersion(hkRtlGetVersion);
+
+        if (o_NtLoadDll == nullptr)
+            o_NtLoadDll = NtdllProxy::Hook_NtLoadDll(hkNtLoadDll);
+
+        if (o_LdrLoadDll == nullptr)
+            o_LdrLoadDll = NtdllProxy::Hook_LdrLoadDll(hkLdrLoadDll);
+
+        if (o_LdrUnloadDll == nullptr)
+            o_LdrUnloadDll = NtdllProxy::Hook_LdrUnloadDll(hkLdrUnloadDll);
     }
 };

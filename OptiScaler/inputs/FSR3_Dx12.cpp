@@ -805,9 +805,26 @@ void HookFSR3ExeInputs()
     //    LOG_DEBUG("ffxGetInterfaceDX12: {:X}", (size_t)o_ffxFSR3GetInterfaceDX12);
     //}
 
-    DetourTransactionCommit();
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("DetourTransactionCommit failed: {:X}", detourResult);
+        o_ffxFSR3GetInterfaceDX12 = nullptr;
+        o_ffxFsr3UpscalerContextCreate_Dx12 = nullptr;
+        o_ffxFsr3UpscalerContextDispatch_Dx12 = nullptr;
+        o_ffxFsr3UpscalerContextDestroy_Dx12 = nullptr;
+        o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Dx12 = nullptr;
+        o_ffxFsr3UpscalerGetRenderResolutionFromQualityMode_Dx12 = nullptr;
 
-    State::Instance().fsrHooks = o_ffxFsr3UpscalerContextCreate_Dx12 != nullptr;
+        o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 = nullptr;
+        o_ffxFsr3UpscalerContextDispatch_Pattern_Dx12 = nullptr;
+        o_ffxFsr3UpscalerContextDestroy_Pattern_Dx12 = nullptr;
+    }
+    else
+    {
+        State::Instance().fsrHooks =
+            o_ffxFsr3UpscalerContextCreate_Dx12 != nullptr || o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 != nullptr;
+    }
 }
 
 void HookFSR3Inputs(HMODULE module)
@@ -882,9 +899,21 @@ void HookFSR3Inputs(HMODULE module)
                       (size_t) o_ffxFsr3UpscalerGetRenderResolutionFromQualityMode_Dx12);
         }
 
-        DetourTransactionCommit();
-
-        State::Instance().fsrHooks = o_ffxFsr3UpscalerContextCreate_Dx12 != nullptr;
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("DetourTransactionCommit failed: {:X}", detourResult);
+            o_ffxFSR3GetInterfaceDX12 = nullptr;
+            o_ffxFsr3UpscalerContextCreate_Dx12 = nullptr;
+            o_ffxFsr3UpscalerContextDispatch_Dx12 = nullptr;
+            o_ffxFsr3UpscalerContextDestroy_Dx12 = nullptr;
+            o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Dx12 = nullptr;
+            o_ffxFsr3UpscalerGetRenderResolutionFromQualityMode_Dx12 = nullptr;
+        }
+        else
+        {
+            State::Instance().fsrHooks = o_ffxFsr3UpscalerContextCreate_Dx12 != nullptr;
+        }
     }
 }
 
@@ -910,6 +939,11 @@ void HookFSR3Dx12Inputs(HMODULE module)
             LOG_DEBUG("ffxGetInterfaceDX12: {:X}", (size_t) o_ffxFSR3GetInterfaceDX12);
         }
 
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("DetourTransactionCommit failed: {:X}", detourResult);
+            o_ffxFSR3GetInterfaceDX12 = nullptr;
+        }
     }
 }

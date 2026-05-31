@@ -117,7 +117,12 @@ class NtdllProxy
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourAttach(&(PVOID&) addr, method);
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook: {:X}", detourResult);
+            return nullptr;
+        }
 
         o_LdrLoadDll = addr;
         return addr;
@@ -130,7 +135,12 @@ class NtdllProxy
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourAttach(&(PVOID&) addr, method);
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook: {:X}", detourResult);
+            return nullptr;
+        }
 
         o_LdrUnloadDll = addr;
         return addr;
@@ -143,7 +153,12 @@ class NtdllProxy
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourAttach(&(PVOID&) addr, method);
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook: {:X}", detourResult);
+            return nullptr;
+        }
 
         o_NtLoadDll = addr;
         return addr;

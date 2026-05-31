@@ -1336,7 +1336,12 @@ void StreamlineHooks::hkcommon_slSetParameters_sl1(void* params)
         if (o_setVoid != nullptr)
             DetourAttach(&(PVOID&) o_setVoid, hk_setVoid);
 
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook setVoid: {:X}", detourResult);
+            o_setVoid = nullptr;
+        }
     }
 
     o_common_slSetParameters_sl1(params);
@@ -1406,27 +1411,32 @@ void StreamlineHooks::unhookInterposer()
     DetourUpdateThread(GetCurrentThread());
 
     if (o_slSetTag)
-    {
         DetourDetach(&(PVOID&) o_slSetTag, hkslSetTag);
-        o_slSetTag = nullptr;
-    }
 
     if (o_slInit)
-    {
         DetourDetach(&(PVOID&) o_slInit, hkslInit);
-        o_slInit = nullptr;
-    }
 
     if (o_slInit_sl1)
-    {
         DetourDetach(&(PVOID&) o_slInit_sl1, hkslInit_sl1);
-        o_slInit_sl1 = nullptr;
+
+    // if (o_logCallback)
+    //     DetourDetach(&(PVOID&) o_logCallback, streamlineLogCallback);
+    // else if (o_logCallback_sl1)
+    //     DetourDetach(&(PVOID&) o_logCallback_sl1, streamlineLogCallback);
+
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("DetourTransactionCommit error: {:X}", detourResult);
     }
-
-    o_logCallback_sl1 = nullptr;
-    o_logCallback = nullptr;
-
-    DetourTransactionCommit();
+    else
+    {
+        o_slInit = nullptr;
+        o_slInit_sl1 = nullptr;
+        o_slSetTag = nullptr;
+        o_logCallback = nullptr;
+        o_logCallback_sl1 = nullptr;
+    }
 }
 
 // Call it just after sl.interposer's load or if sl.interposer is already loaded
@@ -1523,7 +1533,19 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
                 // if (o_slSetD3DDevice != nullptr)
                 //     DetourAttach(&(PVOID&) o_slSetD3DDevice, hkslSetD3DDevice);
 
-                DetourTransactionCommit();
+                auto detourResult = DetourTransactionCommit();
+                if (detourResult != NO_ERROR)
+                {
+                    LOG_ERROR("Failed to hook sl.interposer v2: {:X}", detourResult);
+                    o_slSetTag = nullptr;
+                    o_slSetTagForFrame = nullptr;
+                    o_slInit = nullptr;
+                    o_slEvaluateFeature = nullptr;
+                    o_slAllocateResources = nullptr;
+                    o_slSetConstants = nullptr;
+                    o_slGetNativeInterface = nullptr;
+                    o_slSetD3DDevice = nullptr;
+                }
             }
         }
         else if (sl_version.major == 1)
@@ -1542,7 +1564,12 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
 
                 DetourAttach(&(PVOID&) o_slInit_sl1, hkslInit_sl1);
 
-                DetourTransactionCommit();
+                auto detourResult = DetourTransactionCommit();
+                if (detourResult != NO_ERROR)
+                {
+                    LOG_ERROR("Failed to hook sl.interposer v1: {:X}", detourResult);
+                    o_slInit_sl1 = nullptr;
+                }
             }
         }
     }
@@ -1560,12 +1587,17 @@ void StreamlineHooks::unhookDlss()
     DetourUpdateThread(GetCurrentThread());
 
     if (o_dlss_slGetPluginFunction)
-    {
         DetourDetach(&(PVOID&) o_dlss_slGetPluginFunction, hkdlss_slGetPluginFunction);
+
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("Failed to unhook DLSS: {:X}", detourResult);
+    }
+    else
+    {
         o_dlss_slGetPluginFunction = nullptr;
     }
-
-    DetourTransactionCommit();
 }
 
 void StreamlineHooks::hookDlss(HMODULE slDlss)
@@ -1592,7 +1624,12 @@ void StreamlineHooks::hookDlss(HMODULE slDlss)
 
         DetourAttach(&(PVOID&) o_dlss_slGetPluginFunction, hkdlss_slGetPluginFunction);
 
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook DLSS: {:X}", detourResult);
+            o_dlss_slGetPluginFunction = nullptr;
+        }
     }
 }
 
@@ -1606,12 +1643,14 @@ void StreamlineHooks::unhookDlssg()
     DetourUpdateThread(GetCurrentThread());
 
     if (o_dlssg_slGetPluginFunction)
-    {
         DetourDetach(&(PVOID&) o_dlssg_slGetPluginFunction, hkdlssg_slGetPluginFunction);
+
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("Failed to unhook DLSSG: {:X}", detourResult);
         o_dlssg_slGetPluginFunction = nullptr;
     }
-
-    DetourTransactionCommit();
 }
 
 void StreamlineHooks::hookDlssg(HMODULE slDlssg)
@@ -1638,7 +1677,12 @@ void StreamlineHooks::hookDlssg(HMODULE slDlssg)
 
         DetourAttach(&(PVOID&) o_dlssg_slGetPluginFunction, hkdlssg_slGetPluginFunction);
 
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook DLSSG: {:X}", detourResult);
+            o_dlssg_slGetPluginFunction = nullptr;
+        }
     }
 }
 
@@ -1698,12 +1742,17 @@ void StreamlineHooks::unhookReflex()
     DetourUpdateThread(GetCurrentThread());
 
     if (o_reflex_slGetPluginFunction)
-    {
         DetourDetach(&(PVOID&) o_reflex_slGetPluginFunction, hkreflex_slGetPluginFunction);
+
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("Failed to unhook Reflex: {:X}", detourResult);
+    }
+    else
+    {
         o_reflex_slGetPluginFunction = nullptr;
     }
-
-    DetourTransactionCommit();
 }
 
 void StreamlineHooks::hookReflex(HMODULE slReflex)
@@ -1730,7 +1779,12 @@ void StreamlineHooks::hookReflex(HMODULE slReflex)
 
         DetourAttach(&(PVOID&) o_reflex_slGetPluginFunction, hkreflex_slGetPluginFunction);
 
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook Reflex: {:X}", detourResult);
+            o_reflex_slGetPluginFunction = nullptr;
+        }
     }
 }
 
@@ -1744,12 +1798,17 @@ void StreamlineHooks::unhookPcl()
     DetourUpdateThread(GetCurrentThread());
 
     if (o_pcl_slGetPluginFunction)
-    {
         DetourDetach(&(PVOID&) o_pcl_slGetPluginFunction, hkpcl_slGetPluginFunction);
+
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("Failed to unhook PCL: {:X}", detourResult);
+    }
+    else
+    {
         o_pcl_slGetPluginFunction = nullptr;
     }
-
-    DetourTransactionCommit();
 }
 
 void StreamlineHooks::hookPcl(HMODULE slPcl)
@@ -1776,7 +1835,12 @@ void StreamlineHooks::hookPcl(HMODULE slPcl)
 
         DetourAttach(&(PVOID&) o_pcl_slGetPluginFunction, hkpcl_slGetPluginFunction);
 
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook PCL: {:X}", detourResult);
+            o_pcl_slGetPluginFunction = nullptr;
+        }
     }
 }
 
@@ -1790,15 +1854,19 @@ void StreamlineHooks::unhookCommon()
     DetourUpdateThread(GetCurrentThread());
 
     if (o_common_slGetPluginFunction)
-    {
         DetourDetach(&(PVOID&) o_common_slGetPluginFunction, hkcommon_slGetPluginFunction);
+
+    auto detourResult = DetourTransactionCommit();
+    if (detourResult != NO_ERROR)
+    {
+        LOG_ERROR("Failed to unhook Common: {:X}", detourResult);
+    }
+    else
+    {
+        systemCaps = nullptr;
+        systemCapsSl15 = nullptr;
         o_common_slGetPluginFunction = nullptr;
     }
-
-    systemCaps = nullptr;
-    systemCapsSl15 = nullptr;
-
-    DetourTransactionCommit();
 }
 
 void StreamlineHooks::hookCommon(HMODULE slCommon)
@@ -1825,7 +1893,12 @@ void StreamlineHooks::hookCommon(HMODULE slCommon)
 
         DetourAttach(&(PVOID&) o_common_slGetPluginFunction, hkcommon_slGetPluginFunction);
 
-        DetourTransactionCommit();
+        auto detourResult = DetourTransactionCommit();
+        if (detourResult != NO_ERROR)
+        {
+            LOG_ERROR("Failed to hook Common: {:X}", detourResult);
+            o_common_slGetPluginFunction = nullptr;
+        }
     }
 }
 
