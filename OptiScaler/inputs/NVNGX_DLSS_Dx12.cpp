@@ -1072,7 +1072,10 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     const bool shouldRestore = restoreCompute || restoreGraphic;
 
     if (shouldRestore)
+    {
         D3D12Hooks::SetRootSignatureTracking(false);
+        D3D12Hooks::HookToCommandListLate(InCmdList);
+    }
 
     // Prepare upscaling inputs
     UpscalerInputsDx12::UpscaleStart(InCmdList, InParameters, feature);
