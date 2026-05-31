@@ -197,8 +197,8 @@ class NtdllHooks
         if (o_RtlGetVersion == nullptr)
             o_RtlGetVersion = NtdllProxy::Hook_RtlGetVersion(hkRtlGetVersion);
 
-        if (o_NtLoadDll == nullptr)
-            o_NtLoadDll = NtdllProxy::Hook_NtLoadDll(hkNtLoadDll);
+        // if (o_NtLoadDll == nullptr)
+        //     o_NtLoadDll = NtdllProxy::Hook_NtLoadDll(hkNtLoadDll);
 
         if (o_LdrLoadDll == nullptr)
             o_LdrLoadDll = NtdllProxy::Hook_LdrLoadDll(hkLdrLoadDll);
