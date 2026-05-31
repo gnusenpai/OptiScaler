@@ -29,6 +29,7 @@
 #include <hooks/Streamline_Hooks.h>
 
 #include <fsr4/FSR4ModelSelection.h>
+#include <fsr4/FSR4Upgrade.h>
 #include <misc/IdentifyGpu.h>
 #include <misc/UeLowLatency.h>
 
@@ -457,6 +458,16 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
 
         if (module != nullptr)
             XeSSProxy::InitXeSSDx11(module);
+
+        return module;
+    }
+
+    if (CheckDllNameW(&libName, &amdxc64NamesW))
+    {
+        auto module = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, 0);
+
+        if (module != nullptr)
+            InitFSR4Update();
 
         return module;
     }

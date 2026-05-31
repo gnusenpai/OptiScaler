@@ -82,8 +82,9 @@ void Amdxc64Hooks::Init()
     LOG_DEBUG("");
 
     moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
-    if (moduleAmdxc64 == nullptr)
-        moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
+
+    // if (moduleAmdxc64 == nullptr)
+    //     moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
 
     if (moduleAmdxc64 != nullptr)
     {
