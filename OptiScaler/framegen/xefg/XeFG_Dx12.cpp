@@ -44,7 +44,9 @@ bool XeFG_Dx12::CreateSwapchainContext(ID3D12Device* device)
 
     auto createResult = false;
 
+#ifndef DONT_USE_XMX
     ScopedSkipSpoofing skipSpoofing {};
+#endif // !DONT_USE_XMX
 
     do
     {
@@ -387,8 +389,11 @@ bool XeFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQu
     if (Config::Instance()->FGXeFGHighResMV.value_or_default())
         _constants.flags |= FG_Flags::DisplayResolutionMVs;
 
-    xefg_swapchain_result_t result;
+#ifndef DONT_USE_XMX
     ScopedSkipSpoofing skipSpoofing {};
+#endif // !DONT_USE_XMX
+
+    xefg_swapchain_result_t result;
     result = XeFGProxy::D3D12InitFromSwapChainDesc()(_swapChainContext, hwnd, &scDesc, &fsDesc, realQueue, factory12,
                                                      &params);
 
@@ -558,7 +563,9 @@ bool XeFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
     xefg_swapchain_result_t result;
 
     {
+#ifndef DONT_USE_XMX
         ScopedSkipSpoofing skipSpoofing {};
+#endif // !DONT_USE_XMX
         result = XeFGProxy::D3D12InitFromSwapChainDesc()(_swapChainContext, hwnd, desc, pFullscreenDesc, realQueue,
                                                          factory12, &params);
     }
@@ -738,7 +745,10 @@ bool XeFG_Dx12::Dispatch()
         auto uiState =
             _uiComposition ? XEFG_SWAPCHAIN_UI_COMPOSITION_STATE_ENABLED : XEFG_SWAPCHAIN_UI_COMPOSITION_STATE_DISABLED;
 
+#ifndef DONT_USE_XMX
         ScopedSkipSpoofing skipSpoofing {};
+#endif // !DONT_USE_XMX
+
         auto uiResult = XeFGProxy::SetUiCompositionState()(_swapChainContext, uiState);
 
         if (uiResult != XEFG_SWAPCHAIN_RESULT_SUCCESS)
@@ -762,7 +772,9 @@ bool XeFG_Dx12::Dispatch()
 
             state.WAR_xefgRequestFGToggle = true;
 
+#ifndef DONT_USE_XMX
             ScopedSkipSpoofing skipSpoofing {};
+#endif // !DONT_USE_XMX
 
             auto intResult = XeFGProxy::SetNumInterpolatedFrames()(
                 _swapChainContext, Config::Instance()->FGXeFGInterpolationCount.value_or_default());

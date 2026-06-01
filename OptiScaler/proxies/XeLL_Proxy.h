@@ -400,7 +400,10 @@ class XeLLProxy
 
         xell_result_t xellResult;
         {
+#ifndef DONT_USE_XMX
             ScopedSkipSpoofing skipSpoofing {};
+#endif // !DONT_USE_XMX
+
             xellResult = D3D12CreateContext()(device, &_xellContext);
         }
 
