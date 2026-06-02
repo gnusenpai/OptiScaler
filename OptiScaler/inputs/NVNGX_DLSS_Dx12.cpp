@@ -742,11 +742,7 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     // Restore root signatures
     if (shouldRestore)
     {
-        if (restoreCompute)
-            D3D12Hooks::RestoreComputeRoot(InCmdList);
-
-        if (restoreGraphic)
-            D3D12Hooks::RestoreGraphicsRootSignature(InCmdList);
+        D3D12Hooks::RestoreRoot(InCmdList);
     }
 
     D3D12Hooks::SetRootSignatureTracking(true);
@@ -1012,17 +1008,14 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     if (cfg.SkipFirstFrames.has_value() && evalCounter < cfg.SkipFirstFrames.value())
         return NVSDK_NGX_Result_Success;
 
-    if (Config::Instance()->RestoreComputeSignature.value_or_default() &&
-        !D3D12Hooks::CanRestoreComputeRootSignature(InCmdList))
-    {
-        LOG_DEBUG("Skipping upscaling because can't restore compute signature");
-        return NVSDK_NGX_Result_Success;
-    }
+    // Root signature restoration setup
+    const bool restoreCompute = cfg.RestoreComputeSignature.value_or_default();
+    const bool restoreGraphic = cfg.RestoreGraphicSignature.value_or_default();
+    const bool shouldRestore = restoreCompute || restoreGraphic;
 
-    if (Config::Instance()->RestoreGraphicSignature.value_or_default() &&
-        !D3D12Hooks::CanRestoreGraphicsRootSignature(InCmdList))
+    if (shouldRestore && !D3D12Hooks::CanRestoreRootSignature(InCmdList))
     {
-        LOG_DEBUG("Skipping upscaling because can't restore graphics signature");
+        LOG_DEBUG("Skipping upscaling because can't restore root signature");
         return NVSDK_NGX_Result_Success;
     }
 
@@ -1066,11 +1059,6 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
 
     state.currentFeature = feature;
 
-    // Root signature restoration setup
-    const bool restoreCompute = cfg.RestoreComputeSignature.value_or_default();
-    const bool restoreGraphic = cfg.RestoreGraphicSignature.value_or_default();
-    const bool shouldRestore = restoreCompute || restoreGraphic;
-
     if (shouldRestore)
     {
         D3D12Hooks::SetRootSignatureTracking(false);
@@ -1110,11 +1098,7 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     // Restore root signatures
     if (shouldRestore)
     {
-        if (restoreCompute)
-            D3D12Hooks::RestoreComputeRoot(InCmdList);
-
-        if (restoreGraphic)
-            D3D12Hooks::RestoreGraphicsRootSignature(InCmdList);
+        D3D12Hooks::RestoreRoot(InCmdList);
     }
 
     D3D12Hooks::SetRootSignatureTracking(true);
