@@ -697,6 +697,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             LoadSpecialK.set_from_config(readBool("Plugins", "LoadSpecialK"));
             LoadReShade.set_from_config(readBool("Plugins", "LoadReShade"));
             LoadAsiPlugins.set_from_config(readBool("Plugins", "LoadAsiPlugins"));
+            LateAsiPluginsDelay.set_from_config(readInt("Plugins", "LateAsiPluginsDelay"));
         }
 
         // HDR
@@ -1387,6 +1388,8 @@ bool Config::SaveIni()
         ini.SetValue("Plugins", "LoadSpecialK", GetBoolValue(Instance()->LoadSpecialK.value_for_config()).c_str());
         ini.SetValue("Plugins", "LoadReShade", GetBoolValue(Instance()->LoadReShade.value_for_config()).c_str());
         ini.SetValue("Plugins", "LoadAsiPlugins", GetBoolValue(Instance()->LoadAsiPlugins.value_for_config()).c_str());
+        ini.SetValue("Plugins", "LateAsiPluginsDelay",
+                     GetIntValue(Instance()->LateAsiPluginsDelay.value_for_config()).c_str());
     }
 
     // fakenvapi
