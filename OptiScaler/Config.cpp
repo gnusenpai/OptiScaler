@@ -264,6 +264,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             DlssReactiveMaskBias.set_from_config(readFloat("FSR", "DlssReactiveMaskBias"));
             Fsr4ForceCapable.set_from_config(readBool("FSR", "Fsr4ForceCapable"));
             Fsr4EnableWatermark.set_from_config(readBool("FSR", "Fsr4EnableWatermark"));
+            Fsr4DoNotLoadAmdxc64.set_from_config(readBool("FSR", "Fsr4DoNotLoadAmdxc64"));
 
             if (auto setting = readInt("FSR", "Fsr4Model"); setting.has_value() && setting >= 0 && setting <= 5)
                 Fsr4Model.set_from_config(setting);
@@ -1054,6 +1055,8 @@ bool Config::SaveIni()
         ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4EnableWatermark",
                      GetBoolValue(Instance()->Fsr4EnableWatermark.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4DoNotLoadAmdxc64",
+                     GetBoolValue(Instance()->Fsr4DoNotLoadAmdxc64.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearColorSpace",
                      GetBoolValue(Instance()->FsrNonLinearColorSpace.value_for_config()).c_str());
         ini.SetValue("FSR", "FsrNonLinearPQ", GetBoolValue(Instance()->FsrNonLinearPQ.value_for_config()).c_str());

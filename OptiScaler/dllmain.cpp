@@ -1549,6 +1549,13 @@ static void CheckQuirks(bool isNvidia)
     else
         quirks.reset(GameQuirk::UseManualInputs);
 
+    if (quirks & GameQuirk::DoNotLoadAmdxc64 && !Config::Instance()->Fsr4DoNotLoadAmdxc64.has_value())
+    {
+        Config::Instance()->Fsr4DoNotLoadAmdxc64.set_volatile_value(true);
+    }
+    else
+        quirks.reset(GameQuirk::DoNotLoadAmdxc64);
+
     // For Luma, we assume if Luma addon in game folder it's used
     const auto dir = Util::ExePath().parent_path();
     bool lumaDetected = false;
