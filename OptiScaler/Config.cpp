@@ -225,6 +225,9 @@ bool Config::Reload(std::filesystem::path iniPath)
 
             FGDLSSGFramerateTargetDMFG.set_from_config(readFloat("DLSSG", "FramerateTargetDMFG"));
             FGDLSSGOverrideForceDMFG.set_from_config(readBool("DLSSG", "OverrideForceDMFG"));
+            FGDLSSGDispatchFlags.set_from_config(readUInt("DLSSG", "DispatchFlags"));
+            FGDLSSGShowDebug.set_from_config(readUInt("DLSSG", "ShowDebug"));
+            FGDLSSGDisableHudless.set_from_config(readBool("DLSSG", "DisableHudless"));
         }
 
         // FSR FG Inputs
@@ -937,6 +940,11 @@ bool Config::SaveIni()
                      GetFloatValue(Instance()->FGDLSSGFramerateTargetDMFG.value_for_config()).c_str());
         ini.SetValue("DLSSG", "OverrideForceDMFG",
                      GetBoolValue(Instance()->FGDLSSGOverrideForceDMFG.value_for_config()).c_str());
+        ini.SetValue("DLSSG", "DispatchFlags",
+                     GetIntValue(Instance()->FGDLSSGDispatchFlags.value_for_config()).c_str());
+        ini.SetValue("DLSSG", "ShowDebug", GetIntValue(Instance()->FGDLSSGShowDebug.value_for_config()).c_str());
+        ini.SetValue("DLSSG", "DisableHudless",
+                     GetBoolValue(Instance()->FGDLSSGDisableHudless.value_for_config()).c_str());
     }
 
     // OptiFG
