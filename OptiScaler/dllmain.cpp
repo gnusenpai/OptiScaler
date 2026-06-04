@@ -273,21 +273,6 @@ static void CheckWorkingMode()
 
     do
     {
-        if (lCaseFilename == "nvngx.dll" || lCaseFilename == "_nvngx.dll" ||
-            lCaseFilename == "dlss-enabler-upscaler.dll")
-        {
-            if (!_passThruMode)
-                LOG_INFO("OptiScaler working as native upscaler: {0}", filename);
-
-            dllNames.push_back("OptiScaler_DontLoad.dll");
-            dllNames.push_back("OptiScaler_DontLoad");
-            dllNamesW.push_back(L"OptiScaler_DontLoad.dll");
-            dllNamesW.push_back(L"OptiScaler_DontLoad");
-
-            modeFound = true;
-            break;
-        }
-
         if (!_passThruMode && Config::Instance()->EarlyHooking.value_or_default())
         {
             NtdllHooks::Hook();

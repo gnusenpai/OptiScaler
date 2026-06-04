@@ -95,9 +95,6 @@ class MenuCommon
     inline static uint32_t _displayWidth = 0;
     inline static uint32_t _renderWidth = 0;
 
-    // dlss enabler
-    inline static int _deLimitFps = 500;
-
     inline static UINT64 _frameCount = 0;
 
     // reflex
