@@ -4766,8 +4766,9 @@ bool MenuCommon::RenderMenu()
                     }
                 }
 
-                // Nukems Mod
-                if (state.activeFgInput == FGInput::NvngxFG && state.activeFgOutput == FGOutput::NvngxFG)
+                // Nvngx FG Mods
+                if ((state.activeFgInput == FGInput::NvngxFG && state.activeFgOutput == FGOutput::NvngxFG) ||
+                    state.activeFgOutput == FGOutput::DLSSGWithNvngx)
                 {
                     if (Nvngx_FG::isMFG())
                     {
@@ -4793,55 +4794,60 @@ bool MenuCommon::RenderMenu()
                         ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "Using a subset of features from DLSS Enabler");
                     }
 
-                    bool dmfgActive =
-                        state.dlssgGameDMFGSupported && config->FGDLSSGOverrideForceDMFG.value_or_default();
+                    if (state.activeFgOutput != FGOutput::DLSSGWithNvngx)
+                    {
 
-                    if (!ReflexHooks::isReflexHooked())
-                    {
-                        ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Reflex not hooked");
-                        ImGui::Text("If you are using an AMD/Intel GPU, then make sure you have Fakenvapi");
-                    }
-                    else if (ReflexHooks::dlssgFrameCountToGenerate() == 0 && !dmfgActive)
-                    {
-                        ImGui::Text("Please select DLSS Frame Generation in the game options\n"
-                                    "You might need to select DLSS first");
-                    }
+                        bool dmfgActive =
+                            state.dlssgGameDMFGSupported && config->FGDLSSGOverrideForceDMFG.value_or_default();
 
-                    if (state.swapchainApi == DX12)
-                    {
-                        ImGui::Text("Current DLSSG state:");
-                        ImGui::SameLine();
-                        if (auto count = state.dlssgDetectedInterpolationCount; count > 0)
+                        if (!ReflexHooks::isReflexHooked())
                         {
-                            ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), std::format("ON {}x", count + 1).c_str());
+                            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Reflex not hooked");
+                            ImGui::Text("If you are using an AMD/Intel GPU, then make sure you have Fakenvapi");
                         }
-                        else
+                        else if (ReflexHooks::dlssgFrameCountToGenerate() == 0 && !dmfgActive)
                         {
-                            ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "OFF");
+                            ImGui::Text("Please select DLSS Frame Generation in the game options\n"
+                                        "You might need to select DLSS first");
                         }
 
-                        // Issue mostly shows up on AMD on Windows on pre-RDNA3 in some non-UE games
-                        // Hide to reduce confusion, config is still read
-                        bool isUnrealEngine = State::Instance().NVNGX_Engine == NVSDK_NGX_ENGINE_TYPE_UNREAL ||
-                                              State::Instance().gameQuirks & GameQuirk::ForceUnrealEngine;
-                        if (!primaryGpu.dlssCapable && !primaryGpu.fsr4Capable && !primaryGpu.usesVkd3dProton &&
-                            !isUnrealEngine)
+                        if (state.swapchainApi == DX12)
                         {
-                            if (bool makeDepthCopy = config->MakeDepthCopy.value_or_default();
-                                ImGui::Checkbox("Fix broken visuals", &makeDepthCopy))
+                            ImGui::Text("Current DLSSG state:");
+                            ImGui::SameLine();
+                            if (auto count = state.dlssgDetectedInterpolationCount; count > 0)
                             {
-                                config->MakeDepthCopy = makeDepthCopy;
+                                ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f),
+                                                   std::format("ON {}x", count + 1).c_str());
                             }
-                            ShowHelpMarker(
-                                "Makes a copy of the depth buffer\nCan fix broken visuals in some games on AMD "
-                                "GPUs under Windows\nCan cause stutters, so best to use only when necessary");
+                            else
+                            {
+                                ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "OFF");
+                            }
+
+                            // Issue mostly shows up on AMD on Windows on pre-RDNA3 in some non-UE games
+                            // Hide to reduce confusion, config is still read
+                            bool isUnrealEngine = State::Instance().NVNGX_Engine == NVSDK_NGX_ENGINE_TYPE_UNREAL ||
+                                                  State::Instance().gameQuirks & GameQuirk::ForceUnrealEngine;
+                            if (!primaryGpu.dlssCapable && !primaryGpu.fsr4Capable && !primaryGpu.usesVkd3dProton &&
+                                !isUnrealEngine)
+                            {
+                                if (bool makeDepthCopy = config->MakeDepthCopy.value_or_default();
+                                    ImGui::Checkbox("Fix broken visuals", &makeDepthCopy))
+                                {
+                                    config->MakeDepthCopy = makeDepthCopy;
+                                }
+                                ShowHelpMarker(
+                                    "Makes a copy of the depth buffer\nCan fix broken visuals in some games on AMD "
+                                    "GPUs under Windows\nCan cause stutters, so best to use only when necessary");
+                            }
                         }
-                    }
-                    else if (state.swapchainApi == Vulkan)
-                    {
-                        ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
-                                           "DLSSG is purposefully disabled when this menu is visible");
-                        ImGui::Spacing();
+                        else if (state.swapchainApi == Vulkan)
+                        {
+                            ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f),
+                                               "DLSSG is purposefully disabled when this menu is visible");
+                            ImGui::Spacing();
+                        }
                     }
 
                     if (Nvngx_FG::isLoaded() && !Nvngx_FG::isMFG())
