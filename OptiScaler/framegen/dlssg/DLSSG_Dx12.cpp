@@ -364,13 +364,23 @@ bool DLSSG_Dx12::Dispatch()
         options.dynamicTargetFrameRate = Config::Instance()->FGDLSSGFramerateTargetDMFG.value_or_default();
     }
 
-    StreamlineProxy::DLSSGSetOptions()(viewport, options);
+    auto dlssgSetOptionsResult = StreamlineProxy::DLSSGSetOptions()(viewport, options);
+
+    if (dlssgSetOptionsResult != sl::Result::eOk)
+    {
+        LOG_ERROR("Couldn't set DLSSG options, error: {}", magic_enum::enum_name(dlssgSetOptionsResult));
+    }
 
     sl::ReflexOptions reflexConst = {};
     reflexConst.mode = sl::ReflexMode::eLowLatency;
     reflexConst.useMarkersToOptimize = ReflexHooks::gameIsSendingMarkers();
 
-    StreamlineProxy::ReflexSetOptions()(reflexConst);
+    auto reflexSetOptionsResult = StreamlineProxy::ReflexSetOptions()(reflexConst);
+
+    if (reflexSetOptionsResult != sl::Result::eOk)
+    {
+        LOG_ERROR("Couldn't set Reflex options, error: {}", magic_enum::enum_name(reflexSetOptionsResult));
+    }
 
     if (!_haveHudless.has_value())
     {
