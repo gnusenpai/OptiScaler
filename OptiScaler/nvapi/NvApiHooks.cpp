@@ -162,10 +162,14 @@ void* __stdcall NvApiHooks::hkNvAPI_QueryInterface(unsigned int InterfaceId)
         return nullptr;
     }
 
-    if (InterfaceId == GET_ID(NvAPI_D3D_SetSleepMode) || InterfaceId == GET_ID(NvAPI_D3D_GetSleepStatus) ||
-        InterfaceId == GET_ID(NvAPI_D3D_Sleep) || InterfaceId == GET_ID(NvAPI_D3D_GetLatency) ||
-        InterfaceId == GET_ID(NvAPI_D3D_SetLatencyMarker) || InterfaceId == GET_ID(NvAPI_D3D12_SetAsyncFrameMarker) ||
-        InterfaceId == GET_ID(NvAPI_Vulkan_SetLatencyMarker) || InterfaceId == GET_ID(NvAPI_Vulkan_SetSleepMode))
+    if (InterfaceId == GET_ID(NvAPI_D3D_SetSleepMode) || InterfaceId == GET_ID(NvAPI_D3D_Sleep) ||
+        InterfaceId == GET_ID(NvAPI_D3D_GetLatency) || InterfaceId == GET_ID(NvAPI_D3D_SetLatencyMarker) ||
+        InterfaceId == GET_ID(NvAPI_D3D12_SetAsyncFrameMarker) || InterfaceId == GET_ID(NvAPI_Vulkan_GetLatency) ||
+        InterfaceId == GET_ID(NvAPI_Vulkan_SetLatencyMarker) || InterfaceId == GET_ID(NvAPI_Vulkan_SetSleepMode)
+#ifdef LOW_LATENCY_INPUTS
+        || InterfaceId == GET_ID(NvAPI_D3D_GetSleepStatus)
+#endif
+    )
     {
 #ifdef LOW_LATENCY_INPUTS
         if (InterfaceId == GET_ID(NvAPI_D3D_SetSleepMode))
