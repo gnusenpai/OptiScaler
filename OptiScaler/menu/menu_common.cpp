@@ -3600,10 +3600,13 @@ bool MenuCommon::RenderMenu()
                         ImGui::Spacing();
                     }
 
+                    const bool dlssgInputOrOutput = state.activeFgOutput == FGOutput::DLSSG ||
+                                                    state.activeFgOutput == FGOutput::DLSSGWithNvngx ||
+                                                    state.activeFgInput != FGInput::DLSSG;
+
                     ImGui::BeginDisabled(state.dlssgGameDMFGSupported &&
                                          config->FGDLSSGOverrideForceDMFG.value_or_default());
-                    if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() >= 1 &&
-                        state.activeFgInput != FGInput::DLSSG)
+                    if (state.dlssgMfgMax.has_value() && state.dlssgMfgMax.value() >= 1 && !dlssgInputOrOutput)
                     {
                         auto maxInterpolationCount = state.dlssgMfgMax.value();
 
@@ -3655,7 +3658,7 @@ bool MenuCommon::RenderMenu()
 
                     ImGui::EndDisabled();
 
-                    if (state.dlssgGameDMFGSupported)
+                    if (state.dlssgGameDMFGSupported && !dlssgInputOrOutput)
                     {
                         ImGui::SameLine(0.0f, 16.0f);
 
