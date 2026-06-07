@@ -5154,7 +5154,7 @@ bool MenuCommon::RenderMenu()
                     // Using state.reflexLimitsFps as a detection for Reflex being used on Nvidia
 
                     ImGui::SeparatorText("fakenvapi");
-
+#ifdef LOW_LATENCY_INPUTS
                     if (ImGui::BeginTable("lowLatencySelection", 2, ImGuiTableFlags_SizingStretchSame))
                     {
                         ImGui::TableNextColumn();
@@ -5199,6 +5199,7 @@ bool MenuCommon::RenderMenu()
 
                         ImGui::EndTable();
                     }
+#endif
 
                     ImGui::BeginDisabled(state.activeFgOutput == FGOutput::XeFG ||
                                          state.activeFgInput == FGInput::ForceXeLL);
