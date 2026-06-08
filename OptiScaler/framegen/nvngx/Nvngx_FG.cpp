@@ -461,11 +461,8 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_EvaluateFeature(ID3D12GraphicsCommandList* InCm
         uint32_t flags = Config::Instance()->FGDLSSGDispatchFlags.value_or_default();
         bool disableHudless = Config::Instance()->FGDLSSGDisableHudless.value_or_default();
 
-        if (showDebug)
-            InParameters->Set("DLSSG.ShowDebug", showDebug);
-
-        if (flags)
-            InParameters->Set("DLSSG.DispatchFlags", flags);
+        InParameters->Set("DLSSG.ShowDebug", showDebug);
+        InParameters->Set("DLSSG.DispatchFlags", flags);
 
         if (disableHudless)
             InParameters->Set("DLSSG.HUDLess", (void*) nullptr);

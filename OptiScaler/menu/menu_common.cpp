@@ -205,6 +205,13 @@ struct FsExistsCache
 
 static FsExistsCache gExists;
 
+struct FlagDefinition
+{
+    std::string name;
+    uint32_t mask;
+    std::string description;
+};
+
 inline std::string StrFmt(const char* fmt, ...)
 {
     va_list args;
@@ -4850,24 +4857,94 @@ bool MenuCommon::RenderMenu()
                         }
                     }
 
-                    if (Nvngx_FG::isLoaded() && !Nvngx_FG::isMFG())
+                    if (Nvngx_FG::isLoaded())
                     {
-                        if (Nvngx_FG::is120orNewer())
+                        if (bool disableHudless = config->FGDLSSGDisableHudless.value_or_default();
+                            ImGui::Checkbox("Disable Hudless", &disableHudless))
                         {
-                            if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
+                            config->FGDLSSGDisableHudless = disableHudless;
+                        }
+                        ShowHelpMarker("Might be required for some sets of DispatchFlags");
+
+                        if (Nvngx_FG::isMFG())
+                        {
+                            if (bool showDebug = config->FGDLSSGShowDebug.value_or_default();
+                                ImGui::Checkbox("Show Debug", &showDebug))
                             {
-                                Nvngx_FG::setDebugView(state.DLSSGDebugView);
+                                config->FGDLSSGShowDebug = showDebug;
                             }
-                            if (ImGui::Checkbox("Interpolated frames only", &state.DLSSGInterpolatedOnly))
+                            ShowHelpMarker("Required for Debug flags to work correctly");
+
+                            static std::vector<FlagDefinition> known_flags = {
+                                { "FRAME_INDEX_LINE", 0x00010000, "" },
+                                { "HUD_DETECTION", 0x00020000, "" },
+                                { "DISOCCLUSION_TINT", 0x00040000, "" },
+                                { "ARTIFACTS_DETECTION", 0x00080000, "" },
+                                { "ANTIGHOSTING_ENABLE", 0x00100000, "Enable anti-ghosting correction" },
+                                { "ANTIGHOSTING_RED_TINT", 0x00200000, "Debug: red tint on corrected pixels" },
+                                { "ANTIGHOSTING_SPLIT_SCREEN", 0x00400000, "Debug: split screen comparison" },
+                                { "CAMERA_MV_DEBUG", 0x00800000, "Debug: blue tint where camera MV fallback is used" },
+                                { "TRAPEZOID_VIS", 0x01000000, "Debug: trapezoid zone visualization" },
+                                { "HUDLESS_UI_MASK", 0x02000000, "Use HUD-less as UI mask (DL2 inverted semantics)" },
+                                { "TEMPORAL_HUD_PIN", 0x04000000,
+                                  "Enable temporal HUD pinning (present-backbuffer stability)" },
+                                { "HUD_INTERPOLATION", 0x08000000,
+                                  "HUD OF interpolation (0=legacy pin-present, 1=OF warp)" },
+                                { "IGNORE_UI_TEXTURE", 0x10000000,
+                                  "Ignore dedicated DLSSG.UI texture (force legacy HUD path)" },
+                                { "DP4A_ACTIVE", 0x20000000, "OF pipeline using dp4a-accelerated SSD (SM 6.4+)" },
+                                { "PIN_BACKBUFFER", 0x40000000,
+                                  "Pin DLSSG.Backbuffer to subframe-1 snapshot across MFG frame" }
+                            };
+
+                            uint32_t temp_flags = config->FGDLSSGDispatchFlags.value_or_default();
+                            bool changed = false;
+
+                            ImGui::Text("Raw DispatchFlags:");
+                            changed |= ImGui::InputScalar("##RawFlags", ImGuiDataType_U32, &temp_flags, NULL, NULL,
+                                                          "%08X", ImGuiInputTextFlags_CharsHexadecimal);
+
+                            ImGui::Spacing();
+
+                            if (auto ch = ScopedCollapsingHeader("Active DispatchFlags"); ch.IsHeaderOpen())
                             {
-                                Nvngx_FG::setInterpolatedOnly(state.DLSSGInterpolatedOnly);
+                                ScopedIndent indent {};
+                                for (const auto& flag : known_flags)
+                                {
+                                    changed |= ImGui::CheckboxFlags(flag.name.c_str(), &temp_flags, flag.mask);
+
+                                    if (ImGui::IsItemHovered() && !flag.description.empty())
+                                    {
+                                        ImGui::SetTooltip("%s", flag.description.c_str());
+                                    }
+                                }
+                            }
+
+                            if (changed)
+                            {
+                                config->FGDLSSGDispatchFlags = temp_flags;
                             }
                         }
-                        else if (Nvngx_FG::FSRDebugView() != nullptr)
+                        else
                         {
-                            if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
+
+                            if (Nvngx_FG::is120orNewer())
                             {
-                                Nvngx_FG::FSRDebugView()(state.DLSSGDebugView);
+                                if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
+                                {
+                                    Nvngx_FG::setDebugView(state.DLSSGDebugView);
+                                }
+                                if (ImGui::Checkbox("Interpolated frames only", &state.DLSSGInterpolatedOnly))
+                                {
+                                    Nvngx_FG::setInterpolatedOnly(state.DLSSGInterpolatedOnly);
+                                }
+                            }
+                            else if (Nvngx_FG::FSRDebugView() != nullptr)
+                            {
+                                if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
+                                {
+                                    Nvngx_FG::FSRDebugView()(state.DLSSGDebugView);
+                                }
                             }
                         }
                     }
