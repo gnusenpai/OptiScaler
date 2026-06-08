@@ -3609,7 +3609,7 @@ bool MenuCommon::RenderMenu()
 
                     const bool dlssgInputOrOutput = state.activeFgOutput == FGOutput::DLSSG ||
                                                     state.activeFgOutput == FGOutput::DLSSGWithNvngx ||
-                                                    state.activeFgInput != FGInput::DLSSG;
+                                                    state.activeFgInput == FGInput::DLSSG;
 
                     ImGui::BeginDisabled(state.dlssgGameDMFGSupported &&
                                          config->FGDLSSGOverrideForceDMFG.value_or_default());
