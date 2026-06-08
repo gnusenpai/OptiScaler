@@ -303,11 +303,7 @@ NVSDK_NGX_Result Nvngx_FG::D3D12_ReleaseFeature(NVSDK_NGX_Handle* InHandle)
     {
         NVSDK_NGX_Handle TempHandle = { .Id = InHandle->Id - DLSSG_MOD_ID_OFFSET };
 
-        // TODO: seems like a bug in Enabler
-        if (!_mfg)
-            return _DLSSG_D3D12_ReleaseFeature(&TempHandle);
-        else
-            return NVSDK_NGX_Result_Success;
+        return _DLSSG_D3D12_ReleaseFeature(&TempHandle);
     }
     return NVSDK_NGX_Result_Fail;
 }
