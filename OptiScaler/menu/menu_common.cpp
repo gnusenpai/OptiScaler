@@ -1012,6 +1012,9 @@ void KeyUp(UINT vKey)
 
 Upscaler MenuCommon::GetBackendCode(const API api)
 {
+    if (auto feature = State::Instance().currentFeature)
+        return feature->GetUpscalerType();
+
     Upscaler upscaler;
 
     if (api == DX11)
