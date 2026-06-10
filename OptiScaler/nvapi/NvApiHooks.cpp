@@ -11,6 +11,12 @@
 #include <misc/IdentifyGpu.h>
 #include <low_latency/input/input_reflex.h>
 
+// #define LOG_ALL_DRS_GET_CALLS
+
+#ifdef LOG_ALL_DRS_GET_CALLS
+#include <magic_enum.hpp>
+#endif
+
 NvAPI_Status __stdcall NvApiHooks::hkNvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle hPhysicalGpu,
                                                            NV_GPU_ARCH_INFO* pGpuArchInfo)
 {
@@ -60,6 +66,34 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_DRS_GetSetting(NvDRSSessionHandle hSe
     auto result = o_NvAPI_DRS_GetSetting(hSession, hProfile, settingId, pSetting);
     if (pSetting && result == NVAPI_OK)
     {
+#ifdef LOG_ALL_DRS_GET_CALLS
+        LOG_TRACE("settingId: {:X}, settingLocation: {}, isCurrentPredefined: {}", settingId,
+                  magic_enum::enum_name(pSetting->settingLocation), pSetting->isCurrentPredefined,
+                  pSetting->isPredefinedValid);
+
+        switch (pSetting->settingType)
+        {
+        case NVDRS_DWORD_TYPE:
+            LOG_TRACE("    u32CurrentValue: {}, u32PredefinedValue: {}", pSetting->u32CurrentValue,
+                      pSetting->u32PredefinedValue);
+            break;
+        case NVDRS_BINARY_TYPE:
+            LOG_TRACE("    binary data");
+            break;
+        case NVDRS_STRING_TYPE:
+            LOG_TRACE("    NVDRS_STRING_TYPE");
+            break;
+        case NVDRS_WSTRING_TYPE:
+        {
+            std::wstring wstrCurrentValue(reinterpret_cast<const wchar_t*>(pSetting->wszCurrentValue));
+            std::wstring wstrPredefinedValue(reinterpret_cast<const wchar_t*>(pSetting->wszPredefinedValue));
+
+            LOG_TRACE(L"    wszCurrentValue: {}, wszPredefinedValue: {}", wstrCurrentValue, wstrPredefinedValue);
+            break;
+        }
+        }
+#endif
+
         // TODO: maybe check those values and inform if they are being overridden externally
 
         // const auto dmfgFpsTarget = Config::Instance()->FGDLSSGFramerateTargetDMFG.value_or_default();
@@ -98,6 +132,16 @@ NvAPI_Status __stdcall NvApiHooks::hkNvAPI_DRS_GetSetting(NvDRSSessionHandle hSe
 
         //    LOG_DEBUG("Set NGX_DLSSG_DYNAMIC_MULTI_FRAME_COUNT_MAX_ID to {}", pSetting->u32CurrentValue);
         //}
+
+        // Making sure DLSSG is not set to force off
+        if (settingId == NGX_DLSSG_MODE_ID)
+        {
+            if (State::Instance().activeFgOutput == FGOutput::DLSSG ||
+                State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx)
+            {
+                pSetting->u32CurrentValue = NGX_DLSSG_MODE_DISABLED;
+            }
+        }
 
         if (settingId == NGX_DLSS_SR_OVERRIDE_RENDER_PRESET_SELECTION_ID)
         {
