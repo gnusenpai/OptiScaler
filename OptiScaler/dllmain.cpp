@@ -50,6 +50,7 @@
 #include <sha1/sha1.hpp>
 
 static std::vector<HMODULE> _asiHandles;
+static std::vector<std::filesystem::directory_entry> _lateLoadingEntries;
 static bool _passThruMode = false;
 
 typedef const char*(CDECL* PFN_wine_get_version)(void);
@@ -215,7 +216,16 @@ void LoadAsiPlugins()
 
         if (ext == L".asi")
         {
-            HMODULE hMod = NtdllProxy::LoadLibraryExW_Ldr(entry.path().c_str(), NULL, 0);
+            std::wstring fileName = entry.path().filename().wstring();
+            std::transform(fileName.begin(), fileName.end(), fileName.begin(),
+                           [](wchar_t c) { return std::towlower(c); });
+
+            HMODULE hMod = nullptr;
+
+            if (fileName.rfind(L"-loadlate") != std::wstring::npos)
+                _lateLoadingEntries.push_back(entry);
+            else
+                hMod = NtdllProxy::LoadLibraryExW_Ldr(entry.path().c_str(), NULL, 0);
 
             if (hMod != nullptr)
             {
@@ -254,6 +264,71 @@ void LoadAsiPlugins()
             {
                 DWORD err = GetLastError();
                 LOG_ERROR(L"Failed to load: {}, error {:X}", entry.path().wstring(), err);
+            }
+
+            if (_lateLoadingEntries.size() > 0)
+            {
+                std::thread(
+                    []()
+                    {
+                        try
+                        {
+
+                            auto delay = Config::Instance()->LateAsiPluginsDelay.value_or_default();
+                            LOG_INFO("Waiting {} seconds before loading late-load plugins...", delay);
+                            std::this_thread::sleep_for(std::chrono::seconds(delay));
+
+                            for (const auto& entry : _lateLoadingEntries)
+                            {
+                                HMODULE hMod = NtdllProxy::LoadLibraryExW_Ldr(entry.path().c_str(), NULL, 0);
+
+                                if (hMod != nullptr)
+                                {
+                                    LOG_INFO(L"Loaded late: {}", entry.path().wstring());
+                                    _asiHandles.push_back(hMod);
+
+                                    auto init =
+                                        (PFN_InitializeASI) KernelBaseProxy::GetProcAddress_()(hMod, "InitializeASI");
+
+                                    auto patchResult =
+                                        (PFN_PatchResult) KernelBaseProxy::GetProcAddress_()(hMod, "PatchResult");
+
+                                    if (init != nullptr)
+                                        init();
+
+                                    if (patchResult != nullptr)
+                                    {
+                                        auto pr = patchResult();
+                                        if (pr)
+                                        {
+                                            LOG_INFO("Game patching is successful");
+                                            State::Instance().isOptiPatcherSucceed = true;
+                                            LOG_INFO("Disabling spoofing");
+
+                                            if (!Config::Instance()->DxgiSpoofing.has_value())
+                                                Config::Instance()->DxgiSpoofing.set_volatile_value(false);
+
+                                            if (!Config::Instance()->VulkanSpoofing.has_value())
+                                                Config::Instance()->VulkanSpoofing.set_volatile_value(false);
+
+                                            if (!Config::Instance()->VulkanExtensionSpoofing.has_value())
+                                                Config::Instance()->VulkanExtensionSpoofing.set_volatile_value(false);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    DWORD err = GetLastError();
+                                    LOG_ERROR(L"Failed to load: {}, error {:X}", entry.path().wstring(), err);
+                                }
+                            }
+                        }
+                        catch (...)
+                        {
+                            LOG_ERROR("Exception occurred while loading late-load plugins");
+                        }
+                    })
+                    .detach();
             }
         }
     }
@@ -1963,6 +2038,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         {
             FSR3FG::HookFSR3FGInputs();
             FSR3FG::HookFSR3FGExeInputs();
+        }
+
+        if (State::Instance().activeFgInput == FGInput::Upscaler &&
+            State::Instance().gameEngine == GameEngineType::Unity && !Config::Instance()->FGResourceFlip.has_value())
+        {
+            LOG_WARN("Unity detected with Upscaler input, but FGResourceFlip is not set. Enabling it");
+            Config::Instance()->FGResourceFlip.set_volatile_value(true);
         }
 
         for (size_t i = 0; i < 300; i++)
