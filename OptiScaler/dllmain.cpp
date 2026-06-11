@@ -1125,14 +1125,14 @@ static void CheckWorkingMode()
         LOG_INFO("Loading SpecialK64.dll, result: {0:X}", (UINT64) skModule);
     }
 
-            // ReShade
-            // Do not load Reshade here is Luma is active and we will create D3D12 device for it
-            // We will load Reshade after D3D12 device creation in that case
-            if (reshadeModule == nullptr && Config::Instance()->LoadReShade.value_or_default() &&
-                !Config::Instance()->CreateD3D12DeviceForLuma.value_or_default())
-            {
-                auto rsFile = Util::ExePath().parent_path() / L"ReShade64.dll";
-                SetEnvironmentVariableW(L"RESHADE_DISABLE_LOADING_CHECK", L"1");
+    // ReShade
+    // Do not load Reshade here is Luma is active and we will create D3D12 device for it
+    // We will load Reshade after D3D12 device creation in that case
+    if (reshadeModule == nullptr && Config::Instance()->LoadReShade.value_or_default() &&
+        !Config::Instance()->CreateD3D12DeviceForLuma.value_or_default())
+    {
+        auto rsFile = Util::ExePath().parent_path() / L"ReShade64.dll";
+        SetEnvironmentVariableW(L"RESHADE_DISABLE_LOADING_CHECK", L"1");
 
         if (skModule != nullptr)
             SetEnvironmentVariableW(L"RESHADE_DISABLE_GRAPHICS_HOOK", L"1");
