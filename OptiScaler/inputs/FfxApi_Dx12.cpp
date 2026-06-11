@@ -255,7 +255,7 @@ ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateContextDescH
             return ffxApiResult;
     }
 
-    if (!state.NvngxDx12Inited)
+    if (!state.nvngxDx12Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();

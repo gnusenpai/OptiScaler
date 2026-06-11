@@ -145,7 +145,7 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     static bool skip[20] = {};
 
     if (pSetLatencyMarkerParams->markerType == SIMULATION_START)
-        _lastMarkerFrame = State::Instance().FGLastFrame;
+        _lastMarkerFrame = State::Instance().fgLastFrame;
 
     if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
          State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&
@@ -720,6 +720,6 @@ void ReflexHooks::setFPSLimit(float fps)
 
 bool ReflexHooks::gameIsSendingMarkers()
 {
-    return _lastMarkerFrame != 0 && ((State::Instance().FGLastFrame < _lastMarkerFrame) ||
-                                     (State::Instance().FGLastFrame - _lastMarkerFrame) < 5);
+    return _lastMarkerFrame != 0 && ((State::Instance().fgLastFrame < _lastMarkerFrame) ||
+                                     (State::Instance().fgLastFrame - _lastMarkerFrame) < 5);
 }

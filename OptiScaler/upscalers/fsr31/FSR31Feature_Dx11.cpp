@@ -346,7 +346,7 @@ bool FSR31FeatureDx11::Evaluate(ID3D11DeviceContext* DeviceContext, NVSDK_NGX_Pa
         else
         {
             LOG_DEBUG("AutoExposure disabled but ExposureTexture is not exist, it may cause problems!!");
-            State::Instance().AutoExposure = true;
+            State::Instance().autoExposure = true;
             State::Instance().changeBackend[Handle()->Id] = true;
             return true;
         }

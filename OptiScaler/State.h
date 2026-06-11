@@ -85,30 +85,30 @@ class State
         return instance;
     }
 
-    std::string GameExe;
-    std::string GameName;
-    std::string GameVersion;
-    GameEngineType GameEngine = GameEngineType::Other;
+    std::string gameExe;
+    std::string gameName;
+    std::string gameVersion;
+    GameEngineType gameEngine = GameEngineType::Other;
 
-    bool NvngxDx11Inited = false;
-    bool NvngxDx12Inited = false;
-    bool NvngxVkInited = false;
+    bool nvngxDx11Inited = false;
+    bool nvngxDx12Inited = false;
+    bool nvngxVkInited = false;
 
     flag_set<GameQuirk> gameQuirks;
     bool isOptiPatcherSucceed = false;
 
     // Reseting on creation of new feature
-    std::optional<bool> AutoExposure;
+    std::optional<bool> autoExposure;
 
     // FG
-    UINT64 FGLastFrame = 0;
+    uint64_t fgLastFrame = 0;
 
     // Nvngx FG, uses streamline swapchain
-    bool NvngxFgFilesAvailable = false;
-    bool DLSSGDebugView = false;
-    bool DLSSGInterpolatedOnly = false;
+    bool nvngxFgFilesAvailable = false;
+    bool dlssgDebugView = false;
+    bool dlssgInterpolatedOnly = false;
+    uint64_t dlssgLastFrame = 0;
     uint32_t delayMenuRenderBy = 0;
-    UINT64 DLSSGLastFrame = 0;
 
     // FSR Common
     float lastFsrCameraNear = 0.0f;
@@ -122,23 +122,23 @@ class State
     Sl_Inputs_Dx12 slFGInputs = {};
 
     // OptiFG
-    bool FGPresentIsCalled = false;
-    bool FGonlyGenerated = false;
-    bool FGHudlessCompare = false;
-    bool FGchanged = false;
-    bool SCchanged = false;
+    bool fgPresentIsCalled = false;
+    bool fgOnlyGenerated = false;
+    bool fgHudlessCompare = false;
+    bool fgChanged = false;
+    bool scChanged = false;
     bool skipHeapCapture = false;
 
-    bool FGcaptureResources = false;
-    size_t FGcapturedResourceCount = 0;
-    bool FGresetCapturedResources = false;
-    bool FGonlyUseCapturedResources = false;
+    bool fgCaptureResources = false;
+    size_t fgCapturedResourceCount = 0;
+    bool fgResetCapturedResources = false;
+    bool fgOnlyUseCapturedResources = false;
 
-    bool FSRFGFTPchanged = false;
-    bool FSRFGInputActive = false;
+    bool fsrfgFramePaceTuningChanged = false;
+    bool fsrfgInputActive = false;
 
-    ankerl::unordered_dense::map<void*, CapturedHudlessInfo> CapturedHudlesses;
-    bool ClearCapturedHudlesses = false;
+    ankerl::unordered_dense::map<void*, CapturedHudlessInfo> capturedHudlesses;
+    bool clearCapturedHudlesses = false;
 
     // NVNGX init parameters
     uint64_t NVNGX_ApplicationId = 1337;
@@ -284,7 +284,7 @@ class State
     UINT SCLastFlags = 0;
 
     // HDR
-    std::vector<IUnknown*> SCbuffers;
+    std::vector<IUnknown*> scBuffers;
     bool isHdrActive = false;
 
     std::optional<ApiUpscalerInput> setInputApiName;

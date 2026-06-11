@@ -411,7 +411,7 @@ static Fsr212::FfxErrorCode ffxFsr2ContextCreate_Dx12(Fsr212::FfxFsr2Context* co
         return ccResult;
     }
 
-    if (!state.NvngxDx12Inited)
+    if (!state.nvngxDx12Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();
@@ -500,7 +500,7 @@ static Fsr212::FfxErrorCode ffxFsr2ContextCreate_Pattern_Dx12(Fsr212::FfxFsr2Con
         return ccResult;
     }
 
-    if (!state.NvngxDx12Inited)
+    if (!state.nvngxDx12Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
 

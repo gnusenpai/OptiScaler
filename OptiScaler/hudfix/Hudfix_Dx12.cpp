@@ -338,7 +338,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
         return false;
     }
 
-    if (State::Instance().FGonlyUseCapturedResources)
+    if (State::Instance().fgOnlyUseCapturedResources)
     {
         auto result = _captureList.find(resource->buffer) != _captureList.end();
         return result;
@@ -484,20 +484,20 @@ bool Hudfix_Dx12::CheckForRealObject(std::string functionName, IUnknown* pObject
 
 void Hudfix_Dx12::UpscaleStart()
 {
-    if (State::Instance().FGresetCapturedResources)
+    if (State::Instance().fgResetCapturedResources)
     {
         std::lock_guard<std::mutex> lock(_captureMutex);
         _captureList.clear();
         LOG_DEBUG("FGResetCapturedResources");
-        State::Instance().FGcapturedResourceCount = 0;
-        State::Instance().FGresetCapturedResources = false;
+        State::Instance().fgCapturedResourceCount = 0;
+        State::Instance().fgResetCapturedResources = false;
     }
 
-    if (State::Instance().ClearCapturedHudlesses)
+    if (State::Instance().clearCapturedHudlesses)
     {
         LOG_DEBUG("ClearCapturedHudlesses");
-        State::Instance().ClearCapturedHudlesses = false;
-        State::Instance().CapturedHudlesses.clear();
+        State::Instance().clearCapturedHudlesses = false;
+        State::Instance().capturedHudlesses.clear();
     }
 }
 
@@ -555,9 +555,9 @@ bool Hudfix_Dx12::IsResourceCheckActive()
         return false;
     }
 
-    if (!State::Instance().currentFG->IsActive() || State::Instance().FGchanged)
+    if (!State::Instance().currentFG->IsActive() || State::Instance().fgChanged)
     {
-        // LOG_TRACK("!State::Instance().currentFG->IsActive() || State::Instance().FGchanged");
+        // LOG_TRACK("!State::Instance().currentFG->IsActive() || State::Instance().fgChanged");
         return false;
     }
 
@@ -586,8 +586,8 @@ bool Hudfix_Dx12::CheckForHudless(ID3D12GraphicsCommandList* cmdList, ResourceIn
         }
 
         CapturedHudlessInfo* capturedHudlessInfo = nullptr;
-        auto it = s.CapturedHudlesses.find(resource->buffer);
-        if (it != s.CapturedHudlesses.end())
+        auto it = s.capturedHudlesses.find(resource->buffer);
+        if (it != s.capturedHudlesses.end())
         {
             capturedHudlessInfo = &it->second;
 
@@ -895,11 +895,11 @@ bool Hudfix_Dx12::CheckForHudless(ID3D12GraphicsCommandList* cmdList, ResourceIn
             }
         }
 
-        if (s.FGcaptureResources)
+        if (s.fgCaptureResources)
         {
             std::lock_guard<std::mutex> lock(_captureMutex);
             _captureList.insert(resource->buffer);
-            s.FGcapturedResourceCount = _captureList.size();
+            s.fgCapturedResourceCount = _captureList.size();
         }
 
         LOG_DEBUG("Calling FG with hudless");
@@ -918,7 +918,7 @@ bool Hudfix_Dx12::CheckForHudless(ID3D12GraphicsCommandList* cmdList, ResourceIn
         }
         else
         {
-            s.CapturedHudlesses.insert_or_assign(resource->buffer,
+            s.capturedHudlesses.insert_or_assign(resource->buffer,
                                                  CapturedHudlessInfo { 1, resource->captureInfo, true });
 
             LOG_DEBUG("Inserted hudless info for {:X}", (size_t) resource->buffer);

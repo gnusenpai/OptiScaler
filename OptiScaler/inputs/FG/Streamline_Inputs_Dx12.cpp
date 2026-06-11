@@ -274,7 +274,7 @@ bool Sl_Inputs_Dx12::evaluateState()
     if (repeatsInRow > 10 && fgOutput->IsActive())
     {
         LOG_WARN("Many frame count repeats in a row, stopping FG");
-        State::Instance().FGchanged = true;
+        State::Instance().fgChanged = true;
         repeatsInRow = 0;
         return false;
     }
@@ -285,7 +285,7 @@ bool Sl_Inputs_Dx12::evaluateState()
 bool Sl_Inputs_Dx12::reportResource(const sl::ResourceTag& tag, ID3D12GraphicsCommandList* cmdBuffer, uint32_t frameId)
 {
     auto& state = State::Instance();
-    state.DLSSGLastFrame = state.FGLastFrame;
+    state.dlssgLastFrame = state.fgLastFrame;
 
     auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
 

@@ -200,7 +200,7 @@ static ffxReturnCode_t ffxCreateContext_Dx12(ffxContext* context, ffxCreateConte
     if (!upscaleContext)
         return ffxApiResult;
 
-    if (!State::Instance().NvngxDx12Inited)
+    if (!State::Instance().nvngxDx12Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();

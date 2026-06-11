@@ -1069,7 +1069,7 @@ bool IFeature_VkwDx12::ProcessVulkanTextures(VkCommandBuffer InCmdList, const NV
             !NvVkResourceNotValid(paramExposure))
         {
             LOG_WARN("AutoExposure disabled but ExposureTexture is not exist, it may cause problems!!");
-            State::Instance().AutoExposure = true;
+            State::Instance().autoExposure = true;
             State::Instance().changeBackend[Handle()->Id] = true;
             paramExposure = nullptr;
         }

@@ -100,7 +100,7 @@ xess_result_t hk_xessD3D11CreateContext(ID3D11Device* device, xess_context_handl
     if (device == nullptr)
         return XESS_RESULT_ERROR_DEVICE;
 
-    if (!State::Instance().NvngxDx11Inited)
+    if (!State::Instance().nvngxDx11Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
 

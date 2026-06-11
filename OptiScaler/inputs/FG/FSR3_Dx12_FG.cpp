@@ -705,7 +705,7 @@ static Fsr3::FfxErrorCode hkffxFsr3ConfigureFrameGeneration(void* context, Fsr3:
     {
         LOG_DEBUG("frameGenerationEnabled: {} ", config->frameGenerationEnabled);
 
-        s.FSRFGInputActive = config->frameGenerationEnabled;
+        s.fsrfgInputActive = config->frameGenerationEnabled;
 
         if (config->frameGenerationEnabled && !fg->IsActive() && Config::Instance()->FGEnabled.value_or_default())
         {
@@ -789,7 +789,7 @@ static Fsr3::FfxErrorCode hkffxSetFrameGenerationConfigToSwapchainDX12(Fsr3::Ffx
     {
         LOG_DEBUG("frameGenerationEnabled: {} ", config->frameGenerationEnabled);
 
-        s.FSRFGInputActive = config->frameGenerationEnabled;
+        s.fsrfgInputActive = config->frameGenerationEnabled;
 
         if (config->frameGenerationEnabled && !fg->IsActive() && Config::Instance()->FGEnabled.value_or_default())
         {

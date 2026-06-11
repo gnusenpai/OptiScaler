@@ -1792,7 +1792,7 @@ bool MenuCommon::RenderMenu()
                 LOG_DEBUG("FG toggle key pressed, setting FGEnabled to {}", config->FGEnabled.value_or_default());
 
                 if (config->FGEnabled.value_or_default())
-                    state.FGchanged = true;
+                    state.fgChanged = true;
             }
         }
 
@@ -1820,12 +1820,12 @@ bool MenuCommon::RenderMenu()
 
                 auto optiPath = std::filesystem::path(Config::Instance()->MainDllPath.value());
                 auto dllPath = optiPath / L"dlss-enabler-headless.dll";
-                state.NvngxFgFilesAvailable = gExists.Get(dllPath);
+                state.nvngxFgFilesAvailable = gExists.Get(dllPath);
 
-                if (!state.NvngxFgFilesAvailable)
+                if (!state.nvngxFgFilesAvailable)
                 {
                     dllPath = optiPath / L"dlssg_to_fsr3_amd_is_better.dll";
-                    state.NvngxFgFilesAvailable = gExists.Get(dllPath);
+                    state.nvngxFgFilesAvailable = gExists.Get(dllPath);
                 }
 
                 if (State::Instance().currentFeature != nullptr)
@@ -2566,8 +2566,8 @@ bool MenuCommon::RenderMenu()
         if (windowTitle.empty())
         {
             windowTitle =
-                StrFmt("%s - %s %s %s %s", VER_PRODUCT_NAME, state.GameExe.c_str(),
-                       state.GameName.empty() ? "" : StrFmt("- %s", state.GameName.c_str()).c_str(),
+                StrFmt("%s - %s %s %s %s", VER_PRODUCT_NAME, state.gameExe.c_str(),
+                       state.gameName.empty() ? "" : StrFmt("- %s", state.gameName.c_str()).c_str(),
                        (state.detectedQuirks.size() > 0) ? "(Q)" : "", state.isOptiPatcherSucceed ? "(OP)" : "");
         }
 
@@ -3507,7 +3507,7 @@ bool MenuCommon::RenderMenu()
                     else
                         outputOptions[nvngxOutputIndex].label = "FSR3-FG via Nukem's";
                 }
-                if (!state.NvngxFgFilesAvailable)
+                if (!state.nvngxFgFilesAvailable)
                 {
                     inputOptions[nvngxInputIndex].set_disabled(
                         true, "Missing dlssg_to_fsr3_amd_is_better.dll\nor dlss-enabler-headless.dll");
@@ -3524,7 +3524,7 @@ bool MenuCommon::RenderMenu()
                 outputOptions[nvngxOutputIndex].set_disabled(nukemsUnsupportedApi, "Unsupported API");
 
                 auto constexpr DLSSGWithNvngxOutputIndex = (uint32_t) FGOutput::DLSSGWithNvngx;
-                if (!state.NvngxFgFilesAvailable)
+                if (!state.nvngxFgFilesAvailable)
                 {
                     outputOptions[DLSSGWithNvngxOutputIndex].set_disabled(
                         true, "Missing the dlssg_to_fsr3_amd_is_better.dll file");
@@ -3716,7 +3716,7 @@ bool MenuCommon::RenderMenu()
                          state.activeFgInput != FGInput::NoFG && state.activeFgInput != FGInput::NvngxFG) &&
                         fgOutput)
                     {
-                        ImGui::Checkbox("Show Detected UI", &state.FGHudlessCompare);
+                        ImGui::Checkbox("Show Detected UI", &state.fgHudlessCompare);
                         ShowHelpMarker("Needs HUDless texture to compare with final image.\n"
                                        "UI elements and ONLY UI elements should have a pink tint!");
 
@@ -3946,8 +3946,8 @@ bool MenuCommon::RenderMenu()
                             if (ImGui::Button("Change FG") && _ffxFGIndex != config->FfxFGIndex.value_or_default())
                             {
                                 config->FfxFGIndex = _ffxFGIndex;
-                                state.FGchanged = true;
-                                state.SCchanged = true;
+                                state.fgChanged = true;
+                                state.scChanged = true;
                             }
                         }
 
@@ -3958,7 +3958,7 @@ bool MenuCommon::RenderMenu()
                             LOG_DEBUG("FGEnabled set FGEnabled: {}", fgActive);
 
                             if (config->FGEnabled.value_or_default())
-                                state.FGchanged = true;
+                                state.fgChanged = true;
                         }
                         ShowHelpMarker("Enable Frame Generation");
 
@@ -3969,8 +3969,8 @@ bool MenuCommon::RenderMenu()
 
                             if (config->FGEnabled.value_or_default())
                             {
-                                state.FGchanged = true;
-                                state.SCchanged = true;
+                                state.fgChanged = true;
+                                state.scChanged = true;
                                 LOG_DEBUG("Async set FGChanged");
                             }
                         }
@@ -3986,7 +3986,7 @@ bool MenuCommon::RenderMenu()
 
                             if (config->FGEnabled.value_or_default())
                             {
-                                state.FGchanged = true;
+                                state.fgChanged = true;
                                 LOG_DEBUG("DebugView set FGChanged");
                             }
                         }
@@ -4021,7 +4021,7 @@ bool MenuCommon::RenderMenu()
                             ScopedIndent indent {};
                             ImGui::Spacing();
 
-                            ImGui::Checkbox("FG Only Generated", &state.FGonlyGenerated);
+                            ImGui::Checkbox("FG Only Generated", &state.fgOnlyGenerated);
                             ShowHelpMarker("Display only FSR 3.1 Generated frames");
 
                             ImGui::SameLine(0.0f, 16.0f);
@@ -4105,7 +4105,7 @@ bool MenuCommon::RenderMenu()
                                     if (ImGui::Checkbox("Enable Tuning", &fptEnabled))
                                     {
                                         config->FGFramePacingTuning = fptEnabled;
-                                        state.FSRFGFTPchanged = true;
+                                        state.fsrfgFramePaceTuningChanged = true;
                                     }
 
                                     ImGui::BeginDisabled(!config->FGFramePacingTuning.value_or_default());
@@ -4152,7 +4152,7 @@ bool MenuCommon::RenderMenu()
                                     ShowHelpMarker("Allows WaitForSingleObject instead of spinning for fence value");
 
                                     if (ImGui::Button("Apply Timing Changes"))
-                                        state.FSRFGFTPchanged = true;
+                                        state.fsrfgFramePaceTuningChanged = true;
 
                                     ImGui::EndDisabled();
                                     ImGui::TreePop();
@@ -4242,7 +4242,7 @@ bool MenuCommon::RenderMenu()
                             LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
 
                             if (config->FGEnabled.value_or_default())
-                                state.FGchanged = true;
+                                state.fgChanged = true;
                         }
 
                         ShowHelpMarker("Enable Frame Generation");
@@ -4266,7 +4266,7 @@ bool MenuCommon::RenderMenu()
                                     if (ImGui::Selectable(intModes[i], (currentSet == i)))
                                     {
                                         LOG_DEBUG("XeFG Interpolation Count set to: {}", i + 1);
-                                        state.FGchanged = true;
+                                        state.fgChanged = true;
                                         config->FGXeFGInterpolationCount = i + 1;
                                     }
                                 }
@@ -4298,7 +4298,7 @@ bool MenuCommon::RenderMenu()
 
                             if (config->FGXeFGDebugView.value_or_default())
                             {
-                                state.FGchanged = true;
+                                state.fgChanged = true;
                                 LOG_DEBUG("DebugView set FGChanged");
                             }
                         }
@@ -4319,7 +4319,7 @@ bool MenuCommon::RenderMenu()
 
                         // Disable this for now
                         // ImGui::SameLine(0.0f, 16.0f);
-                        // ImGui::Checkbox("Only Generated##2", &state.FGonlyGenerated);
+                        // ImGui::Checkbox("Only Generated##2", &state.fgOnlyGenerated);
                         // ShowHelpMarker("Display only XeFG generated frames");
 
                         ImGui::Spacing();
@@ -4400,7 +4400,7 @@ bool MenuCommon::RenderMenu()
                             LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
 
                             if (config->FGEnabled.value_or_default())
-                                state.FGchanged = true;
+                                state.fgChanged = true;
                         }
 
                         ShowHelpMarker("Enable Frame Generation");
@@ -4504,8 +4504,8 @@ bool MenuCommon::RenderMenu()
                             {
                                 config->FGHUDFix = fgHudfix;
                                 LOG_DEBUG("Enabled set FGHUDFix: {}", fgHudfix);
-                                state.ClearCapturedHudlesses = true;
-                                state.FGchanged = true;
+                                state.clearCapturedHudlesses = true;
+                                state.fgChanged = true;
                             }
 
                             ShowHelpMarker("Enable HUD stability fix, might cause crashes!");
@@ -4607,28 +4607,28 @@ bool MenuCommon::RenderMenu()
                                                "Helps games which use black borders for some \n"
                                                "resolutions and screen ratios (e.g. Witcher 3)");
 
-                                ImGui::BeginDisabled(state.FGresetCapturedResources);
+                                ImGui::BeginDisabled(state.fgResetCapturedResources);
                                 ImGui::PushItemWidth(95.0f * menuResScale);
-                                if (ImGui::Checkbox("FG Create List", &state.FGcaptureResources))
+                                if (ImGui::Checkbox("FG Create List", &state.fgCaptureResources))
                                 {
-                                    if (!state.FGcaptureResources)
+                                    if (!state.fgCaptureResources)
                                         config->FGHUDLimit = 1;
                                     else
-                                        state.FGonlyUseCapturedResources = false;
+                                        state.fgOnlyUseCapturedResources = false;
                                 }
 
                                 ImGui::SameLine(0.0f, 16.0f);
-                                if (ImGui::Checkbox("FG Use List", &state.FGonlyUseCapturedResources))
+                                if (ImGui::Checkbox("FG Use List", &state.fgOnlyUseCapturedResources))
                                 {
-                                    if (state.FGcaptureResources)
+                                    if (state.fgCaptureResources)
                                     {
-                                        state.FGcaptureResources = false;
+                                        state.fgCaptureResources = false;
                                         config->FGHUDLimit = 1;
                                     }
                                 }
 
                                 ImGui::SameLine(0.0f, 8.0f);
-                                ImGui::Text("(%d)", state.FGcapturedResourceCount);
+                                ImGui::Text("(%d)", state.fgCapturedResourceCount);
 
                                 ImGui::PopItemWidth();
 
@@ -4638,8 +4638,8 @@ bool MenuCommon::RenderMenu()
                                 {
                                     LOG_DEBUG("Resetting captured resource list");
 
-                                    state.FGresetCapturedResources = true;
-                                    state.FGonlyUseCapturedResources = false;
+                                    state.fgResetCapturedResources = true;
+                                    state.fgOnlyUseCapturedResources = false;
                                 }
 
                                 ImGui::EndDisabled();
@@ -4800,7 +4800,7 @@ bool MenuCommon::RenderMenu()
                                                 "Select DLSS-FG in-game");
                     }
 
-                    if (!state.NvngxFgFilesAvailable)
+                    if (!state.nvngxFgFilesAvailable)
                     {
                         ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "Please put dlssg_to_fsr3_amd_is_better.dll or "
                                                                        "dlss-enabler-headless.dll next to OptiScaler");
@@ -4940,20 +4940,20 @@ bool MenuCommon::RenderMenu()
 
                             if (Nvngx_FG::is120orNewer())
                             {
-                                if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
+                                if (ImGui::Checkbox("Enable Debug View", &state.dlssgDebugView))
                                 {
-                                    Nvngx_FG::setDebugView(state.DLSSGDebugView);
+                                    Nvngx_FG::setDebugView(state.dlssgDebugView);
                                 }
-                                if (ImGui::Checkbox("Interpolated frames only", &state.DLSSGInterpolatedOnly))
+                                if (ImGui::Checkbox("Interpolated frames only", &state.dlssgInterpolatedOnly))
                                 {
-                                    Nvngx_FG::setInterpolatedOnly(state.DLSSGInterpolatedOnly);
+                                    Nvngx_FG::setInterpolatedOnly(state.dlssgInterpolatedOnly);
                                 }
                             }
                             else if (Nvngx_FG::FSRDebugView() != nullptr)
                             {
-                                if (ImGui::Checkbox("Enable Debug View", &state.DLSSGDebugView))
+                                if (ImGui::Checkbox("Enable Debug View", &state.dlssgDebugView))
                                 {
-                                    Nvngx_FG::FSRDebugView()(state.DLSSGDebugView);
+                                    Nvngx_FG::FSRDebugView()(state.dlssgDebugView);
                                 }
                             }
                         }
@@ -4971,7 +4971,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Current FSR-FG state:");
                         ImGui::SameLine();
-                        if (state.FSRFGInputActive)
+                        if (state.fsrfgInputActive)
                         {
                             if (fgOutput->IsActive())
                                 ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
@@ -5017,7 +5017,7 @@ bool MenuCommon::RenderMenu()
                     {
                         ImGui::Text("Current Streamline FG state:");
                         ImGui::SameLine();
-                        if ((state.FGLastFrame - state.DLSSGLastFrame) < 3)
+                        if ((state.fgLastFrame - state.dlssgLastFrame) < 3)
                         {
                             if (fgOutput->IsActive())
                                 ImGui::TextColored(ImVec4(0.f, 1.f, 0.25f, 1.f), "ON");
@@ -7321,7 +7321,7 @@ bool MenuCommon::RenderMenu()
 
                         ankerl::unordered_dense::map<void*, CapturedHudlessInfo>::iterator it;
 
-                        for (it = state.CapturedHudlesses.begin(); it != state.CapturedHudlesses.end(); it++)
+                        for (it = state.capturedHudlesses.begin(); it != state.capturedHudlesses.end(); it++)
                         {
                             ImGui::TableNextRow();
 
@@ -7356,7 +7356,7 @@ bool MenuCommon::RenderMenu()
                     if (ImGui::Button("Clear##4"))
                     {
                         LOG_DEBUG("Clearing captured hudless resources");
-                        state.ClearCapturedHudlesses = true;
+                        state.clearCapturedHudlesses = true;
                     }
 
                     ImGui::SameLine(0.0f, 8.0f);

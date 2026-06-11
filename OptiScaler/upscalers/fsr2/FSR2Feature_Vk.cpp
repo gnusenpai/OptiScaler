@@ -283,7 +283,7 @@ bool FSR2FeatureVk::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* I
         else
         {
             LOG_DEBUG("AutoExposure disabled but ExposureTexture is not exist, it may cause problems!!");
-            State::Instance().AutoExposure = true;
+            State::Instance().autoExposure = true;
             State::Instance().changeBackend[Handle()->Id] = true;
             return true;
         }

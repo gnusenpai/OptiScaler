@@ -180,7 +180,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
         }
     }
 
-    if (State::Instance().NvngxDx12Inited)
+    if (State::Instance().nvngxDx12Inited)
     {
         LOG_WARN("NVNGX already inited");
         return NVSDK_NGX_Result_Success;
@@ -205,7 +205,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
 
     UpscalerTimeDx12::Init(InDevice);
 
-    State::Instance().NvngxDx12Inited = true;
+    State::Instance().nvngxDx12Inited = true;
 
     UpscalerInputsDx12::Init(InDevice);
 
@@ -247,7 +247,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init(unsigned long long InApplica
         }
     }
 
-    if (State::Instance().NvngxDx12Inited)
+    if (State::Instance().nvngxDx12Inited)
     {
         LOG_WARN("NVNGX already inited");
         return NVSDK_NGX_Result_Success;
@@ -313,7 +313,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_ProjectID(const char* InProj
     State::Instance().NVNGX_Engine = InEngineType;
     State::Instance().NVNGX_EngineVersion = std::string(InEngineVersion);
 
-    if (State::Instance().NvngxDx12Inited)
+    if (State::Instance().nvngxDx12Inited)
     {
         LOG_WARN("NVNGX already inited");
         return NVSDK_NGX_Result_Success;
@@ -340,7 +340,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_with_ProjectID(
     State::Instance().NVNGX_Engine = InEngineType;
     State::Instance().NVNGX_EngineVersion = std::string(InEngineVersion);
 
-    if (State::Instance().NvngxDx12Inited)
+    if (State::Instance().nvngxDx12Inited)
     {
         LOG_WARN("NVNGX already inited");
         return NVSDK_NGX_Result_Success;
@@ -358,7 +358,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_with_ProjectID(
 NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
 {
     shutdown = true;
-    State::Instance().NvngxDx12Inited = false;
+    State::Instance().nvngxDx12Inited = false;
 
     D3D12Device = nullptr;
 
@@ -389,7 +389,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
         else
             State::Instance().currentFG->DestroyFGContext();
 
-        State::Instance().ClearCapturedHudlesses = true;
+        State::Instance().clearCapturedHudlesses = true;
     }
 
     shutdown = false;
@@ -400,7 +400,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
         Nvngx_FG::D3D12_Shutdown();
     }
 
-    State::Instance().NvngxDx12Inited = false;
+    State::Instance().nvngxDx12Inited = false;
 
     return NVSDK_NGX_Result_Success;
 }
@@ -408,7 +408,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
 NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown1(ID3D12Device* InDevice)
 {
     shutdown = true;
-    State::Instance().NvngxDx12Inited = false;
+    State::Instance().nvngxDx12Inited = false;
 
     if (State::Instance().activeFgInput == FGInput::NvngxFG ||
         State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx)
@@ -697,7 +697,7 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     else
         (*OutHandle)->Id = handleId;
 
-    state.AutoExposure.reset();
+    state.autoExposure.reset();
 
     IFeature_Dx12* feature = Dx12Contexts[handleId].feature.get();
 
@@ -727,7 +727,7 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
 
     D3D12Hooks::SetRootSignatureTracking(true);
 
-    state.FGchanged = true;
+    state.fgChanged = true;
 
     return NVSDK_NGX_Result_Success;
 }
@@ -820,13 +820,13 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_ReleaseFeature(NVSDK_NGX_Handle* 
         return NVSDK_NGX_Result_Success;
 
     auto handleId = InHandle->Id;
-    State::Instance().FGchanged = true;
+    State::Instance().fgChanged = true;
 
     // Clean up framegen
     if (State::Instance().currentFG != nullptr && State::Instance().activeFgInput == FGInput::Upscaler)
     {
         State::Instance().currentFG->DestroyFGContext();
-        State::Instance().ClearCapturedHudlesses = true;
+        State::Instance().clearCapturedHudlesses = true;
         UpscalerInputsDx12::Reset();
     }
 

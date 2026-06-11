@@ -155,7 +155,7 @@ int IFGFeature::GetDispatchIndex(UINT64& willDispatchFrame)
     }
 
     _lastDispatchedFrame = willDispatchFrame;
-    _lastFGFrame = State::Instance().FGLastFrame;
+    _lastFGFrame = State::Instance().fgLastFrame;
 
     return (willDispatchFrame % BUFFER_COUNT);
 }

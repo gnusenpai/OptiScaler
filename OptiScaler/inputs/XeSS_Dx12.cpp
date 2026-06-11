@@ -101,7 +101,7 @@ xess_result_t hk_xessD3D12CreateContext(ID3D12Device* pDevice, xess_context_hand
     if (pDevice == nullptr)
         return XESS_RESULT_ERROR_DEVICE;
 
-    if (!State::Instance().NvngxDx12Inited)
+    if (!State::Instance().nvngxDx12Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
 

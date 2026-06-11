@@ -258,7 +258,7 @@ typedef struct FfxSwapchainFramePacingTuning
 
 void FSRFG_Dx12::ConfigureFramePaceTuning()
 {
-    State::Instance().FSRFGFTPchanged = false;
+    State::Instance().fsrfgFramePaceTuningChanged = false;
 
     if (_swapChainContext == nullptr || Version() < feature_version { 3, 1, 3 })
         return;
@@ -333,7 +333,7 @@ bool FSRFG_Dx12::Dispatch()
     auto& state = State::Instance();
     auto config = Config::Instance();
 
-    if (state.FSRFGFTPchanged)
+    if (state.fsrfgFramePaceTuningChanged)
         ConfigureFramePaceTuning();
 
     LOG_DEBUG("_frameCount: {}, willDispatchFrame: {}, fIndex: {}", _frameCount, willDispatchFrame, fIndex);
@@ -397,8 +397,8 @@ bool FSRFG_Dx12::Dispatch()
 
         if (localLastHudlessFormat != _lastHudlessFormat)
         {
-            state.FGchanged = true;
-            state.SCchanged = true;
+            state.fgChanged = true;
+            state.scChanged = true;
             LOG_DEBUG("HUDLESS format changed, triggering FG reinit");
         }
 
@@ -461,7 +461,7 @@ bool FSRFG_Dx12::Dispatch()
         return FFX_API_RETURN_ERROR;
     };
 
-    fgConfig.onlyPresentGenerated = state.FGonlyGenerated;
+    fgConfig.onlyPresentGenerated = state.fgOnlyGenerated;
     fgConfig.frameID = willDispatchFrame;
     fgConfig.swapChain = _swapChain;
 
@@ -598,14 +598,14 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
               params->numGeneratedFrames);
 
     // check for status
-    if (!Config::Instance()->FGEnabled.value_or_default() || _fgContext == nullptr || state.SCchanged)
+    if (!Config::Instance()->FGEnabled.value_or_default() || _fgContext == nullptr || state.scChanged)
     {
         LOG_WARN("Cancel async dispatch");
         params->numGeneratedFrames = 0;
     }
 
     // If fg is active but upscaling paused
-    if ((state.currentFeature == nullptr && state.activeFgInput == FGInput::Upscaler) || state.FGchanged ||
+    if ((state.currentFeature == nullptr && state.activeFgInput == FGInput::Upscaler) || state.fgChanged ||
         fIndex < 0 || !IsActive() || (state.currentFeature && state.currentFeature->FrameCount() == 0))
     {
         LOG_WARN("Upscaling paused! frameID: {}", params->frameID);
@@ -632,8 +632,8 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
     //    params->numGeneratedFrames = 0;
     //    _lastFrameId = params->frameID;
 
-    //    state.FGchanged = true;
-    //    state.SCchanged = true;
+    //    state.fgChanged = true;
+    //    state.scChanged = true;
 
     //    return FFX_API_RETURN_OK;
     //}
@@ -653,8 +653,8 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
             params->numGeneratedFrames = 0;
             _lastFrameId = params->frameID;
 
-            state.FGchanged = true;
-            state.SCchanged = true;
+            state.fgChanged = true;
+            state.scChanged = true;
 
             return FFX_API_RETURN_OK;
         }
@@ -663,7 +663,7 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
     bool applyHudCutoff = Config::Instance()->FGHudCutoff.value_or_default() > 0.0f ||
                           State::Instance().gameQuirks & GameQuirk::FSRFGHudlessMismatchFixup;
 
-    if ((applyHudCutoff || State::Instance().FGHudlessCompare) && !lastFGDisableHudless)
+    if ((applyHudCutoff || State::Instance().fgHudlessCompare) && !lastFGDisableHudless)
     {
         auto presentWithHud = (ID3D12Resource*) params->presentColor.resource;
         auto hudlessResource = _resourceCopy[fIndex][FG_ResourceType::HudlessColor];
@@ -710,7 +710,7 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
                 }
             }
 
-            if (State::Instance().FGHudlessCompare)
+            if (State::Instance().fgHudlessCompare)
             {
                 if (hudlessResource != nullptr)
                 {
@@ -1246,16 +1246,16 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
         lastInfiniteDepth = currentInfiniteDepth;
         LOG_DEBUG("Infinite Depth changed: {}", currentInfiniteDepth);
 
-        State::Instance().FGchanged = true;
-        State::Instance().SCchanged = true;
+        State::Instance().fgChanged = true;
+        State::Instance().scChanged = true;
     }
 
     if (_maxRenderWidth != 0 && _maxRenderHeight != 0 && IsActive() && !IsPaused() &&
         (fgConstants.displayWidth > _maxRenderWidth || fgConstants.displayHeight > _maxRenderHeight))
 
     {
-        State::Instance().FGchanged = true;
-        State::Instance().SCchanged = true;
+        State::Instance().fgChanged = true;
+        State::Instance().scChanged = true;
     }
 
     // If FG Enabled from menu
@@ -1271,7 +1271,7 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             UpdateTarget();
         }
         // If there is a change deactivate it
-        else if (State::Instance().FGchanged)
+        else if (State::Instance().fgChanged)
         {
             Deactivate();
 
@@ -1279,7 +1279,7 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             UpdateTarget();
 
             // Destroy if Swapchain has a change destroy FG Context too
-            if (State::Instance().SCchanged)
+            if (State::Instance().scChanged)
                 DestroyFGContext();
         }
 
@@ -1290,15 +1290,15 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
     {
         Deactivate();
 
-        State::Instance().ClearCapturedHudlesses = true;
+        State::Instance().clearCapturedHudlesses = true;
         Hudfix_Dx12::ResetCounters();
     }
 
-    if (State::Instance().FGchanged)
+    if (State::Instance().fgChanged)
     {
         LOG_DEBUG("FGchanged");
 
-        State::Instance().FGchanged = false;
+        State::Instance().fgChanged = false;
 
         Hudfix_Dx12::ResetCounters();
 
@@ -1310,7 +1310,7 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             Mutex.unlockThis(2);
     }
 
-    State::Instance().SCchanged = false;
+    State::Instance().scChanged = false;
 }
 
 void FSRFG_Dx12::ReleaseObjects()

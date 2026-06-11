@@ -395,7 +395,7 @@ ffxReturnCode_t ffxCreateContext_Vk(ffxContext* context, ffxCreateContextDescHea
             return ffxApiResult;
     }
 
-    if (!State::Instance().NvngxVkInited)
+    if (!State::Instance().nvngxVkInited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();

@@ -337,9 +337,9 @@ static HRESULT LocalPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
             static UINT64 fgPresentFrame = 0;
             auto fgIsActive = fg != nullptr && fg->IsActive() && !fg->IsPaused();
 
-            if (State::Instance().FGPresentIsCalled)
+            if (State::Instance().fgPresentIsCalled)
             {
-                State::Instance().FGPresentIsCalled = false;
+                State::Instance().fgPresentIsCalled = false;
                 fgPresentFrame = _frameCounter;
             }
 
@@ -717,14 +717,14 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
     if (Config::Instance()->FGEnabled.value_or_default())
     {
-        State::Instance().FGresetCapturedResources = true;
-        State::Instance().FGonlyUseCapturedResources = false;
-        State::Instance().FGchanged = true;
+        State::Instance().fgResetCapturedResources = true;
+        State::Instance().fgOnlyUseCapturedResources = false;
+        State::Instance().fgChanged = true;
     }
 
     MenuOverlayDx::CleanupRenderTarget(true, _handle);
 
-    State::Instance().SCchanged = true;
+    State::Instance().scChanged = true;
 
     if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen &&
         State::Instance().currentFG == nullptr)
@@ -877,7 +877,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
         } while (false);
     }
 
-    State::Instance().SCbuffers.clear();
+    State::Instance().scBuffers.clear();
     UINT bc = BufferCount;
     if (bc == 0 && _real1 != nullptr)
     {
@@ -893,7 +893,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
 
         if (_real->GetBuffer(i, IID_PPV_ARGS(&buffer)) == S_OK)
         {
-            State::Instance().SCbuffers.push_back(buffer);
+            State::Instance().scBuffers.push_back(buffer);
             buffer->Release();
         }
     }
@@ -1096,14 +1096,14 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
     if (Config::Instance()->FGEnabled.value_or_default())
     {
-        State::Instance().FGresetCapturedResources = true;
-        State::Instance().FGonlyUseCapturedResources = false;
-        State::Instance().FGchanged = true;
+        State::Instance().fgResetCapturedResources = true;
+        State::Instance().fgOnlyUseCapturedResources = false;
+        State::Instance().fgChanged = true;
     }
 
     MenuOverlayDx::CleanupRenderTarget(true, _handle);
 
-    State::Instance().SCchanged = true;
+    State::Instance().scChanged = true;
 
     if (Config::Instance()->OverrideVsync.value_or_default() && !State::Instance().SCExclusiveFullscreen &&
         State::Instance().currentFG == nullptr)
@@ -1276,7 +1276,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
         } while (false);
     }
 
-    State::Instance().SCbuffers.clear();
+    State::Instance().scBuffers.clear();
     UINT bc = BufferCount;
     if (bc == 0 && _real1 != nullptr)
     {
@@ -1292,7 +1292,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
 
         if (_real->GetBuffer(i, IID_PPV_ARGS(&buffer)) == S_OK)
         {
-            State::Instance().SCbuffers.push_back(buffer);
+            State::Instance().scBuffers.push_back(buffer);
             buffer->Release();
         }
     }

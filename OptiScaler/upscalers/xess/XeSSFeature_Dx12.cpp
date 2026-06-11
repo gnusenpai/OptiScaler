@@ -190,7 +190,7 @@ bool XeSSFeatureDx12::EvaluateInternal(ID3D12GraphicsCommandList* InCommandList,
         else
         {
             LOG_WARN("AutoExposure disabled but ExposureTexture is not exist, it may cause problems!!");
-            State::Instance().AutoExposure = true;
+            State::Instance().autoExposure = true;
             State::Instance().changeBackend[_handle->Id] = true;
             return true;
         }

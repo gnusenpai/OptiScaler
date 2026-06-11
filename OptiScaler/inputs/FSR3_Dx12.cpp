@@ -261,7 +261,7 @@ static Fsr3::FfxErrorCode ffxFsr3ContextCreate_Dx12(Fsr3::FfxFsr3UpscalerContext
         return ccResult;
     }
 
-    if (!state.NvngxDx12Inited)
+    if (!state.nvngxDx12Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();
@@ -465,7 +465,7 @@ ffxFsr3ContextCreate_Pattern_Dx12(Fsr3::FfxFsr3UpscalerContext* pContext,
         return ccResult;
     }
 
-    if (!state.NvngxDx12Inited)
+    if (!state.nvngxDx12Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
 

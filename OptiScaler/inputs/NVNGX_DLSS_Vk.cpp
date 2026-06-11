@@ -246,7 +246,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Init_Ext2(
 
     UpscalerTimeVk::Init(InDevice, InPD);
 
-    State::Instance().NvngxVkInited = true;
+    State::Instance().nvngxVkInited = true;
 
     return NVSDK_NGX_Result_Success;
 }
@@ -879,7 +879,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_CreateFeature1(VkDevice InDevice
     else
         (*OutHandle)->Id = handleId;
 
-    State::Instance().AutoExposure.reset();
+    State::Instance().autoExposure.reset();
 
     {
         ScopedSkipSpoofing skipSpoofing;
@@ -1102,7 +1102,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_Shutdown(void)
     Nvngx_FG::VULKAN_Shutdown();
 
     shutdown = false;
-    State::Instance().NvngxVkInited = false;
+    State::Instance().nvngxVkInited = false;
 
     return NVSDK_NGX_Result_Success;
 }

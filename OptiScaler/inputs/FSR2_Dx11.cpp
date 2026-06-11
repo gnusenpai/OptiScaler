@@ -214,7 +214,7 @@ static FfxErrorCode ffxFsr2ContextCreate_Dx11(FfxFsr2Context* context, FfxFsr2Co
         return ccResult;
     }
 
-    if (!state.NvngxDx11Inited)
+    if (!state.nvngxDx11Inited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();

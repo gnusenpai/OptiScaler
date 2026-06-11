@@ -69,10 +69,10 @@ bool IFeature::SetInitParameters(NVSDK_NGX_Parameter* InParameters)
         }
 
         // First check state to prevent upscaler re-init loops
-        if (State::Instance().AutoExposure.has_value())
+        if (State::Instance().autoExposure.has_value())
         {
-            LOG_INFO("AutoExposure flag overrided by OptiScaler: {}", State::Instance().AutoExposure.value());
-            _initFlags.AutoExposure = State::Instance().AutoExposure.value();
+            LOG_INFO("AutoExposure flag overrided by OptiScaler: {}", State::Instance().autoExposure.value());
+            _initFlags.AutoExposure = State::Instance().autoExposure.value();
         }
         else if (Config::Instance()->AutoExposure.has_value())
         {

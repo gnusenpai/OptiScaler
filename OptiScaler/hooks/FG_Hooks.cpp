@@ -378,7 +378,7 @@ HRESULT FGHooks::hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDX
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
-        State::Instance().FGchanged = true;
+        State::Instance().fgChanged = true;
         fg->UpdateTarget();
         fg->Deactivate();
     }
@@ -622,7 +622,7 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
 
     if (fg != nullptr && fg->IsActive())
     {
-        State::Instance().FGchanged = true;
+        State::Instance().fgChanged = true;
         fg->UpdateTarget();
         fg->Deactivate();
     }
@@ -674,7 +674,7 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
         auto fg = State::Instance().currentFG;
         if (fg != nullptr)
         {
-            State::Instance().FGchanged = true;
+            State::Instance().fgChanged = true;
             fg->Deactivate();
             fg->UpdateTarget();
         }
@@ -710,7 +710,7 @@ HRESULT FGHooks::hkResizeTarget(IDXGISwapChain* This, const DXGI_MODE_DESC* pNew
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
-        State::Instance().FGchanged = true;
+        State::Instance().fgChanged = true;
         fg->UpdateTarget();
         fg->Deactivate();
     }
@@ -857,7 +857,7 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain3* This, UINT BufferCount, UINT 
 
     if (fg != nullptr && fg->IsActive())
     {
-        State::Instance().FGchanged = true;
+        State::Instance().fgChanged = true;
         fg->UpdateTarget();
         fg->Deactivate();
     }
@@ -914,7 +914,7 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain3* This, UINT BufferCount, UINT 
         auto fg = State::Instance().currentFG;
         if (fg != nullptr)
         {
-            State::Instance().FGchanged = true;
+            State::Instance().fgChanged = true;
             fg->Deactivate();
             fg->UpdateTarget();
         }
@@ -1024,7 +1024,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
 
     if (willPresent)
     {
-        State::Instance().FGLastFrame++;
+        State::Instance().fgLastFrame++;
 
         double ftDelta = 0.0f;
         auto now = Util::MillisecondsNow();
@@ -1126,7 +1126,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
 
     // Used at wrapped_swapchain LocalPresent to determine is frame is interpolated or not
     if (willPresent)
-        State::Instance().FGPresentIsCalled = true;
+        State::Instance().fgPresentIsCalled = true;
 
     HRESULT result;
     if (pPresentParameters == nullptr)

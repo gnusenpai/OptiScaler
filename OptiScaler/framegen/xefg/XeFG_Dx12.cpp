@@ -606,7 +606,7 @@ void XeFG_Dx12::CreateContext(ID3D12Device* device, FG_Constants& fgConstants)
     if (_isActive)
     {
         LOG_INFO("FG context recreated while active, pausing");
-        State::Instance().FGchanged = true;
+        State::Instance().fgChanged = true;
         UpdateTarget();
         Deactivate();
     }
@@ -782,7 +782,7 @@ bool XeFG_Dx12::Dispatch()
     {
         state.WAR_xefgRequestFGToggle = false;
 
-        state.FGchanged = true;
+        state.fgChanged = true;
         UpdateTarget();
         Deactivate();
     }
@@ -804,7 +804,7 @@ bool XeFG_Dx12::Dispatch()
                      usingHudless);
 
             _haveHudless = usingHudless;
-            state.FGchanged = true;
+            state.fgChanged = true;
             UpdateTarget();
             Deactivate();
 
@@ -837,7 +837,7 @@ bool XeFG_Dx12::Dispatch()
     XeFGProxy::EnableDebugFeature()(_swapChainContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_TAG_INTERPOLATED_FRAMES,
                                     Config::Instance()->FGXeFGDebugView.value_or_default(), nullptr);
     XeFGProxy::EnableDebugFeature()(_swapChainContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_SHOW_ONLY_INTERPOLATION,
-                                    state.FGonlyGenerated, nullptr);
+                                    state.fgOnlyGenerated, nullptr);
 
     xefg_swapchain_frame_constant_data_t constData = {};
 
@@ -922,7 +922,7 @@ bool XeFG_Dx12::Dispatch()
     {
         LOG_ERROR("TagFrameConstants error: {} ({})", magic_enum::enum_name(result), (UINT) result);
 
-        state.FGchanged = true;
+        state.fgChanged = true;
         UpdateTarget();
         Deactivate();
 
@@ -934,7 +934,7 @@ bool XeFG_Dx12::Dispatch()
     {
         LOG_ERROR("SetPresentId error: {} ({})", magic_enum::enum_name(result), (UINT) result);
 
-        state.FGchanged = true;
+        state.fgChanged = true;
         UpdateTarget();
         Deactivate();
 
@@ -985,7 +985,7 @@ bool XeFG_Dx12::Dispatch()
         {
             LOG_ERROR("D3D12TagFrameResource Backbuffer error: {} ({})", magic_enum::enum_name(result), (UINT) result);
 
-            state.FGchanged = true;
+            state.fgChanged = true;
             UpdateTarget();
             Deactivate();
         }
@@ -1035,7 +1035,7 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             UpdateTarget();
         }
         // If there is a change deactivate it
-        else if (state.FGchanged)
+        else if (state.fgChanged)
         {
             LOG_DEBUG("FGChanged");
             Deactivate();
@@ -1044,7 +1044,7 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             UpdateTarget();
 
             // Destroy if Swapchain has a change destroy FG Context too
-            if (state.SCchanged)
+            if (state.scChanged)
                 DestroyFGContext();
         }
 
@@ -1056,15 +1056,15 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
         LOG_DEBUG("!FGEnabled");
         Deactivate();
 
-        state.ClearCapturedHudlesses = true;
+        state.clearCapturedHudlesses = true;
         Hudfix_Dx12::ResetCounters();
     }
 
-    if (state.FGchanged)
+    if (state.fgChanged)
     {
         LOG_DEBUG("FGchanged");
 
-        state.FGchanged = false;
+        state.fgChanged = false;
 
         Hudfix_Dx12::ResetCounters();
 
@@ -1076,7 +1076,7 @@ void XeFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
             Mutex.unlockThis(2);
     }
 
-    state.SCchanged = false;
+    state.scChanged = false;
 }
 
 void XeFG_Dx12::ReleaseObjects()
@@ -1218,7 +1218,7 @@ bool XeFG_Dx12::Present()
 
     if (IsActive() && !IsPaused())
     {
-        if (State::Instance().FGHudlessCompare)
+        if (State::Instance().fgHudlessCompare)
         {
             auto hudless = GetResource(FG_ResourceType::HudlessColor, fIndex);
             if (hudless != nullptr && (hudless->validity == FG_ResourceValidity::UntilPresent ||
@@ -1322,7 +1322,7 @@ bool XeFG_Dx12::SetResource(Dx12Resource* inputResource)
             return false;
 
         // Making a copy if it's just valid now to be able to use it later
-        if (State::Instance().FGHudlessCompare && inputResource->validity == FG_ResourceValidity::ValidNow)
+        if (State::Instance().fgHudlessCompare && inputResource->validity == FG_ResourceValidity::ValidNow)
             inputResource->validity = FG_ResourceValidity::ValidButMakeCopy;
 
         if (!_noHudless[fIndex] && (_frameResources[fIndex][type].validity == FG_ResourceValidity::ValidNow))
@@ -1477,7 +1477,7 @@ bool XeFG_Dx12::SetResource(Dx12Resource* inputResource)
 
             if (lastFormat[fIndex] != DXGI_FORMAT_UNKNOWN && lastFormat[fIndex] != desc.Format)
             {
-                State::Instance().FGchanged = true;
+                State::Instance().fgChanged = true;
                 return false;
             }
 
@@ -1523,7 +1523,7 @@ bool XeFG_Dx12::SetResource(Dx12Resource* inputResource)
 
             if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
             {
-                State::Instance().FGchanged = true;
+                State::Instance().fgChanged = true;
                 UpdateTarget();
                 Deactivate();
 

@@ -188,7 +188,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Init_Ext(unsigned long long InApp
         D3D11Device = InDevice;
 
     State::Instance().currentD3D11Device = InDevice;
-    State::Instance().NvngxDx11Inited = true;
+    State::Instance().nvngxDx11Inited = true;
 
     UpscalerTimeDx11::Init(InDevice);
 
@@ -334,7 +334,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Shutdown()
     // HooksDx::UnHook();
 
     shutdown = false;
-    State::Instance().NvngxDx11Inited = false;
+    State::Instance().nvngxDx11Inited = false;
 
     return NVSDK_NGX_Result_Success;
 }
@@ -573,7 +573,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_CreateFeature(ID3D11DeviceContext
 
     D3D11Device->Release();
 
-    State::Instance().AutoExposure.reset();
+    State::Instance().autoExposure.reset();
 
     if (deviceContext->ModuleLoaded() && deviceContext->Init(D3D11Device, InDevCtx, InParameters))
     {

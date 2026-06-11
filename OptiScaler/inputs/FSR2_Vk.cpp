@@ -336,7 +336,7 @@ static FfxErrorCode ffxFsr2ContextCreate_Vk(FfxFsr2Context* context, FfxFsr2Cont
         LOG_DEBUG("VkDevice: {:X}", (size_t) _vkDevice);
     }
 
-    if (!state.NvngxVkInited)
+    if (!state.nvngxVkInited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();

@@ -171,7 +171,7 @@ void Util::GetExeInfo()
     auto exeDir = exePath.parent_path();
     auto exePathFilename = exePath.filename().string();
     auto exePathFilenameW = exePath.filename().wstring();
-    State::Instance().GameExe = exePathFilename;
+    State::Instance().gameExe = exePathFilename;
 
     wchar_t sysFolder[MAX_PATH];
     GetSystemDirectory(sysFolder, MAX_PATH);
@@ -235,16 +235,16 @@ void Util::GetExeInfo()
 
     if (!productName.empty())
     {
-        State::Instance().GameName = wstring_to_string(productName);
+        State::Instance().gameName = wstring_to_string(productName);
     }
 
     if (!productVersion.empty())
     {
-        State::Instance().GameVersion = wstring_to_string(productVersion);
+        State::Instance().gameVersion = wstring_to_string(productVersion);
     }
     else if (!fileVersion.empty())
     {
-        State::Instance().GameVersion = wstring_to_string(fileVersion);
+        State::Instance().gameVersion = wstring_to_string(fileVersion);
     }
 
     std::wstring productLower = ToLower(productName);
@@ -263,7 +263,7 @@ void Util::GetExeInfo()
 
     if (isUnity)
     {
-        State::Instance().GameEngine = GameEngineType::Unity;
+        State::Instance().gameEngine = GameEngineType::Unity;
         return;
     }
 
@@ -283,7 +283,7 @@ void Util::GetExeInfo()
 
     if (isUnreal)
     {
-        State::Instance().GameEngine = GameEngineType::Unreal;
+        State::Instance().gameEngine = GameEngineType::Unreal;
         return;
     }
 }

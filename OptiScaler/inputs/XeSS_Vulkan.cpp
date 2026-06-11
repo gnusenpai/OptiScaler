@@ -129,7 +129,7 @@ xess_result_t hk_xessVKCreateContext(VkInstance instance, VkPhysicalDevice physi
     _physicalDevice = physicalDevice;
     _device = device;
 
-    if (!State::Instance().NvngxVkInited)
+    if (!State::Instance().nvngxVkInited)
     {
         NVSDK_NGX_FeatureCommonInfo fcInfo {};
         auto exePath = Util::ExePath().remove_filename();

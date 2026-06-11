@@ -71,7 +71,7 @@ bool FFXFeatureVkOn12::Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter
             if (InParameters->Get(NVSDK_NGX_Parameter_ExposureTexture, &paramExpo) != NVSDK_NGX_Result_Success)
             {
                 LOG_WARN("ExposureTexture does not exist, enabling AutoExposure!!");
-                State::Instance().AutoExposure = true;
+                State::Instance().autoExposure = true;
             }
         }
 

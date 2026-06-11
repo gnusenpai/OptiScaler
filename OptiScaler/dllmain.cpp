@@ -1225,10 +1225,10 @@ static void CheckQuirks(bool isNvidia)
 {
     Util::GetExeInfo();
 
-    LOG_INFO("Game's Exe: {0}", State::Instance().GameExe);
-    LOG_INFO("Game Name: {0}", State::Instance().GameName);
-    LOG_INFO("Game Version: {0}", State::Instance().GameVersion);
-    LOG_INFO("Game Engine: {0}", magic_enum::enum_name(State::Instance().GameEngine));
+    LOG_INFO("Game's Exe: {0}", State::Instance().gameExe);
+    LOG_INFO("Game Name: {0}", State::Instance().gameName);
+    LOG_INFO("Game Version: {0}", State::Instance().gameVersion);
+    LOG_INFO("Game Engine: {0}", magic_enum::enum_name(State::Instance().gameEngine));
 
 #ifndef _DEBUG
     // Hash is very slow on Debug builds + we don't need to check our own hashes
@@ -1244,7 +1244,7 @@ static void CheckQuirks(bool isNvidia)
     }
 #endif
 
-    auto quirks = getQuirksForExe(State::Instance().GameExe);
+    auto quirks = getQuirksForExe(State::Instance().gameExe);
 
     auto state = &State::Instance();
 
