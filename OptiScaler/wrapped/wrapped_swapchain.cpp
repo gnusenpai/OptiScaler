@@ -1129,11 +1129,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
     WaitForGPUIdle(_device);
 
     // Release swapchain backbuffers to prevent errors when resizing
-    /*
-    const bool outputRequiresRelease =
+    const bool isUsingOptiFgFeature =
         State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG;
 
-    if (outputRequiresRelease && State::Instance().currentFG != nullptr)
+    if (isUsingOptiFgFeature && State::Instance().currentFG != nullptr)
     {
         IDXGISwapChain* skSC = nullptr;
         if (_real->QueryInterface(IID_IUnwrappedDXGISwapChain, (void**) &skSC) == S_OK && skSC != nullptr)
@@ -1163,6 +1162,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
                 result = _real3->ResizeBuffers(BufferCount, Width, Height, Format, SwapChainFlags);
             }
         }
+        /*
         else
         {
             LOG_DEBUG("Releasing backbuffers, count: {}", desc.BufferCount);
@@ -1195,10 +1195,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
                 }
             }
         }
+        */
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    */
 
 #ifdef DXGI_DEBUG_ENABLED
     ReportDXGILiveObjects();
