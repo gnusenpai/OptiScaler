@@ -658,14 +658,6 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     const uint32_t handleId = IFeature::GetNextHandleId();
     LOG_INFO("Creating OptiScaler feature, HandleId: {}", handleId);
 
-    // Root signature restore
-    if (Config::Instance()->RestoreComputeSignature.value_or_default() ||
-        Config::Instance()->RestoreGraphicSignature.value_or_default())
-    {
-        D3D12Hooks::SetRootSignatureTracking(false);
-        D3D12Hooks::HookToCommandListLate(InCmdList);
-    }
-
     // Determine backend name
     Upscaler upscalerBackend;
     if (InFeatureID == NVSDK_NGX_Feature_SuperSampling)
@@ -681,11 +673,14 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
 
     // Root signature restoration setup
     const bool restoreCompute = cfg.RestoreComputeSignature.value_or_default();
-    const bool restoreGraphic = cfg.RestoreGraphicSignature.value_or_default();
-    const bool shouldRestore = restoreCompute || restoreGraphic;
+    const bool restoreGraphics = cfg.RestoreGraphicSignature.value_or_default();
+    const bool shouldRestoreSigs = restoreCompute || restoreGraphics;
 
-    if (shouldRestore)
-        D3D12Hooks::SetRootSignatureTracking(false);
+    // To avoid capturing the upscaler creation
+    D3D12Hooks::SetRootSignatureTracking(false);
+
+    if (shouldRestoreSigs)
+        D3D12Hooks::HookToCommandListLate(InCmdList);
 
     // Create context entry
     Dx12Contexts[handleId] = {};
@@ -695,8 +690,7 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     {
         LOG_ERROR("Failed to retrieve feature implementation for '{}'", UpscalerDisplayName(upscalerBackend));
 
-        if (shouldRestore)
-            D3D12Hooks::SetRootSignatureTracking(true);
+        D3D12Hooks::SetRootSignatureTracking(true);
 
         Dx12Contexts.erase(handleId);
         return NVSDK_NGX_Result_Fail;
@@ -707,8 +701,7 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     {
         LOG_ERROR("Failed to acquire D3D12 device");
 
-        if (shouldRestore)
-            D3D12Hooks::SetRootSignatureTracking(true);
+        D3D12Hooks::SetRootSignatureTracking(true);
 
         // Partial cleanup � handle is allocated but context is incomplete
         Dx12Contexts.erase(handleId);
@@ -740,10 +733,8 @@ static NVSDK_NGX_Result TryCreateOptiFeature(ID3D12GraphicsCommandList* InCmdLis
     }
 
     // Restore root signatures
-    if (shouldRestore)
-    {
+    if (shouldRestoreSigs)
         D3D12Hooks::RestoreRoot(InCmdList);
-    }
 
     D3D12Hooks::SetRootSignatureTracking(true);
 
@@ -1010,13 +1001,18 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
 
     // Root signature restoration setup
     const bool restoreCompute = cfg.RestoreComputeSignature.value_or_default();
-    const bool restoreGraphic = cfg.RestoreGraphicSignature.value_or_default();
-    const bool shouldRestore = restoreCompute || restoreGraphic;
+    const bool restoreGraphics = cfg.RestoreGraphicSignature.value_or_default();
+    const bool shouldRestoreSigs = restoreCompute || restoreGraphics;
 
-    if (shouldRestore && !D3D12Hooks::CanRestoreRootSignature(InCmdList))
+    if (shouldRestoreSigs)
     {
-        LOG_DEBUG("Skipping upscaling because can't restore root signature");
-        return NVSDK_NGX_Result_Success;
+        D3D12Hooks::HookToCommandListLate(InCmdList);
+
+        if (!D3D12Hooks::CanRestoreRootSignature(InCmdList))
+        {
+            LOG_DEBUG("Skipping upscaling because can't restore root signature");
+            return NVSDK_NGX_Result_Success;
+        }
     }
 
     if (InCallback)
@@ -1034,14 +1030,18 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
             state.changeBackend[handleId] = true;
     }
 
+    // To avoid capturing potential upscaler change (creation) and then upscaling itself
+    D3D12Hooks::SetRootSignatureTracking(false);
+
     // Backend change or recreation requested
     if (state.changeBackend[handleId])
     {
         UpscalerInputsDx12::Reset();
-        D3D12Hooks::SetRootSignatureTracking(true);
 
         FeatureProvider_Dx12::ChangeFeature(state.newBackend, D3D12Device, InCmdList, handleId, InParameters, &ctxData);
         feature = ctxData.feature.get();
+
+        D3D12Hooks::SetRootSignatureTracking(true);
 
         evalCounter = 0;
         return NVSDK_NGX_Result_Success;
@@ -1052,18 +1052,16 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     {
         LOG_WARN("Feature '{}' failed to initialize. Falling back to FSR 2.1.2", feature->Name());
         ImGui::InsertNotification({ ImGuiToastType::Warning, 10000, "Falling back to FSR 2.1.2" });
+
         state.newBackend = Upscaler::FSR21;
         state.changeBackend[handleId] = true;
+
+        D3D12Hooks::SetRootSignatureTracking(true);
+
         return NVSDK_NGX_Result_Success;
     }
 
     state.currentFeature = feature;
-
-    if (shouldRestore)
-    {
-        D3D12Hooks::SetRootSignatureTracking(false);
-        D3D12Hooks::HookToCommandListLate(InCmdList);
-    }
 
     // Prepare upscaling inputs
     UpscalerInputsDx12::UpscaleStart(InCmdList, InParameters, feature);
@@ -1096,10 +1094,8 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     }
 
     // Restore root signatures
-    if (shouldRestore)
-    {
+    if (shouldRestoreSigs)
         D3D12Hooks::RestoreRoot(InCmdList);
-    }
 
     D3D12Hooks::SetRootSignatureTracking(true);
 
