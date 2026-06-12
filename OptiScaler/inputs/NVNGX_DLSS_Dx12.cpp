@@ -1134,6 +1134,9 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     bool fgCreated = std::any_of(HandleToFeature.begin(), HandleToFeature.end(),
                                  [](const auto& pair) { return pair.second == NVSDK_NGX_Feature_FrameGeneration; });
 
+    static std::optional<float> lastDlssgCameraNear {};
+    static std::optional<float> lastDlssgCameraFar {};
+
     if (feature == NVSDK_NGX_Feature_FrameGeneration)
     {
         evalWithoutFG = 0;
@@ -1142,6 +1145,15 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         InParameters->Get("DLSSG.MultiFrameCount", &frameCount);
         State::Instance().dlssgDetectedInterpolationCount = frameCount;
         ReflexHooks::setDlssgFrameCount(frameCount);
+
+        float dlssgCameraNear = 0.0f;
+        float dlssgCameraFar = 0.0f;
+
+        if (InParameters->Get("DLSSG.CameraNear", &dlssgCameraNear) == NVSDK_NGX_Result_Success)
+            lastDlssgCameraNear = dlssgCameraNear;
+
+        if (InParameters->Get("DLSSG.CameraFar", &dlssgCameraFar) == NVSDK_NGX_Result_Success)
+            lastDlssgCameraFar = dlssgCameraFar;
     }
     else if (fgCreated)
     {
@@ -1178,6 +1190,12 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         LOG_DEBUG("Passthrough to Nukem's DLSSG EvaluateFeature for handle {}", handleId);
         return Nvngx_FG::D3D12_EvaluateFeature(InCmdList, InFeatureHandle, InParameters, InCallback);
     }
+
+    if (lastDlssgCameraNear.has_value())
+        InParameters->Set("DLSSG.CameraNear", lastDlssgCameraNear.value());
+
+    if (lastDlssgCameraFar.has_value())
+        InParameters->Set("DLSSG.CameraFar", lastDlssgCameraFar.value());
 
     // OptiScaler internal handling
     return TryEvaluateOptiFeature(InCmdList, InFeatureHandle, InParameters, InCallback);

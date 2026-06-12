@@ -166,9 +166,8 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
                   float nearPlane = 0.0f;
                   float farPlane = 0.0f;
 
-                  // TODO: Probably doesn't work for most cases, we need camera near and far for DLSSD
-                  // at it might provide linear depth, also DLSSG might be on a separate parameters instance
-                  // Might need to recalc this from camera matrices
+                  // We need camera near and far for DLSSD
+                  // We passthrough those values from the DLSSG params onto the upscaler's params
                   if (InParameters->Get("DLSSG.CameraNear", &nearPlane) == NVSDK_NGX_Result_Success &&
                       InParameters->Get("DLSSG.CameraFar", &farPlane) == NVSDK_NGX_Result_Success)
                   {
