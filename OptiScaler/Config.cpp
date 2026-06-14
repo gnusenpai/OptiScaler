@@ -220,7 +220,7 @@ bool Config::Reload(std::filesystem::path iniPath)
 
             FGDLSSGOverrideInterpolationCount.set_from_config(readInt("DLSSG", "OverrideInterpolationCount"));
             if (FGDLSSGOverrideInterpolationCount.has_value() &&
-                (FGDLSSGOverrideInterpolationCount.value() < 1 || FGDLSSGOverrideInterpolationCount.value() > 6))
+                (FGDLSSGOverrideInterpolationCount.value() < 0 || FGDLSSGOverrideInterpolationCount.value() > 6))
                 FGDLSSGOverrideInterpolationCount.reset();
 
             FGDLSSGFramerateTargetDMFG.set_from_config(readFloat("DLSSG", "FramerateTargetDMFG"));
