@@ -39,7 +39,6 @@ enum class GameQuirk : uint64_t
     DisableFakenvapi,
     DoNotPreserveFGSwapChain,
     OldOverlayMenu,
-    UseManualInputs,
     DoNotLoadAmdxc64,
 
     // Quirks that are applied deeper in code
@@ -291,7 +290,7 @@ static const QuirkEntry quirkTable[] = {
     // Metro Exodus Enhanced Edition
     // ForceBorderless required to avoid black screen with XeFG, Manual Input polling for fixing invisible Opti Overlay
     QUIRK_ENTRY("metroexodus.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceBorderlessWhenUsingXeFG,
-                GameQuirk::ForceAutoExposure, GameQuirk::UseManualInputs),
+                GameQuirk::ForceAutoExposure),
 
     // Star Wars: Outlaws
     // SL spoof enough to unlock everything DLSS
@@ -319,15 +318,15 @@ static const QuirkEntry quirkTable[] = {
 
     // S.T.A.L.K.E.R.: Legends of the Zone Trilogy - Enhanced Editions
     // Manual input polling for fixing invisible Opti Overlay, no spoof needed for DLSS inputs
-    QUIRK_ENTRY("xrengine.exe", GameQuirk::UseManualInputs, GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("xrengine.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Dying Light 2: Reloaded Edition
     // SL spoof enough to unlock everything DLSS, manual input polling for fixing unclickable Opti Overlay
-    QUIRK_ENTRY("dyinglightgame_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::UseManualInputs),
+    QUIRK_ENTRY("dyinglightgame_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Dying Light: The Beast
     // SL spoof enough to unlock everything DLSS, manual input polling for fixing unclickable Opti Overlay
-    QUIRK_ENTRY("dyinglightgame_thebeast_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::UseManualInputs),
+    QUIRK_ENTRY("dyinglightgame_thebeast_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Assetto Corsa EVO
     // SL spoof enough to unlock everything DLSS, AE required to fix FSR4 ghosting

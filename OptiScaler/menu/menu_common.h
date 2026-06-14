@@ -83,7 +83,6 @@ class MenuCommon
     inline static bool _isVisible = false;
     inline static bool _isInited = false;
     inline static bool _isUWP = false;
-    // inline static bool _isResetRequested = false;
 
     // mipmap calculations
     inline static bool _showMipmapCalcWindow = false;
@@ -125,53 +124,6 @@ class MenuCommon
 
     inline static void SeparatorWithHelpMarker(const char* label, const char* tip);
 
-#pragma region "Hooks & WndProc"
-
-    // for hooking
-    typedef decltype(&SetCursorPos) PFN_SetCursorPos;
-    typedef decltype(&ClipCursor) PFN_ClipCursor;
-    typedef decltype(&SendInput) PFN_SendInput;
-    typedef decltype(&mouse_event) PFN_mouse_event;
-    typedef decltype(&GetCursorPos) PFN_GetCursorPos;
-    typedef decltype(&SendMessageW) PFN_SendMessageW;
-
-    inline static PFN_SetCursorPos pfn_SetPhysicalCursorPos = nullptr;
-    inline static PFN_SetCursorPos pfn_SetCursorPos = nullptr;
-    inline static PFN_ClipCursor pfn_ClipCursor = nullptr;
-    inline static PFN_mouse_event pfn_mouse_event = nullptr;
-    inline static PFN_SendInput pfn_SendInput = nullptr;
-    inline static PFN_SendMessageW pfn_SendMessageW = nullptr;
-    inline static PFN_GetCursorPos pfn_GetCursorPos = nullptr;
-
-    inline static bool pfn_SetPhysicalCursorPos_hooked = false;
-    inline static bool pfn_SetCursorPos_hooked = false;
-    inline static bool pfn_ClipCursor_hooked = false;
-    inline static bool pfn_mouse_event_hooked = false;
-    inline static bool pfn_SendInput_hooked = false;
-    inline static bool pfn_SendMessageW_hooked = false;
-
-    inline static RECT _cursorLimit = {};
-    inline static POINT _lastPoint = {};
-
-    static LRESULT hkSendMessageW(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
-
-    static BOOL hkSetPhysicalCursorPos(int x, int y);
-    static BOOL hkSetCursorPos(int x, int y);
-    static BOOL hkClipCursor(RECT* lpRect);
-    static void hkmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULONG_PTR dwExtraInfo);
-    static UINT hkSendInput(UINT cInputs, LPINPUT pInputs, int cbSize);
-    static BOOL hkGetPhysicalCursorPos(LPPOINT lpPoint);
-
-    static void AttachHooks();
-    static void DetachHooks();
-
-    inline static ImGuiKey ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam);
-
-    // Win32 message handler
-    static LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-#pragma endregion
-
     static Upscaler GetBackendCode(const API api);
     static void GetCurrentBackendInfo(const API api, Upscaler& upscaler, std::string* name);
     static void RenderUpscalerCombo(const API api, Upscaler currentUpscaler, const std::vector<Upscaler>& options);
@@ -184,6 +136,8 @@ class MenuCommon
     template <typename TStorage, typename T>
     static void PopulateCombo(const std::string& name, TStorage& currentValue,
                               const std::vector<MenuOption<T>>& options);
+
+    static void UpdateManualInput(HWND targetHwnd);
 
   public:
     static void Dx11Inited() { _dx11Ready = true; }

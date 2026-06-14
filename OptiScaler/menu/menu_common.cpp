@@ -1,6 +1,8 @@
 ﻿#include "pch.h"
 #include "menu_common.h"
 
+#include "input/input_system.h"
+
 #include "font/Hack_Compressed.h"
 
 #include <proxies/XeSS_Proxy.h>
@@ -41,7 +43,6 @@ static bool inputMenu = false;
 static bool inputFG = false;
 static bool inputFps = false;
 static bool inputFpsCycle = false;
-static bool inputManual = false;
 static uint64_t lastInputTick = 0;
 constexpr uint64_t debounceThreshold = 60;
 
@@ -145,6 +146,7 @@ static std::string updateNoticeUrl;
 static float lastMenuScale = 0.0f;
 static CustomOptional<uint32_t> comboPreset { 0 };
 static int lastKey = 0;
+static bool capturingKey = false;
 
 template <typename T, size_t N> struct RingBuffer
 {
@@ -227,36 +229,11 @@ inline std::string StrFmt(const char* fmt, ...)
     return out;
 }
 
-bool IsKeyReleasedOnce(int vk)
+void MenuCommon::UpdateManualInput(HWND targetHwnd)
 {
-    static bool previousDown[256] {};
+    OptiInput::BeginFrame(targetHwnd);
 
-    if (vk <= 0 || vk >= 256)
-        return false;
-
-    bool isDown = (GetAsyncKeyState(vk) & 0x8000) != 0;
-    bool released = previousDown[vk] && !isDown;
-
-    previousDown[vk] = isDown;
-
-    return released;
-}
-
-void UpdateManualInput(HWND targetHwnd)
-{
-    ImGuiIO& io = ImGui::GetIO();
-
-    // Only capture input when target window is foreground
-    HWND foreground = GetForegroundWindow();
-    bool focused = foreground == targetHwnd;
-
-    io.AddFocusEvent(focused);
-
-    if (!focused)
-    {
-        io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
-        return;
-    }
+    OptiInput::FeedImGui();
 
     const auto config = Config::Instance();
 
@@ -268,76 +245,27 @@ void UpdateManualInput(HWND targetHwnd)
         if (vk <= 0 || vk >= 256)
             return;
 
-        if (IsKeyReleasedOnce(vk))
+        if (OptiInput::IsKeyReleased(vk))
         {
             lastKey = vk;
+            // receivingWmInputs = false;
             inputFlag = true;
             LOG_DEBUG("{}", logMessage);
         }
     };
 
-    CheckShortcut(config->ShortcutKey.value_or_default(), inputMenu, "Menu key pressed, will be switching menu");
-
-    CheckShortcut(config->FpsShortcutKey.value_or_default(), inputFps, "Menu key pressed, will be switching FPS");
-
-    CheckShortcut(config->FGShortcutKey.value_or_default(), inputFG, "Menu key pressed, will be switching FG mode");
-
-    CheckShortcut(config->FpsCycleShortcutKey.value_or_default(), inputFpsCycle,
-                  "Menu key pressed, will be switching FPS mode");
-
-    // Mouse position
-    POINT cursorPos {};
-    GetCursorPos(&cursorPos);
-
-    POINT clientPos = cursorPos;
-    ScreenToClient(targetHwnd, &clientPos);
-
-    io.AddMousePosEvent(static_cast<float>(clientPos.x), static_cast<float>(clientPos.y));
-
-    // Mouse buttons
-    io.AddMouseButtonEvent(0, (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0);
-    io.AddMouseButtonEvent(1, (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0);
-    io.AddMouseButtonEvent(2, (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0);
-    io.AddMouseButtonEvent(3, (GetAsyncKeyState(VK_XBUTTON1) & 0x8000) != 0);
-    io.AddMouseButtonEvent(4, (GetAsyncKeyState(VK_XBUTTON2) & 0x8000) != 0);
-
-    // Common keyboard keys
-    auto AddKey = [&](ImGuiKey key, int vk) { io.AddKeyEvent(key, (GetAsyncKeyState(vk) & 0x8000) != 0); };
-
-    AddKey(ImGuiKey_Tab, VK_TAB);
-    AddKey(ImGuiKey_LeftArrow, VK_LEFT);
-    AddKey(ImGuiKey_RightArrow, VK_RIGHT);
-    AddKey(ImGuiKey_UpArrow, VK_UP);
-    AddKey(ImGuiKey_DownArrow, VK_DOWN);
-    AddKey(ImGuiKey_PageUp, VK_PRIOR);
-    AddKey(ImGuiKey_PageDown, VK_NEXT);
-    AddKey(ImGuiKey_Home, VK_HOME);
-    AddKey(ImGuiKey_End, VK_END);
-    AddKey(ImGuiKey_Insert, VK_INSERT);
-    AddKey(ImGuiKey_Delete, VK_DELETE);
-    AddKey(ImGuiKey_Backspace, VK_BACK);
-    AddKey(ImGuiKey_Space, VK_SPACE);
-    AddKey(ImGuiKey_Enter, VK_RETURN);
-    AddKey(ImGuiKey_Escape, VK_ESCAPE);
-
-    AddKey(ImGuiKey_LeftCtrl, VK_LCONTROL);
-    AddKey(ImGuiKey_LeftShift, VK_LSHIFT);
-    AddKey(ImGuiKey_LeftAlt, VK_LMENU);
-    AddKey(ImGuiKey_RightCtrl, VK_RCONTROL);
-    AddKey(ImGuiKey_RightShift, VK_RSHIFT);
-    AddKey(ImGuiKey_RightAlt, VK_RMENU);
-
-    // Letters
-    for (int vk = 'A'; vk <= 'Z'; vk++)
+    if (!capturingKey)
     {
-        io.AddKeyEvent(static_cast<ImGuiKey>(ImGuiKey_A + (vk - 'A')), (GetAsyncKeyState(vk) & 0x8000) != 0);
+        CheckShortcut(config->ShortcutKey.value_or_default(), inputMenu, "Menu key pressed, will be switching menu");
+        CheckShortcut(config->FpsShortcutKey.value_or_default(), inputFps, "Menu key pressed, will be switching FPS");
+        CheckShortcut(config->FGShortcutKey.value_or_default(), inputFG, "Menu key pressed, will be switching FG mode");
+        CheckShortcut(config->FpsCycleShortcutKey.value_or_default(), inputFpsCycle,
+                      "Menu key pressed, will be switching FPS mode");
     }
 
-    // Numbers
-    for (int vk = '0'; vk <= '9'; vk++)
-    {
-        io.AddKeyEvent(static_cast<ImGuiKey>(ImGuiKey_0 + (vk - '0')), (GetAsyncKeyState(vk) & 0x8000) != 0);
-    }
+    lastKey = OptiInput::GetLastPressedKey();
+
+    OptiInput::EndFrame(_isVisible);
 }
 
 void MenuCommon::ShowTooltip(const char* tip)
@@ -391,411 +319,6 @@ void MenuCommon::SeparatorWithHelpMarker(const char* label, const char* tip)
     ImGui::SeparatorTextEx(0, label, ImGui::FindRenderedTextEnd(label),
                            ImGui::CalcTextSize(marker, ImGui::FindRenderedTextEnd(marker)).x);
     ShowHelpMarker(tip);
-}
-
-LRESULT MenuCommon::hkSendMessageW(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-    if (_isVisible && Msg == 0x0020)
-        return TRUE;
-    else
-        return pfn_SendMessageW(hWnd, Msg, wParam, lParam);
-}
-
-BOOL MenuCommon::hkSetPhysicalCursorPos(int x, int y)
-{
-    if (_isVisible)
-        return TRUE;
-    else
-        return pfn_SetPhysicalCursorPos(x, y);
-}
-
-BOOL MenuCommon::hkGetPhysicalCursorPos(LPPOINT lpPoint)
-{
-    if (_isVisible)
-    {
-        lpPoint->x = _lastPoint.x;
-        lpPoint->y = _lastPoint.y;
-        return TRUE;
-    }
-    else
-        return pfn_GetCursorPos(lpPoint);
-}
-
-BOOL MenuCommon::hkSetCursorPos(int x, int y)
-{
-    if (_isVisible)
-        return TRUE;
-    else
-        return pfn_SetCursorPos(x, y);
-}
-
-BOOL MenuCommon::hkClipCursor(RECT* lpRect)
-{
-    if (_isVisible)
-        return TRUE;
-    else
-    {
-        return pfn_ClipCursor(lpRect);
-    }
-}
-
-void MenuCommon::hkmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULONG_PTR dwExtraInfo)
-{
-    if (_isVisible)
-        return;
-    else
-        pfn_mouse_event(dwFlags, dx, dy, dwData, dwExtraInfo);
-}
-
-UINT MenuCommon::hkSendInput(UINT cInputs, LPINPUT pInputs, int cbSize)
-{
-    if (_isVisible)
-        return TRUE;
-    else
-        return pfn_SendInput(cInputs, pInputs, cbSize);
-}
-
-void MenuCommon::AttachHooks()
-{
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-
-    // Detour the functions
-    pfn_SetPhysicalCursorPos =
-        reinterpret_cast<PFN_SetCursorPos>(DetourFindFunction("user32.dll", "SetPhysicalCursorPos"));
-    pfn_SetCursorPos = reinterpret_cast<PFN_SetCursorPos>(DetourFindFunction("user32.dll", "SetCursorPos"));
-    pfn_ClipCursor = reinterpret_cast<PFN_ClipCursor>(DetourFindFunction("user32.dll", "ClipCursor"));
-    pfn_mouse_event = reinterpret_cast<PFN_mouse_event>(DetourFindFunction("user32.dll", "mouse_event"));
-    pfn_SendInput = reinterpret_cast<PFN_SendInput>(DetourFindFunction("user32.dll", "SendInput"));
-    pfn_SendMessageW = reinterpret_cast<PFN_SendMessageW>(DetourFindFunction("user32.dll", "SendMessageW"));
-
-    if (pfn_SetPhysicalCursorPos && (pfn_SetPhysicalCursorPos != pfn_SetCursorPos))
-        pfn_SetPhysicalCursorPos_hooked =
-            (DetourAttach(&(PVOID&) pfn_SetPhysicalCursorPos, hkSetPhysicalCursorPos) == 0);
-
-    if (pfn_SetCursorPos)
-        pfn_SetCursorPos_hooked = (DetourAttach(&(PVOID&) pfn_SetCursorPos, hkSetCursorPos) == 0);
-
-    if (pfn_ClipCursor)
-        pfn_ClipCursor_hooked = (DetourAttach(&(PVOID&) pfn_ClipCursor, hkClipCursor) == 0);
-
-    if (pfn_mouse_event)
-        pfn_mouse_event_hooked = (DetourAttach(&(PVOID&) pfn_mouse_event, hkmouse_event) == 0);
-
-    if (pfn_SendInput)
-        pfn_SendInput_hooked = (DetourAttach(&(PVOID&) pfn_SendInput, hkSendInput) == 0);
-
-    if (pfn_SendMessageW)
-        pfn_SendMessageW_hooked = (DetourAttach(&(PVOID&) pfn_SendMessageW, hkSendMessageW) == 0);
-
-    auto detourResult = DetourTransactionCommit();
-    if (detourResult != NO_ERROR)
-    {
-        LOG_ERROR("DetourTransactionCommit failed: {:X}", detourResult);
-
-        pfn_SetPhysicalCursorPos = nullptr;
-        pfn_SetCursorPos = nullptr;
-        pfn_ClipCursor = nullptr;
-        pfn_mouse_event = nullptr;
-        pfn_SendInput = nullptr;
-        pfn_SendMessageW = nullptr;
-
-        pfn_SetPhysicalCursorPos_hooked = false;
-        pfn_SetCursorPos_hooked = false;
-        pfn_ClipCursor_hooked = false;
-        pfn_mouse_event_hooked = false;
-        pfn_SendInput_hooked = false;
-        pfn_SendMessageW_hooked = false;
-    }
-}
-
-void MenuCommon::DetachHooks()
-{
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-
-    if (pfn_SetPhysicalCursorPos_hooked)
-        DetourDetach(&(PVOID&) pfn_SetPhysicalCursorPos, hkSetPhysicalCursorPos);
-
-    if (pfn_SetCursorPos_hooked)
-        DetourDetach(&(PVOID&) pfn_SetCursorPos, hkSetCursorPos);
-
-    if (pfn_ClipCursor_hooked)
-        DetourDetach(&(PVOID&) pfn_ClipCursor, hkClipCursor);
-
-    if (pfn_mouse_event_hooked)
-        DetourDetach(&(PVOID&) pfn_mouse_event, hkmouse_event);
-
-    if (pfn_SendInput_hooked)
-        DetourDetach(&(PVOID&) pfn_SendInput, hkSendInput);
-
-    if (pfn_SendMessageW_hooked)
-        DetourDetach(&(PVOID&) pfn_SendMessageW, hkSendMessageW);
-
-    auto detourResult = DetourTransactionCommit();
-    if (detourResult != NO_ERROR)
-    {
-        LOG_ERROR("DetourTransactionCommit failed: {:X}", detourResult);
-    }
-    else
-    {
-        pfn_SetPhysicalCursorPos_hooked = false;
-        pfn_SetCursorPos_hooked = false;
-        pfn_ClipCursor_hooked = false;
-        pfn_mouse_event_hooked = false;
-        pfn_SendInput_hooked = false;
-        pfn_SendMessageW_hooked = false;
-
-        pfn_SetPhysicalCursorPos = nullptr;
-        pfn_SetCursorPos = nullptr;
-        pfn_ClipCursor = nullptr;
-        pfn_mouse_event = nullptr;
-        pfn_SendInput = nullptr;
-        pfn_SendMessageW = nullptr;
-    }
-}
-
-ImGuiKey MenuCommon::ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam)
-{
-    switch (wParam)
-    {
-    case VK_TAB:
-        return ImGuiKey_Tab;
-    case VK_LEFT:
-        return ImGuiKey_LeftArrow;
-    case VK_RIGHT:
-        return ImGuiKey_RightArrow;
-    case VK_UP:
-        return ImGuiKey_UpArrow;
-    case VK_DOWN:
-        return ImGuiKey_DownArrow;
-    case VK_PRIOR:
-        return ImGuiKey_PageUp;
-    case VK_NEXT:
-        return ImGuiKey_PageDown;
-    case VK_HOME:
-        return ImGuiKey_Home;
-    case VK_END:
-        return ImGuiKey_End;
-    case VK_INSERT:
-        return ImGuiKey_Insert;
-    case VK_DELETE:
-        return ImGuiKey_Delete;
-    case VK_BACK:
-        return ImGuiKey_Backspace;
-    case VK_SPACE:
-        return ImGuiKey_Space;
-    case VK_RETURN:
-        return ImGuiKey_Enter;
-    case VK_ESCAPE:
-        return ImGuiKey_Escape;
-    case VK_OEM_7:
-        return ImGuiKey_Apostrophe;
-    case VK_OEM_COMMA:
-        return ImGuiKey_Comma;
-    case VK_OEM_MINUS:
-        return ImGuiKey_Minus;
-    case VK_OEM_PERIOD:
-        return ImGuiKey_Period;
-    case VK_OEM_2:
-        return ImGuiKey_Slash;
-    case VK_OEM_1:
-        return ImGuiKey_Semicolon;
-    case VK_OEM_PLUS:
-        return ImGuiKey_Equal;
-    case VK_OEM_4:
-        return ImGuiKey_LeftBracket;
-    case VK_OEM_5:
-        return ImGuiKey_Backslash;
-    case VK_OEM_6:
-        return ImGuiKey_RightBracket;
-    case VK_OEM_3:
-        return ImGuiKey_GraveAccent;
-    case VK_CAPITAL:
-        return ImGuiKey_CapsLock;
-    case VK_SCROLL:
-        return ImGuiKey_ScrollLock;
-    case VK_NUMLOCK:
-        return ImGuiKey_NumLock;
-    case VK_SNAPSHOT:
-        return ImGuiKey_PrintScreen;
-    case VK_PAUSE:
-        return ImGuiKey_Pause;
-    case VK_NUMPAD0:
-        return ImGuiKey_Keypad0;
-    case VK_NUMPAD1:
-        return ImGuiKey_Keypad1;
-    case VK_NUMPAD2:
-        return ImGuiKey_Keypad2;
-    case VK_NUMPAD3:
-        return ImGuiKey_Keypad3;
-    case VK_NUMPAD4:
-        return ImGuiKey_Keypad4;
-    case VK_NUMPAD5:
-        return ImGuiKey_Keypad5;
-    case VK_NUMPAD6:
-        return ImGuiKey_Keypad6;
-    case VK_NUMPAD7:
-        return ImGuiKey_Keypad7;
-    case VK_NUMPAD8:
-        return ImGuiKey_Keypad8;
-    case VK_NUMPAD9:
-        return ImGuiKey_Keypad9;
-    case VK_DECIMAL:
-        return ImGuiKey_KeypadDecimal;
-    case VK_DIVIDE:
-        return ImGuiKey_KeypadDivide;
-    case VK_MULTIPLY:
-        return ImGuiKey_KeypadMultiply;
-    case VK_SUBTRACT:
-        return ImGuiKey_KeypadSubtract;
-    case VK_ADD:
-        return ImGuiKey_KeypadAdd;
-    case VK_LSHIFT:
-        return ImGuiKey_LeftShift;
-    case VK_LCONTROL:
-        return ImGuiKey_LeftCtrl;
-    case VK_LMENU:
-        return ImGuiKey_LeftAlt;
-    case VK_LWIN:
-        return ImGuiKey_LeftSuper;
-    case VK_RSHIFT:
-        return ImGuiKey_RightShift;
-    case VK_RCONTROL:
-        return ImGuiKey_RightCtrl;
-    case VK_RMENU:
-        return ImGuiKey_RightAlt;
-    case VK_RWIN:
-        return ImGuiKey_RightSuper;
-    case VK_APPS:
-        return ImGuiKey_Menu;
-    case '0':
-        return ImGuiKey_0;
-    case '1':
-        return ImGuiKey_1;
-    case '2':
-        return ImGuiKey_2;
-    case '3':
-        return ImGuiKey_3;
-    case '4':
-        return ImGuiKey_4;
-    case '5':
-        return ImGuiKey_5;
-    case '6':
-        return ImGuiKey_6;
-    case '7':
-        return ImGuiKey_7;
-    case '8':
-        return ImGuiKey_8;
-    case '9':
-        return ImGuiKey_9;
-    case 'A':
-        return ImGuiKey_A;
-    case 'B':
-        return ImGuiKey_B;
-    case 'C':
-        return ImGuiKey_C;
-    case 'D':
-        return ImGuiKey_D;
-    case 'E':
-        return ImGuiKey_E;
-    case 'F':
-        return ImGuiKey_F;
-    case 'G':
-        return ImGuiKey_G;
-    case 'H':
-        return ImGuiKey_H;
-    case 'I':
-        return ImGuiKey_I;
-    case 'J':
-        return ImGuiKey_J;
-    case 'K':
-        return ImGuiKey_K;
-    case 'L':
-        return ImGuiKey_L;
-    case 'M':
-        return ImGuiKey_M;
-    case 'N':
-        return ImGuiKey_N;
-    case 'O':
-        return ImGuiKey_O;
-    case 'P':
-        return ImGuiKey_P;
-    case 'Q':
-        return ImGuiKey_Q;
-    case 'R':
-        return ImGuiKey_R;
-    case 'S':
-        return ImGuiKey_S;
-    case 'T':
-        return ImGuiKey_T;
-    case 'U':
-        return ImGuiKey_U;
-    case 'V':
-        return ImGuiKey_V;
-    case 'W':
-        return ImGuiKey_W;
-    case 'X':
-        return ImGuiKey_X;
-    case 'Y':
-        return ImGuiKey_Y;
-    case 'Z':
-        return ImGuiKey_Z;
-    case VK_F1:
-        return ImGuiKey_F1;
-    case VK_F2:
-        return ImGuiKey_F2;
-    case VK_F3:
-        return ImGuiKey_F3;
-    case VK_F4:
-        return ImGuiKey_F4;
-    case VK_F5:
-        return ImGuiKey_F5;
-    case VK_F6:
-        return ImGuiKey_F6;
-    case VK_F7:
-        return ImGuiKey_F7;
-    case VK_F8:
-        return ImGuiKey_F8;
-    case VK_F9:
-        return ImGuiKey_F9;
-    case VK_F10:
-        return ImGuiKey_F10;
-    case VK_F11:
-        return ImGuiKey_F11;
-    case VK_F12:
-        return ImGuiKey_F12;
-    case VK_F13:
-        return ImGuiKey_F13;
-    case VK_F14:
-        return ImGuiKey_F14;
-    case VK_F15:
-        return ImGuiKey_F15;
-    case VK_F16:
-        return ImGuiKey_F16;
-    case VK_F17:
-        return ImGuiKey_F17;
-    case VK_F18:
-        return ImGuiKey_F18;
-    case VK_F19:
-        return ImGuiKey_F19;
-    case VK_F20:
-        return ImGuiKey_F20;
-    case VK_F21:
-        return ImGuiKey_F21;
-    case VK_F22:
-        return ImGuiKey_F22;
-    case VK_F23:
-        return ImGuiKey_F23;
-    case VK_F24:
-        return ImGuiKey_F24;
-    case VK_BROWSER_BACK:
-        return ImGuiKey_AppBack;
-    case VK_BROWSER_FORWARD:
-        return ImGuiKey_AppForward;
-    default:
-        return ImGuiKey_None;
-    }
 }
 
 class Keybind
@@ -852,6 +375,7 @@ class Keybind
         if (ImGui::Button(name.c_str()))
         {
             waitingForKey = true;
+            capturingKey = true;
             lastKey = 0;
         }
         ImGui::PopID();
@@ -867,6 +391,7 @@ class Keybind
             if (lastKey == VK_ESCAPE)
             {
                 waitingForKey = false;
+                capturingKey = false;
                 return;
             }
 
@@ -875,6 +400,7 @@ class Keybind
 
             configKey = lastKey;
             waitingForKey = false;
+            capturingKey = false;
             return;
         }
 
@@ -890,304 +416,6 @@ class Keybind
         ImGui::PopID();
     }
 };
-
-// Win32 message handler
-LRESULT MenuCommon::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    (void) io;
-
-    // LOG_TRACE("msg: {:X}, wParam: {:X}, lParam: {:X}", msg, wParam, lParam);
-
-    if (!State::Instance().isShuttingDown &&
-        (msg == WM_QUIT || msg == WM_CLOSE ||
-         msg == WM_DESTROY || /* classic messages but they are a bit late to capture */
-         (msg == WM_SYSCOMMAND && wParam == SC_CLOSE /* window close*/)))
-    {
-        LOG_WARN("IsShuttingDown = true");
-        State::Instance().isShuttingDown = true;
-        return CallWindowProc(_oWndProc, hWnd, msg, wParam, lParam);
-    }
-
-    if (State::Instance().isShuttingDown)
-        return CallWindowProc(_oWndProc, hWnd, msg, wParam, lParam);
-
-    if (!_dx11Ready && !_dx12Ready && !_vulkanReady)
-    {
-        if (_isVisible)
-        {
-            LOG_INFO("No active features, closing ImGui");
-
-            if (pfn_ClipCursor_hooked)
-                pfn_ClipCursor(&_cursorLimit);
-
-            _isVisible = false;
-            _showMipmapCalcWindow = false;
-            _showHudlessWindow = false;
-
-            io.MouseDrawCursor = false;
-            io.WantCaptureKeyboard = false;
-            io.WantCaptureMouse = false;
-        }
-
-        return CallWindowProc(_oWndProc, hWnd, msg, wParam, lParam);
-    }
-
-    bool rawRead = false;
-    ImGuiKey imguiKey;
-    RAWINPUT rawData {};
-    UINT rawDataSize = sizeof(rawData);
-
-    // More of a workaround than a fix, stop accepting inputs for {debounceThreshold} ms
-    const auto currentTick = GetTickCount64();
-    const bool canAcceptInputs = lastInputTick + debounceThreshold < currentTick;
-
-    if (msg == WM_INPUT && GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &rawData, &rawDataSize,
-                                           sizeof(rawData.data)) != (UINT) -1)
-    {
-        auto rawCode = GET_RAWINPUT_CODE_WPARAM(wParam);
-        rawRead = true;
-        bool isKeyUp = (rawData.data.keyboard.Flags & RI_KEY_BREAK) != 0;
-        if (isKeyUp && rawData.header.dwType == RIM_TYPEKEYBOARD && rawData.data.keyboard.VKey != 0 && canAcceptInputs)
-        {
-            lastKey = rawData.data.keyboard.VKey;
-
-            if (!inputMenu)
-            {
-                inputMenu = rawData.data.keyboard.VKey == Config::Instance()->ShortcutKey.value_or_default();
-
-                if (inputMenu)
-                    LOG_DEBUG("Menu key pressed, will be switching menu");
-            }
-
-            if (!inputFps)
-            {
-                inputFps = rawData.data.keyboard.VKey == Config::Instance()->FpsShortcutKey.value_or_default();
-
-                if (inputFps)
-                    LOG_DEBUG("Menu key pressed, will be switching FPS");
-            }
-
-            if (!inputFG)
-            {
-                inputFG = rawData.data.keyboard.VKey == Config::Instance()->FGShortcutKey.value_or_default();
-
-                if (inputFG)
-                    LOG_DEBUG("Menu key pressed, will be switching FG mode");
-            }
-
-            if (!inputFpsCycle)
-            {
-                inputFpsCycle =
-                    rawData.data.keyboard.VKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
-
-                if (inputFpsCycle)
-                    LOG_DEBUG("Menu key pressed, will be switching FPS mode");
-            }
-
-            if (inputMenu || inputFps || inputFG || inputFpsCycle)
-                lastInputTick = currentTick;
-        }
-    }
-
-    if (!lastKey && msg == WM_KEYUP)
-        lastKey = static_cast<int>(wParam);
-
-    if (canAcceptInputs)
-    {
-        if (!inputMenu)
-        {
-            inputMenu = msg == WM_KEYUP && wParam == Config::Instance()->ShortcutKey.value_or_default();
-
-            if (inputMenu)
-                LOG_DEBUG("Menu key pressed, will be switching menu");
-        }
-
-        if (!inputFps)
-        {
-            inputFps = msg == WM_KEYUP && wParam == Config::Instance()->FpsShortcutKey.value_or_default();
-
-            if (inputFps)
-                LOG_DEBUG("Menu key pressed, will be switching FPS");
-        }
-
-        if (!inputFG)
-        {
-            inputFG = msg == WM_KEYUP && wParam == Config::Instance()->FGShortcutKey.value_or_default();
-
-            if (inputFG)
-                LOG_DEBUG("Menu key pressed, will be switching FG mode");
-        }
-
-        if (!inputFpsCycle)
-        {
-            inputFpsCycle = msg == WM_KEYUP && wParam == Config::Instance()->FpsCycleShortcutKey.value_or_default();
-
-            if (inputFpsCycle)
-                LOG_DEBUG("Menu key pressed, will be switching FPS mode");
-        }
-
-        if (inputMenu || inputFps || inputFG || inputFpsCycle)
-            lastInputTick = currentTick;
-    }
-
-    // SHIFT + DEL - Debug dump
-    if (msg == WM_KEYUP && wParam == VK_DELETE && (GetKeyState(VK_SHIFT) & 0x8000))
-    {
-        State::Instance().xessDebug = true;
-        return CallWindowProc(_oWndProc, hWnd, msg, wParam, lParam);
-    }
-
-    // ImGui
-    if (_isVisible)
-    {
-        if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-        {
-
-            if (msg == WM_KEYUP || msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP ||
-                msg == WM_SYSKEYUP ||
-                (msg == WM_INPUT && rawRead && rawData.header.dwType == RIM_TYPEMOUSE &&
-                 (rawData.data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP ||
-                  rawData.data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP ||
-                  rawData.data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)))
-            {
-                LOG_TRACE("ImGui handled & called original, hWnd:{0:X} msg:{1:X} wParam:{2:X} lParam:{3:X}",
-                          (ULONG64) hWnd, msg, (ULONG64) wParam, (ULONG64) lParam);
-                return CallWindowProc(_oWndProc, hWnd, msg, wParam, lParam);
-            }
-            else
-            {
-                LOG_TRACE("ImGui handled, hWnd:{0:X} msg:{1:X} wParam:{2:X} lParam:{3:X}", (ULONG64) hWnd, msg,
-                          (ULONG64) wParam, (ULONG64) lParam);
-                return TRUE;
-            }
-        }
-
-        switch (msg)
-        {
-        case WM_KEYUP:
-            if (wParam != Config::Instance()->ShortcutKey.value_or_default())
-                return CallWindowProc(_oWndProc, hWnd, msg, wParam, lParam);
-
-            imguiKey = ImGui_ImplWin32_VirtualKeyToImGuiKey(wParam);
-            io.AddKeyEvent(imguiKey, false);
-
-            break;
-
-        case WM_LBUTTONDOWN:
-            io.AddMouseButtonEvent(0, true);
-            return TRUE;
-
-        case WM_LBUTTONUP:
-            io.AddMouseButtonEvent(0, false);
-            break;
-
-        case WM_RBUTTONDOWN:
-            io.AddMouseButtonEvent(1, true);
-            return TRUE;
-
-        case WM_RBUTTONUP:
-            io.AddMouseButtonEvent(1, false);
-            break;
-
-        case WM_MBUTTONDOWN:
-            io.AddMouseButtonEvent(2, true);
-            return TRUE;
-
-        case WM_MBUTTONUP:
-            io.AddMouseButtonEvent(2, false);
-            break;
-
-        case WM_LBUTTONDBLCLK:
-            io.AddMouseButtonEvent(0, true);
-            return TRUE;
-
-        case WM_RBUTTONDBLCLK:
-            io.AddMouseButtonEvent(1, true);
-            return TRUE;
-
-        case WM_MBUTTONDBLCLK:
-            io.AddMouseButtonEvent(2, true);
-            return TRUE;
-
-        case WM_KEYDOWN:
-            imguiKey = ImGui_ImplWin32_VirtualKeyToImGuiKey(wParam);
-            io.AddKeyEvent(imguiKey, true);
-            return TRUE;
-
-        case WM_SYSKEYUP:
-            break;
-
-        case WM_SYSKEYDOWN:
-        case WM_MOUSEMOVE:
-        case WM_SETCURSOR:
-        case WM_XBUTTONDOWN:
-        case WM_XBUTTONUP:
-        case WM_XBUTTONDBLCLK:
-            LOG_TRACE("switch handled, hWnd:{0:X} msg:{1:X} wParam:{2:X} lParam:{3:X}", (ULONG64) hWnd, msg,
-                      (ULONG64) wParam, (ULONG64) lParam);
-            return TRUE;
-
-        case WM_INPUT:
-            if (!rawRead)
-                return TRUE;
-
-            if (rawData.header.dwType == RIM_TYPEMOUSE)
-            {
-                if (rawData.data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
-                {
-                    io.AddMouseButtonEvent(0, true);
-                }
-                else if (rawData.data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
-                {
-                    io.AddMouseButtonEvent(0, false);
-                    break;
-                }
-                if (rawData.data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
-                {
-                    io.AddMouseButtonEvent(1, true);
-                }
-                else if (rawData.data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
-                {
-                    io.AddMouseButtonEvent(1, false);
-                    break;
-                }
-                if (rawData.data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
-                {
-                    io.AddMouseButtonEvent(2, true);
-                }
-                else if (rawData.data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
-                {
-                    io.AddMouseButtonEvent(2, false);
-                    break;
-                }
-
-                if (rawData.data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
-                    io.AddMouseWheelEvent(0, static_cast<short>(rawData.data.mouse.usButtonData) / (float) WHEEL_DELTA);
-            }
-            else
-            {
-                LOG_TRACE("WM_INPUT hWnd:{0:X} msg:{1:X} wParam:{2:X} lParam:{3:X}", (ULONG64) hWnd, msg,
-                          (ULONG64) wParam, (ULONG64) lParam);
-            }
-
-            return TRUE;
-
-        default:
-            break;
-        }
-    }
-
-    return CallWindowProc(_oWndProc, hWnd, msg, wParam, lParam);
-}
-
-void KeyUp(UINT vKey)
-{
-    inputMenu = vKey == Config::Instance()->ShortcutKey.value_or_default();
-    inputFps = vKey == Config::Instance()->FpsShortcutKey.value_or_default();
-    inputFG = vKey == Config::Instance()->FGShortcutKey.value_or_default();
-    inputFpsCycle = vKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
-}
 
 Upscaler MenuCommon::GetBackendCode(const API api)
 {
@@ -1937,7 +1165,7 @@ void MenuCommon::Present()
 
     lastTime = now;
 
-    if (inputManual && _handle != nullptr)
+    if (_handle != nullptr)
         UpdateManualInput(_handle);
 }
 
@@ -1945,9 +1173,6 @@ bool MenuCommon::RenderMenu()
 {
     if (!_isInited)
         return false;
-
-    if (!pfn_SetCursorPos_hooked)
-        AttachHooks();
 
     auto& state = State::Instance();
     auto config = Config::Instance();
@@ -1969,7 +1194,7 @@ bool MenuCommon::RenderMenu()
 
         lastTime = now;
 
-        if (inputManual && _handle != nullptr)
+        if (_handle != nullptr)
             UpdateManualInput(_handle);
     }
     else
@@ -1997,6 +1222,7 @@ bool MenuCommon::RenderMenu()
     }
     else
     {
+        capturingKey = false;
         hasGamepad = (io.BackendFlags | ImGuiBackendFlags_HasGamepad) > 0;
         io.BackendFlags &= 30;
         io.ConfigFlags = ImGuiConfigFlags_NoMouse | ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_NoKeyboard;
@@ -2058,23 +1284,10 @@ bool MenuCommon::RenderMenu()
                     else if (State::Instance().currentFeature->GetUpscalerType() == Upscaler::DLSS)
                         comboPreset = config->RenderPresetForAll.value_or_default();
                 }
-
-                if (pfn_ClipCursor_hooked)
-                {
-                    _ssRatio = 0;
-
-                    if (GetClipCursor(&_cursorLimit))
-                        pfn_ClipCursor(nullptr);
-
-                    GetCursorPos(&_lastPoint);
-                }
             }
             else
             {
                 ImGui::CloseCurrentPopup();
-
-                if (pfn_ClipCursor_hooked)
-                    pfn_ClipCursor(&_cursorLimit);
 
                 _showMipmapCalcWindow = false;
                 _showHudlessWindow = false;
@@ -4390,323 +3603,318 @@ bool MenuCommon::RenderMenu()
 
                 // XeFG controls
                 if (state.activeFgOutput == FGOutput::XeFG && state.activeFgInput != FGInput::NoFG &&
-                    state.activeFgInput != FGInput::ForceXeLL && state.currentFGSwapchain != nullptr)
+                    state.activeFgInput != FGInput::ForceXeLL && state.currentFGSwapchain != nullptr &&
+                    XeFGProxy::InitXeFG())
                 {
-                    if (XeFGProxy::InitXeFG() && currentFeature != nullptr && !currentFeature->IsFrozen())
+                    ImGui::SeparatorText("Frame Generation (XeFG)");
+
+                    bool ignoreChecks = config->FGXeFGIgnoreInitChecks.value_or_default();
+
+                    bool nativeAA = false;
+                    if (state.activeFgInput == FGInput::Upscaler && currentFeature != nullptr)
+                        nativeAA = currentFeature->RenderWidth() == currentFeature->DisplayWidth();
+
+                    auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
+                    const bool correctMVs = fgOutput && fgOutput->IsLowResMV() || nativeAA || ignoreChecks;
+
+                    if (!correctMVs || state.realExclusiveFullscreen)
                     {
-                        ImGui::SeparatorText("Frame Generation (XeFG)");
+                        config->FGEnabled.reset();
+                        config->FGXeFGDebugView.reset();
+                    }
 
-                        bool ignoreChecks = config->FGXeFGIgnoreInitChecks.value_or_default();
+                    const bool restartNeeded =
+                        fgOutput && (config->FGXeFGDepthInverted.value_or_default() != fgOutput->IsInvertedDepth() ||
+                                     config->FGXeFGJitteredMV.value_or_default() != fgOutput->IsJitteredMVs() ||
+                                     config->FGXeFGHighResMV.value_or_default() == fgOutput->IsLowResMV());
 
-                        bool nativeAA = false;
-                        if (state.activeFgInput == FGInput::Upscaler && currentFeature != nullptr)
-                            nativeAA = currentFeature->RenderWidth() == currentFeature->DisplayWidth();
+                    bool cantActivate = false;
+                    if (restartNeeded)
+                    {
+                        ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.8f, 0.f, 1.f)),
+                                           "Restart the game to apply correct XeFG settings!");
+                    }
+                    else
+                    {
+                        if (!correctMVs)
+                            ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.f, 0.f, 1.f)),
+                                               "Requires disabling dilated motion vectors");
 
-                        auto fgOutput = reinterpret_cast<IFGFeature_Dx12*>(state.currentFG);
-                        const bool correctMVs = fgOutput && fgOutput->IsLowResMV() || nativeAA || ignoreChecks;
-
-                        if (!correctMVs || state.realExclusiveFullscreen)
+                        if (!ignoreChecks && state.realExclusiveFullscreen)
                         {
-                            config->FGEnabled.reset();
-                            config->FGXeFGDebugView.reset();
+                            cantActivate = true;
+                            ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.f, 0.f, 1.f)),
+                                               "Borderless display mode required!");
                         }
 
-                        const bool restartNeeded =
-                            fgOutput &&
-                            (config->FGXeFGDepthInverted.value_or_default() != fgOutput->IsInvertedDepth() ||
-                             config->FGXeFGJitteredMV.value_or_default() != fgOutput->IsJitteredMVs() ||
-                             config->FGXeFGHighResMV.value_or_default() == fgOutput->IsLowResMV());
-
-                        bool cantActivate = false;
-                        if (restartNeeded)
+                        if (!ignoreChecks && state.isHdrActive)
                         {
-                            ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.8f, 0.f, 1.f)),
-                                               "Restart the game to apply correct XeFG settings!");
-                        }
-                        else
-                        {
-                            if (!correctMVs)
-                                ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.f, 0.f, 1.f)),
-                                                   "Requires disabling dilated motion vectors");
-
-                            if (!ignoreChecks && state.realExclusiveFullscreen)
+                            if (state.currentSwapchainDesc.BufferDesc.Format > 0 &&
+                                state.currentSwapchainDesc.BufferDesc.Format < 15)
                             {
                                 cantActivate = true;
-                                ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.f, 0.f, 1.f)),
-                                                   "Borderless display mode required!");
+                                ImGui::TextColored(toneMapColor(ImVec4(1.0f, 0.0f, 0.0f, 1.f)),
+                                                   "XeFG only supports HDR10");
                             }
+                        }
+                    }
 
-                            if (!ignoreChecks && state.isHdrActive)
+                    if (!correctMVs || cantActivate || ignoreChecks)
+                    {
+                        if (ImGui::Checkbox("Ignore Init Checks", &ignoreChecks))
+                            config->FGXeFGIgnoreInitChecks = ignoreChecks;
+
+                        ShowHelpMarker("Ignores all prechecks for XeFG\n"
+                                       "Don't use this option to skip MV size warning for UE games!\n"
+                                       "It might cause crashes and bad IQ!");
+                    }
+
+                    ImGui::BeginDisabled(!correctMVs || cantActivate);
+
+                    bool fgActive = config->FGEnabled.value_or_default();
+                    if (ImGui::Checkbox("Active##3", &fgActive))
+                    {
+                        config->FGEnabled = fgActive;
+                        LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
+
+                        if (config->FGEnabled.value_or_default())
+                            state.fgChanged = true;
+                    }
+
+                    ShowHelpMarker("Enable Frame Generation");
+
+                    auto maxInterpolationCount = state.xefgMaxInterpolationCount;
+
+                    if (maxInterpolationCount > 1)
+                    {
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
+                        auto currentSet = config->FGXeFGInterpolationCount.value_or_default() - 1;
+                        auto currentIntCount = intModes[currentSet];
+
+                        ImGui::PushItemWidth(95.0f * menuResScale);
+
+                        if (ImGui::BeginCombo("MFG", currentIntCount))
+                        {
+                            for (int i = 0; i < maxInterpolationCount; i++)
                             {
-                                if (state.currentSwapchainDesc.BufferDesc.Format > 0 &&
-                                    state.currentSwapchainDesc.BufferDesc.Format < 15)
+                                if (ImGui::Selectable(intModes[i], (currentSet == i)))
                                 {
-                                    cantActivate = true;
-                                    ImGui::TextColored(toneMapColor(ImVec4(1.0f, 0.0f, 0.0f, 1.f)),
-                                                       "XeFG only supports HDR10");
+                                    LOG_DEBUG("XeFG Interpolation Count set to: {}", i + 1);
+                                    state.fgChanged = true;
+                                    config->FGXeFGInterpolationCount = i + 1;
                                 }
                             }
+
+                            ImGui::EndCombo();
                         }
 
-                        if (!correctMVs || cantActivate || ignoreChecks)
-                        {
-                            if (ImGui::Checkbox("Ignore Init Checks", &ignoreChecks))
-                                config->FGXeFGIgnoreInitChecks = ignoreChecks;
+                        ImGui::PopItemWidth();
 
-                            ShowHelpMarker("Ignores all prechecks for XeFG\n"
-                                           "Don't use this option to skip MV size warning for UE games!\n"
-                                           "It might cause crashes and bad IQ!");
+                        ShowHelpMarker("Set XeFG interpolation count");
+                    }
+
+                    ImGui::SameLine(0.0f, 16.0f);
+                    ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny() ||
+                                         XeFGProxy::SetUiCompositionState() == nullptr);
+                    bool fgCompositeUI = config->FGXeFGUIComposition.value_or_default();
+                    if (ImGui::Checkbox("UI Composition", &fgCompositeUI))
+                        config->FGXeFGUIComposition = fgCompositeUI;
+
+                    ShowHelpMarker("Disable HUD/UI interpolation\n"
+                                   "Reverts back to previous XeFG 2 behaviour\n\n"
+                                   "Fixes artifacting transparent HUD/UI");
+                    ImGui::EndDisabled();
+
+                    bool fgDV = config->FGXeFGDebugView.value_or_default();
+                    if (ImGui::Checkbox("Debug View##2", &fgDV))
+                    {
+                        config->FGXeFGDebugView = fgDV;
+
+                        if (config->FGXeFGDebugView.value_or_default())
+                        {
+                            state.fgChanged = true;
+                            LOG_DEBUG("DebugView set FGChanged");
                         }
+                    }
+                    ShowHelpMarker("Enable XeFG Debug view");
 
-                        ImGui::BeginDisabled(!correctMVs || cantActivate);
+                    ImGui::EndDisabled();
 
-                        bool fgActive = config->FGEnabled.value_or_default();
-                        if (ImGui::Checkbox("Active##3", &fgActive))
+                    ImGui::SameLine(0.0f, 16.0f);
+                    bool fgBorderless = config->FGXeFGForceBorderless.value_or_default();
+                    if (ImGui::Checkbox("Force Borderless", &fgBorderless))
+                        config->FGXeFGForceBorderless = fgBorderless;
+
+                    ShowHelpMarker("Forces Borderless display mode\n\n"
+                                   "For best results, set fullscreen \n"
+                                   "resolution to your display resolution\n"
+                                   "Might cause some instability issues.\n\n"
+                                   "NEEDS GAME RESTART TO BE ACTIVE!");
+
+                    // Disable this for now
+                    // ImGui::SameLine(0.0f, 16.0f);
+                    // ImGui::Checkbox("Only Generated##2", &state.fgOnlyGenerated);
+                    // ShowHelpMarker("Display only XeFG generated frames");
+
+                    ImGui::Spacing();
+                    if (auto ch = ScopedCollapsingHeader("Advanced XeFG Settings"); ch.IsHeaderOpen())
+                    {
+                        ImGui::Spacing();
+                        if (ImGui::TreeNode("Rectangle Settings"))
                         {
-                            config->FGEnabled = fgActive;
-                            LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
-
-                            if (config->FGEnabled.value_or_default())
-                                state.fgChanged = true;
-                        }
-
-                        ShowHelpMarker("Enable Frame Generation");
-
-                        auto maxInterpolationCount = state.xefgMaxInterpolationCount;
-
-                        if (maxInterpolationCount > 1)
-                        {
-                            ImGui::SameLine(0.0f, 16.0f);
-
-                            const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
-                            auto currentSet = config->FGXeFGInterpolationCount.value_or_default() - 1;
-                            auto currentIntCount = intModes[currentSet];
-
                             ImGui::PushItemWidth(95.0f * menuResScale);
+                            int rectLeft = config->FGRectLeft.value_or(0);
+                            if (ImGui::InputInt("Rect Left##2", &rectLeft))
+                                config->FGRectLeft = rectLeft;
 
-                            if (ImGui::BeginCombo("MFG", currentIntCount))
-                            {
-                                for (int i = 0; i < maxInterpolationCount; i++)
-                                {
-                                    if (ImGui::Selectable(intModes[i], (currentSet == i)))
-                                    {
-                                        LOG_DEBUG("XeFG Interpolation Count set to: {}", i + 1);
-                                        state.fgChanged = true;
-                                        config->FGXeFGInterpolationCount = i + 1;
-                                    }
-                                }
+                            ImGui::SameLine(0.0f, 16.0f);
+                            int rectTop = config->FGRectTop.value_or(0);
+                            if (ImGui::InputInt("Rect Top##2", &rectTop))
+                                config->FGRectTop = rectTop;
 
-                                ImGui::EndCombo();
-                            }
+                            int rectWidth = config->FGRectWidth.value_or(0);
+                            if (ImGui::InputInt("Rect Width##2", &rectWidth))
+                                config->FGRectWidth = rectWidth;
+
+                            ImGui::SameLine(0.0f, 16.0f);
+                            int rectHeight = config->FGRectHeight.value_or(0);
+                            if (ImGui::InputInt("Rect Height##2", &rectHeight))
+                                config->FGRectHeight = rectHeight;
 
                             ImGui::PopItemWidth();
+                            ShowHelpMarker("Frame generation rectangle, adjust for letterboxed content##2");
 
-                            ShowHelpMarker("Set XeFG interpolation count");
-                        }
+                            ImGui::BeginDisabled(!config->FGRectLeft.has_value() && !config->FGRectTop.has_value() &&
+                                                 !config->FGRectWidth.has_value() && !config->FGRectHeight.has_value());
 
-                        ImGui::SameLine(0.0f, 16.0f);
-                        ImGui::BeginDisabled(!fgOutput->IsUsingHudlessAny() ||
-                                             XeFGProxy::SetUiCompositionState() == nullptr);
-                        bool fgCompositeUI = config->FGXeFGUIComposition.value_or_default();
-                        if (ImGui::Checkbox("UI Composition", &fgCompositeUI))
-                            config->FGXeFGUIComposition = fgCompositeUI;
-
-                        ShowHelpMarker("Disable HUD/UI interpolation\n"
-                                       "Reverts back to previous XeFG 2 behaviour\n\n"
-                                       "Fixes artifacting transparent HUD/UI");
-                        ImGui::EndDisabled();
-
-                        bool fgDV = config->FGXeFGDebugView.value_or_default();
-                        if (ImGui::Checkbox("Debug View##2", &fgDV))
-                        {
-                            config->FGXeFGDebugView = fgDV;
-
-                            if (config->FGXeFGDebugView.value_or_default())
+                            if (ImGui::Button("Reset FG Rect##2"))
                             {
-                                state.fgChanged = true;
-                                LOG_DEBUG("DebugView set FGChanged");
+                                config->FGRectLeft.reset();
+                                config->FGRectTop.reset();
+                                config->FGRectWidth.reset();
+                                config->FGRectHeight.reset();
                             }
+
+                            ShowHelpMarker("Resets Frame generation rectangle##2");
+
+                            ImGui::EndDisabled();
+                            ImGui::TreePop();
                         }
-                        ShowHelpMarker("Enable XeFG Debug view");
-
-                        ImGui::EndDisabled();
-
-                        ImGui::SameLine(0.0f, 16.0f);
-                        bool fgBorderless = config->FGXeFGForceBorderless.value_or_default();
-                        if (ImGui::Checkbox("Force Borderless", &fgBorderless))
-                            config->FGXeFGForceBorderless = fgBorderless;
-
-                        ShowHelpMarker("Forces Borderless display mode\n\n"
-                                       "For best results, set fullscreen \n"
-                                       "resolution to your display resolution\n"
-                                       "Might cause some instability issues.\n\n"
-                                       "NEEDS GAME RESTART TO BE ACTIVE!");
-
-                        // Disable this for now
-                        // ImGui::SameLine(0.0f, 16.0f);
-                        // ImGui::Checkbox("Only Generated##2", &state.fgOnlyGenerated);
-                        // ShowHelpMarker("Display only XeFG generated frames");
 
                         ImGui::Spacing();
-                        if (auto ch = ScopedCollapsingHeader("Advanced XeFG Settings"); ch.IsHeaderOpen())
-                        {
-                            ImGui::Spacing();
-                            if (ImGui::TreeNode("Rectangle Settings"))
-                            {
-                                ImGui::PushItemWidth(95.0f * menuResScale);
-                                int rectLeft = config->FGRectLeft.value_or(0);
-                                if (ImGui::InputInt("Rect Left##2", &rectLeft))
-                                    config->FGRectLeft = rectLeft;
-
-                                ImGui::SameLine(0.0f, 16.0f);
-                                int rectTop = config->FGRectTop.value_or(0);
-                                if (ImGui::InputInt("Rect Top##2", &rectTop))
-                                    config->FGRectTop = rectTop;
-
-                                int rectWidth = config->FGRectWidth.value_or(0);
-                                if (ImGui::InputInt("Rect Width##2", &rectWidth))
-                                    config->FGRectWidth = rectWidth;
-
-                                ImGui::SameLine(0.0f, 16.0f);
-                                int rectHeight = config->FGRectHeight.value_or(0);
-                                if (ImGui::InputInt("Rect Height##2", &rectHeight))
-                                    config->FGRectHeight = rectHeight;
-
-                                ImGui::PopItemWidth();
-                                ShowHelpMarker("Frame generation rectangle, adjust for letterboxed content##2");
-
-                                ImGui::BeginDisabled(
-                                    !config->FGRectLeft.has_value() && !config->FGRectTop.has_value() &&
-                                    !config->FGRectWidth.has_value() && !config->FGRectHeight.has_value());
-
-                                if (ImGui::Button("Reset FG Rect##2"))
-                                {
-                                    config->FGRectLeft.reset();
-                                    config->FGRectTop.reset();
-                                    config->FGRectWidth.reset();
-                                    config->FGRectHeight.reset();
-                                }
-
-                                ShowHelpMarker("Resets Frame generation rectangle##2");
-
-                                ImGui::EndDisabled();
-                                ImGui::TreePop();
-                            }
-
-                            ImGui::Spacing();
-                            ImGui::Spacing();
-                        }
+                        ImGui::Spacing();
                     }
                 }
 
                 // DLSSG controls
                 if ((state.activeFgOutput == FGOutput::DLSSG || state.activeFgOutput == FGOutput::DLSSGWithNvngx) &&
-                    state.activeFgInput != FGInput::NoFG && state.currentFGSwapchain != nullptr)
+                    state.activeFgInput != FGInput::NoFG && state.currentFGSwapchain != nullptr &&
+                    StreamlineProxy::LoadStreamline())
                 {
-                    if (StreamlineProxy::LoadStreamline() && currentFeature != nullptr && !currentFeature->IsFrozen())
+
+                    ImGui::SeparatorText("Frame Generation (DLSSG)");
+
+                    ImGui::Text("Current DLSSG state:");
+                    ImGui::SameLine();
+                    if (auto count = state.dlssgDetectedInterpolationCount; count > 0)
                     {
-                        ImGui::SeparatorText("Frame Generation (DLSSG)");
+                        ImGui::TextColored(toneMapColor(ImVec4(0.f, 1.f, 0.25f, 1.f)),
+                                           std::format("ON {}x", count + 1).c_str());
+                    }
+                    else
+                    {
+                        ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.f, 0.f, 1.f)), "OFF");
+                    }
 
-                        ImGui::Text("Current DLSSG state:");
-                        ImGui::SameLine();
-                        if (auto count = state.dlssgDetectedInterpolationCount; count > 0)
+                    bool fgActive = config->FGEnabled.value_or_default();
+                    if (ImGui::Checkbox("Active##4", &fgActive))
+                    {
+                        config->FGEnabled = fgActive;
+                        LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
+
+                        if (config->FGEnabled.value_or_default())
+                            state.fgChanged = true;
+                    }
+
+                    ShowHelpMarker("Enable Frame Generation");
+
+                    auto maxInterpolationCount = state.dlssgMaxInterpolationCount;
+
+                    if (maxInterpolationCount > 1)
+                    {
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        ImGui::BeginDisabled(config->FGDLSSGForceDMFG.value_or_default());
+
+                        const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
+                        auto currentSet = config->FGDLSSGInterpolationCount.value_or_default() - 1;
+                        auto currentIntCount = intModes[currentSet];
+
+                        ImGui::PushItemWidth(95.0f * menuResScale);
+
+                        if (ImGui::BeginCombo("MFG", currentIntCount))
                         {
-                            ImGui::TextColored(toneMapColor(ImVec4(0.f, 1.f, 0.25f, 1.f)),
-                                               std::format("ON {}x", count + 1).c_str());
-                        }
-                        else
-                        {
-                            ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.f, 0.f, 1.f)), "OFF");
-                        }
+                            for (int i = 0; i < maxInterpolationCount; i++)
+                            {
+                                if (ImGui::Selectable(intModes[i], (currentSet == i)))
+                                {
+                                    LOG_DEBUG("DLSSG Interpolation Count set to: {}", i + 1);
+                                    config->FGDLSSGInterpolationCount = i + 1;
+                                }
+                            }
 
-                        bool fgActive = config->FGEnabled.value_or_default();
-                        if (ImGui::Checkbox("Active##4", &fgActive))
-                        {
-                            config->FGEnabled = fgActive;
-                            LOG_DEBUG("Enabled set FGEnabled: {}", fgActive);
-
-                            if (config->FGEnabled.value_or_default())
-                                state.fgChanged = true;
+                            ImGui::EndCombo();
                         }
 
-                        ShowHelpMarker("Enable Frame Generation");
+                        ImGui::PopItemWidth();
 
-                        auto maxInterpolationCount = state.dlssgMaxInterpolationCount;
+                        ShowHelpMarker("Set DLSSG interpolation count");
 
-                        if (maxInterpolationCount > 1)
+                        ImGui::EndDisabled();
+
+                        if (state.dlssgOptiDMFGSupported)
                         {
                             ImGui::SameLine(0.0f, 16.0f);
 
-                            ImGui::BeginDisabled(config->FGDLSSGForceDMFG.value_or_default());
-
-                            const char* intModes[] = { "2X", "3X", "4X", "5X", "6X" };
-                            auto currentSet = config->FGDLSSGInterpolationCount.value_or_default() - 1;
-                            auto currentIntCount = intModes[currentSet];
-
-                            ImGui::PushItemWidth(95.0f * menuResScale);
-
-                            if (ImGui::BeginCombo("MFG", currentIntCount))
+                            if (bool dynamicMFG = config->FGDLSSGForceDMFG.value_or_default();
+                                ImGui::Checkbox("Force Dynamic MFG", &dynamicMFG))
                             {
-                                for (int i = 0; i < maxInterpolationCount; i++)
-                                {
-                                    if (ImGui::Selectable(intModes[i], (currentSet == i)))
-                                    {
-                                        LOG_DEBUG("DLSSG Interpolation Count set to: {}", i + 1);
-                                        config->FGDLSSGInterpolationCount = i + 1;
-                                    }
-                                }
-
-                                ImGui::EndCombo();
+                                config->FGDLSSGForceDMFG = dynamicMFG;
                             }
 
-                            ImGui::PopItemWidth();
+                            ImGui::BeginDisabled(!config->FGDLSSGForceDMFG.value_or_default());
+                            static float fpsTarget = config->FGDLSSGFramerateTargetDMFG.value_or_default();
+                            ImGui::SliderFloat("DMFG FPS Target", &fpsTarget, 0, 200, "%.0f");
 
-                            ShowHelpMarker("Set DLSSG interpolation count");
+                            ShowHelpMarker("An active limit of 0 means auto-detect the display refresh rate");
+
+                            if (ImGui::Button("Apply Target"))
+                            {
+                                config->FGDLSSGFramerateTargetDMFG = fpsTarget;
+                            }
+
+                            ImGui::SameLine(0.0f, 16.0f);
+
+                            if (ImGui::Button("Reset Target"))
+                            {
+                                fpsTarget = 0.0f;
+                                config->FGDLSSGFramerateTargetDMFG.reset();
+                            }
 
                             ImGui::EndDisabled();
-
-                            if (state.dlssgOptiDMFGSupported)
-                            {
-                                ImGui::SameLine(0.0f, 16.0f);
-
-                                if (bool dynamicMFG = config->FGDLSSGForceDMFG.value_or_default();
-                                    ImGui::Checkbox("Force Dynamic MFG", &dynamicMFG))
-                                {
-                                    config->FGDLSSGForceDMFG = dynamicMFG;
-                                }
-
-                                ImGui::BeginDisabled(!config->FGDLSSGForceDMFG.value_or_default());
-                                static float fpsTarget = config->FGDLSSGFramerateTargetDMFG.value_or_default();
-                                ImGui::SliderFloat("DMFG FPS Target", &fpsTarget, 0, 200, "%.0f");
-
-                                ShowHelpMarker("An active limit of 0 means auto-detect the display refresh rate");
-
-                                if (ImGui::Button("Apply Target"))
-                                {
-                                    config->FGDLSSGFramerateTargetDMFG = fpsTarget;
-                                }
-
-                                ImGui::SameLine(0.0f, 16.0f);
-
-                                if (ImGui::Button("Reset Target"))
-                                {
-                                    fpsTarget = 0.0f;
-                                    config->FGDLSSGFramerateTargetDMFG.reset();
-                                }
-
-                                ImGui::EndDisabled();
-                            }
                         }
-
-                        bool useGamesMarkers = config->FGDLSSGUseGamesReflexMarkers.value_or_default();
-                        ImGui::BeginDisabled(!ReflexHooks::gameIsSendingMarkers());
-                        if (ImGui::Checkbox("Use Game's Reflex Markers", &useGamesMarkers))
-                        {
-                            config->FGDLSSGUseGamesReflexMarkers = useGamesMarkers;
-                            LOG_DEBUG("Changed set FGDLSSGUseGamesReflexMarkers: {}", useGamesMarkers);
-                        }
-                        ImGui::EndDisabled();
                     }
+
+                    bool useGamesMarkers = config->FGDLSSGUseGamesReflexMarkers.value_or_default();
+                    ImGui::BeginDisabled(!ReflexHooks::gameIsSendingMarkers());
+                    if (ImGui::Checkbox("Use Game's Reflex Markers", &useGamesMarkers))
+                    {
+                        config->FGDLSSGUseGamesReflexMarkers = useGamesMarkers;
+                        LOG_DEBUG("Changed set FGDLSSGUseGamesReflexMarkers: {}", useGamesMarkers);
+                    }
+                    ImGui::EndDisabled();
                 }
 
                 // OptiFG
@@ -7299,9 +6507,6 @@ bool MenuCommon::RenderMenu()
                     io.ConfigFlags =
                         ImGuiConfigFlags_NoMouse | ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_NoKeyboard;
 
-                    if (pfn_ClipCursor_hooked)
-                        pfn_ClipCursor(&_cursorLimit);
-
                     _showMipmapCalcWindow = false;
                     _showHudlessWindow = false;
                     io.MouseDrawCursor = false;
@@ -7614,6 +6819,14 @@ bool MenuCommon::RenderMenu()
     return newFrame;
 }
 
+void KeyUp(UINT vKey)
+{
+    inputMenu = vKey == Config::Instance()->ShortcutKey.value_or_default();
+    inputFps = vKey == Config::Instance()->FpsShortcutKey.value_or_default();
+    inputFG = vKey == Config::Instance()->FGShortcutKey.value_or_default();
+    inputFpsCycle = vKey == Config::Instance()->FpsCycleShortcutKey.value_or_default();
+}
+
 void MenuCommon::Init(HWND InHwnd, bool isUWP)
 {
     // Reset shutdown flag in case of re-init
@@ -7709,50 +6922,7 @@ void MenuCommon::Init(HWND InHwnd, bool isUWP)
     LOG_DEBUG("HWND: {:X}, IsWindow: {}, HWND PID: {}, Current PID: {}, HWND TID: {}, Current TID: {}",
               (ULONG64) _handle, IsWindow(_handle), hwndPid, GetCurrentProcessId(), hwndTid, GetCurrentThreadId());
 
-    if (hwndPid == GetCurrentProcessId() && !Config::Instance()->ManualInputPolling.value_or_default())
-    {
-        inputManual = false;
-
-        if ((_oWndProc == nullptr || oldHandle != _handle) && !isUWP)
-        {
-            if (oldHandle != nullptr && _oWndProc != nullptr)
-            {
-                LOG_DEBUG("Restoring old WndProc: {:X}", (ULONG64) _oWndProc);
-
-                SetLastError(0);
-                auto restoreResult = SetWindowLongPtr(oldHandle, GWLP_WNDPROC, (LONG_PTR) _oWndProc);
-                auto error = GetLastError();
-
-                if (restoreResult == 0 && error != 0)
-                {
-                    LOG_ERROR("Failed to restore old WndProc. Error: {:X}", error);
-                }
-            }
-
-            SetLastError(0);
-            auto setResult = (WNDPROC) SetWindowLongPtr(_handle, GWLP_WNDPROC, (LONG_PTR) WndProc);
-            auto error = GetLastError();
-
-            if (setResult == nullptr && error != 0)
-            {
-                LOG_ERROR("Failed to hook WndProc. Error: {:X}", error);
-            }
-            else
-            {
-                _oWndProc = setResult;
-                LOG_DEBUG("_oWndProc: {:X}", (ULONG64) _oWndProc);
-            }
-        }
-    }
-    else
-    {
-        if (!Config::Instance()->ManualInputPolling.value_or_default())
-            LOG_WARN("HWND does not belong to current process, Manual input polling will be used");
-        else
-            LOG_DEBUG("Manual input polling enabled by config");
-
-        inputManual = true;
-    }
+    OptiInput::Initialize(_handle, isUWP);
 
     ApplyThemeStyle();
     _isInited = true;
@@ -7778,9 +6948,6 @@ void MenuCommon::Shutdown()
         _oWndProc = nullptr;
     }
 
-    if (pfn_SetCursorPos_hooked)
-        DetachHooks();
-
     if (!_isUWP)
         ImGui_ImplWin32_Shutdown();
     else
@@ -7803,24 +6970,8 @@ void MenuCommon::HideMenu()
     ImGuiIO& io = ImGui::GetIO();
     (void) io;
 
-    if (pfn_ClipCursor_hooked)
-        pfn_ClipCursor(&_cursorLimit);
-
     _showMipmapCalcWindow = false;
     _showHudlessWindow = false;
-
-    RECT windowRect = {};
-
-    if (!_isUWP && GetWindowRect(_handle, &windowRect))
-    {
-        auto x = windowRect.left + (windowRect.right - windowRect.left) / 2;
-        auto y = windowRect.top + (windowRect.bottom - windowRect.top) / 2;
-
-        if (pfn_SetCursorPos != nullptr)
-            pfn_SetCursorPos(x, y);
-        else
-            SetCursorPos(x, y);
-    }
 
     io.MouseDrawCursor = _isVisible;
     io.WantCaptureKeyboard = _isVisible;

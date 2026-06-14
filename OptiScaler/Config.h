@@ -370,7 +370,6 @@ class Config
     // Hotfixes
     CustomOptional<bool> CheckForUpdate { true };
     CustomOptional<bool> DisableOverlays { false };
-    CustomOptional<bool> ManualInputPolling { false };
 
     CustomOptional<bool> SimulateWaitableObject { false };
 
