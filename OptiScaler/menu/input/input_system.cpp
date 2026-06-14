@@ -117,7 +117,7 @@ void LogHwndIdentityLocked(const char* label, HWND hwnd)
 {
     if (hwnd == nullptr)
     {
-        LOG_DEBUG("{}: hwnd=null", label);
+        LOG_DEBUG("{}: hwnd:null", label);
         return;
     }
 
@@ -709,7 +709,7 @@ void ApplyMenuVisibilityChangeLocked(bool visible)
 
         _state.HasBlockedCursorScreenPos = true;
 
-        LOG_DEBUG("captured blocked cursor position screen=({}, {})", _state.BlockedCursorScreenPos.x,
+        LOG_DEBUG("captured blocked cursor position screen:({}, {})", _state.BlockedCursorScreenPos.x,
                   _state.BlockedCursorScreenPos.y);
 
         BeginCursorClipBlockLocked();

@@ -44,7 +44,7 @@ static bool inputFG = false;
 static bool inputFps = false;
 static bool inputFpsCycle = false;
 static uint64_t lastInputTick = 0;
-constexpr uint64_t debounceThreshold = 60;
+constexpr uint64_t debounceThreshold = 1000;
 
 static bool hasGamepad = false;
 static bool fsr31InitTried = false;
@@ -254,13 +254,20 @@ void MenuCommon::UpdateManualInput(HWND targetHwnd)
         }
     };
 
-    if (!capturingKey)
+    const auto currentTick = GetTickCount64();
+    const bool canAcceptInputs = lastInputTick + debounceThreshold < currentTick;
+
+    if (!capturingKey && canAcceptInputs)
     {
         CheckShortcut(config->ShortcutKey.value_or_default(), inputMenu, "Menu key pressed, will be switching menu");
         CheckShortcut(config->FpsShortcutKey.value_or_default(), inputFps, "Menu key pressed, will be switching FPS");
         CheckShortcut(config->FGShortcutKey.value_or_default(), inputFG, "Menu key pressed, will be switching FG mode");
         CheckShortcut(config->FpsCycleShortcutKey.value_or_default(), inputFpsCycle,
                       "Menu key pressed, will be switching FPS mode");
+    }
+    else if (capturingKey)
+    {
+        lastInputTick = currentTick;
     }
 
     lastKey = OptiInput::GetLastPressedKey();
