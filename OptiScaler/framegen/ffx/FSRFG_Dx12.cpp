@@ -1225,6 +1225,8 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 {
     LOG_FUNC();
 
+    OwnedLockGuard lock(Mutex, 555);
+
     _constants = fgConstants;
 
     if (!FfxApiProxy::IsFGReady())
