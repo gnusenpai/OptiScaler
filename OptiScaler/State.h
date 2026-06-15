@@ -1,15 +1,17 @@
 #pragma once
 #include "upscalers/IFeature.h"
+
+#include "misc/Quirks.h"
 #include "framegen/IFGFeature_Dx12.h"
 #include <inputs/FG/Streamline_Inputs_Dx12.h>
-#include "misc/Quirks.h"
+#include <inputs/FG/Streamline_Inputs_Sl1_Dx12.h>
 
 #include <set>
 #include <deque>
-#include <vulkan/vulkan.h>
-#include <ankerl/unordered_dense.h>
 #include <mutex>
 #include <sl_dlss_g.h>
+#include <vulkan/vulkan.h>
+#include <ankerl/unordered_dense.h>
 
 enum class FGPreset : uint32_t
 {
@@ -120,6 +122,7 @@ class State
 
     // Streamline FG inputs
     Sl_Inputs_Dx12 slFGInputs = {};
+    Sl1_Inputs_Dx12 s_sl1FGInputs {};
 
     // OptiFG
     bool fgPresentIsCalled = false;

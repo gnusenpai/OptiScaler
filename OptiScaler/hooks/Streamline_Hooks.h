@@ -8,7 +8,6 @@
 #include <sl_pcl.h>
 #include <sl_reflex.h>
 
-#include <d3d12.h>
 #include "include/sl.param/parameters.h"
 
 #include "Hook_Utils.h"
@@ -194,12 +193,20 @@ class StreamlineHooks
     static decltype(&slGetNewFrameToken) o_slGetNewFrameToken;
 
     static decltype(&sl1::slInit) o_slInit_sl1;
+    static decltype(&sl1::slSetTag) o_slSetTag_sl1;
+    static decltype(&sl1::slSetConstants) o_slSetConstants_interposer_sl1;
+    static decltype(&sl1::slEvaluateFeature) o_slEvaluateFeature_sl1;
 
     static sl::PFun_LogMessageCallback* o_logCallback;
     static sl1::pfunLogMessageCallback* o_logCallback_sl1;
 
     static sl::Result hkslInit(const sl::Preferences& pref, uint64_t sdkVersion);
     static bool hkslInit_sl1(const sl1::Preferences& pref, int applicationId);
+    static bool hkslSetTag_sl1(const sl1::Resource* resource, sl1::BufferType tag, uint32_t id,
+                               const sl1::Extent* extent);
+    static bool hkslSetConstants_sl1(const sl1::Constants& values, uint32_t frameIndex, uint32_t id);
+    static bool hkslEvaluateFeature_sl1(sl1::CommandBuffer* cmdBuffer, sl1::Feature feature, uint32_t frameIndex,
+                                        uint32_t id);
     static sl::Result hkslSetTag(const sl::ViewportHandle& viewport, const sl::ResourceTag* tags, uint32_t numTags,
                                  sl::CommandBuffer* cmdBuffer);
 
@@ -295,6 +302,9 @@ class StreamlineHooks
     // Function signature checking
     VALIDATE_MEMBER_HOOK(hkslInit, decltype(&slInit))
     VALIDATE_MEMBER_HOOK(hkslInit_sl1, decltype(&sl1::slInit))
+    VALIDATE_MEMBER_HOOK(hkslSetTag_sl1, decltype(&sl1::slSetTag))
+    VALIDATE_MEMBER_HOOK(hkslSetConstants_sl1, decltype(&sl1::slSetConstants))
+    VALIDATE_MEMBER_HOOK(hkslEvaluateFeature_sl1, decltype(&sl1::slEvaluateFeature))
     VALIDATE_MEMBER_HOOK(hkslSetTag, decltype(&slSetTag))
     VALIDATE_MEMBER_HOOK(hkslSetTagForFrame, decltype(&slSetTagForFrame))
     VALIDATE_MEMBER_HOOK(hkslEvaluateFeature, decltype(&slEvaluateFeature))

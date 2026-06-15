@@ -2850,7 +2850,7 @@ bool MenuCommon::RenderMenu()
                     { FGInput::FSRFG, "FSR 3.1 FG",
                         "Can be used with any FG Output\n\nSupports Hudless out of the box" },
                     { FGInput::DLSSG, "DLSSG via Streamline",
-                        "Can be used with any FG Output\n\nSupports Hudless out of the box\n\nLimited to games that use Streamline v2" },
+                        "Can be used with any FG Output\n\nSupports Hudless out of the box" },
                     { FGInput::XeFG, "XeFG" },
                     { FGInput::Upscaler, "OptiFG (Upscaler)",
                         "Upscaler must be enabled\n\nCan be used with any FG Output, but might be imperfect with some\n\nTo prevent UI glitching, HUDfix required" },
@@ -2897,13 +2897,6 @@ bool MenuCommon::RenderMenu()
                 // DLSSG inputs requirements
                 auto constexpr dlssgInputIndex = (uint32_t) FGInput::DLSSG;
                 inputOptions[dlssgInputIndex].set_disabled(state.swapchainApi == API::DX11, "Unsupported API");
-
-                if (!inputOptions[dlssgInputIndex].disabled && state.streamlineVersion.major < 2)
-                {
-                    inputOptions[dlssgInputIndex].set_disabled(
-                        true, std::format("Unsupported Streamline version: {}.{}.{}", state.streamlineVersion.major,
-                                          state.streamlineVersion.minor, state.streamlineVersion.patch));
-                }
 
                 // FSRFG inputs requirements
                 auto constexpr fsrfgInputIndex = (uint32_t) FGInput::FSRFG;

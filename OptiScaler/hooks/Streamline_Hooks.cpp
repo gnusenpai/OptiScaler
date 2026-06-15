@@ -2,20 +2,20 @@
 
 #include "Streamline_Hooks.h"
 
-#include <json.hpp>
-#include "detours/detours.h"
-
 #include <Util.h>
 #include <Config.h>
-#include <proxies/KernelBase_Proxy.h>
-#include <proxies/Streamline_Proxy.h>
-#include <menu/menu_overlay_base.h>
-#include <hooks/Reflex_Hooks.h>
-#include <magic_enum.hpp>
-#include <sl1_reflex.h>
+
 #include <nvapi/fakenvapi.h>
 #include <misc/IdentifyGpu.h>
+#include <hooks/Reflex_Hooks.h>
+#include <menu/menu_overlay_base.h>
 #include <framegen/nvngx/Nvngx_FG.h>
+#include <proxies/KernelBase_Proxy.h>
+
+#include <json.hpp>
+#include <sl1_reflex.h>
+#include <magic_enum.hpp>
+#include "detours/detours.h"
 
 sl::RenderAPI StreamlineHooks::renderApi = sl::RenderAPI::eCount;
 std::mutex StreamlineHooks::setConstantsMutex {};
@@ -34,6 +34,10 @@ decltype(&slSetD3DDevice) StreamlineHooks::o_slSetD3DDevice = nullptr;
 decltype(&slGetNewFrameToken) StreamlineHooks::o_slGetNewFrameToken = nullptr;
 
 decltype(&sl1::slInit) StreamlineHooks::o_slInit_sl1 = nullptr;
+decltype(&sl1::slSetTag) StreamlineHooks::o_slSetTag_sl1 = nullptr;
+decltype(&sl1::slSetConstants) StreamlineHooks::o_slSetConstants_interposer_sl1 = nullptr;
+decltype(&sl1::slEvaluateFeature) StreamlineHooks::o_slEvaluateFeature_sl1 = nullptr;
+using PFN_slGetPluginJSONConfig_sl1 = const char* (*) ();
 
 sl::PFun_LogMessageCallback* StreamlineHooks::o_logCallback = nullptr;
 sl1::pfunLogMessageCallback* StreamlineHooks::o_logCallback_sl1 = nullptr;
@@ -48,6 +52,7 @@ StreamlineHooks::PFN_slGetPluginFunction StreamlineHooks::o_dlssg_slGetPluginFun
 StreamlineHooks::PFN_slOnPluginLoad StreamlineHooks::o_dlssg_slOnPluginLoad = nullptr;
 decltype(&slDLSSGSetOptions) StreamlineHooks::o_slDLSSGSetOptions = nullptr;
 decltype(&slDLSSGGetState) StreamlineHooks::o_slDLSSGGetState = nullptr;
+static PFN_slGetPluginJSONConfig_sl1 o_dlssg_slGetPluginJSONConfig_sl1;
 
 // Local DLSSG
 StreamlineHooks::PFN_slGetPluginFunction StreamlineHooks::o_local_dlssg_slGetPluginFunction = nullptr;
@@ -72,11 +77,48 @@ StreamlineHooks::PFN_slOnPluginLoad StreamlineHooks::o_common_slOnPluginLoad = n
 StreamlineHooks::PFN_slSetParameters_sl1 StreamlineHooks::o_common_slSetParameters_sl1 = nullptr;
 StreamlineHooks::PFN_setVoid StreamlineHooks::o_setVoid = nullptr;
 
+static const char* hkdlssg_slGetPluginJSONConfig_sl1();
+
+static bool IsSL1AndDLSSGActive()
+{
+    return State::Instance().streamlineVersion.major == 1 && State::Instance().activeFgInput == FGInput::DLSSG &&
+           (State::Instance().activeFgOutput == FGOutput::FSRFG || State::Instance().activeFgOutput == FGOutput::XeFG);
+}
+
+static bool IsSL1AndFGActive()
+{
+    const auto& state = State::Instance();
+
+    return state.streamlineVersion.major == 1 &&
+           (state.activeFgInput == FGInput::DLSSG || state.activeFgOutput == FGOutput::FSRFG ||
+            state.activeFgOutput == FGOutput::XeFG);
+}
+
+static void PatchSL1PluginJson(nlohmann::json& configJson)
+{
+    if (!IsSL1AndFGActive())
+        return;
+
+    LOG_DEBUG("Patching SL1 plugin JSON for external FG management");
+
+    if (configJson.contains("/hooks"_json_pointer))
+        configJson["hooks"].clear();
+
+    if (configJson.contains("/exclusive_hooks"_json_pointer))
+        configJson["exclusive_hooks"].clear();
+
+    if (configJson.contains("/external/feature/tags"_json_pointer))
+        configJson["external"]["feature"]["tags"].clear();
+
+    if (configJson.contains("/vsync/supported"_json_pointer))
+        configJson["vsync"]["supported"] = true;
+
+    if (configJson.contains("/external/hws/required"_json_pointer))
+        configJson["external"]["hws"]["required"] = false;
+}
+
 char* StreamlineHooks::trimStreamlineLog(const char* msg)
 {
-    // Unused
-    // int bracket_count = 0;
-
     char* result = (char*) malloc(strlen(msg) + 1);
     if (!result)
         return nullptr;
@@ -397,6 +439,39 @@ bool StreamlineHooks::hkslInit_sl1(const sl1::Preferences& pref, int application
     return o_slInit_sl1(localPref, applicationId);
 }
 
+bool StreamlineHooks::hkslSetTag_sl1(const sl1::Resource* resource, sl1::BufferType tag, uint32_t id,
+                                     const sl1::Extent* extent)
+{
+    if (IsSL1AndFGActive())
+        State::Instance().s_sl1FGInputs.setTag(resource, tag, id, extent);
+
+    return o_slSetTag_sl1(resource, tag, id, extent);
+}
+
+bool StreamlineHooks::hkslSetConstants_sl1(const sl1::Constants& values, uint32_t frameIndex, uint32_t id)
+{
+    std::scoped_lock lock(setConstantsMutex);
+
+    LOG_TRACE("SL1 slSetConstants frameIndex: {}, id: {}", frameIndex, id);
+
+    if (IsSL1AndFGActive())
+        State::Instance().s_sl1FGInputs.setConstants(values, frameIndex, id);
+
+    return o_slSetConstants_interposer_sl1(values, frameIndex, id);
+}
+
+bool StreamlineHooks::hkslEvaluateFeature_sl1(sl1::CommandBuffer* cmdBuffer, sl1::Feature feature, uint32_t frameIndex,
+                                              uint32_t id)
+{
+    LOG_TRACE("SL1 slEvaluateFeature feature: {}, frameIndex: {}, id: {}", magic_enum::enum_name(feature), frameIndex,
+              id);
+
+    if (IsSL1AndFGActive())
+        State::Instance().s_sl1FGInputs.evaluateFeature(cmdBuffer, feature, frameIndex, id);
+
+    return o_slEvaluateFeature_sl1(cmdBuffer, feature, frameIndex, id);
+}
+
 void StreamlineHooks::hookSystemCaps(sl::param::IParameters* params)
 {
     if (State::Instance().streamlineVersion.major > 1)
@@ -577,6 +652,8 @@ bool StreamlineHooks::hkdlss_slOnPluginLoad(sl::param::IParameters* params, cons
         }
     }
 
+    PatchSL1PluginJson(configJson);
+
     config = configJson.dump();
 
     *pluginJSON = config.c_str();
@@ -686,11 +763,44 @@ bool StreamlineHooks::hkdlssg_slOnPluginLoad(sl::param::IParameters* params, con
             configJson["external"]["vk"]["device"]["extensions"].clear();
     }
 
+    PatchSL1PluginJson(configJson);
+
     config = configJson.dump();
 
     *pluginJSON = config.c_str();
 
     return result;
+}
+
+static const char* hkdlssg_slGetPluginJSONConfig_sl1()
+{
+    static std::string patchedConfig;
+
+    const char* originalConfig = o_dlssg_slGetPluginJSONConfig_sl1();
+
+    if (originalConfig == nullptr)
+        return originalConfig;
+
+    try
+    {
+        auto configJson = nlohmann::json::parse(originalConfig);
+
+        LOG_DEBUG("SL1 DLSSG JSON before patch: {}", configJson.dump());
+
+        PatchSL1PluginJson(configJson);
+        // RemoveSL1DLSSGHookEntriesRecursive(configJson);
+
+        patchedConfig = configJson.dump();
+
+        LOG_DEBUG("SL1 DLSSG JSON after patch: {}", patchedConfig);
+
+        return patchedConfig.c_str();
+    }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR("Failed to patch SL1 DLSSG JSON config: {}", e.what());
+        return originalConfig;
+    }
 }
 
 bool StreamlineHooks::hklocal_dlssg_slOnPluginLoad(sl::param::IParameters* params, const char* loaderJSON,
@@ -735,6 +845,8 @@ bool StreamlineHooks::hklocal_dlssg_slOnPluginLoad(sl::param::IParameters* param
             configJson["external"]["vk"]["device"]["extensions"].clear();
     }
 
+    PatchSL1PluginJson(configJson);
+
     config = configJson.dump();
 
     *pluginJSON = config.c_str();
@@ -778,6 +890,8 @@ bool StreamlineHooks::hkcommon_slOnPluginLoad(sl::param::IParameters* params, co
     //    configJson["hooks"].clear();
     //    configJson["exclusive_hooks"].clear();
     //}
+
+    PatchSL1PluginJson(configJson);
 
     config = configJson.dump();
 
@@ -1027,6 +1141,8 @@ bool StreamlineHooks::hkreflex_slOnPluginLoad(sl::param::IParameters* params, co
             configJson["external"]["vk"]["device"]["1.3_features"].clear();
     }
 
+    PatchSL1PluginJson(configJson);
+
     config = configJson.dump();
 
     *pluginJSON = config.c_str();
@@ -1119,6 +1235,18 @@ void* StreamlineHooks::hkdlssg_slGetPluginFunction(const char* functionName)
         }
 
         return &hkslDLSSGGetState;
+    }
+
+    if (strcmp(functionName, "slGetPluginJSONConfig") == 0 && IsSL1AndDLSSGActive())
+    {
+        o_dlssg_slGetPluginJSONConfig_sl1 =
+            reinterpret_cast<PFN_slGetPluginJSONConfig_sl1>(o_dlssg_slGetPluginFunction(functionName));
+
+        if (o_dlssg_slGetPluginJSONConfig_sl1 != nullptr)
+        {
+            LOG_WARN("Hooking SL1 DLSSG slGetPluginJSONConfig");
+            return &hkdlssg_slGetPluginJSONConfig_sl1;
+        }
     }
 
     // Ensure that we have those DLSSG calls
@@ -1238,13 +1366,27 @@ sl::Result StreamlineHooks::hkslPCLSetMarker(sl::PCLMarker marker, const sl::Fra
 
     if (State::Instance().activeFgInput == FGInput::DLSSG)
     {
-        if (marker == sl::PCLMarker::eRenderSubmitStart)
+        if (State::Instance().streamlineVersion.major == 1)
         {
-            State::Instance().slFGInputs.evaluateState();
+            if (marker == sl::PCLMarker::eRenderSubmitStart)
+            {
+                State::Instance().s_sl1FGInputs.evaluateState();
+            }
+            else if (marker == sl::PCLMarker::ePresentStart)
+            {
+                State::Instance().s_sl1FGInputs.markPresent(frame);
+            }
         }
-        else if (marker == sl::PCLMarker::ePresentStart)
+        else
         {
-            State::Instance().slFGInputs.markPresent(frame);
+            if (marker == sl::PCLMarker::eRenderSubmitStart)
+            {
+                State::Instance().slFGInputs.evaluateState();
+            }
+            else if (marker == sl::PCLMarker::ePresentStart)
+            {
+                State::Instance().slFGInputs.markPresent(frame);
+            }
         }
     }
 
@@ -1413,11 +1555,29 @@ void StreamlineHooks::unhookInterposer()
     if (o_slSetTag)
         DetourDetach(&(PVOID&) o_slSetTag, hkslSetTag);
 
+    if (o_slSetTagForFrame)
+        DetourDetach(&(PVOID&) o_slSetTagForFrame, hkslSetTagForFrame);
+
+    if (o_slSetConstants)
+        DetourDetach(&(PVOID&) o_slSetConstants, hkslSetConstants);
+
+    if (o_slEvaluateFeature)
+        DetourDetach(&(PVOID&) o_slEvaluateFeature, hkslEvaluateFeature);
+
     if (o_slInit)
         DetourDetach(&(PVOID&) o_slInit, hkslInit);
 
     if (o_slInit_sl1)
         DetourDetach(&(PVOID&) o_slInit_sl1, hkslInit_sl1);
+
+    if (o_slSetTag_sl1)
+        DetourDetach(&(PVOID&) o_slSetTag_sl1, hkslSetTag_sl1);
+
+    if (o_slSetConstants_interposer_sl1)
+        DetourDetach(&(PVOID&) o_slSetConstants_interposer_sl1, hkslSetConstants_sl1);
+
+    if (o_slEvaluateFeature_sl1)
+        DetourDetach(&(PVOID&) o_slEvaluateFeature_sl1, hkslEvaluateFeature_sl1);
 
     // if (o_logCallback)
     //     DetourDetach(&(PVOID&) o_logCallback, streamlineLogCallback);
@@ -1434,6 +1594,12 @@ void StreamlineHooks::unhookInterposer()
         o_slInit = nullptr;
         o_slInit_sl1 = nullptr;
         o_slSetTag = nullptr;
+        o_slSetTagForFrame = nullptr;
+        o_slEvaluateFeature = nullptr;
+        o_slSetConstants = nullptr;
+        o_slSetTag_sl1 = nullptr;
+        o_slSetConstants_interposer_sl1 = nullptr;
+        o_slEvaluateFeature_sl1 = nullptr;
         o_logCallback = nullptr;
         o_logCallback_sl1 = nullptr;
     }
@@ -1463,7 +1629,8 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
     auto owner = State::GetOwner();
     State::DisableChecks(owner, "sl.interposer");
 
-    if (o_slSetTag || o_slInit || o_slInit_sl1)
+    if (o_slSetTag || o_slInit || o_slInit_sl1 || o_slSetTag_sl1 || o_slSetConstants_interposer_sl1 ||
+        o_slEvaluateFeature_sl1)
         unhookInterposer();
 
     {
@@ -1550,25 +1717,48 @@ void StreamlineHooks::hookInterposer(HMODULE slInterposer)
         }
         else if (sl_version.major == 1)
         {
-            if (State::Instance().activeFgInput == FGInput::DLSSG)
-                State::Instance().activeFgInput = FGInput::NoFG;
-
             o_slInit_sl1 =
                 reinterpret_cast<decltype(&sl1::slInit)>(KernelBaseProxy::GetProcAddress_()(slInterposer, "slInit"));
+            o_slSetTag_sl1 = reinterpret_cast<decltype(&sl1::slSetTag)>(
+                KernelBaseProxy::GetProcAddress_()(slInterposer, "slSetTag"));
+            o_slSetConstants_interposer_sl1 = reinterpret_cast<decltype(&sl1::slSetConstants)>(
+                KernelBaseProxy::GetProcAddress_()(slInterposer, "slSetConstants"));
+            o_slEvaluateFeature_sl1 = reinterpret_cast<decltype(&sl1::slEvaluateFeature)>(
+                KernelBaseProxy::GetProcAddress_()(slInterposer, "slEvaluateFeature"));
 
-            if (o_slInit_sl1)
+            LOG_INFO("SL1 exports - slInit: {}, slSetTag: {}, slSetConstants: {}, slEvaluateFeature: {}",
+                     o_slInit_sl1 != nullptr, o_slSetTag_sl1 != nullptr, o_slSetConstants_interposer_sl1 != nullptr,
+                     o_slEvaluateFeature_sl1 != nullptr);
+
+            if (o_slInit_sl1 || o_slSetTag_sl1 || o_slSetConstants_interposer_sl1 || o_slEvaluateFeature_sl1)
             {
                 LOG_TRACE("Hooking v1");
                 DetourTransactionBegin();
                 DetourUpdateThread(GetCurrentThread());
 
-                DetourAttach(&(PVOID&) o_slInit_sl1, hkslInit_sl1);
+                if (o_slInit_sl1)
+                    DetourAttach(&(PVOID&) o_slInit_sl1, hkslInit_sl1);
+
+                if (IsSL1AndFGActive())
+                {
+                    if (o_slSetTag_sl1)
+                        DetourAttach(&(PVOID&) o_slSetTag_sl1, hkslSetTag_sl1);
+
+                    if (o_slSetConstants_interposer_sl1)
+                        DetourAttach(&(PVOID&) o_slSetConstants_interposer_sl1, hkslSetConstants_sl1);
+
+                    if (o_slEvaluateFeature_sl1)
+                        DetourAttach(&(PVOID&) o_slEvaluateFeature_sl1, hkslEvaluateFeature_sl1);
+                }
 
                 auto detourResult = DetourTransactionCommit();
                 if (detourResult != NO_ERROR)
                 {
                     LOG_ERROR("Failed to hook sl.interposer v1: {:X}", detourResult);
                     o_slInit_sl1 = nullptr;
+                    o_slSetTag_sl1 = nullptr;
+                    o_slSetConstants_interposer_sl1 = nullptr;
+                    o_slEvaluateFeature_sl1 = nullptr;
                 }
             }
         }

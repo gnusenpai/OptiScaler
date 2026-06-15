@@ -881,6 +881,9 @@
     <ClInclude Include="menu\input\input_system_internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inputs\FG\Streamline_Inputs_Sl1_Dx12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1398,6 +1401,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="menu\input\input_system_hid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="inputs\FG\Streamline_Inputs_Sl1_Dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
