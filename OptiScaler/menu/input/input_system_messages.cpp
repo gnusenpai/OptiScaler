@@ -8,6 +8,92 @@
 
 namespace OptiInput
 {
+void SetKeyUpStateOnly(int vk, DWORD messageTime)
+{
+    if (vk < 0 || vk >= 256)
+        return;
+
+    ButtonState& key = _state.Keys[vk];
+
+    if (key.Down)
+        key.Released = true;
+
+    key.Down = false;
+    key.LastMessageTime = messageTime;
+
+    // Do not clear key.BlockedDown here.
+    // Polling/raw input are internal state producers. The game-facing
+    // WM_KEYUP path must be the one that consumes BlockedDown.
+    SyncAggregateModifierStateLocked();
+}
+
+void SetMouseUpStateOnly(int button, DWORD messageTime)
+{
+    if (button < 0 || button >= static_cast<int>(_state.MouseButtons.size()))
+        return;
+
+    ButtonState& mouseButton = _state.MouseButtons[button];
+
+    if (mouseButton.Down)
+        mouseButton.Released = true;
+
+    mouseButton.Down = false;
+    mouseButton.LastMessageTime = messageTime;
+
+    // Do not clear mouseButton.BlockedDown here.
+    // Polling/raw input are internal state producers. The game-facing
+    // WM_*BUTTONUP path must be the one that consumes BlockedDown.
+}
+
+void ResetButtonBlockedStateLocked()
+{
+    for (ButtonState& key : _state.Keys)
+        key.BlockedDown = false;
+
+    for (ButtonState& mouseButton : _state.MouseButtons)
+        mouseButton.BlockedDown = false;
+
+    SyncAggregateModifierStateLocked();
+}
+
+void SetMouseDownFromRawState(int button, DWORD messageTime, bool blocked)
+{
+    if (button < 0 || button >= static_cast<int>(_state.MouseButtons.size()))
+        return;
+
+    ButtonState& mouseButton = _state.MouseButtons[button];
+
+    if (!mouseButton.Down)
+        mouseButton.Pressed = true;
+
+    mouseButton.Down = true;
+    mouseButton.LastMessageTime = messageTime;
+
+    if (blocked)
+        mouseButton.BlockedDown = true;
+}
+
+void SetMouseUpFromRawState(int button, DWORD messageTime)
+{
+    if (button < 0 || button >= static_cast<int>(_state.MouseButtons.size()))
+        return;
+
+    ButtonState& mouseButton = _state.MouseButtons[button];
+
+    if (mouseButton.Down)
+        mouseButton.Released = true;
+
+    mouseButton.Down = false;
+    mouseButton.LastMessageTime = messageTime;
+
+    // Important:
+    // Do not clear mouseButton.BlockedDown here.
+    //
+    // Raw input and legacy WM mouse messages can arrive for the same physical
+    // button release. If raw input clears BlockedDown first, WM_LBUTTONUP sees
+    // wasBlockedDown == false and leaks to the game.
+}
+
 void SyncAggregateModifierButtonStateLocked(int aggregateVk, int leftVk, int rightVk)
 {
     ButtonState& aggregate = _state.Keys[aggregateVk];

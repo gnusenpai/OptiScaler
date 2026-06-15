@@ -353,7 +353,7 @@ void PollVirtualKeyLocked(int vk, DWORD time)
     }
 
     if (_state.Keys[vk].Down)
-        SetKeyUp(vk, time);
+        SetKeyUpStateOnly(vk, time);
 }
 
 bool PollMouseButtonLocked(int vk, int button, DWORD time)
@@ -372,7 +372,7 @@ bool PollMouseButtonLocked(int vk, int button, DWORD time)
 
     if (wasDown)
     {
-        SetMouseUp(button, time);
+        SetMouseUpStateOnly(button, time);
         return true;
     }
 
@@ -723,6 +723,7 @@ void ApplyMenuVisibilityChangeLocked(bool visible)
 
         // Drop synthetic down/up suppression that only existed while the
         // overlay owned input. New raw handles will rebuild sanitize decisions.
+        ResetButtonBlockedStateLocked();
         ResetRawInputBlockStateLocked();
         ResetRawInputSanitizeCacheLocked();
     }

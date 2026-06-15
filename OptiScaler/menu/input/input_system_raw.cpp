@@ -544,31 +544,31 @@ void UpdateStateFromRawMouseLocked(const RAWMOUSE& mouse)
         SetMouseDown(0, time, _state.BlockMouse);
 
     if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
-        SetMouseUp(0, time);
+        SetMouseUpStateOnly(0, time);
 
     if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
         SetMouseDown(1, time, _state.BlockMouse);
 
     if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
-        SetMouseUp(1, time);
+        SetMouseUpStateOnly(1, time);
 
     if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
         SetMouseDown(2, time, _state.BlockMouse);
 
     if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
-        SetMouseUp(2, time);
+        SetMouseUpStateOnly(2, time);
 
     if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
         SetMouseDown(3, time, _state.BlockMouse);
 
     if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
-        SetMouseUp(3, time);
+        SetMouseUpStateOnly(3, time);
 
     if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
         SetMouseDown(4, time, _state.BlockMouse);
 
     if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
-        SetMouseUp(4, time);
+        SetMouseUpStateOnly(4, time);
 
     if (mouse.usButtonFlags & RI_MOUSE_WHEEL)
     {
@@ -621,9 +621,9 @@ void UpdateStateFromRawKeyboardLocked(const RAWKEYBOARD& keyboard)
     const DWORD time = GetTickCount();
 
     if (released)
-        SetKeyUp(vk, time);
+        SetKeyUpStateOnly(vk, GetTickCount());
     else
-        SetKeyDown(vk, time, _state.BlockKeyboard);
+        SetKeyDown(vk, GetTickCount(), _state.BlockKeyboard);
 }
 
 void UpdateStateFromRawInputLocked(const RAWINPUT& input)

@@ -18,7 +18,7 @@
 #include <dinput.h>
 
 #ifndef OPTIINPUT_VERBOSE_LOGGING
-#define OPTIINPUT_VERBOSE_LOGGING 0
+#define OPTIINPUT_VERBOSE_LOGGING 1
 #endif
 
 #if OPTIINPUT_VERBOSE_LOGGING
@@ -560,6 +560,11 @@ void ConsumeMessage(MSG* msg);
 SHORT RealGetAsyncKeyStateSafe(int vk);
 SHORT RealGetKeyStateSafe(int vk);
 BOOL RealGetCursorPosSafe(LPPOINT point);
+void SetMouseDownFromRawState(int button, DWORD messageTime, bool blocked);
+void SetMouseUpFromRawState(int button, DWORD messageTime);
+void ResetButtonBlockedStateLocked();
+void SetKeyUpStateOnly(int vk, DWORD messageTime);
+void SetMouseUpStateOnly(int button, DWORD messageTime);
 
 // Raw input
 RawSanitizeAction GetRawInputSanitizeActionLocked(const RAWINPUT& input, USHORT* allowedMouseButtonUpFlags);
@@ -595,6 +600,7 @@ void EnsureExternalRawInputSinkLocked();
 void PumpExternalRawInputSinkLocked();
 void RemoveExternalRawInputSinkLocked();
 void AccumulateExternalRawMouseDeltaLocked(const RAWMOUSE& mouse);
+void SyncAggregateModifierStateLocked();
 
 // Detoured Win32 entry points
 BOOL WINAPI hkPeekMessageA(LPMSG msg, HWND hwnd, UINT messageFilterMin, UINT messageFilterMax, UINT removeMsg);
