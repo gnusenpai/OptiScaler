@@ -181,26 +181,49 @@ DWORD WINAPI hkXInputGetState(DWORD userIndex, XINPUT_STATE* state)
         return ERROR_BAD_ARGUMENTS;
     }
 
+    bool shouldBlock = false;
+
     {
         std::unique_lock lock(_state.Mutex);
         _state.XInputGetStateCallCount++;
+        shouldBlock = ShouldBlockXInputLocked();
 
-        if (ShouldBlockXInputLocked())
-        {
-            FillNeutralXInputState(state);
-            _state.XInputGetStateBlockedCount++;
-            OPTIINPUT_LOG_VERBOSE("blocking XInputGetState userIndex:{}", userIndex);
-            return ERROR_SUCCESS;
-        }
-
-        _state.XInputGetStatePassedCount++;
+        if (!shouldBlock)
+            _state.XInputGetStatePassedCount++;
     }
 
     if (o_XInputGetState == nullptr)
         return ERROR_DEVICE_NOT_CONNECTED;
 
-    ScopedHookBypass bypass;
-    return o_XInputGetState(userIndex, state);
+    if (!shouldBlock)
+    {
+        ScopedHookBypass bypass;
+        return o_XInputGetState(userIndex, state);
+    }
+
+    XINPUT_STATE realState {};
+    DWORD result = ERROR_DEVICE_NOT_CONNECTED;
+
+    {
+        ScopedHookBypass bypass;
+        result = o_XInputGetState(userIndex, &realState);
+    }
+
+    {
+        std::unique_lock lock(_state.Mutex);
+        _state.XInputGetStateBlockedCount++;
+    }
+
+    if (result != ERROR_SUCCESS)
+    {
+        *state = {};
+        return result;
+    }
+
+    *state = realState;
+    state->Gamepad = {}; // neutral connected controller only if it really exists
+
+    return ERROR_SUCCESS;
 }
 
 DWORD WINAPI hkXInputGetStateEx(DWORD userIndex, XINPUT_STATE* state)
@@ -216,26 +239,49 @@ DWORD WINAPI hkXInputGetStateEx(DWORD userIndex, XINPUT_STATE* state)
         return ERROR_BAD_ARGUMENTS;
     }
 
+    bool shouldBlock = false;
+
     {
         std::unique_lock lock(_state.Mutex);
         _state.XInputGetStateCallCount++;
+        shouldBlock = ShouldBlockXInputLocked();
 
-        if (ShouldBlockXInputLocked())
-        {
-            FillNeutralXInputState(state);
-            _state.XInputGetStateBlockedCount++;
-            OPTIINPUT_LOG_VERBOSE("blocking XInputGetStateEx userIndex:{}", userIndex);
-            return ERROR_SUCCESS;
-        }
-
-        _state.XInputGetStatePassedCount++;
+        if (!shouldBlock)
+            _state.XInputGetStatePassedCount++;
     }
 
     if (o_XInputGetStateEx == nullptr)
         return ERROR_DEVICE_NOT_CONNECTED;
 
-    ScopedHookBypass bypass;
-    return o_XInputGetStateEx(userIndex, state);
+    if (!shouldBlock)
+    {
+        ScopedHookBypass bypass;
+        return o_XInputGetStateEx(userIndex, state);
+    }
+
+    XINPUT_STATE realState {};
+    DWORD result = ERROR_DEVICE_NOT_CONNECTED;
+
+    {
+        ScopedHookBypass bypass;
+        result = o_XInputGetStateEx(userIndex, &realState);
+    }
+
+    {
+        std::unique_lock lock(_state.Mutex);
+        _state.XInputGetStateBlockedCount++;
+    }
+
+    if (result != ERROR_SUCCESS)
+    {
+        *state = {};
+        return result;
+    }
+
+    *state = realState;
+    state->Gamepad = {}; // neutral connected controller only if it really exists
+
+    return ERROR_SUCCESS;
 }
 
 DWORD WINAPI hkXInputGetKeystroke(DWORD userIndex, DWORD reserved, PXINPUT_KEYSTROKE keystroke)
@@ -266,25 +312,40 @@ DWORD WINAPI hkXInputGetKeystroke(DWORD userIndex, DWORD reserved, PXINPUT_KEYST
 
 DWORD WINAPI hkXInputSetState(DWORD userIndex, XINPUT_VIBRATION* vibration)
 {
+    bool shouldBlock = false;
+
     {
         std::unique_lock lock(_state.Mutex);
         _state.XInputSetStateCallCount++;
+        shouldBlock = ShouldBlockXInputLocked();
 
-        if (ShouldBlockXInputLocked())
-        {
-            _state.XInputSetStateBlockedCount++;
-            OPTIINPUT_LOG_VERBOSE("blocking XInputSetState userIndex:{}", userIndex);
-            return ERROR_SUCCESS;
-        }
-
-        _state.XInputSetStatePassedCount++;
+        if (!shouldBlock)
+            _state.XInputSetStatePassedCount++;
     }
 
     if (o_XInputSetState == nullptr)
         return ERROR_DEVICE_NOT_CONNECTED;
 
-    ScopedHookBypass bypass;
-    return o_XInputSetState(userIndex, vibration);
+    if (!shouldBlock)
+    {
+        ScopedHookBypass bypass;
+        return o_XInputSetState(userIndex, vibration);
+    }
+
+    XINPUT_VIBRATION zeroVibration {};
+    DWORD result = ERROR_DEVICE_NOT_CONNECTED;
+
+    {
+        ScopedHookBypass bypass;
+        result = o_XInputSetState(userIndex, &zeroVibration);
+    }
+
+    {
+        std::unique_lock lock(_state.Mutex);
+        _state.XInputSetStateBlockedCount++;
+    }
+
+    return result;
 }
 
 } // namespace OptiInput
