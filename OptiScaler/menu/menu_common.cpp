@@ -234,7 +234,7 @@ void MenuCommon::UpdateManualInput(HWND targetHwnd)
 {
     OptiInput::BeginFrame(targetHwnd);
 
-    OptiInput::FeedImGui();
+    OptiInput::FeedImGui(_isVisible);
 
     const auto config = Config::Instance();
 
@@ -1271,6 +1271,12 @@ bool MenuCommon::RenderMenu()
 
             if (_isVisible)
             {
+                io.ClearEventsQueue();
+                io.ClearInputKeys();
+                io.ClearInputMouse();
+
+                OptiInput::ResetMenuInputTransientState();
+
                 ApplyThemeStyle();
 
                 refreshRate = Util::GetActiveRefreshRate(_handle);

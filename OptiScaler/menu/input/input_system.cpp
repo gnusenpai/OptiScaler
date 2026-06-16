@@ -549,6 +549,15 @@ bool ApplyExternalVirtualMouseLocked(HWND coordinateHwnd, const POINT& absoluteC
     _state.ExternalVirtualMouseUsedThisFrame = false;
     _state.ExternalVirtualMouseRelativeUsedThisFrame = false;
 
+    if (!_state.MenuVisible)
+    {
+        _state.ExternalPendingMouseDeltaX = 0;
+        _state.ExternalPendingMouseDeltaY = 0;
+        _state.ExternalVirtualMouseActive = false;
+        _state.ExternalVirtualMouseAuthoritative = false;
+        return false;
+    }
+
     if (!ShouldUseExternalVirtualMouseLocked() || coordinateHwnd == nullptr)
     {
         _state.ExternalVirtualMouseActive = false;
@@ -1103,11 +1112,24 @@ void BeginFrame(HWND targetHwnd, HWND inputHwnd, bool isUwp)
     BeginFrameLocked(targetHwnd, inputHwnd, inputHwnd != nullptr, isUwp);
 }
 
-void FeedImGui()
+void FeedImGui(bool menuVisible)
 {
     std::unique_lock lock(_state.Mutex);
 
     ImGuiIO& io = ImGui::GetIO();
+
+    // When not visible skip feeding input to ImGui and clear the event queue
+    if (!menuVisible)
+    {
+        // This is for virtual mouse mode
+        UpdateImGuiMouseDrawCursorLocked(io);
+
+        io.ClearEventsQueue();
+        io.ClearInputKeys();
+        io.ClearInputMouse();
+
+        return;
+    }
 
     io.AddFocusEvent(_state.Focused);
 
@@ -1528,6 +1550,26 @@ InputAcquisitionMode GetInputAcquisitionMode()
     std::unique_lock lock(_state.Mutex);
     RefreshInputAcquisitionModeLocked();
     return _state.AcquisitionMode;
+}
+
+void ResetMenuInputTransientState()
+{
+    _state.ExternalPendingMouseDeltaX = 0;
+    _state.ExternalPendingMouseDeltaY = 0;
+    _state.MouseWheel = 0.0f;
+    _state.TextInput.clear();
+
+    for (auto& key : _state.Keys)
+    {
+        key.Pressed = false;
+        key.Released = false;
+    }
+
+    for (auto& button : _state.MouseButtons)
+    {
+        button.Pressed = false;
+        button.Released = false;
+    }
 }
 
 } // namespace OptiInput

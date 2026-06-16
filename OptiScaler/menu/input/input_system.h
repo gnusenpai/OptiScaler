@@ -200,10 +200,11 @@ void Shutdown();
 
 void BeginFrame(HWND targetHwnd, bool isUwp = false);
 void BeginFrame(HWND targetHwnd, HWND inputHwnd, bool isUwp = false);
-void FeedImGui();
+void FeedImGui(bool menuVisible);
 void EndFrame(bool menuVisible);
 
 void SetMenuVisible(bool visible);
+void ResetMenuInputTransientState();
 
 bool IsFocused();
 
