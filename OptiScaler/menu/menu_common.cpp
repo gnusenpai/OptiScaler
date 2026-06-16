@@ -207,7 +207,8 @@ struct FsExistsCache
     }
 };
 
-static FsExistsCache gExists;
+static FsExistsCache nukemsExists;
+static FsExistsCache enablerExists;
 
 struct FlagDefinition
 {
@@ -1276,12 +1277,12 @@ bool MenuCommon::RenderMenu()
 
                 auto optiPath = std::filesystem::path(Config::Instance()->MainDllPath.value());
                 auto dllPath = optiPath / L"dlss-enabler-headless.dll";
-                state.nvngxFgFilesAvailable = gExists.Get(dllPath);
+                state.nvngxFgFilesAvailable = enablerExists.Get(dllPath);
 
                 if (!state.nvngxFgFilesAvailable)
                 {
                     dllPath = optiPath / L"dlssg_to_fsr3_amd_is_better.dll";
-                    state.nvngxFgFilesAvailable = gExists.Get(dllPath);
+                    state.nvngxFgFilesAvailable = nukemsExists.Get(dllPath);
                 }
 
                 if (State::Instance().currentFeature != nullptr)
