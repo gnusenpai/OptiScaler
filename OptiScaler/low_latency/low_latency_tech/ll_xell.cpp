@@ -38,6 +38,11 @@ bool XeLL::init(IUnknown* pDevice)
         return false;
     }
 
+    if (!o_xellD3D12CreateContext)
+    {
+        return false;
+    }
+
     ID3D12Device* dx12_pDevice = nullptr;
     HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&dx12_pDevice));
     if (hr != S_OK)
