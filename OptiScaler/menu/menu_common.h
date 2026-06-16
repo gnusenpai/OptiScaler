@@ -1,18 +1,9 @@
 #pragma once
 
 #include "SysUtils.h"
-#include <Util.h>
 #include <Config.h>
-#include <resource.h>
-#include <Logger.h>
 
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_win32.h>
-#include <imgui/imgui_impl_uwp.h>
-
-#include <detours/detours.h>
-
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 class ScopedIndent
 {
@@ -79,7 +70,7 @@ class MenuCommon
   private:
     // internal values
     inline static HWND _handle = nullptr;
-    inline static WNDPROC _oWndProc = nullptr;
+    // inline static WNDPROC _oWndProc = nullptr;
     inline static bool _isVisible = false;
     inline static bool _isInited = false;
     inline static bool _isUWP = false;
@@ -136,6 +127,45 @@ class MenuCommon
     template <typename TStorage, typename T>
     static void PopulateCombo(const std::string& name, TStorage& currentValue,
                               const std::vector<MenuOption<T>>& options);
+
+    struct RenderMenuContext;
+
+    // RenderMenu orchestration helpers. These keep the public RenderMenu() flow short
+    // while preserving the original ImGui layout and draw order.
+    static void UpdateRenderTiming(RenderMenuContext& ctx);
+    static void UpdateMenuInputMode(RenderMenuContext& ctx);
+    static void HandleMenuShortcuts(RenderMenuContext& ctx);
+    static void UpdateVersionAndStartupNotifications(RenderMenuContext& ctx);
+    static void BeginMenuFrameIfNeeded(RenderMenuContext& ctx);
+    static void RenderSplashWindow(RenderMenuContext& ctx);
+    static void RenderNotifications(RenderMenuContext& ctx);
+    static void UpdateFrameTimeAverages(RenderMenuContext& ctx);
+    static void RenderPerformanceOverlay(RenderMenuContext& ctx);
+    static void RenderMainMenuWindow(RenderMenuContext& ctx);
+
+    // RenderMainMenuWindow section helpers. These keep the main window flow readable
+    // without changing the existing ImGui layout, labels, or setting side effects.
+    static void RenderMainMenuHeaderMessages(RenderMenuContext& ctx);
+    static void RenderMainMenuTable(RenderMenuContext& ctx);
+    static void RenderActiveUpscalerSettings(RenderMenuContext& ctx);
+    static void RenderFrameGenerationSelection(RenderMenuContext& ctx);
+    static void RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx);
+    static void RenderFsrCommonSettings(RenderMenuContext& ctx);
+    static void RenderFramerateSettings(RenderMenuContext& ctx);
+    static void RenderFakenvapiSettings(RenderMenuContext& ctx);
+    static void RenderActiveImageSettings(RenderMenuContext& ctx);
+    static void RenderQuirksSettings(RenderMenuContext& ctx);
+    static void RenderAdvancedSettings(RenderMenuContext& ctx);
+    static void RenderLoggingSettings(RenderMenuContext& ctx);
+    static void RenderThemeSettings(RenderMenuContext& ctx);
+    static void RenderFpsOverlaySettings(RenderMenuContext& ctx);
+    static void RenderUpscalerInputsSettings(RenderMenuContext& ctx);
+    static void RenderApiAndTextureSettings(RenderMenuContext& ctx);
+    static void RenderKeybindSettings(RenderMenuContext& ctx);
+    static void RenderMainMenuGraphs(RenderMenuContext& ctx);
+    static void RenderMainMenuBottomBar(RenderMenuContext& ctx);
+    static void RenderMipmapBiasWindow(RenderMenuContext& ctx, ImGuiWindowFlags flags);
+    static void RenderHudlessResourcesWindow(RenderMenuContext& ctx, ImGuiWindowFlags flags);
 
     static void UpdateManualInput(HWND targetHwnd);
 
