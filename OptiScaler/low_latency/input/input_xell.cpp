@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "input_xell.h"
+#include <hooks/Xell_Hooks.h>
 
 // Common
 xell_result_t InputXeLL::DestroyContext(xell_input_handle_t context)
@@ -181,6 +182,8 @@ xell_result_t InputXeLL::D3D12CreateContext(ID3D12Device* device, xell_input_han
     newContext->device = device;
 
     *out_context = newContext;
+
+    XellHooks::setOurContext((xell_context_handle_t) newContext);
 
     return XELL_RESULT_SUCCESS;
 }

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "input_common.h"
 #include <low_latency/low_latency_tech/ll_xell.h>
+#include <low_latency/low_latency_tech/ll_antilag2.h>
 
 // private
 bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode)
@@ -27,19 +28,20 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
 
     // TODO: unsure if this is good thing to do, unsupported input can be selected via the config
     // TODO: add option for totally disabling specific inputs on boot
+    Config::Instance()->LowLatencyInput.set_volatile_value(LowLatencyInput::XeLL);
     activeInput = Config::Instance()->LowLatencyInput.value_or_default();
 
     // TODO: for testing
-    Config::Instance()->LowLatencyOutput.set_volatile_value(LowLatencyMode::XeLL);
+    Config::Instance()->LowLatencyOutput.set_volatile_value(LowLatencyMode::AntiLag2);
 
     if (activeOutput == Config::Instance()->LowLatencyOutput.value_or_default())
         return true;
 
     // TODO: init correct currently_active_tech, desiredMode == None -> Auto
-    auto new_tech_xell = std::make_shared<XeLL>();
+    auto new_tech_xell = std::make_shared<AntiLag2>();
     if (new_tech_xell->init(pDevice))
     {
-        LOG_INFO("LowLatency algo: XeLL");
+        LOG_INFO("LowLatency algo: AntiLag2");
         currently_active_tech.store(std::move(new_tech_xell));
     }
 
@@ -212,7 +214,6 @@ InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D
     return InputResult::Ok;
 }
 
-// TODO: impl
 InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnknown* pDevice, SleepMode* sleep_mode)
 {
     if (!update_low_latency_tech(pDevice))
@@ -494,6 +495,9 @@ bool InputCommon::get_timing_data(TimingData& timingDataOut)
 
 xell_result_t InputCommon::pass_xellD3D12SetAppQueue(const InputContext& inputContext, ID3D12CommandQueue* appQueue)
 {
+    // TODO: XeLL seems to be sending this early, before any markers. Because of that activeOutput is likely still None
+    // and we dont grab the appQueue at all
+
     if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
     {
         if (auto current_tech = currently_active_tech.load())
@@ -501,9 +505,11 @@ xell_result_t InputCommon::pass_xellD3D12SetAppQueue(const InputContext& inputCo
             auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
             return xell_tech->xellD3D12SetAppQueue(appQueue);
         }
+
+        return XELL_RESULT_ERROR_UNKNOWN;
     }
 
-    return XELL_RESULT_ERROR_UNKNOWN;
+    return XELL_RESULT_SUCCESS;
 }
 
 xell_result_t InputCommon::pass_xellSetDisplayInfo(const InputContext& inputContext, void* displayInfo)
@@ -515,9 +521,11 @@ xell_result_t InputCommon::pass_xellSetDisplayInfo(const InputContext& inputCont
             auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
             return xell_tech->xellSetDisplayInfo(displayInfo);
         }
+
+        return XELL_RESULT_ERROR_UNKNOWN;
     }
 
-    return XELL_RESULT_ERROR_UNKNOWN;
+    return XELL_RESULT_SUCCESS;
 }
 
 xell_result_t InputCommon::pass_xellSetFgEnabled(const InputContext& inputContext, uint32_t param1, uint32_t param2)
@@ -529,9 +537,11 @@ xell_result_t InputCommon::pass_xellSetFgEnabled(const InputContext& inputContex
             auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
             return xell_tech->xellSetFgEnabled(param1, param2);
         }
+
+        return XELL_RESULT_ERROR_UNKNOWN;
     }
 
-    return XELL_RESULT_ERROR_UNKNOWN;
+    return XELL_RESULT_SUCCESS;
 }
 
 xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t param1,
@@ -544,9 +554,11 @@ xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& 
             auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
             return xell_tech->xellSetGeneratedFramesCount(param1, framesCount);
         }
+
+        return XELL_RESULT_ERROR_UNKNOWN;
     }
 
-    return XELL_RESULT_ERROR_UNKNOWN;
+    return XELL_RESULT_SUCCESS;
 }
 
 xell_result_t InputCommon::pass_xellGetLastPresentStartFrameId(const InputContext& inputContext, uint32_t* p_frame_id)
@@ -558,7 +570,9 @@ xell_result_t InputCommon::pass_xellGetLastPresentStartFrameId(const InputContex
             auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
             return xell_tech->xellGetLastPresentStartFrameId(p_frame_id);
         }
+
+        return XELL_RESULT_ERROR_UNKNOWN;
     }
 
-    return XELL_RESULT_ERROR_UNKNOWN;
+    return XELL_RESULT_SUCCESS;
 }

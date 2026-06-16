@@ -148,7 +148,7 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
     }
 
 #ifdef LOW_LATENCY_INPUTS
-    else if (riid == IID_IAmdExtAntiLagApi)
+    else if (riid == IID_IAmdExtAntiLagApi && disableAl2Kill)
     {
         if (amdExtAntiLagApi == nullptr)
             amdExtAntiLagApi = new AmdExtAntiLagApi();
@@ -156,15 +156,9 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
         // Return custom one
         *ppvObject = amdExtAntiLagApi;
 
-        LOG_INFO("IAmdExtAntiLagApi queried, returning custom AmdExtAntiLagApi");
+        LOG_INFO("Providing the game with AL2 proxy, AL2 inputs should be avaliable");
 
         return S_OK;
-
-        // if (!disableAl2Kill)
-        //{
-        //     LOG_INFO("Killing native AL2");
-        //     return E_NOINTERFACE;
-        // }
     }
 #endif
 
