@@ -1484,10 +1484,14 @@ void MenuCommon::RenderSplashWindow(RenderMenuContext& ctx)
 
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, windowAlpha);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 8));
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Text, toneMapColor(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
             ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0));
+
+            if (!config->OverlaysUseTheme.value_or_default())
+            {
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, toneMapColor(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
+            }
 
             if (ImGui::Begin("Splash", nullptr,
                              ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration |
@@ -1520,7 +1524,11 @@ void MenuCommon::RenderSplashWindow(RenderMenuContext& ctx)
                 splashPosition.y = io.DisplaySize.y - splashSize.y;
             }
 
-            ImGui::PopStyleColor(4);
+            if (!config->OverlaysUseTheme.value_or_default())
+                ImGui::PopStyleColor(4);
+            else
+                ImGui::PopStyleColor(2);
+
             ImGui::PopStyleVar(2);
         }
     }
@@ -1642,14 +1650,22 @@ void MenuCommon::RenderPerformanceOverlay(RenderMenuContext& ctx)
         ImGui::SetNextWindowPos(overlayPosition, ImGuiCond_Always);
 
         // Set overlay window properties
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_Text, toneMapColor(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
-        ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));            // Transparent border
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0));           // Transparent frame background
+        ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));  // Transparent border
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0)); // Transparent frame background
+
+        if (!config->OverlaysUseTheme.value_or_default())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, toneMapColor(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)));
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+        }
+
         ImGui::SetNextWindowBgAlpha(config->FpsOverlayAlpha.value_or_default()); // Transparent background
 
-        ImVec4 green(0.0f, 1.0f, 0.0f, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_PlotLines, toneMapColor(green));
+        if (!config->OverlaysUseTheme.value_or_default())
+        {
+            ImVec4 green(0.0f, 1.0f, 0.0f, 1.0f);
+            ImGui::PushStyleColor(ImGuiCol_PlotLines, toneMapColor(green));
+        }
 
         if (ImGui::Begin("Performance Overlay", nullptr,
                          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration |
@@ -2010,7 +2026,11 @@ void MenuCommon::RenderPerformanceOverlay(RenderMenuContext& ctx)
             }
         }
 
-        ImGui::PopStyleColor(5); // Restore the style
+        // Restore the style
+        if (!config->OverlaysUseTheme.value_or_default())
+            ImGui::PopStyleColor(5);
+        else
+            ImGui::PopStyleColor(2);
 
         // Get size for postioning
         overlaySize = ImGui::GetWindowSize();
@@ -6101,6 +6121,10 @@ void MenuCommon::RenderFpsOverlaySettings(RenderMenuContext& ctx)
             else
                 config->FpsScale = values[currentIndex];
         }
+
+        bool useTheme = config->OverlaysUseTheme.value_or_default();
+        if (ImGui::Checkbox("Use Theme Colors", &useTheme))
+            config->OverlaysUseTheme = useTheme;
     }
 }
 
