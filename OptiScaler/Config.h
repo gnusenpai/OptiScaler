@@ -192,6 +192,7 @@ enum class LFXMode : uint32_t
 enum class LowLatencyInput : uint32_t
 {
     None,
+    Auto,
     AntiLag2,
     Reflex,
     XeLL,
@@ -201,6 +202,7 @@ enum class LowLatencyInput : uint32_t
 enum class LowLatencyMode : uint32_t
 {
     None,
+    Auto,
     LatencyFlex,
     AntiLag2,
     XeLL,
@@ -594,8 +596,8 @@ class Config
     CustomOptional<bool> FN_ForceLatencyFlex { false };
     CustomOptional<LFXMode> FN_LatencyFlexMode { LFXMode::Conservative };
     CustomOptional<ForceReflex> FN_ForceReflex { ForceReflex::InGame };
-    CustomOptional<LowLatencyInput> LowLatencyInput { LowLatencyInput::Reflex }; // TODO: no reading/saving to config
-    CustomOptional<LowLatencyMode> LowLatencyOutput { LowLatencyMode::LatencyFlex };
+    CustomOptional<LowLatencyInput> LowLatencyInput { LowLatencyInput::Auto }; // TODO: no reading/saving to config
+    CustomOptional<LowLatencyMode> LowLatencyOutput { LowLatencyMode::Auto };
 
     // Inputs
     CustomOptional<bool> EnableDlssInputs { true };

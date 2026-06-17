@@ -43,12 +43,15 @@ class InputCommon
     inline static std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
     inline static uint32_t last_present_start_frame_id = 0;
+    inline static std::atomic_uint32_t delay_deinit = 0;
+    inline static SleepMode sleep_mode_copy {};
 
     inline static flag_set<LowLatencyInput> avaliableInputs {};
     inline static LowLatencyInput activeInput = LowLatencyInput::None;
     inline static LowLatencyMode activeOutput = LowLatencyMode::None;
     inline static bool enabled = false;
 
+    static bool deinit_current_tech();
     static bool update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode = std::nullopt);
     static void add_marker_to_report(const MarkerParams& marker_params);
     static void set_input_avaliable(LowLatencyInput input) { avaliableInputs.set(input); };

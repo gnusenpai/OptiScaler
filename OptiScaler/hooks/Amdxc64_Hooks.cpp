@@ -148,7 +148,7 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
     }
 
 #ifdef LOW_LATENCY_INPUTS
-    else if (riid == IID_IAmdExtAntiLagApi && disableAl2Kill)
+    else if (riid == IID_IAmdExtAntiLagApi && giveGameAl2Proxy)
     {
         if (amdExtAntiLagApi == nullptr)
             amdExtAntiLagApi = new AmdExtAntiLagApi();

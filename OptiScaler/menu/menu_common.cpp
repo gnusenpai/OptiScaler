@@ -4755,9 +4755,8 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
 
             auto avalibleInputs = InputCommon::get_avaliable_inputs();
             static std::vector<MenuOption<LowLatencyInput>> lowLatencyInput = {
-                { LowLatencyInput::None, "None (Off)" },
-                { LowLatencyInput::AntiLag2, "AntiLag 2" },
-                { LowLatencyInput::Reflex, "Reflex" },
+                { LowLatencyInput::None, "None (Off)" },    { LowLatencyInput::Auto, "Auto" },
+                { LowLatencyInput::AntiLag2, "AntiLag 2" }, { LowLatencyInput::Reflex, "Reflex" },
                 { LowLatencyInput::XeLL, "XeLL" },
             };
 
@@ -4775,9 +4774,13 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
             ImGui::TableNextColumn();
 
             static std::vector<MenuOption<LowLatencyMode>> lowLatencyOutput = {
-                { LowLatencyMode::None, "None (Off)" },      { LowLatencyMode::LatencyFlex, "LatencyFlex" },
-                { LowLatencyMode::AntiLag2, "AntiLag 2" },   { LowLatencyMode::XeLL, "XeLL" },
-                { LowLatencyMode::AntiLagVk, "AntiLag Vk" }, { LowLatencyMode::Reflex, "Reflex" },
+                { LowLatencyMode::None, "None (Off)" },
+                { LowLatencyMode::Auto, "Auto" },
+                { LowLatencyMode::LatencyFlex, "LatencyFlex" },
+                { LowLatencyMode::AntiLag2, "AntiLag 2" },
+                { LowLatencyMode::XeLL, "XeLL" },
+                { LowLatencyMode::AntiLagVk, "AntiLag Vk" },
+                { LowLatencyMode::Reflex, "Reflex" },
             };
 
             lowLatencyOutput[(uint32_t) LowLatencyMode::AntiLagVk].set_disabled(true, "No support");

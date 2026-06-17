@@ -1,12 +1,49 @@
 #include "pch.h"
+
+#include <misc/IdentifyGpu.h>
+
 #include "input_common.h"
 #include <low_latency/low_latency_tech/ll_xell.h>
 #include <low_latency/low_latency_tech/ll_antilag2.h>
+#include <low_latency/low_latency_tech/ll_latencyflex.h>
 
 // private
+bool InputCommon::deinit_current_tech()
+{
+    // currently_active_tech becomes nullptr
+    // but we need to wait for all users of the old one to release
+    auto old_tech = currently_active_tech.exchange(nullptr);
+
+    if (old_tech)
+    {
+        LOG_TRACE("Deiniting current tech");
+        while (old_tech.use_count() > 1)
+            std::this_thread::yield();
+
+        old_tech->deinit();
+
+        std::memset(frame_reports, 0, sizeof(frame_reports));
+
+        return true;
+    }
+
+    return false;
+}
+
 bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode)
 {
+    if (avaliableInputs.count() == 0)
+    {
+        LOG_TRACE("No avaliable inputs");
+
+        // To reflect it in the menu in some way
+        // Config::Instance()->LowLatencyInput.set_volatile_value(LowLatencyInput::Auto);
+
+        return true;
+    }
+
     LowLatencyMode desiredMode = LowLatencyMode::None;
+    LowLatencyInput desiredInput = Config::Instance()->LowLatencyInput.value_or_default();
 
     if (!pDevice)
     {
@@ -26,33 +63,149 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
         return true;
     }
 
-    // TODO: unsure if this is good thing to do, unsupported input can be selected via the config
     // TODO: add option for totally disabling specific inputs on boot
-    Config::Instance()->LowLatencyInput.set_volatile_value(LowLatencyInput::XeLL);
-    activeInput = Config::Instance()->LowLatencyInput.value_or_default();
 
-    // TODO: for testing
-    Config::Instance()->LowLatencyOutput.set_volatile_value(LowLatencyMode::AntiLag2);
-
-    if (activeOutput == Config::Instance()->LowLatencyOutput.value_or_default())
-        return true;
-
-    // TODO: init correct currently_active_tech, desiredMode == None -> Auto
-    auto new_tech_xell = std::make_shared<AntiLag2>();
-    if (new_tech_xell->init(pDevice))
+    if (!avaliableInputs[desiredInput] && desiredInput != LowLatencyInput::Auto)
     {
-        LOG_INFO("LowLatency algo: AntiLag2");
-        currently_active_tech.store(std::move(new_tech_xell));
+        LOG_WARN("Selected Low Latency Input is not avaliable");
+        desiredInput = LowLatencyInput::Auto;
+        Config::Instance()->LowLatencyInput.set_volatile_value(activeInput);
     }
 
-    if (auto current_tech = currently_active_tech.load())
+    // Hopefully this doesn't cause constant switching of inputs.
+    // We can just change the activeInput because it only controls what calls get through.
+    if (activeInput != desiredInput || !avaliableInputs[activeInput] || desiredInput == LowLatencyInput::Auto)
     {
-        activeOutput = current_tech->get_mode();
-        return true;
+        if (avaliableInputs[desiredInput])
+        {
+            activeInput = desiredInput;
+        }
+        else
+        {
+            if (desiredInput != LowLatencyInput::Auto)
+                Config::Instance()->LowLatencyInput.set_volatile_value(LowLatencyInput::Auto);
+
+            // Try to use inputs in order Reflex -> XeLL -> AL2
+            if (avaliableInputs[LowLatencyInput::Reflex])
+                activeInput = LowLatencyInput::Reflex;
+            else if (avaliableInputs[LowLatencyInput::XeLL])
+                activeInput = LowLatencyInput::XeLL;
+            else if (avaliableInputs[LowLatencyInput::AntiLag2])
+                activeInput = LowLatencyInput::AntiLag2;
+            else
+                activeInput = LowLatencyInput::None;
+        }
+
+        // This will spam if desiredInput == LowLatencyInput::Auto
+        LOG_TRACE_LOWLATENCY("Selected activeInput: {}", magic_enum::enum_name(activeInput));
     }
 
-    LOG_ERROR("No Low Latency Tech selected");
-    return false;
+    if (desiredMode == LowLatencyMode::None)
+        desiredMode = Config::Instance()->LowLatencyOutput.value_or_default();
+
+    // TODO: add avaliableOutput, somehow ?
+    if (desiredMode == LowLatencyMode::Auto)
+    {
+        auto vendorId = IdentifyGpu::getPrimaryGpu().vendorId;
+
+        if (vendorId == VendorId::Intel)
+            desiredMode = LowLatencyMode::XeLL;
+        else if (vendorId == VendorId::AMD)
+            desiredMode = LowLatencyMode::AntiLag2;
+        // else if (vendorId == VendorId::Nvidia)
+        //     desiredMode = LowLatencyMode::Reflex; // TODO: not supported yet
+        else
+            desiredMode = LowLatencyMode::LatencyFlex;
+    }
+
+    if (activeOutput == desiredMode)
+        return true;
+
+    // Beyond this point activeOutput needs changing
+
+    if (!currently_active_tech.load() && delay_deinit == 0)
+    {
+        auto tryInitTech = [&](auto techInstance, const char* techName) -> bool
+        {
+            if (techInstance->init(pDevice))
+            {
+                // Note: Adjust the logging syntax to match whatever library you are using
+                LOG_INFO("LowLatency algo: " + std::string(techName));
+                currently_active_tech.store(std::move(techInstance));
+                return true;
+            }
+            return false;
+        };
+
+        bool isInitialized = false;
+        switch (desiredMode)
+        {
+        case LowLatencyMode::XeLL:
+            isInitialized = tryInitTech(std::make_shared<XeLL>(), "XeLL");
+            break;
+        case LowLatencyMode::AntiLag2:
+            isInitialized = tryInitTech(std::make_shared<AntiLag2>(), "AntiLag2");
+            break;
+        case LowLatencyMode::Reflex:
+            // isInitialized = tryInitTech(std::make_shared<Reflex>(), "Reflex");
+            break;
+        case LowLatencyMode::LatencyFlex:
+            isInitialized = tryInitTech(std::make_shared<LatencyFlex>(), "LatencyFlex");
+            break;
+        default:
+            break;
+        }
+
+        if (!isInitialized && desiredMode != LowLatencyMode::LatencyFlex)
+        {
+            isInitialized = tryInitTech(std::make_shared<LatencyFlex>(), "LatencyFlex (Fallback)");
+        }
+
+        if (auto current_tech = currently_active_tech.load(); current_tech && isInitialized)
+        {
+            activeOutput = current_tech->get_mode();
+            current_tech->set_sleep_mode(&sleep_mode_copy); // Restore any potential sleep mode
+            return true;
+        }
+    }
+
+    auto try_reinit = [&]() -> bool
+    {
+        if (!deinit_current_tech())
+        {
+            LOG_ERROR("Couldn't deinitialize low latency tech");
+            return false;
+        }
+
+        return update_low_latency_tech(pDevice, desiredMode);
+    };
+
+    // WAR: FSR FG might still be using AntiLag 2, give Opti time to set AL2 context to null
+    if (delay_deinit > 0)
+    {
+        if (--delay_deinit == 0)
+            return try_reinit();
+    }
+    else
+    {
+        bool al2 = false;
+        {
+            auto current_tech = currently_active_tech.load();
+            if (current_tech && current_tech->get_mode() == LowLatencyMode::AntiLag2)
+                al2 = true;
+        }
+
+        if (al2)
+        {
+            delay_deinit = 50;
+        }
+        else
+        {
+            return try_reinit();
+        }
+    }
+
+    return true;
 }
 
 void InputCommon::add_marker_to_report(const MarkerParams& marker_params)
@@ -221,6 +374,8 @@ InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnkno
 
     if (inputContext.caller != activeInput)
         return InputResult::UsingDifferentInput;
+
+    sleep_mode_copy = *sleep_mode;
 
     if (auto current_tech = currently_active_tech.load())
         current_tech->set_sleep_mode(sleep_mode);

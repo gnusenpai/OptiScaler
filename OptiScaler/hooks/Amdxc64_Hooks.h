@@ -142,7 +142,7 @@ class Amdxc64Hooks
 
     inline static PFN_AmdExtD3DCreateInterface o_AmdExtD3DCreateInterface = nullptr;
 
-    inline static bool disableAl2Kill = false;
+    inline static bool giveGameAl2Proxy = true;
 
     static void Init();
     static HRESULT hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject);
