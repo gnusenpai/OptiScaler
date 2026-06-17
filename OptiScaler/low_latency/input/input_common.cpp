@@ -76,28 +76,46 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
     // We can just change the activeInput because it only controls what calls get through.
     if (activeInput != desiredInput || !avaliableInputs[activeInput] || desiredInput == LowLatencyInput::Auto)
     {
+        bool change = false;
+
         if (avaliableInputs[desiredInput])
         {
             activeInput = desiredInput;
+            change = true;
         }
         else
         {
+            // Non-auto input is not avaliable, revert config to auto
             if (desiredInput != LowLatencyInput::Auto)
                 Config::Instance()->LowLatencyInput.set_volatile_value(LowLatencyInput::Auto);
 
             // Try to use inputs in order Reflex -> XeLL -> AL2
             if (avaliableInputs[LowLatencyInput::Reflex])
-                activeInput = LowLatencyInput::Reflex;
+                desiredInput = LowLatencyInput::Reflex;
             else if (avaliableInputs[LowLatencyInput::XeLL])
-                activeInput = LowLatencyInput::XeLL;
+                desiredInput = LowLatencyInput::XeLL;
             else if (avaliableInputs[LowLatencyInput::AntiLag2])
-                activeInput = LowLatencyInput::AntiLag2;
+                desiredInput = LowLatencyInput::AntiLag2;
             else
-                activeInput = LowLatencyInput::None;
+                desiredInput = LowLatencyInput::None;
+
+            if (desiredInput != activeInput)
+            {
+                activeInput = desiredInput;
+                change = true;
+            }
         }
 
-        // This will spam if desiredInput == LowLatencyInput::Auto
-        LOG_TRACE_LOWLATENCY("Selected activeInput: {}", magic_enum::enum_name(activeInput));
+        if (change)
+        {
+            LOG_TRACE_LOWLATENCY("Selected activeInput: {}", magic_enum::enum_name(activeInput));
+
+            if (auto current_tech = currently_active_tech.load())
+            {
+                current_tech->set_sleep_mode(&get_sleep_copy(activeInput)); // Restore any potential sleep mode
+                return true;
+            }
+        }
     }
 
     if (desiredMode == LowLatencyMode::None)
@@ -125,13 +143,12 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
 
     if (!currently_active_tech.load() && delay_deinit == 0)
     {
-        auto tryInitTech = [&](auto techInstance, const char* techName) -> bool
+        auto try_init = [&](auto low_latency_tech, const char* name) -> bool
         {
-            if (techInstance->init(pDevice))
+            if (low_latency_tech->init(pDevice))
             {
-                // Note: Adjust the logging syntax to match whatever library you are using
-                LOG_INFO("LowLatency algo: " + std::string(techName));
-                currently_active_tech.store(std::move(techInstance));
+                LOG_INFO("LowLatency algo: {}", name);
+                currently_active_tech.store(std::move(low_latency_tech));
                 return true;
             }
             return false;
@@ -141,16 +158,16 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
         switch (desiredMode)
         {
         case LowLatencyMode::XeLL:
-            isInitialized = tryInitTech(std::make_shared<XeLL>(), "XeLL");
+            isInitialized = try_init(std::make_shared<XeLL>(), "XeLL");
             break;
         case LowLatencyMode::AntiLag2:
-            isInitialized = tryInitTech(std::make_shared<AntiLag2>(), "AntiLag2");
+            isInitialized = try_init(std::make_shared<AntiLag2>(), "AntiLag2");
             break;
         case LowLatencyMode::Reflex:
-            // isInitialized = tryInitTech(std::make_shared<Reflex>(), "Reflex");
+            // isInitialized = try_init(std::make_shared<Reflex>(), "Reflex");
             break;
         case LowLatencyMode::LatencyFlex:
-            isInitialized = tryInitTech(std::make_shared<LatencyFlex>(), "LatencyFlex");
+            isInitialized = try_init(std::make_shared<LatencyFlex>(), "LatencyFlex");
             break;
         default:
             break;
@@ -158,13 +175,13 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
 
         if (!isInitialized && desiredMode != LowLatencyMode::LatencyFlex)
         {
-            isInitialized = tryInitTech(std::make_shared<LatencyFlex>(), "LatencyFlex (Fallback)");
+            isInitialized = try_init(std::make_shared<LatencyFlex>(), "LatencyFlex (Fallback)");
         }
 
         if (auto current_tech = currently_active_tech.load(); current_tech && isInitialized)
         {
             activeOutput = current_tech->get_mode();
-            current_tech->set_sleep_mode(&sleep_mode_copy); // Restore any potential sleep mode
+            current_tech->set_sleep_mode(&get_sleep_copy(activeInput)); // Restore any potential sleep mode
             return true;
         }
     }
@@ -270,12 +287,12 @@ InputResult InputCommon::set_low_latency_tech(IUnknown* pDevice, LowLatencyMode 
 
 InputResult InputCommon::sleep(const InputContext& inputContext, IUnknown* pDevice, std::optional<uint32_t> frame_id)
 {
-    if (!update_low_latency_tech(pDevice))
-        return InputResult::LowLatencyUpdateFail;
-
     // Ignore context that Opti creates
     if (!inputContext.localContext)
         set_input_avaliable(inputContext.caller);
+
+    if (!update_low_latency_tech(pDevice))
+        return InputResult::LowLatencyUpdateFail;
 
     if (inputContext.caller != activeInput)
         return InputResult::UsingDifferentInput;
@@ -291,12 +308,12 @@ InputResult InputCommon::sleep(const InputContext& inputContext, IUnknown* pDevi
 InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* pDevice,
                                     const MarkerParams& marker_params)
 {
-    if (!update_low_latency_tech(pDevice))
-        return InputResult::LowLatencyUpdateFail;
-
     // Ignore context that Opti creates
     if (!inputContext.localContext)
         set_input_avaliable(inputContext.caller);
+
+    if (!update_low_latency_tech(pDevice))
+        return InputResult::LowLatencyUpdateFail;
 
     if (inputContext.caller != activeInput)
         return InputResult::UsingDifferentInput;
@@ -369,13 +386,17 @@ InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D
 
 InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnknown* pDevice, SleepMode* sleep_mode)
 {
+    // Ignore context that Opti creates
+    if (!inputContext.localContext)
+        set_input_avaliable(inputContext.caller);
+
     if (!update_low_latency_tech(pDevice))
         return InputResult::LowLatencyUpdateFail;
 
+    get_sleep_copy(inputContext.caller) = *sleep_mode;
+
     if (inputContext.caller != activeInput)
         return InputResult::UsingDifferentInput;
-
-    sleep_mode_copy = *sleep_mode;
 
     if (auto current_tech = currently_active_tech.load())
         current_tech->set_sleep_mode(sleep_mode);
@@ -388,6 +409,10 @@ InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnkno
 InputResult InputCommon::get_sleep_status(const InputContext& inputContext, IUnknown* pDevice,
                                           SleepParams* sleep_params)
 {
+    // Ignore context that Opti creates
+    if (!inputContext.localContext)
+        set_input_avaliable(inputContext.caller);
+
     if (!update_low_latency_tech(pDevice))
         return InputResult::LowLatencyUpdateFail;
 
@@ -405,6 +430,10 @@ InputResult InputCommon::get_sleep_status(const InputContext& inputContext, IUnk
 
 InputResult InputCommon::get_latency(const InputContext& inputContext, IUnknown* pDev, void* latency_params)
 {
+    // Ignore context that Opti creates
+    if (!inputContext.localContext)
+        set_input_avaliable(inputContext.caller);
+
     // if (inputContext.caller != activeInput)
     //     return InputResult::UsingDifferentInput;
 

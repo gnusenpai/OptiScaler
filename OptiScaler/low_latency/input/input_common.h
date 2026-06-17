@@ -44,7 +44,7 @@ class InputCommon
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
     inline static uint32_t last_present_start_frame_id = 0;
     inline static std::atomic_uint32_t delay_deinit = 0;
-    inline static SleepMode sleep_mode_copy {};
+    inline static std::array<SleepMode, static_cast<size_t>(LowLatencyInput::_)> sleep_mode_copies {};
 
     inline static flag_set<LowLatencyInput> avaliableInputs {};
     inline static LowLatencyInput activeInput = LowLatencyInput::None;
@@ -55,6 +55,7 @@ class InputCommon
     static bool update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode = std::nullopt);
     static void add_marker_to_report(const MarkerParams& marker_params);
     static void set_input_avaliable(LowLatencyInput input) { avaliableInputs.set(input); };
+    static SleepMode& get_sleep_copy(LowLatencyInput input) { return sleep_mode_copies[static_cast<size_t>(input)]; }
 
   public:
     static InputResult set_low_latency_tech(IUnknown* pDevice, LowLatencyMode mode);
