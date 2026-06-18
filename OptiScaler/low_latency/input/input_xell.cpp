@@ -224,7 +224,7 @@ xell_result_t InputXeLL::GetLastPresentStartFrameId(xell_input_handle_t context,
     if (!p_frame_id)
         return XELL_RESULT_ERROR_INVALID_ARGUMENT;
 
-    *p_frame_id = InputCommon::get_last_present_start_frame_id();
+    *p_frame_id = (uint32_t) InputCommon::get_last_present_start_frame_id();
 
     return XELL_RESULT_SUCCESS;
 }

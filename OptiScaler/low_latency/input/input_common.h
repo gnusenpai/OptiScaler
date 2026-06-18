@@ -45,7 +45,7 @@ class InputCommon
 {
     inline static std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
-    inline static std::atomic_uint32_t last_present_start_frame_id = 0;
+    inline static std::atomic_uint64_t last_present_start_frame_id = 0;
     inline static std::atomic_uint32_t delay_deinit = 0;
     inline static std::array<SleepMode, static_cast<size_t>(LowLatencyInput::_)> sleep_mode_copies {};
 
@@ -75,7 +75,7 @@ class InputCommon
     get_latency(const InputContext& inputContext, IUnknown* pDev,
                 void* latency_params); // NV_LATENCY_RESULT_PARAMS* for reflex, xell_frame_report_t* for xell,
     static bool get_timing_data(TimingData& timingDataOut);
-    static uint32_t get_last_present_start_frame_id() { return last_present_start_frame_id; };
+    static uint64_t get_last_present_start_frame_id() { return last_present_start_frame_id; };
     static flag_set<LowLatencyInput> get_avaliable_inputs() { return avaliableInputs; };
 
     // passthrough when possible, fillout with local frame_reports if not
