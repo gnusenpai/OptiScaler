@@ -209,6 +209,8 @@ class XeLLProxy
         return true;
 #endif
 
+        // TODO: add hooks to redirect already loaded libxell into dllModule
+
         HMODULE mainModule = nullptr;
 
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,

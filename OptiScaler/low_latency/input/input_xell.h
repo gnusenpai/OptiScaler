@@ -9,14 +9,21 @@ class InputXeLL
     static inline uint64_t lastContextId = 0;
     struct _xell_input_handle_t
     {
-        uint64_t id;
+        uint64_t id {};
         InputContext inputContext { .caller = LowLatencyInput::XeLL,
                                     .localContext = false,
                                     .noFrameId = false,
                                     .markerMode = InputMarkerMode::FullMarkers };
-        ID3D12Device* device;
-        ID3D12CommandQueue* d3d12AppQueue;
-        void* displayInfo;
+        ID3D12Device* device {};
+
+        ID3D12CommandQueue* d3d12AppQueue {};
+        void* displayInfo {}; // could be freed, somehow make a copy
+
+        // Unsure what to do with those, just store for now
+        uint32_t setFgEnabledParam1 {};
+        uint32_t setFgEnabledParam2 {};
+        uint32_t setGeneratedFramesCountParam1 {};
+        uint32_t framesCount {};
     };
 
   public:

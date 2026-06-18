@@ -464,7 +464,7 @@ InputResult InputCommon::get_latency(const InputContext& inputContext, IUnknown*
         {
             std::memset(reports->frameReport, 0, sizeof(reports->frameReport));
             // spdlog::warn("GetLatency: Not enough data to report");
-            return InputResult::GenericError;
+            return InputResult::NotEnoughReports;
         }
 
         // Sort frame reports, find the oldest
@@ -737,22 +737,6 @@ xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& 
         {
             auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
             return xell_tech->xellSetGeneratedFramesCount(param1, framesCount);
-        }
-
-        return XELL_RESULT_ERROR_UNKNOWN;
-    }
-
-    return XELL_RESULT_SUCCESS;
-}
-
-xell_result_t InputCommon::pass_xellGetLastPresentStartFrameId(const InputContext& inputContext, uint32_t* p_frame_id)
-{
-    if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
-    {
-        if (auto current_tech = currently_active_tech.load())
-        {
-            auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
-            return xell_tech->xellGetLastPresentStartFrameId(p_frame_id);
         }
 
         return XELL_RESULT_ERROR_UNKNOWN;

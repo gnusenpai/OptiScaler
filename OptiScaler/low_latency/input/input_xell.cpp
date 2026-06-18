@@ -138,7 +138,7 @@ xell_result_t InputXeLL::GetVersion(xell_version_t* pVersion)
     // TODO: make this mimic the version of loaded xefg dll so that both are seen as compatible
     pVersion->major = 1;
     pVersion->minor = 3;
-    pVersion->patch = 0;
+    pVersion->patch = 1;
 
     return XELL_RESULT_SUCCESS;
 }
@@ -183,6 +183,7 @@ xell_result_t InputXeLL::D3D12CreateContext(ID3D12Device* device, xell_input_han
 
     *out_context = newContext;
 
+    // Alternatively we could not hook xell when using low latency xell inputs
     XellHooks::setOurContext((xell_context_handle_t) newContext);
 
     return XELL_RESULT_SUCCESS;
@@ -306,6 +307,13 @@ xell_result_t InputXeLL::SetFgEnabled(xell_input_handle_t context, uint32_t para
 {
     // TODO: figure out params and impl
     // This might need to take Opti's FG into account, unsure
+
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    context->setFgEnabledParam1 = param1;
+    context->setFgEnabledParam2 = param2;
+
     return InputCommon::pass_xellSetFgEnabled(context->inputContext, param1, param2);
 }
 
@@ -313,6 +321,13 @@ xell_result_t InputXeLL::SetGeneratedFramesCount(xell_input_handle_t context, ui
 {
     // TODO: figure out params and impl
     // TODO: store framesCount for the SleepParams::fg_multiplier
+
+    if (!context)
+        return XELL_RESULT_ERROR_INVALID_CONTEXT;
+
+    context->setGeneratedFramesCountParam1 = param1;
+    context->framesCount = framesCount;
+
     return InputCommon::pass_xellSetGeneratedFramesCount(context->inputContext, param1, framesCount);
 }
 

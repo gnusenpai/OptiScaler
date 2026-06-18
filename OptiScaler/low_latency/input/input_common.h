@@ -1,6 +1,8 @@
 #pragma once
-#include <low_latency/low_latency_tech/low_latency_tech.h>
+
 #include <xell.h>
+
+#include <low_latency/low_latency_tech/low_latency_tech.h>
 
 enum class InputMarkerMode
 {
@@ -24,6 +26,7 @@ enum class InputResult : uint32_t
     InputNotSupported,
     InvalidParameter,
     LowLatencyUpdateFail,
+    NotEnoughReports,
     GenericError,
 };
 
@@ -42,7 +45,7 @@ class InputCommon
 {
     inline static std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
-    inline static uint32_t last_present_start_frame_id = 0;
+    inline static std::atomic_uint32_t last_present_start_frame_id = 0;
     inline static std::atomic_uint32_t delay_deinit = 0;
     inline static std::array<SleepMode, static_cast<size_t>(LowLatencyInput::_)> sleep_mode_copies {};
 
@@ -60,7 +63,6 @@ class InputCommon
   public:
     static InputResult set_low_latency_tech(IUnknown* pDevice, LowLatencyMode mode);
 
-    // TODO: Ignore all calls that are not coming for the activeInput
     static InputResult sleep(const InputContext& inputContext, IUnknown* pDevice,
                              std::optional<uint32_t> frame_id = std::nullopt);
     static InputResult set_marker(const InputContext& inputContext, IUnknown* pDevice,
@@ -87,6 +89,4 @@ class InputCommon
     static xell_result_t pass_xellSetFgEnabled(const InputContext& inputContext, uint32_t param1, uint32_t param2);
     static xell_result_t pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t param1,
                                                           uint32_t framesCount);
-    static xell_result_t pass_xellGetLastPresentStartFrameId(const InputContext& inputContext,
-                                                             uint32_t* p_frame_id); // Maybe not needed
 };

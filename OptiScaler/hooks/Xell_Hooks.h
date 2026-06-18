@@ -40,6 +40,7 @@ class XellHooks
     static void setOurContext(xell_context_handle_t context);
     static void blockExternalContexts(bool state);
     static bool shouldBlock(xell_context_handle_t context);
+    static xell_context_handle_t getOurContext() { return ourContext; };
 
     static bool canLimit();
     static bool update();

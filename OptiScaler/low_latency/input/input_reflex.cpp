@@ -76,6 +76,8 @@ NvAPI_Status InputReflex::D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAM
 
     if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
         return NVAPI_OK;
+    else if (result == InputResult::NotEnoughReports)
+        return NVAPI_OK;
     else
         LOG_ERROR("get_latency result: {}", magic_enum::enum_name(result));
 
