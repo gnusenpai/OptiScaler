@@ -31,7 +31,7 @@
 #include <fsr4/FSR4ModelSelection.h>
 #include <fsr4/FSR4Upgrade.h>
 #include <misc/IdentifyGpu.h>
-#include <misc/UeLowLatency.h>
+#include <low_latency/input/input_uell.h>
 
 // #define LOG_LIB_OPERATIONS
 
@@ -590,10 +590,10 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
             (PFN_setTickCallback) KernelBaseProxy::GetProcAddress_()(module, "setTickEndCallback");
 
         if (setTickStartCallback)
-            setTickStartCallback(UeLowLatency::tickStart);
+            setTickStartCallback(InputUeLowLatency::tickStart);
 
         if (setTickEndCallback)
-            setTickEndCallback(UeLowLatency::tickEnd);
+            setTickEndCallback(InputUeLowLatency::tickEnd);
 
         return module;
     }

@@ -96,6 +96,8 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
                 desiredInput = LowLatencyInput::XeLL;
             else if (avaliableInputs[LowLatencyInput::AntiLag2])
                 desiredInput = LowLatencyInput::AntiLag2;
+            else if (avaliableInputs[LowLatencyInput::UeLowLatency])
+                desiredInput = LowLatencyInput::UeLowLatency;
             else
                 desiredInput = LowLatencyInput::None;
 

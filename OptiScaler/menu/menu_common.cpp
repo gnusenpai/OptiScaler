@@ -4755,13 +4755,15 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
             static std::vector<MenuOption<LowLatencyInput>> lowLatencyInput = {
                 { LowLatencyInput::None, "None (Off)" },    { LowLatencyInput::Auto, "Auto" },
                 { LowLatencyInput::AntiLag2, "AntiLag 2" }, { LowLatencyInput::Reflex, "Reflex" },
-                { LowLatencyInput::XeLL, "XeLL" },
+                { LowLatencyInput::XeLL, "XeLL" },          { LowLatencyInput::UeLowLatency, "UeLowLatency" },
             };
 
             lowLatencyInput[(uint32_t) LowLatencyInput::AntiLag2].set_disabled(
                 !avalibleInputs[LowLatencyInput::AntiLag2]);
             lowLatencyInput[(uint32_t) LowLatencyInput::Reflex].set_disabled(!avalibleInputs[LowLatencyInput::Reflex]);
             lowLatencyInput[(uint32_t) LowLatencyInput::XeLL].set_disabled(!avalibleInputs[LowLatencyInput::XeLL]);
+            lowLatencyInput[(uint32_t) LowLatencyInput::UeLowLatency].set_disabled(
+                !avalibleInputs[LowLatencyInput::UeLowLatency]);
 
             // need to have a value before combo
             if (!config->LowLatencyInput.has_value())

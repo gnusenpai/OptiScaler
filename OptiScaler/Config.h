@@ -196,6 +196,7 @@ enum class LowLatencyInput : uint32_t
     AntiLag2,
     Reflex,
     XeLL,
+    UeLowLatency,
     _
 };
 

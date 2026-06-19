@@ -3,11 +3,13 @@
 #include <xell.h>
 
 #include <low_latency/low_latency_tech/low_latency_tech.h>
+#include <Config.h>
 
 enum class InputMarkerMode
 {
     NoMarkers,
     PresentStartOnly,
+    SimOnly,     // Start and End
     FullMarkers, // TODO: add something about xell's partial async markers
 };
 
