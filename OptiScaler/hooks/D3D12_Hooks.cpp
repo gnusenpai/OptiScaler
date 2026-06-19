@@ -1380,11 +1380,13 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
 
     if (ppDevice == nullptr)
     {
-        LOG_ERROR("ppDevice is nullptr");
+        LOG_TRACE("ppDevice is nullptr");
+
         _creatingD3D12Device = true;
         ScopedCreatingD3DDevice skipCreatingD3DDevice {};
         auto result = o_D3D12CreateDevice(pAdapter, minLevel, riid, ppDevice);
         _creatingD3D12Device = false;
+
         return result;
     }
 
