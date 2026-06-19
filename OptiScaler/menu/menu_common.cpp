@@ -4753,9 +4753,8 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
 
             auto avalibleInputs = InputCommon::get_avaliable_inputs();
             static std::vector<MenuOption<LowLatencyInput>> lowLatencyInput = {
-                { LowLatencyInput::None, "None (Off)" },
-                { LowLatencyInput::AntiLag2, "AntiLag 2" },
-                { LowLatencyInput::Reflex, "Reflex" },
+                { LowLatencyInput::None, "None (Off)" },    { LowLatencyInput::Auto, "Auto" },
+                { LowLatencyInput::AntiLag2, "AntiLag 2" }, { LowLatencyInput::Reflex, "Reflex" },
                 { LowLatencyInput::XeLL, "XeLL" },
             };
 
@@ -4773,9 +4772,13 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
             ImGui::TableNextColumn();
 
             static std::vector<MenuOption<LowLatencyMode>> lowLatencyOutput = {
-                { LowLatencyMode::None, "None (Off)" },      { LowLatencyMode::LatencyFlex, "LatencyFlex" },
-                { LowLatencyMode::AntiLag2, "AntiLag 2" },   { LowLatencyMode::XeLL, "XeLL" },
-                { LowLatencyMode::AntiLagVk, "AntiLag Vk" }, { LowLatencyMode::Reflex, "Reflex" },
+                { LowLatencyMode::None, "None (Off)" },
+                { LowLatencyMode::Auto, "Auto" },
+                { LowLatencyMode::LatencyFlex, "LatencyFlex" },
+                { LowLatencyMode::AntiLag2, "AntiLag 2" },
+                { LowLatencyMode::XeLL, "XeLL" },
+                { LowLatencyMode::AntiLagVk, "AntiLag Vk" },
+                { LowLatencyMode::Reflex, "Reflex" },
             };
 
             lowLatencyOutput[(uint32_t) LowLatencyMode::AntiLagVk].set_disabled(true, "No support");
@@ -6262,6 +6265,14 @@ void MenuCommon::RenderApiAndTextureSettings(RenderMenuContext& ctx)
                 ImGui::EndCombo();
             }
             ImGui::PopItemWidth();
+
+            ShowHelpMarker("Controls the DXGI Present sync interval, which determines how\n"
+                           "the swap chain waits for vertical refresh.\n\n"
+                           "0  = Present immediately, no VSync wait.\n"
+                           "1  = Sync to every refresh, normal VSync.\n"
+                           "2+ = Present every N refreshes, reducing effective frame rate.\n\n"
+                           "Higher values can reduce tearing but may increase latency and cap FPS.\n"
+                           "For most games, use 0 for lowest latency or 1 for normal VSync.");
 
             ImGui::EndDisabled();
             ImGui::SameLine(0.0f, 16.0f);

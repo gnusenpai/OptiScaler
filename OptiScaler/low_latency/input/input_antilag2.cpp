@@ -1,14 +1,38 @@
 #include "pch.h"
 #include "input_antilag2.h"
+#include "input_common.h"
 
 HRESULT STDMETHODCALLTYPE AmdExtAntiLagApi::UpdateAntiLagState(VOID* pData)
 {
     while (!IsDebuggerPresent())
         Sleep(100);
 
+    // That's the mark to insert a delay...
     if (!pData)
     {
-        // TODO: send sleep
+        auto result = InputCommon::sleep(inputContext, device);
+
+        if (result == InputResult::UsingDifferentInput)
+            return S_OK;
+
+        if (result != InputResult::Ok)
+        {
+            LOG_ERROR("sleep result: {}", magic_enum::enum_name(result));
+            return E_FAIL;
+        }
+
+        MarkerParams markerParams {};
+        markerParams.frame_id = 0;
+        markerParams.marker_type = MarkerType::SIMULATION_START;
+
+        result = InputCommon::set_marker(inputContext, device, markerParams);
+
+        if (result != InputResult::Ok)
+        {
+            LOG_ERROR("set_marker result: {}", magic_enum::enum_name(result));
+            return E_FAIL;
+        }
+
         return S_OK;
     }
 
@@ -18,7 +42,10 @@ HRESULT STDMETHODCALLTYPE AmdExtAntiLagApi::UpdateAntiLagState(VOID* pData)
     const uint32_t structVersion = ver1Struct->uiVersion;
 
     if (structVersion < 1 || structVersion > 2)
+    {
+        LOG_ERROR("Unsupported struct version");
         return E_INVALIDARG;
+    }
 
     if (structVersion == 1)
     {
@@ -29,14 +56,28 @@ HRESULT STDMETHODCALLTYPE AmdExtAntiLagApi::UpdateAntiLagState(VOID* pData)
         }
 
         // No validation
-        eMode = (AntiLag2eMode) ver1Struct->eMode;
-        sControlStr = ver1Struct->sControlStr;
-        uiControlStrLength = ver1Struct->uiControlStrLength;
-        maxFPS = ver1Struct->maxFPS;
+        AntiLag2eMode eMode = (AntiLag2eMode) ver1Struct->eMode;
 
-        // TODO: call some update
+        // sControlStr = ver1Struct->sControlStr;
+        // uiControlStrLength = ver1Struct->uiControlStrLength;
 
-        return S_OK;
+        // TODO: not fully filled out
+        SleepMode sleepMode {};
+        sleepMode.low_latency_enabled = eMode == AntiLag2eMode::AntiLag2Mode_On;
+
+        if (ver1Struct->maxFPS == 0)
+            sleepMode.minimum_interval_us = 0;
+        else
+            sleepMode.minimum_interval_us = static_cast<uint32_t>(std::round(1'000'000 / ver1Struct->maxFPS));
+
+        auto result = InputCommon::set_sleep_mode(inputContext, device, &sleepMode);
+
+        if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
+            return S_OK;
+        else
+            LOG_ERROR("set_sleep_mode result: {}", magic_enum::enum_name(result));
+
+        return E_FAIL;
     }
     else if (structVersion == 2)
     {
@@ -49,18 +90,53 @@ HRESULT STDMETHODCALLTYPE AmdExtAntiLagApi::UpdateAntiLagState(VOID* pData)
             return E_INVALIDARG;
         }
 
+        // TODO: This doesn't get unset if the game stops sending FG markers
+        inputContext.markerMode = InputMarkerMode::PresentStartOnly;
+
         const uint64_t frameId = ver2Struct->iiFrameIdx; // Usually not used
 
         if (ver2Struct->flags.signalEndOfFrameIdx == 1)
         {
             // MarkEndOfFrameRendering
             // TODO: fakenvapi calls it on PRESENT_START
+
+            MarkerParams markerParams {};
+            markerParams.frame_id = pseudoFrameId + 1; // This is wrong, could also just send 0
+            markerParams.marker_type = MarkerType::PRESENT_START;
+
+            auto result = InputCommon::set_marker(inputContext, device, markerParams);
+
+            if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
+                return S_OK;
+            else
+                LOG_ERROR("set_marker result: {}", magic_enum::enum_name(result));
+
+            return E_FAIL;
         }
         else if (ver2Struct->flags.signalFgFrameType == 1)
         {
             // SetFrameGenFrameType
             // TODO: fakenvapi calls it on OUT_OF_BAND_PRESENT_START
+
+            MarkerParams markerParams {};
+            markerParams.marker_type = MarkerType::OUT_OF_BAND_PRESENT_START;
+            markerParams.frame_id = pseudoFrameId;
+
+            // Mainly to mimic what Reflex does, so that we can convert this back to AL2 later
             const bool fakeFrame = ver2Struct->flags.isInterpolatedFrame == 1;
+            if (!fakeFrame)
+                pseudoFrameId++;
+
+            ID3D12CommandQueue* d3d12AppQueue = nullptr; // AntiLag 2 doesn't provide that
+
+            auto result = InputCommon::set_async_marker(inputContext, d3d12AppQueue, markerParams);
+
+            if (result == InputResult::Ok || result == InputResult::UsingDifferentInput)
+                return S_OK;
+            else
+                LOG_ERROR("set_async_marker result: {}", magic_enum::enum_name(result));
+
+            return E_FAIL;
         }
 
         return S_OK;

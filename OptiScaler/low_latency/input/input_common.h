@@ -1,6 +1,8 @@
 #pragma once
-#include <low_latency/low_latency_tech/low_latency_tech.h>
+
 #include <xell.h>
+
+#include <low_latency/low_latency_tech/low_latency_tech.h>
 
 enum class InputMarkerMode
 {
@@ -24,6 +26,7 @@ enum class InputResult : uint32_t
     InputNotSupported,
     InvalidParameter,
     LowLatencyUpdateFail,
+    NotEnoughReports,
     GenericError,
 };
 
@@ -42,21 +45,24 @@ class InputCommon
 {
     inline static std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
-    inline static uint32_t last_present_start_frame_id = 0;
+    inline static std::atomic_uint64_t last_present_start_frame_id = 0;
+    inline static std::atomic_uint32_t delay_deinit = 0;
+    inline static std::array<SleepMode, static_cast<size_t>(LowLatencyInput::_)> sleep_mode_copies {};
 
     inline static flag_set<LowLatencyInput> avaliableInputs {};
     inline static LowLatencyInput activeInput = LowLatencyInput::None;
     inline static LowLatencyMode activeOutput = LowLatencyMode::None;
     inline static bool enabled = false;
 
+    static bool deinit_current_tech();
     static bool update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode = std::nullopt);
     static void add_marker_to_report(const MarkerParams& marker_params);
     static void set_input_avaliable(LowLatencyInput input) { avaliableInputs.set(input); };
+    static SleepMode& get_sleep_copy(LowLatencyInput input) { return sleep_mode_copies[static_cast<size_t>(input)]; }
 
   public:
     static InputResult set_low_latency_tech(IUnknown* pDevice, LowLatencyMode mode);
 
-    // TODO: Ignore all calls that are not coming for the activeInput
     static InputResult sleep(const InputContext& inputContext, IUnknown* pDevice,
                              std::optional<uint32_t> frame_id = std::nullopt);
     static InputResult set_marker(const InputContext& inputContext, IUnknown* pDevice,
@@ -69,7 +75,7 @@ class InputCommon
     get_latency(const InputContext& inputContext, IUnknown* pDev,
                 void* latency_params); // NV_LATENCY_RESULT_PARAMS* for reflex, xell_frame_report_t* for xell,
     static bool get_timing_data(TimingData& timingDataOut);
-    static uint32_t get_last_present_start_frame_id() { return last_present_start_frame_id; };
+    static uint64_t get_last_present_start_frame_id() { return last_present_start_frame_id; };
     static flag_set<LowLatencyInput> get_avaliable_inputs() { return avaliableInputs; };
 
     // passthrough when possible, fillout with local frame_reports if not
@@ -83,6 +89,4 @@ class InputCommon
     static xell_result_t pass_xellSetFgEnabled(const InputContext& inputContext, uint32_t param1, uint32_t param2);
     static xell_result_t pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t param1,
                                                           uint32_t framesCount);
-    static xell_result_t pass_xellGetLastPresentStartFrameId(const InputContext& inputContext,
-                                                             uint32_t* p_frame_id); // Maybe not needed
 };

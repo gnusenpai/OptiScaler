@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ll_xell.h"
 
 #include <magic_enum.hpp>
@@ -51,7 +51,48 @@ bool XeLL::init(IUnknown* pDevice)
     auto result = o_xellD3D12CreateContext(dx12_pDevice, &xell_context) == XELL_RESULT_SUCCESS;
 
     if (result)
+    {
         XellHooks::blockExternalContexts(true);
+
+#ifdef LOW_LATENCY_INPUTS
+        // Resend of XeLL-exclusive data we got from XeLL inputs
+
+        // Ok, this isn't ideal BUT when using low latency inputs this *should* be low latency xell inputs context
+        auto xellInputContext = (InputXeLL::xell_input_handle_t) XellHooks::getOurContext();
+
+        if (!xellInputContext)
+            return false;
+
+        auto resendResult = XELL_RESULT_SUCCESS;
+
+        do
+        {
+            if (xellInputContext->d3d12AppQueue)
+                resendResult = xellD3D12SetAppQueue(xellInputContext->d3d12AppQueue);
+
+            if (resendResult != XELL_RESULT_SUCCESS)
+                break;
+
+            // This might be problematic, pointer could be freed
+            if (xellInputContext->displayInfo)
+                resendResult = xellSetDisplayInfo(xellInputContext->displayInfo);
+
+            if (resendResult != XELL_RESULT_SUCCESS)
+                break;
+
+            resendResult = xellSetFgEnabled(xellInputContext->setFgEnabledParam1, xellInputContext->setFgEnabledParam2);
+
+            if (resendResult != XELL_RESULT_SUCCESS)
+                break;
+
+            resendResult = xellSetGeneratedFramesCount(xellInputContext->setGeneratedFramesCountParam1,
+                                                       xellInputContext->framesCount);
+        } while (false);
+
+        if (resendResult != XELL_RESULT_SUCCESS)
+            LOG_WARN("XeLL resend failed: {}", magic_enum::enum_name(resendResult));
+#endif
+    }
 
     return result;
 }
@@ -72,9 +113,12 @@ bool XeLL::init_using_ctx(void* context)
 
     if (xell_context)
     {
-        o_xellDestroyContext(xell_context);
-        xell_context = (xell_context_handle_t) context;
+        if (o_xellDestroyContext(xell_context) == XELL_RESULT_SUCCESS)
+            LOG_INFO("destroy o_xell_ctx");
+        else
+            LOG_ERROR("destroy o_xell_ctx error");
     }
+    xell_context = (xell_context_handle_t) context;
 
     // Context is handled and held inside XeLLProxy
     inited_using_context = true;
@@ -221,14 +265,17 @@ void XeLL::set_async_marker(IUnknown* pCommandQueue, const MarkerParams& marker_
 void XeLL::sleep(std::optional<uint32_t> frame_id)
 {
     if (frame_id.has_value())
-        xell_sleep(frame_id.value());
+    {
+        sleep_last_id = frame_id.value();
+    }
     else
     {
         // This can either be better than sleeping in XELL_SIMULATION_START
         // or be a total mess if +1 is not correct
         sleep_last_id = simulation_start_last_id + 1;
-        xell_sleep((uint32_t) sleep_last_id);
     }
+
+    xell_sleep((uint32_t) sleep_last_id);
 }
 
 xell_result_t XeLL::xellD3D12SetAppQueue(ID3D12CommandQueue* appQueue) const

@@ -472,12 +472,21 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
 
     if (CheckDllNameW(&libName, &amdxc64NamesW))
     {
-        auto module = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, 0);
+        HMODULE moduleAmdxc64 = nullptr;
+        HMODULE memModule = nullptr;
+        auto optiPath = Config::Instance()->MainDllPath.value();
+        Util::LoadProxyLibrary(L"amdxc64.dll", L"", optiPath, &memModule, &moduleAmdxc64);
 
-        if (module != nullptr)
+        if (moduleAmdxc64 == nullptr && memModule != nullptr)
+            moduleAmdxc64 = memModule;
+
+        if (moduleAmdxc64 == nullptr)
+            moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, 0);
+
+        if (moduleAmdxc64 != nullptr)
             Amdxc64Hooks::Init();
 
-        return module;
+        return moduleAmdxc64;
     }
 
     if (CheckDllNameW(&libName, &ffxDx12NamesW))
