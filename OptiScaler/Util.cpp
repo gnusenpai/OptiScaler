@@ -799,9 +799,9 @@ void Util::LoadProxyLibrary(const std::wstring& name, const std::wstring& optiPa
         LOG_WARN("Can't find {}, returning nullptr!", wstring_to_string(name));
 }
 
-std::vector<std::filesystem::path> Util::GetDriverStore()
+std::map<Util::Luid, std::filesystem::path> Util::GetDriverStore()
 {
-    std::vector<std::filesystem::path> result;
+    std::map<Util::Luid, std::filesystem::path> result;
 
     // Load D3DKMT functions dynamically
     bool libraryLoaded = false;
@@ -863,7 +863,10 @@ std::vector<std::filesystem::path> Util::GetDriverStore()
                 if (hr != 0)
                     LOG_WARN("Failed to query adapter info {:X}", hr);
                 else
-                    result.push_back(std::filesystem::path(umdFileInfo.UmdFileName).parent_path());
+                {
+                    Util::Luid luid(adapter.AdapterLuid.LowPart, adapter.AdapterLuid.HighPart);
+                    result.emplace(std::move(luid), std::filesystem::path(umdFileInfo.UmdFileName).parent_path());
+                }
 
                 D3DKMT_CLOSEADAPTER closeAdapter = {};
                 closeAdapter.hAdapter = adapter.hAdapter;

@@ -884,6 +884,9 @@
     <ClInclude Include="inputs\FG\Streamline_Inputs_Sl1_Dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\device_info\device_info.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp">
@@ -1404,6 +1407,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="inputs\FG\Streamline_Inputs_Sl1_Dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\device_info\device_info.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

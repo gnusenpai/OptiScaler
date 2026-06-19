@@ -51,13 +51,13 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
 
         if (FSR4Upgrade::moduleAmdxcffx64 == nullptr)
         {
-            auto storePath = Util::GetDriverStore();
+            auto storePaths = Util::GetDriverStore();
 
-            for (size_t i = 0; i < storePath.size(); i++)
+            for (const auto& [luid, path] : storePaths)
             {
                 if (FSR4Upgrade::moduleAmdxcffx64 == nullptr)
                 {
-                    auto dllPath = storePath[i] / L"amdxcffx64.dll";
+                    auto dllPath = path / L"amdxcffx64.dll";
                     LOG_DEBUG("Trying to load: {}", wstring_to_string(dllPath.c_str()));
                     FSR4Upgrade::moduleAmdxcffx64 = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
 

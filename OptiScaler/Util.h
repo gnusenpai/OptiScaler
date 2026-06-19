@@ -60,6 +60,14 @@ struct MonitorInfo
     std::wstring name; // e.g., \\.\DISPLAY1
 };
 
+struct Luid
+{
+    DWORD LowPart;
+    LONG HighPart;
+
+    auto operator<=>(const Luid&) const = default;
+};
+
 std::filesystem::path ExePath();
 std::filesystem::path DllPath();
 std::optional<std::filesystem::path> NvngxPath();
@@ -86,7 +94,8 @@ void GetDeviceRemovedReason(ID3D11Device* pDevice);
 void GetDeviceRemovedReason(ID3D12Device* pDevice);
 void LoadProxyLibrary(const std::wstring& name, const std::wstring& optiPath, const std::wstring& overridePath,
                       HMODULE* memoryModule, HMODULE* loadedModule);
-std::vector<std::filesystem::path> GetDriverStore();
+
+std::map<Luid, std::filesystem::path> GetDriverStore();
 
 template <typename T> void DelayedDestroy(std::unique_ptr<T> ptr)
 {

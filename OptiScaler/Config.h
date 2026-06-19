@@ -483,6 +483,7 @@ class Config
     CustomOptional<std::wstring, NoDefault> PluginPath;
     CustomOptional<bool> LoadSpecialK { false };
     CustomOptional<bool> LoadReShade { false };
+    CustomOptional<bool> LoadCustomAmdxc64OnRdna2 { false };
     CustomOptional<bool> LoadAsiPlugins { false };
     CustomOptional<int> LateAsiPluginsDelay { 30 };
 

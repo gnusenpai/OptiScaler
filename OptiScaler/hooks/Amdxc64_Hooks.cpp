@@ -83,17 +83,12 @@ void Amdxc64Hooks::Init()
 
     moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
 
-    if (moduleAmdxc64 == nullptr && !Config::Instance()->Fsr4DoNotLoadAmdxc64.value_or_default())
+    // When LoadCustomAmdxc64OnRdna2 is set, don't blindly load any amdxc64.dll
+    // Wait for it to be loaded by d3d12 and at that point we know what GPU is RDNA 2
+    if (moduleAmdxc64 == nullptr && !Config::Instance()->Fsr4DoNotLoadAmdxc64.value_or_default() &&
+        !Config::Instance()->LoadCustomAmdxc64OnRdna2.value_or_default())
     {
-        HMODULE memModule = nullptr;
-        auto optiPath = Config::Instance()->MainDllPath.value();
-        Util::LoadProxyLibrary(L"amdxc64.dll", L"", optiPath, &memModule, &moduleAmdxc64);
-
-        if (moduleAmdxc64 == nullptr && memModule != nullptr)
-            moduleAmdxc64 = memModule;
-
-        if (moduleAmdxc64 == nullptr)
-            moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
+        moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
     }
 
     if (moduleAmdxc64 != nullptr)

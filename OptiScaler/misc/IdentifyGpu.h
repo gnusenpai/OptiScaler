@@ -1,6 +1,7 @@
 #pragma once
 #include <nvapi.h>
 #include <proxies/D3D12_Proxy.h>
+#include <device_info/device_info.hpp>
 
 // vkd3d-proton
 MIDL_INTERFACE("39da4e09-bd1c-4198-9fae-86bbe3be41fd")
@@ -57,10 +58,14 @@ struct GpuInformation
     bool usesDxvk = false;
     bool usesVkd3dProton = false;
     bool softwareAdapter = false;
+    std::filesystem::path driverStore {};
 
+    // AMD
     bool fsr4Capable = false;
     ID3D12Device* d3d12device = nullptr;
+    device_info::HwGeneration amdHwGeneration = device_info::HwGeneration::kUndefinedGeneration;
 
+    // Nvidia
     bool dlssCapable = false;
     NV_GPU_ARCH_INFO nvidiaArchInfo {};
     bool noDisplayConnected = false;

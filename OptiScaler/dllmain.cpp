@@ -809,9 +809,9 @@ static void CheckWorkingMode()
         {
             auto paths = Util::GetDriverStore();
 
-            for (size_t i = 0; i < paths.size(); i++)
+            for (const auto& [luid, path] : paths)
             {
-                auto dllPath = paths[i] / L"igdext64.dll";
+                auto dllPath = path / L"igdext64.dll";
                 LOG_DEBUG("Trying to load: {}", wstring_to_string(dllPath.c_str()));
                 igdext = NtdllProxy::LoadLibraryExW_Ldr(dllPath.c_str(), NULL, 0);
 

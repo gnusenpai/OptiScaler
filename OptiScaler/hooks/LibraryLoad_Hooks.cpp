@@ -473,12 +473,35 @@ HMODULE LibraryLoadHooks::LoadLibraryCheckW(std::wstring libName, LPCWSTR lpLibF
     if (CheckDllNameW(&libName, &amdxc64NamesW))
     {
         HMODULE moduleAmdxc64 = nullptr;
-        HMODULE memModule = nullptr;
-        auto optiPath = Config::Instance()->MainDllPath.value();
-        Util::LoadProxyLibrary(L"amdxc64.dll", L"", optiPath, &memModule, &moduleAmdxc64);
 
-        if (moduleAmdxc64 == nullptr && memModule != nullptr)
-            moduleAmdxc64 = memModule;
+        if (Config::Instance()->LoadCustomAmdxc64OnRdna2.value_or_default())
+        {
+            auto allDetectedGpus = IdentifyGpu::getAllGpus();
+            GpuInformation gpuMatchingDriverStore {};
+
+            for (auto& gpu : allDetectedGpus)
+            {
+                // Only grabbing the first one
+                if (Util::IsSubpath(path, gpu.driverStore))
+                {
+                    gpuMatchingDriverStore = gpu;
+                    break;
+                }
+            }
+
+            // kGfx10_3 == RDNA 2
+            if (gpuMatchingDriverStore.amdHwGeneration == device_info::HwGeneration::kGfx10_3)
+            {
+                LOG_INFO("Trying to loading custom amdxc64.dll");
+
+                HMODULE memModule = nullptr;
+                auto& optiPath = Config::Instance()->MainDllPath.value();
+                Util::LoadProxyLibrary(L"amdxc64.dll", L"", optiPath, &memModule, &moduleAmdxc64);
+
+                if (moduleAmdxc64 == nullptr && memModule != nullptr)
+                    moduleAmdxc64 = memModule;
+            }
+        }
 
         if (moduleAmdxc64 == nullptr)
             moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(libName.c_str(), NULL, 0);

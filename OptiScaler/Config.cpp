@@ -701,6 +701,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             PluginPath.set_from_config(readWString("Plugins", "Path"));
             LoadSpecialK.set_from_config(readBool("Plugins", "LoadSpecialK"));
             LoadReShade.set_from_config(readBool("Plugins", "LoadReShade"));
+            LoadCustomAmdxc64OnRdna2.set_from_config(readBool("Plugins", "LoadCustomAmdxc64OnRdna2"));
             LoadAsiPlugins.set_from_config(readBool("Plugins", "LoadAsiPlugins"));
             LateAsiPluginsDelay.set_from_config(readInt("Plugins", "LateAsiPluginsDelay"));
         }
@@ -1395,6 +1396,8 @@ bool Config::SaveIni()
         ini.SetValue("Plugins", "Path", wstring_to_string(Instance()->PluginPath.value_for_config_or(L"auto")).c_str());
         ini.SetValue("Plugins", "LoadSpecialK", GetBoolValue(Instance()->LoadSpecialK.value_for_config()).c_str());
         ini.SetValue("Plugins", "LoadReShade", GetBoolValue(Instance()->LoadReShade.value_for_config()).c_str());
+        ini.SetValue("Plugins", "LoadCustomAmdxc64OnRdna2",
+                     GetBoolValue(Instance()->LoadCustomAmdxc64OnRdna2.value_for_config()).c_str());
         ini.SetValue("Plugins", "LoadAsiPlugins", GetBoolValue(Instance()->LoadAsiPlugins.value_for_config()).c_str());
         ini.SetValue("Plugins", "LateAsiPluginsDelay",
                      GetIntValue(Instance()->LateAsiPluginsDelay.value_for_config()).c_str());
