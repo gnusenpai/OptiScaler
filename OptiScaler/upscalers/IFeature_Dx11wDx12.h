@@ -1,12 +1,13 @@
 #pragma once
 #include "IFeature_Dx11.h"
 
-#include <shaders/depth_transfer/DT_Dx11.h>
+#include "IFeature_Dx12.h"
+
+#include <with_dx12/dx11_with_dx12.h>
 
 #include <d3d12.h>
 #include <d3d11_4.h>
 #include <dxgi1_6.h>
-#include "IFeature_Dx12.h"
 
 #define DX11WDX12_NUM_OF_BUFFERS 2
 
@@ -21,26 +22,6 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
     }
 
   protected:
-    // Dx11w12 part
-    using D3D11_TEXTURE2D_DESC_C = struct D3D11_TEXTURE2D_DESC_C
-    {
-        UINT Width = 0;
-        UINT Height = 0;
-        DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
-        UINT BindFlags = 0;
-        UINT MiscFlags = 0;
-    };
-
-    using D3D11_TEXTURE2D_RESOURCE_C = struct D3D11_TEXTURE2D_RESOURCE_C
-    {
-        D3D11_TEXTURE2D_DESC_C Desc = {};
-        ID3D11Texture2D* SourceTexture = nullptr;
-        ID3D11Texture2D* SharedTexture = nullptr;
-        ID3D12Resource* Dx12Resource = nullptr;
-        HANDLE Dx11Handle = NULL;
-        HANDLE Dx12Handle = NULL;
-    };
-
     std::unique_ptr<IFeature_Dx12> dx12Feature = nullptr;
 
     // D3D11
@@ -55,12 +36,12 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
     ID3D12Fence* Dx12Fence = nullptr;
     HANDLE Dx12FenceEvent = nullptr;
 
-    D3D11_TEXTURE2D_RESOURCE_C dx11Color = {};
-    D3D11_TEXTURE2D_RESOURCE_C dx11Mv = {};
-    D3D11_TEXTURE2D_RESOURCE_C dx11Depth = {};
-    D3D11_TEXTURE2D_RESOURCE_C dx11Reactive = {};
-    D3D11_TEXTURE2D_RESOURCE_C dx11Exp = {};
-    D3D11_TEXTURE2D_RESOURCE_C dx11Out = {};
+    Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Color = {};
+    Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Mv = {};
+    Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Depth = {};
+    Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Reactive = {};
+    Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Exp = {};
+    Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Out = {};
 
     ID3D11Resource* paramOutput[DX11WDX12_NUM_OF_BUFFERS] = {};
 
@@ -69,12 +50,7 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
     HANDLE dx11SHForTextureCopy = nullptr;
     ULONG _fenceValue = 1;
 
-    std::unique_ptr<DepthTransfer_Dx11> DT = nullptr;
-
-    HRESULT CreateDx12Device(D3D_FEATURE_LEVEL InFeatureLevel);
-
-    bool CopyTextureFrom11To12(ID3D11Resource* InResource, D3D11_TEXTURE2D_RESOURCE_C* OutResource, bool InCopy,
-                               bool InDepth, bool InDontUseNTShared);
+    bool CreateD3D12Objects();
     bool ProcessDx11Textures(const NVSDK_NGX_Parameter* InParameters);
     bool CopyBackOutput();
 

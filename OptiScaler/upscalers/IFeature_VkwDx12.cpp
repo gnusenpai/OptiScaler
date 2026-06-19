@@ -2043,6 +2043,7 @@ bool IFeature_VkwDx12::BaseInit(VkInstance InInstance, VkPhysicalDevice InPD, Vk
 IFeature_VkwDx12::IFeature_VkwDx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters)
     : IFeature(InHandleId, InParameters), IFeature_Vk(InHandleId, InParameters)
 {
+    SetInitParameters(InParameters);
 }
 
 IFeature_VkwDx12::~IFeature_VkwDx12()
