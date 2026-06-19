@@ -84,7 +84,17 @@ void Amdxc64Hooks::Init()
     moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
 
     if (moduleAmdxc64 == nullptr && !Config::Instance()->Fsr4DoNotLoadAmdxc64.value_or_default())
-        moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
+    {
+        HMODULE memModule = nullptr;
+        auto optiPath = Config::Instance()->MainDllPath.value();
+        Util::LoadProxyLibrary(L"amdxc64.dll", L"", optiPath, &memModule, &moduleAmdxc64);
+
+        if (moduleAmdxc64 == nullptr && memModule != nullptr)
+            moduleAmdxc64 = memModule;
+
+        if (moduleAmdxc64 == nullptr)
+            moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
+    }
 
     if (moduleAmdxc64 != nullptr)
     {
