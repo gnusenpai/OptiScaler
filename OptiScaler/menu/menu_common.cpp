@@ -238,8 +238,6 @@ void MenuCommon::UpdateManualInput(HWND targetHwnd)
 {
     OptiInput::BeginFrame(targetHwnd);
 
-    OptiInput::FeedImGui(_isVisible);
-
     const auto config = Config::Instance();
 
     auto CheckShortcut = [&](int vk, bool& inputFlag, const char* logMessage)
@@ -276,8 +274,6 @@ void MenuCommon::UpdateManualInput(HWND targetHwnd)
     }
 
     lastKey = OptiInput::GetLastPressedKey();
-
-    OptiInput::EndFrame(_isVisible);
 }
 
 void MenuCommon::ShowTooltip(const char* tip)
@@ -1266,8 +1262,8 @@ void MenuCommon::UpdateMenuInputMode(RenderMenuContext& ctx)
     else
     {
         capturingKey = false;
-        hasGamepad = (io.BackendFlags | ImGuiBackendFlags_HasGamepad) > 0;
-        io.BackendFlags &= 30;
+        hasGamepad = (io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0;
+        io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
         io.ConfigFlags = ImGuiConfigFlags_NoMouse | ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_NoKeyboard;
     }
 }
@@ -1451,6 +1447,8 @@ void MenuCommon::BeginMenuFrameIfNeeded(RenderMenuContext& ctx)
             ImVec2 displaySize { state.screenWidth, state.screenHeight };
             ImGui_ImplUwp_NewFrame(displaySize);
         }
+
+        OptiInput::FeedImGui(_isVisible);
 
         MenuHdrCheck(io);
         ImGui::NewFrame();
@@ -7060,6 +7058,7 @@ bool MenuCommon::RenderMenu()
     // 2) Prepare one-shot notifications and start a new ImGui frame only when needed.
     UpdateVersionAndStartupNotifications(ctx);
     BeginMenuFrameIfNeeded(ctx);
+    OptiInput::EndFrame(_isVisible);
 
     // 3) Draw lightweight overlay windows first, preserving the original order.
     ctx.menuResScale = MenuResolutionScale(ctx.io);
