@@ -269,77 +269,77 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* 
 
     _lastAsyncMarkerFrameId = pSetAsyncFrameMarkerParams->frameID;
 
-    if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START)
-    {
-        constexpr size_t history_size = 20;
-        static size_t counter = 0;
-        static NvU64 previous_frame_ids[history_size] = {};
+    // if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START)
+    //{
+    //     constexpr size_t history_size = 20;
+    //     static size_t counter = 0;
+    //     static NvU64 previous_frame_ids[history_size] = {};
 
-        previous_frame_ids[counter % history_size] = pSetAsyncFrameMarkerParams->frameID;
-        counter++;
+    //    previous_frame_ids[counter % history_size] = pSetAsyncFrameMarkerParams->frameID;
+    //    counter++;
 
-        size_t valid_count = (counter < history_size) ? counter : history_size;
+    //    size_t valid_count = (counter < history_size) ? counter : history_size;
 
-        size_t max_run_length = 1;
-        size_t current_run = 1;
+    //    size_t max_run_length = 1;
+    //    size_t current_run = 1;
 
-        for (size_t i = 1; i < valid_count; i++)
-        {
-            if (previous_frame_ids[i] == previous_frame_ids[i - 1])
-            {
-                current_run++;
-            }
-            else
-            {
-                max_run_length = std::max(max_run_length, current_run);
-                current_run = 1;
-            }
-        }
+    //    for (size_t i = 1; i < valid_count; i++)
+    //    {
+    //        if (previous_frame_ids[i] == previous_frame_ids[i - 1])
+    //        {
+    //            current_run++;
+    //        }
+    //        else
+    //        {
+    //            max_run_length = std::max(max_run_length, current_run);
+    //            current_run = 1;
+    //        }
+    //    }
 
-        max_run_length = std::max(max_run_length, current_run);
+    //    max_run_length = std::max(max_run_length, current_run);
 
-        int detected_mode = 0;
-        if (max_run_length >= 4)
-            detected_mode = 3;
-        else if (max_run_length == 3)
-            detected_mode = 2;
-        else if (max_run_length == 2)
-            detected_mode = 1;
+    //    int detected_mode = 0;
+    //    if (max_run_length >= 4)
+    //        detected_mode = 3;
+    //    else if (max_run_length == 3)
+    //        detected_mode = 2;
+    //    else if (max_run_length == 2)
+    //        detected_mode = 1;
 
-        // --- Stability filter ---
-        static int candidate_mode = 0; // No FG at start
-        static int candidate_count = 0;
-        constexpr int stability_threshold = 4;
+    //    // --- Stability filter ---
+    //    static int candidate_mode = 0; // No FG at start
+    //    static int candidate_count = 0;
+    //    constexpr int stability_threshold = 4;
 
-        if (detected_mode == candidate_mode)
-        {
-            candidate_count++;
-        }
-        else
-        {
-            candidate_mode = detected_mode;
-            candidate_count = 1;
-        }
+    //    if (detected_mode == candidate_mode)
+    //    {
+    //        candidate_count++;
+    //    }
+    //    else
+    //    {
+    //        candidate_mode = detected_mode;
+    //        candidate_count = 1;
+    //    }
 
-        // Redundant
-        // max_run_length = std::max(max_run_length, current_run);
+    //    // Redundant
+    //    // max_run_length = std::max(max_run_length, current_run);
 
-        // Only commit after stable detection
-        if (candidate_count >= stability_threshold)
-        {
-            if (candidate_mode == 0 && _FgNumFramesToGenerate > 0)
-            {
-                _FgNumFramesToGenerate = 0;
-                LOG_DEBUG("DLSS FG no longer detected");
-            }
-            else if (_FgNumFramesToGenerate != candidate_mode)
-            {
-                _FgNumFramesToGenerate = candidate_mode;
+    //    // Only commit after stable detection
+    //    if (candidate_count >= stability_threshold)
+    //    {
+    //        if (candidate_mode == 0 && _FgNumFramesToGenerate > 0)
+    //        {
+    //            _FgNumFramesToGenerate = 0;
+    //            LOG_DEBUG("DLSS FG no longer detected");
+    //        }
+    //        else if (_FgNumFramesToGenerate != candidate_mode)
+    //        {
+    //            _FgNumFramesToGenerate = candidate_mode;
 
-                LOG_DEBUG("DLSS FG detected: {}x mode", candidate_mode + 1);
-            }
-        }
-    }
+    //            LOG_DEBUG("DLSS FG detected: {}x mode", candidate_mode + 1);
+    //        }
+    //    }
+    //}
 
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
         return nvapi_calls::NvAPI_D3D12_SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
@@ -621,7 +621,9 @@ void ReflexHooks::update(bool fgActive, bool isVulkan)
             // Don't reload when using Dynamic MFG
             if (State::Instance().dlssgLastSetMode != sl::DLSSGMode::eDynamic &&
                 !Config::Instance()->FGDLSSGForceDMFG.value_or_default())
+            {
                 State::Instance().fakenvapiReloadLowLatency = true;
+            }
 
             // fakenvapi's latency techs fall apart with more than 1 fake frame
             if (Config::Instance()->FN_ForceReflex.value_or_default() != ForceReflex::ForceEnable &&

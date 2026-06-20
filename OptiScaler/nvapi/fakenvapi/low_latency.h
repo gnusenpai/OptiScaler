@@ -16,6 +16,7 @@ class LowLatency
     std::optional<bool> forced_fg;
     bool fg;
     uint32_t delay_deinit = 0;
+    SleepMode last_sleep_mode {};
 
     // Once set, it will be used for all init attempts
     void* forced_low_latency_context = nullptr;

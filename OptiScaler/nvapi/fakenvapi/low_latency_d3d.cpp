@@ -51,6 +51,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             if (new_tech_al2->init(pDevice))
             {
                 LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0");
+                new_tech_al2->set_sleep_mode(&last_sleep_mode);
                 currently_active_tech.store(std::move(new_tech_al2));
                 return true;
             }
@@ -59,6 +60,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             if (new_tech_xell->init(pDevice))
             {
                 LOG_INFO("LowLatency algo: XeLL");
+                new_tech_xell->set_sleep_mode(&last_sleep_mode);
                 currently_active_tech.store(std::move(new_tech_xell));
                 return true;
             }
@@ -68,6 +70,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
         if (new_tech->init(pDevice))
         {
             LOG_INFO("LowLatency algo: LatencyFlex");
+            new_tech->set_sleep_mode(&last_sleep_mode);
             currently_active_tech.store(std::move(new_tech));
             return true;
         }
@@ -231,15 +234,13 @@ NvAPI_Status LowLatency::SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAM
     if (!update_low_latency_tech(pDevice))
         return ERROR();
 
-    SleepMode sleep_mode {};
-
-    sleep_mode.low_latency_enabled = pSetSleepModeParams->bLowLatencyMode;
-    sleep_mode.low_latency_boost = pSetSleepModeParams->bLowLatencyBoost;
-    sleep_mode.minimum_interval_us = pSetSleepModeParams->minimumIntervalUs;
-    sleep_mode.use_markers_to_optimize = pSetSleepModeParams->bUseMarkersToOptimize;
+    last_sleep_mode.low_latency_enabled = pSetSleepModeParams->bLowLatencyMode;
+    last_sleep_mode.low_latency_boost = pSetSleepModeParams->bLowLatencyBoost;
+    last_sleep_mode.minimum_interval_us = pSetSleepModeParams->minimumIntervalUs;
+    last_sleep_mode.use_markers_to_optimize = pSetSleepModeParams->bUseMarkersToOptimize;
 
     if (auto current_tech = currently_active_tech.load())
-        current_tech->set_sleep_mode(&sleep_mode);
+        current_tech->set_sleep_mode(&last_sleep_mode);
 
     return OK();
 }
