@@ -197,7 +197,7 @@ class XeLLProxy
             _dllPath = std::wstring(modulePath);
 
             LOG_INFO("Loaded from {}", wstring_to_string(_dllPath));
-            return HookXeLL(mainModule);
+            // return HookXeLL(mainModule);
         }
 
         return false;
