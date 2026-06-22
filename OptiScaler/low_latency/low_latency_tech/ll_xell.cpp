@@ -91,6 +91,8 @@ bool XeLL::init(IUnknown* pDevice)
 
         if (resendResult != XELL_RESULT_SUCCESS)
             LOG_WARN("XeLL resend failed: {}", magic_enum::enum_name(resendResult));
+#else
+        XellHooks::setOurContext(xell_context);
 #endif
     }
 

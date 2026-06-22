@@ -94,6 +94,9 @@ bool XellHooks::update()
 
 xell_result_t XellHooks::hkxellDestroyContext(xell_context_handle_t context)
 {
+    if (gamesContext == context)
+        gamesContext = nullptr;
+
     if (shouldBlock(context))
         return XELL_RESULT_SUCCESS;
     // spdlog::info("xellDestroyContext");

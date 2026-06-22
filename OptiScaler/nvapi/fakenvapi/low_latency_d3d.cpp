@@ -101,13 +101,18 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
     if (change_detected)
     {
         bool al2 = false;
+        bool xell = false;
         {
             auto current_tech = currently_active_tech.load();
-            if (current_tech && current_tech->get_mode() == LowLatencyMode::AntiLag2)
-                al2 = true;
+            if (current_tech)
+            {
+                auto mode = current_tech->get_mode();
+                al2 = mode == LowLatencyMode::AntiLag2;
+                xell = mode == LowLatencyMode::XeLL;
+            }
         }
 
-        if (al2)
+        if (al2 || xell)
         {
             delay_deinit = 50;
         }
