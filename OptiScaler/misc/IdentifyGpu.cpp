@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "IdentifyGpu.h"
 
+#include <magic_enum.hpp>
+#include <include/device_info/device_info.hpp>
+
 #include <proxies/Dxgi_Proxy.h>
 #include <proxies/D3d12_Proxy.h>
 #include "nvapi/NvApiTypes.h"
-#include <magic_enum.hpp>
-
 #include <hooks/Amdxc64_Hooks.h>
 
 using Microsoft::WRL::ComPtr;
@@ -180,8 +181,6 @@ std::vector<GpuInformation> IdentifyGpu::checkGpuInfo()
         {
             queryNvapi(gpuInfo);
         }
-
-        SAFE_RELEASE(gpuInfo.d3d12device);
     }
 
     return localCachedInfo;
@@ -376,14 +375,18 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
     {
         LUID luid;
         bool usesVkd3dProton = false;
-        bool fsr4Capable = false;
+        FSR4Support fsr4Support = FSR4Support::None;
+        bool fsr4ForcedSupport = false;
     };
     std::vector<D3d12Result> results;
 
     for (auto& gpuInfo : cache)
     {
-        if (gpuInfo.vendorId != VendorId::AMD && !gpuInfo.usesDxvk)
+        if (gpuInfo.vendorId != VendorId::AMD && !gpuInfo.usesDxvk &&
+            Config::Instance()->Fsr4ForceModel.value_or_default() == FSR4Support::None)
+        {
             continue;
+        }
 
         ComPtr<IDXGIFactory4> factory;
         if (FAILED(DxgiProxy::CreateDxgiFactory_()(__uuidof(factory), (IDXGIFactory**) factory.GetAddressOf())))
@@ -401,7 +404,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
             // D3D12 device is needed to be able to query amdxc and check for vkd3d-proton
             ScopedCreatingD3DDevice scopedCreating {};
             ScopedSkipVulkanHooks skipVulkanHooks {};
-            ID3D12Device* localDevice = nullptr;
+            ComPtr<ID3D12Device> localDevice;
             auto createResult = pD3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&localDevice));
 
             if (SUCCEEDED(createResult) && localDevice)
@@ -413,14 +416,17 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                 if (localDevice && SUCCEEDED(localDevice->QueryInterface(IID_PPV_ARGS(&vkd3dInterop))))
                     res.usesVkd3dProton = true;
 
+                // Kinda questionable, may need to reconsider
+                if (Config::Instance()->Fsr4ForceModel.value_or_default() != FSR4Support::None)
+                {
+                    res.fsr4Support = Config::Instance()->Fsr4ForceModel.value_or_default();
+                    res.fsr4ForcedSupport = true;
+                }
+
                 if (gpuInfo.vendorId == VendorId::AMD)
                 {
-                    // Kinda questionable, may need to reconsider
-                    if (Config::Instance()->Fsr4ForceCapable.value_or_default())
-                        res.fsr4Capable = true;
-
                     // Query vkd3d-proton for extensions it's using to look for the required one for FSR 4
-                    if (!res.fsr4Capable && res.usesVkd3dProton)
+                    if (res.fsr4Support == FSR4Support::None && res.usesVkd3dProton)
                     {
                         UINT extensionCount = 0;
 
@@ -436,7 +442,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                                     // Only RDNA4+
                                     if (!strcmp("VK_EXT_shader_float8", exts[i]))
                                     {
-                                        res.fsr4Capable = true;
+                                        res.fsr4Support = FSR4Support::FP8;
                                         break;
                                     }
                                 }
@@ -447,14 +453,14 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                     // Pre-RDNA4 GPUs on Linux can support FSR 4 but require a special envvar
                     // check for the envvar and assume everything else is also setup for FSR 4 to work on those
                     // cards
-                    if (!res.fsr4Capable)
+                    if (res.fsr4Support == FSR4Support::None)
                     {
                         const char* envvar = getenv("DXIL_SPIRV_CONFIG");
                         if (envvar && strstr(envvar, "wmma_rdna3_workaround"))
-                            res.fsr4Capable = true;
+                            res.fsr4Support = FSR4Support::FP8;
                     }
 
-                    if (!res.fsr4Capable)
+                    if (res.fsr4Support == FSR4Support::None)
                     {
                         auto moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
 
@@ -471,21 +477,43 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
 
                         // Query amdxc for a specific intrinsics support, FSR 4 checks more but hopefully this one
                         // is enough amdxc on Windows hates vkd3d-proton's device, on Linux it's fine
-                        if (!res.fsr4Capable && localDevice &&
-                            (State::Instance().isRunningOnLinux || !res.usesVkd3dProton) && AmdExtD3DCreateInterface)
+                        if (localDevice && (State::Instance().isRunningOnLinux || !res.usesVkd3dProton) &&
+                            AmdExtD3DCreateInterface)
                         {
-                            if (SUCCEEDED(AmdExtD3DCreateInterface(localDevice, IID_PPV_ARGS(&amdExtD3DFactory))))
+                            if (SUCCEEDED(AmdExtD3DCreateInterface(localDevice.Get(), IID_PPV_ARGS(&amdExtD3DFactory))))
                             {
                                 ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics = nullptr;
 
-                                if (amdExtD3DFactory && SUCCEEDED(amdExtD3DFactory->CreateInterface(
-                                                            localDevice, IID_PPV_ARGS(&amdExtD3DShaderIntrinsics))))
+                                if (amdExtD3DFactory &&
+                                    SUCCEEDED(amdExtD3DFactory->CreateInterface(
+                                        localDevice.Get(), IID_PPV_ARGS(&amdExtD3DShaderIntrinsics))))
                                 {
                                     HRESULT float8support = amdExtD3DShaderIntrinsics->CheckSupport(
                                         AmdExtD3DShaderIntrinsicsSupport_Float8Conversion);
-                                    res.fsr4Capable = float8support == S_OK;
+
+                                    if (float8support == S_OK)
+                                        res.fsr4Support = FSR4Support::FP8;
                                 }
                             }
+                        }
+                    }
+
+                    // Check for native INT8 support
+                    if (res.fsr4Support == FSR4Support::None)
+                    {
+                        device_info::AdapterId adapterId(gpuInfo.vendorId, gpuInfo.deviceId, gpuInfo.revisionId);
+                        auto cardInfo = device_info::GetCardInfo(adapterId);
+
+                        if (cardInfo.has_value())
+                        {
+                            if (cardInfo.value().generation == device_info::HwGeneration::kGfx11)
+                                res.fsr4Support = FSR4Support::INT8;
+
+                            // if (cardInfo.value().generation == device_info::HwGeneration::kGfx11_5)
+                            //{
+                            //     res.fsr4Support = FSR4Support::INT8;
+                            //     res.fsr4ForcedSupport = true;
+                            // }
                         }
                     }
 
@@ -493,7 +521,6 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                     // but our FSR 4 upgrade code call this function so it gets complicated
                 }
 
-                localDevice->Release();
                 results.push_back(res);
             }
         }
@@ -508,7 +535,8 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                 if (IsEqualLUID(gpuInfo.luid, res.luid))
                 {
                     gpuInfo.usesVkd3dProton = res.usesVkd3dProton;
-                    gpuInfo.fsr4Capable = res.fsr4Capable;
+                    gpuInfo.fsr4Support = res.fsr4Support;
+                    gpuInfo.fsr4ForcedSupport = res.fsr4ForcedSupport;
                     break;
                 }
             }
@@ -522,12 +550,68 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
 
     for (auto& gpu : detectedGpus)
     {
+        std::string fsr4Support = "unknown";
+        if (gpu.fsr4Support == FSR4Support::None)
+            fsr4Support = "false";
+        else if (gpu.fsr4Support == FSR4Support::FP8)
+            fsr4Support = "fp8";
+        else if (gpu.fsr4Support == FSR4Support::INT8)
+            fsr4Support = "int8";
+
+        if (gpu.fsr4ForcedSupport)
+            fsr4Support += " (forced)";
+
         gpus += std::format("{}{}\n", indent, gpu.name);
         gpus += std::format("{}    vendorId: {:X}, deviceId: {:X}, VRAM: {}MB\n", indent, (uint32_t) gpu.vendorId,
                             gpu.deviceId, gpu.dedicatedVramInBytes / (1024 * 1024));
         gpus += std::format("{}    dxvk: {}, vkd3d-proton: {}\n", indent, gpu.usesDxvk, gpu.usesVkd3dProton);
-        gpus += std::format("{}    Upscaler support - fsr4: {}, dlss: {}\n", indent, gpu.fsr4Capable, gpu.dlssCapable);
+        gpus += std::format("{}    Upscaler support - fsr4: {}, dlss: {}\n", indent, fsr4Support, gpu.dlssCapable);
     }
 
     spdlog::info(gpus);
+
+    auto primaryGpu = !detectedGpus.empty() ? detectedGpus.front() : GpuInformation {};
+
+    if (primaryGpu.vendorId != VendorId::AMD && primaryGpu.fsr4ForcedSupport &&
+        primaryGpu.fsr4Support == FSR4Support::FP8)
+    {
+        State::Instance().postCodes |= PostCode::TryingFsr4Fp8OnUnsupported;
+
+        std::scoped_lock lock(mutex);
+        for (auto& gpuInfo : cache)
+        {
+            gpuInfo.fsr4Support = FSR4Support::None;
+            gpuInfo.fsr4ForcedSupport = false;
+        }
+    }
+
+    // This means that the user didn't want to force support but we decided that we want to force it
+    // We need spoofing on but if it's off then this will be too late for most cases to enable it
+    // But if we only force it for AMD GPUs then that's fine
+    if (Config::Instance()->Fsr4ForceModel.value_or_default() == FSR4Support::None && primaryGpu.fsr4ForcedSupport)
+    {
+        //// We need spoofing hooks for FFX but want to avoid spoofing for the rest of the game
+        // if (!Config::Instance()->DxgiSpoofing.value_or_default())
+        //{
+        //     Config::Instance()->SpoofedVendorId.set_volatile_value(primaryGpu.vendorId);
+        //     Config::Instance()->SpoofedDeviceId.set_volatile_value(primaryGpu.deviceId);
+        // }
+
+        // Config::Instance()->DxgiSpoofing.set_volatile_value(true);
+    }
+}
+
+void IdentifyGpu::updateInt8Support(std::optional<bool>& sdkSupportsInt8, std::optional<bool>& amdxcffx64SupportsInt8)
+{
+    if (amdxcffx64SupportsInt8 && !amdxcffx64SupportsInt8.value() && sdkSupportsInt8 && !sdkSupportsInt8.value())
+    {
+        LOG_DEBUG("Neither driver nor the sdk supports FSR 4 Int 8, disabling");
+
+        std::scoped_lock lock(mutex);
+        for (auto& gpuInfo : cache)
+        {
+            gpuInfo.fsr4Support = FSR4Support::None;
+            gpuInfo.fsr4ForcedSupport = false;
+        }
+    }
 }

@@ -12,6 +12,10 @@
 
 struct AmdExtD3DFactory : public IAmdExtD3DFactory
 {
+    bool linux = false;
+    FSR4Support fsr4Support {};
+    bool fsr4ForcedSupport = false;
+
     HRESULT STDMETHODCALLTYPE CreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject) override
     {
         if (riid == __uuidof(IAmdExtD3DShaderIntrinsics))
@@ -21,14 +25,21 @@ struct AmdExtD3DFactory : public IAmdExtD3DFactory
 
             *ppvObject = Amdxc64Hooks::amdExtD3DShaderIntrinsics;
 
+            Amdxc64Hooks::o_amdExtD3DFactory->CreateInterface(pOuter, riid,
+                                                              (void**) &Amdxc64Hooks::o_amdExtD3DShaderIntrinsics);
+
             LOG_INFO("Custom IAmdExtD3DShaderIntrinsics queried, returning custom AmdExtD3DShaderIntrinsics");
 
             return S_OK;
         }
-        else if (riid == __uuidof(IAmdExtD3DDevice8))
+        // TODO: Implementation too incomplete to always enable it
+        else if (riid == __uuidof(IAmdExtD3DDevice8) && (linux || fsr4ForcedSupport))
         {
             if (Amdxc64Hooks::amdExtD3DDevice8 == nullptr)
+            {
                 Amdxc64Hooks::amdExtD3DDevice8 = new AmdExtD3DDevice8();
+                Amdxc64Hooks::amdExtD3DDevice8->fsr4Support = fsr4Support;
+            }
 
             *ppvObject = Amdxc64Hooks::amdExtD3DDevice8;
 
@@ -93,6 +104,9 @@ void Amdxc64Hooks::Init()
 
     if (moduleAmdxc64 != nullptr)
     {
+        // Pin the dll so that our hooks stay valid, mainly for Linux
+        GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN, L"amdxc64.dll", &moduleAmdxc64);
+
         LOG_INFO("amdxc64.dll loaded");
         o_AmdExtD3DCreateInterface = (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
             moduleAmdxc64, "AmdExtD3DCreateInterface");
@@ -120,14 +134,20 @@ void Amdxc64Hooks::Init()
 
 HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
 {
-    const bool runFsr4Upgrade = IdentifyGpu::getPrimaryGpu().fsr4Capable;
+    const auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+    const bool runFsr4Upgrade = primaryGpu.fsr4Support != FSR4Support::None;
 
     // Proton bleeding edge ships amdxc64 that is missing some required functions
-    if (runFsr4Upgrade && riid == __uuidof(IAmdExtD3DFactory) && State::Instance().isRunningOnLinux)
+    if (runFsr4Upgrade && riid == __uuidof(IAmdExtD3DFactory))
     {
         // Required for the custom AmdExtFfxApi, lack of it triggers visual glitches
         if (amdExtD3DFactory == nullptr)
+        {
             amdExtD3DFactory = new AmdExtD3DFactory();
+            amdExtD3DFactory->linux = State::Instance().isRunningOnLinux;
+            amdExtD3DFactory->fsr4Support = primaryGpu.fsr4Support;
+            amdExtD3DFactory->fsr4ForcedSupport = primaryGpu.fsr4ForcedSupport;
+        }
 
         *ppvObject = amdExtD3DFactory;
 
@@ -142,7 +162,10 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
     else if (runFsr4Upgrade && riid == __uuidof(IAmdExtFfxApi))
     {
         if (amdExtFfxApi == nullptr)
+        {
             amdExtFfxApi = new AmdExtFfxApi();
+            amdExtFfxApi->fsr4Support = primaryGpu.fsr4Support;
+        }
 
         // Return custom one
         *ppvObject = amdExtFfxApi;

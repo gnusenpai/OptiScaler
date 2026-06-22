@@ -108,10 +108,16 @@ FARPROC WINAPI KernelHooks::hk_K32_GetProcAddress(HMODULE hModule, LPCSTR lpProc
     // 2nd check is amdxcffx64.dll trying to queue amdxc64 but amdxc64 not being loaded.
     // Also skip the internal call of amdxc64
     if (lpProcName != nullptr && (hModule == amdxc64Mark || hModule == nullptr) &&
-        lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 && IdentifyGpu::getPrimaryGpu().fsr4Capable &&
+        lstrcmpA(lpProcName, "AmdExtD3DCreateInterface") == 0 &&
+        IdentifyGpu::getPrimaryGpu().fsr4Support != FSR4Support::None &&
         Util::GetCallerModule(_ReturnAddress()) != KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll"))
     {
+        LOG_TRACE("Giving hkAmdExtD3DCreateInterface");
         return (FARPROC) &Amdxc64Hooks::hkAmdExtD3DCreateInterface;
+    }
+    else if (hModule == amdxc64Mark)
+    {
+        return o_K32_GetProcAddress(KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll"), lpProcName);
     }
 
     return o_K32_GetProcAddress(hModule, lpProcName);
@@ -135,12 +141,16 @@ HMODULE WINAPI KernelHooks::hk_K32_GetModuleHandleA(LPCSTR lpModuleName)
             // Therefore it should be safe for us to return a custom implementation when it's not loaded
             // This can get removed if Proton starts to ship amdxc64
 
+            // For system with amdxc64 loaded - we should've caught the load and hooked it
+            // For systems without - we provide that app with a fake handle and track the usage that way
+
             auto original = o_K32_GetModuleHandleA(lpModuleName);
 
             auto primaryGpu = IdentifyGpu::getPrimaryGpu();
-            if (original == nullptr && primaryGpu.fsr4Capable)
+
+            if (original == nullptr && primaryGpu.fsr4Support != FSR4Support::None)
             {
-                LOG_INFO("amdxc64.dll is not loaded, giving a fake HMODULE");
+                LOG_INFO("giving a fake HMODULE for amdxc64.dll");
                 return amdxc64Mark;
             }
 
@@ -149,6 +159,34 @@ HMODULE WINAPI KernelHooks::hk_K32_GetModuleHandleA(LPCSTR lpModuleName)
     }
 
     return o_K32_GetModuleHandleA(lpModuleName);
+}
+
+VALIDATE_HOOK(hk_K32_GetModuleHandleW, Kernel32Proxy::PFN_GetModuleHandleW)
+HMODULE WINAPI KernelHooks::hk_K32_GetModuleHandleW(LPCWSTR lpModuleName)
+{
+    if (lpModuleName != NULL)
+    {
+        if (wcscmp(lpModuleName, L"amdxc64.dll") == 0)
+        {
+            LOG_TRACE("amdxc64.dll call");
+
+            // See comments in hk_K32_GetModuleHandleA
+
+            auto original = o_K32_GetModuleHandleW(lpModuleName);
+
+            auto primaryGpu = IdentifyGpu::getPrimaryGpu();
+
+            if (original == nullptr && primaryGpu.fsr4Support != FSR4Support::None)
+            {
+                LOG_INFO("giving a fake HMODULE for amdxc64.dll");
+                return amdxc64Mark;
+            }
+
+            return original;
+        }
+    }
+
+    return o_K32_GetModuleHandleW(lpModuleName);
 }
 
 VALIDATE_HOOK(hk_K32_GetModuleHandleExA, Kernel32Proxy::PFN_GetModuleHandleExA)

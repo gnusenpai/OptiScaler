@@ -1719,6 +1719,20 @@ DWORD WINAPI getGpuInfo(LPVOID hModuleVoid)
     if (primaryGpu.vendorId == VendorId::AMD)
         Amdxc64Hooks::Init();
 
+    if (Config::Instance()->Fsr4ForceModel.value_or_default() == FSR4Support::INT8)
+    {
+        // We need spoofing hooks for FFX but want to avoid spoofing for the rest of the game
+        if (!Config::Instance()->DxgiSpoofing.value_or_default())
+        {
+            std::wstring wname = string_to_wstring(primaryGpu.name);
+            Config::Instance()->SpoofedVendorId.set_volatile_value(primaryGpu.vendorId);
+            Config::Instance()->SpoofedDeviceId.set_volatile_value(primaryGpu.deviceId);
+            Config::Instance()->SpoofedGPUName.set_volatile_value(wname);
+        }
+
+        Config::Instance()->DxgiSpoofing.set_volatile_value(true);
+    }
+
     // If DX12 already loaded then grab the full GPU info right away
     if (hModuleVoid)
         IdentifyGpu::updateD3d12Capabilities();

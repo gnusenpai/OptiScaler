@@ -262,12 +262,17 @@ bool Config::Reload(std::filesystem::path iniPath)
             FfxFGIndex.set_from_config(readInt("FSR", "FGIndex"));
             FsrUseMaskForTransparency.set_from_config(readBool("FSR", "UseReactiveMaskForTransparency"));
             DlssReactiveMaskBias.set_from_config(readFloat("FSR", "DlssReactiveMaskBias"));
-            Fsr4ForceCapable.set_from_config(readBool("FSR", "Fsr4ForceCapable"));
+
+            if (auto v = readEnum<FSR4Support>("FSR", "Fsr4ForceModel"))
+                Fsr4ForceModel.set_from_config(*v);
+            else
+                Fsr4ForceModel.reset();
+
             Fsr4EnableWatermark.set_from_config(readBool("FSR", "Fsr4EnableWatermark"));
             Fsr4DoNotLoadAmdxc64.set_from_config(readBool("FSR", "Fsr4DoNotLoadAmdxc64"));
 
-            if (auto setting = readInt("FSR", "Fsr4Model"); setting.has_value() && setting >= 0 && setting <= 5)
-                Fsr4Model.set_from_config(setting);
+            if (auto setting = readInt("FSR", "Fsr4Preset"); setting.has_value() && setting >= 0 && setting <= 5)
+                Fsr4Preset.set_from_config(setting);
 
             FsrNonLinearColorSpace.set_from_config(readBool("FSR", "FsrNonLinearColorSpace"));
             FsrNonLinearPQ.set_from_config(readBool("FSR", "FsrNonLinearPQ"));
@@ -1052,8 +1057,8 @@ bool Config::SaveIni()
                      GetBoolValue(Instance()->FsrUseMaskForTransparency.value_for_config()).c_str());
         ini.SetValue("FSR", "DlssReactiveMaskBias",
                      GetFloatValue(Instance()->DlssReactiveMaskBias.value_for_config()).c_str());
-        ini.SetValue("FSR", "Fsr4ForceCapable", GetBoolValue(Instance()->Fsr4ForceCapable.value_for_config()).c_str());
-        ini.SetValue("FSR", "Fsr4Model", GetIntValue(Instance()->Fsr4Model.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4ForceModel", GetIntValue(Instance()->Fsr4ForceModel.value_for_config()).c_str());
+        ini.SetValue("FSR", "Fsr4Preset", GetIntValue(Instance()->Fsr4Preset.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4EnableWatermark",
                      GetBoolValue(Instance()->Fsr4EnableWatermark.value_for_config()).c_str());
         ini.SetValue("FSR", "Fsr4DoNotLoadAmdxc64",

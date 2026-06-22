@@ -91,6 +91,14 @@ enum class SharpenShader
     LocalContrastDepthAware
 };
 
+enum class FSR4Support : uint8_t
+{
+    None = 0,
+    FP8 = 1,
+    INT8 = 2,
+    Count
+};
+
 std::string ApiUpscalerInputName(ApiUpscalerInput upscaler);
 
 std::string UpscalerDisplayName(Upscaler upscaler, API api = API::NotSelected);

@@ -36,7 +36,7 @@ std::string ApiUpscalerInputName(ApiUpscalerInput upscaler)
 
 std::string UpscalerDisplayName(Upscaler upscaler, API api)
 {
-    bool fsr4Capable = IdentifyGpu::getPrimaryGpu().fsr4Capable;
+    bool fsr4Capable = IdentifyGpu::getPrimaryGpu().fsr4Support != FSR4Support::None;
 
     switch (upscaler)
     {

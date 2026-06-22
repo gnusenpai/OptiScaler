@@ -1412,6 +1412,14 @@ void MenuCommon::UpdateVersionAndStartupNotifications(RenderMenuContext& ctx)
             ImGui::InsertNotification(notification);
         }
 
+        if (state.postCodes & PostCode::TryingFsr4Fp8OnUnsupported)
+        {
+            ImGuiToast notification { ImGuiToastType::Warning, 10000 };
+            notification.setTitle("Silly goose detected");
+            notification.setContent("FSR 4 FP8 only works on AMD");
+            ImGui::InsertNotification(notification);
+        }
+
         state.postDone = true;
     }
 
@@ -2565,8 +2573,8 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
                     // Conversion from 0 -> 6 into nullopt + 0 -> 5 is required
                     uint32_t configModes = 0;
 
-                    if (config->Fsr4Model.has_value())
-                        configModes = config->Fsr4Model.value_or(0) + 1;
+                    if (config->Fsr4Preset.has_value())
+                        configModes = config->Fsr4Preset.value_or(0) + 1;
 
                     if (configModes < 0 || configModes >= models.size())
                         configModes = 0;
@@ -2575,24 +2583,23 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                     if (ImGui::BeginTable("nonLinear", 2, ImGuiTableFlags_SizingStretchProp))
                     {
-
                         ImGui::TableNextColumn();
 
-                        if (ImGui::BeginCombo("Models", selectedModel))
+                        if (ImGui::BeginCombo("Presets", selectedModel))
                         {
                             for (int n = 0; n < models.size(); n++)
                             {
                                 uint32_t selection = 0;
 
-                                if (config->Fsr4Model.has_value())
-                                    selection = config->Fsr4Model.value_or(0) + 1;
+                                if (config->Fsr4Preset.has_value())
+                                    selection = config->Fsr4Preset.value_or(0) + 1;
 
                                 if (ImGui::Selectable(models[n], selection == n))
                                 {
                                     if (n < 1)
-                                        config->Fsr4Model.reset();
+                                        config->Fsr4Preset.reset();
                                     else
-                                        config->Fsr4Model = n - 1;
+                                        config->Fsr4Preset = n - 1;
 
                                     state.newBackend = currentBackend;
                                     MARK_ALL_BACKENDS_CHANGED();
@@ -2615,8 +2622,8 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                         ImGui::TableNextColumn();
 
-                        if (state.currentFsr4Model.has_value())
-                            ImGui::Text("Current model: %d", state.currentFsr4Model.value());
+                        if (state.currentFsr4Preset.has_value())
+                            ImGui::Text("Current preset: %d", state.currentFsr4Preset.value());
                         else
                             ImGui::Text("Failed to hook");
 
@@ -4330,8 +4337,8 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
                 // Hide to reduce confusion, config is still read
                 bool isUnrealEngine = State::Instance().NVNGX_Engine == NVSDK_NGX_ENGINE_TYPE_UNREAL ||
                                       State::Instance().gameQuirks & GameQuirk::ForceUnrealEngine;
-                if (!primaryGpu.dlssCapable && !primaryGpu.fsr4Capable && !primaryGpu.usesVkd3dProton &&
-                    !isUnrealEngine)
+                if (!primaryGpu.dlssCapable && primaryGpu.fsr4Support == FSR4Support::None &&
+                    !primaryGpu.usesVkd3dProton && !isUnrealEngine)
                 {
                     if (bool makeDepthCopy = config->MakeDepthCopy.value_or_default();
                         ImGui::Checkbox("Fix broken visuals", &makeDepthCopy))

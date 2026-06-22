@@ -61,8 +61,8 @@ struct GpuInformation
     std::filesystem::path driverStore {};
 
     // AMD
-    bool fsr4Capable = false;
-    ID3D12Device* d3d12device = nullptr;
+    bool fsr4ForcedSupport = false;
+    FSR4Support fsr4Support {};
     device_info::HwGeneration amdHwGeneration = device_info::HwGeneration::kUndefinedGeneration;
 
     // Nvidia
@@ -93,4 +93,5 @@ class IdentifyGpu
     static std::vector<GpuInformation> getAllGpus();
     static GpuInformation getPrimaryGpu();
     static void updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3D12CreateDevice = nullptr);
+    static void updateInt8Support(std::optional<bool>& sdkSupportsInt8, std::optional<bool>& amdxcffx64SupportsInt8);
 };

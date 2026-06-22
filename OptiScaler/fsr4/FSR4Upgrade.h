@@ -4,6 +4,8 @@
 
 struct AmdExtFfxApi : public IAmdExtFfxApi
 {
+    FSR4Support fsr4Support {};
+
     PFN_UpdateFfxApiProvider o_UpdateFfxApiProvider = nullptr;
     PFN_UpdateFfxApiProviderEx o_UpdateFfxApiProviderEx = nullptr;
 
@@ -34,6 +36,8 @@ struct AmdExtD3DShaderIntrinsics : public IAmdExtD3DShaderIntrinsics
 
 struct AmdExtD3DDevice8 : public IAmdExtD3DDevice8
 {
+    FSR4Support fsr4Support {};
+
     STUB(1)
     STUB(2)
     STUB(3)

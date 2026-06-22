@@ -436,8 +436,8 @@ class Config
     CustomOptional<float> FsrMinDisOccAcc { -0.333f };
 
     // FSR4
-    CustomOptional<bool> Fsr4ForceCapable { false };
-    CustomOptional<uint32_t, NoDefault> Fsr4Model;
+    CustomOptional<FSR4Support> Fsr4ForceModel { FSR4Support::None };
+    CustomOptional<uint32_t, NoDefault> Fsr4Preset;
     CustomOptional<bool> Fsr4EnableWatermark { false };
     CustomOptional<bool> Fsr4DoNotLoadAmdxc64 { false };
 

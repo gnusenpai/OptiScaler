@@ -60,6 +60,7 @@ enum class WorkingMode : uint32_t
 enum class PostCode : uint32_t
 {
     SlPluginsAlreadyInMemory,
+    TryingFsr4Fp8OnUnsupported,
     _
 };
 
@@ -241,7 +242,7 @@ class State
     std::vector<uint64_t> ffxUpscalerVersionIds {};
     std::vector<const char*> ffxFGVersionNames {};
     std::vector<uint64_t> ffxFGVersionIds {};
-    std::optional<uint32_t> currentFsr4Model {};
+    std::optional<uint32_t> currentFsr4Preset {};
 
     // Linux checks
     bool isRunningOnLinux = false;

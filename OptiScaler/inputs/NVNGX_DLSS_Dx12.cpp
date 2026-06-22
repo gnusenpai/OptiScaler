@@ -622,7 +622,7 @@ static Upscaler GetUpscalerBackend()
     if (NVNGXProxy::IsDx12Inited() && primaryGpu.dlssCapable)
         upscaler = Upscaler::DLSS;
 
-    if (primaryGpu.fsr4Capable)
+    if (primaryGpu.fsr4Support != FSR4Support::None)
         upscaler = Upscaler::FFX;
 
     if (Config::Instance()->Dx12Upscaler.has_value())
