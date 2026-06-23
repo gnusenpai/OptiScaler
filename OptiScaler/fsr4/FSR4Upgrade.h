@@ -4,7 +4,7 @@
 
 struct AmdExtFfxApi : public IAmdExtFfxApi
 {
-    FSR4Support fsr4Support {};
+    FSR4Support realFsr4Support {};
 
     PFN_UpdateFfxApiProvider o_UpdateFfxApiProvider = nullptr;
     PFN_UpdateFfxApiProviderEx o_UpdateFfxApiProviderEx = nullptr;

@@ -164,7 +164,7 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
         if (amdExtFfxApi == nullptr)
         {
             amdExtFfxApi = new AmdExtFfxApi();
-            amdExtFfxApi->fsr4Support = primaryGpu.fsr4Support;
+            amdExtFfxApi->realFsr4Support = primaryGpu.realFsr4Support;
         }
 
         // Return custom one

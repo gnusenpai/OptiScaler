@@ -375,7 +375,8 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
     {
         LUID luid;
         bool usesVkd3dProton = false;
-        FSR4Support fsr4Support = FSR4Support::None;
+        FSR4Support fsr4Support = FSR4Support::None;     // Includes force
+        FSR4Support realFsr4Support = FSR4Support::None; // Doesn't include force
         bool fsr4ForcedSupport = false;
     };
     std::vector<D3d12Result> results;
@@ -426,7 +427,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                 if (gpuInfo.vendorId == VendorId::AMD)
                 {
                     // Query vkd3d-proton for extensions it's using to look for the required one for FSR 4
-                    if (res.fsr4Support == FSR4Support::None && res.usesVkd3dProton)
+                    if (res.usesVkd3dProton)
                     {
                         UINT extensionCount = 0;
 
@@ -442,7 +443,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                                     // Only RDNA4+
                                     if (!strcmp("VK_EXT_shader_float8", exts[i]))
                                     {
-                                        res.fsr4Support = FSR4Support::FP8;
+                                        res.realFsr4Support = FSR4Support::FP8;
                                         break;
                                     }
                                 }
@@ -453,14 +454,14 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                     // Pre-RDNA4 GPUs on Linux can support FSR 4 but require a special envvar
                     // check for the envvar and assume everything else is also setup for FSR 4 to work on those
                     // cards
-                    if (res.fsr4Support == FSR4Support::None)
+                    if (res.realFsr4Support == FSR4Support::None)
                     {
                         const char* envvar = getenv("DXIL_SPIRV_CONFIG");
                         if (envvar && strstr(envvar, "wmma_rdna3_workaround"))
-                            res.fsr4Support = FSR4Support::FP8;
+                            res.realFsr4Support = FSR4Support::FP8;
                     }
 
-                    if (res.fsr4Support == FSR4Support::None)
+                    if (res.realFsr4Support == FSR4Support::None)
                     {
                         auto moduleAmdxc64 = KernelBaseProxy::GetModuleHandleW_()(L"amdxc64.dll");
 
@@ -492,14 +493,14 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                                         AmdExtD3DShaderIntrinsicsSupport_Float8Conversion);
 
                                     if (float8support == S_OK)
-                                        res.fsr4Support = FSR4Support::FP8;
+                                        res.realFsr4Support = FSR4Support::FP8;
                                 }
                             }
                         }
                     }
 
                     // Check for native INT8 support
-                    if (res.fsr4Support == FSR4Support::None)
+                    if (res.realFsr4Support == FSR4Support::None)
                     {
                         device_info::AdapterId adapterId(gpuInfo.vendorId, gpuInfo.deviceId, gpuInfo.revisionId);
                         auto cardInfo = device_info::GetCardInfo(adapterId);
@@ -507,7 +508,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                         if (cardInfo.has_value())
                         {
                             if (cardInfo.value().generation == device_info::HwGeneration::kGfx11)
-                                res.fsr4Support = FSR4Support::INT8;
+                                res.realFsr4Support = FSR4Support::INT8;
 
                             // if (cardInfo.value().generation == device_info::HwGeneration::kGfx11_5)
                             //{
@@ -516,6 +517,9 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                             // }
                         }
                     }
+
+                    if (res.fsr4Support == FSR4Support::None)
+                        res.fsr4Support = res.realFsr4Support;
 
                     // TODO: could now try to ask amdxcffx for FSR 4 and see if it returns it
                     // but our FSR 4 upgrade code call this function so it gets complicated
@@ -536,6 +540,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                 {
                     gpuInfo.usesVkd3dProton = res.usesVkd3dProton;
                     gpuInfo.fsr4Support = res.fsr4Support;
+                    gpuInfo.realFsr4Support = res.realFsr4Support;
                     gpuInfo.fsr4ForcedSupport = res.fsr4ForcedSupport;
                     break;
                 }

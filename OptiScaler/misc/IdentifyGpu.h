@@ -63,6 +63,7 @@ struct GpuInformation
     // AMD
     bool fsr4ForcedSupport = false;
     FSR4Support fsr4Support {};
+    FSR4Support realFsr4Support {};
     device_info::HwGeneration amdHwGeneration = device_info::HwGeneration::kUndefinedGeneration;
 
     // Nvidia

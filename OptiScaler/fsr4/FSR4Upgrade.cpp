@@ -126,9 +126,7 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
     }
 
     // Prevents the use of FP8 FG on unsupported cards
-    // As a consequence, can't use MLFG on RDNA4 when forcing INT8
-    // IdentifyGpu would need to have a field for pre-spoofed fsr4 support
-    if (effectType == FFXStructType::FG && fsr4Support != FSR4Support::FP8)
+    if (effectType == FFXStructType::FG && realFsr4Support != FSR4Support::FP8)
         return E_NOINTERFACE;
 
     // Result 0x80004002 (E_NOINTERFACE) basically means that amdxcffx64 doesn't have a provider for that effect
