@@ -471,7 +471,6 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                         if (moduleAmdxc64 == nullptr)
                             continue;
 
-                        ComPtr<IAmdExtD3DFactory> amdExtD3DFactory = nullptr;
                         auto AmdExtD3DCreateInterface =
                             (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
                                 moduleAmdxc64, "AmdExtD3DCreateInterface");
@@ -481,9 +480,10 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                         if (localDevice && (State::Instance().isRunningOnLinux || !res.usesVkd3dProton) &&
                             AmdExtD3DCreateInterface)
                         {
+                            ComPtr<IAmdExtD3DFactory> amdExtD3DFactory;
                             if (SUCCEEDED(AmdExtD3DCreateInterface(localDevice.Get(), IID_PPV_ARGS(&amdExtD3DFactory))))
                             {
-                                ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics = nullptr;
+                                ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics;
 
                                 if (amdExtD3DFactory &&
                                     SUCCEEDED(amdExtD3DFactory->CreateInterface(
@@ -495,6 +495,9 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                                     if (float8support == S_OK)
                                         res.realFsr4Support = FSR4Support::FP8;
                                 }
+
+                                // Prevent amdxc64 leaking the d3d12 device
+                                localDevice->Release();
                             }
                         }
                     }
