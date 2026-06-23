@@ -51,6 +51,8 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
         Util::version_t sdkVersion;
         Util::GetFileVersion(sdkDllPath, nullptr, &sdkVersion);
 
+        LOG_TRACE("sdkVersion: {}.{}.{}.{}", sdkVersion.major, sdkVersion.minor, sdkVersion.patch, sdkVersion.reserved);
+
         sdkSupportsInt8 = sdkVersion >= Util::version_t(4, 1, 1, 0);
         IdentifyGpu::updateInt8Support(sdkSupportsInt8, amdxcffx64SupportsInt8);
     }
@@ -92,6 +94,8 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
 
         if (FSR4Upgrade::moduleAmdxcffx64)
         {
+            bool wasInt8ModelSelectionHooked = FSR4ModelSelection::IsCreateModelDriver2Hooked();
+
             FSR4ModelSelection::Hook(FSR4Upgrade::moduleAmdxcffx64, FSR4Source::DriverDll);
 
             wchar_t driverDllPath[MAX_PATH] = { 0 };
@@ -100,7 +104,19 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
             Util::version_t amdxcffx64Version;
             Util::GetFileVersion(driverDllPath, &amdxcffx64Version);
 
+            LOG_TRACE("amdxcffx64Version: {}.{}.{}.{}", amdxcffx64Version.major, amdxcffx64Version.minor,
+                      amdxcffx64Version.patch, amdxcffx64Version.reserved);
+
             amdxcffx64SupportsInt8 = amdxcffx64Version >= Util::version_t(2, 3, 0, 0);
+
+            // Seems to happen with older Proton builds
+            if (!amdxcffx64SupportsInt8.value() && !wasInt8ModelSelectionHooked &&
+                FSR4ModelSelection::IsCreateModelDriver2Hooked())
+            {
+                LOG_TRACE("WAR: Override a likely wrong version read");
+                amdxcffx64SupportsInt8 = true;
+            }
+
             IdentifyGpu::updateInt8Support(sdkSupportsInt8, amdxcffx64SupportsInt8);
         }
         else
