@@ -953,7 +953,7 @@ bool Config::SaveIni()
         ini.SetValue("DLSSG", "OverrideForceDMFG",
                      GetBoolValue(Instance()->FGDLSSGOverrideForceDMFG.value_for_config()).c_str());
         ini.SetValue("DLSSG", "DispatchFlags",
-                     GetIntValue(Instance()->FGDLSSGDispatchFlags.value_for_config()).c_str());
+                     GetIntValue(Instance()->FGDLSSGDispatchFlags.value_for_config(), true).c_str());
         ini.SetValue("DLSSG", "ShowDebug", GetIntValue(Instance()->FGDLSSGShowDebug.value_for_config()).c_str());
         ini.SetValue("DLSSG", "DisableHudless",
                      GetBoolValue(Instance()->FGDLSSGDisableHudless.value_for_config()).c_str());
