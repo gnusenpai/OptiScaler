@@ -7,6 +7,7 @@ PFN_getModelBlob FSR4ModelSelection::o_getModelBlobSDK = nullptr;
 PFN_getModelBlob FSR4ModelSelection::o_getModelBlobDriver = nullptr;
 PFN_createModel FSR4ModelSelection::o_createModelSDK = nullptr;
 PFN_createModel FSR4ModelSelection::o_createModelDriver = nullptr;
+PFN_createModel2 FSR4ModelSelection::o_createModelSDK2 = nullptr;
 PFN_createModel2 FSR4ModelSelection::o_createModelDriver2 = nullptr;
 
 uint32_t getCorrectedPreset(uint32_t preset)
@@ -86,6 +87,17 @@ uint64_t FSR4ModelSelection::hkcreateModelDriver2(void* context, uint32_t preset
     preset = getCorrectedPreset(preset);
 
     auto result = o_createModelDriver2(context, preset, model);
+
+    return result;
+}
+
+uint64_t FSR4ModelSelection::hkcreateModelSDK2(void* context, uint32_t preset, void** model)
+{
+    LOG_FUNC();
+
+    preset = getCorrectedPreset(preset);
+
+    auto result = o_createModelSDK2(context, preset, model);
 
     return result;
 }
@@ -250,27 +262,53 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
         }
     }
 
-    if (!o_createModelDriver && !o_createModelDriver2 && source == FSR4Source::DriverDll)
+    if (!o_createModelDriver && !o_createModelDriver2)
     {
-        // From amdxcffx64 2.3.0
+        // From amdxcffx64 2.3.0 / amd_fidelityfx_upscaler_dx12 4.1.1.2740
         const char* pattern = "48 8B C4 48 89 58 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? "
                               "0F 29 70 ? 0F 29 78 ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 4D 8B E8 8B FA 48 8B";
-        o_createModelDriver2 = (PFN_createModel2) scanner::GetAddress(module, pattern);
 
-        if (o_createModelDriver2)
+        if (source == FSR4Source::DriverDll)
         {
-            LOG_DEBUG("Hooking model selection, o_createModelDriver2: {:X}", (uintptr_t) o_createModelDriver2);
+            o_createModelDriver2 = (PFN_createModel2) scanner::GetAddress(module, pattern);
 
-            DetourTransactionBegin();
-            DetourUpdateThread(GetCurrentThread());
-
-            DetourAttach(&(PVOID&) o_createModelDriver2, hkcreateModelDriver2);
-
-            auto detourResult = DetourTransactionCommit();
-            if (detourResult != NO_ERROR)
+            if (o_createModelDriver2)
             {
-                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
-                o_createModelDriver2 = nullptr;
+                LOG_DEBUG("Hooking model selection, o_createModelDriver2: {:X}", (uintptr_t) o_createModelDriver2);
+
+                DetourTransactionBegin();
+                DetourUpdateThread(GetCurrentThread());
+
+                DetourAttach(&(PVOID&) o_createModelDriver2, hkcreateModelDriver2);
+
+                auto detourResult = DetourTransactionCommit();
+                if (detourResult != NO_ERROR)
+                {
+                    LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                    o_createModelDriver2 = nullptr;
+                }
+            }
+        }
+
+        else if (source == FSR4Source::SDK)
+        {
+            o_createModelSDK2 = (PFN_createModel2) scanner::GetAddress(module, pattern);
+
+            if (o_createModelSDK2)
+            {
+                LOG_DEBUG("Hooking model selection, o_createModelSDK2: {:X}", (uintptr_t) o_createModelSDK2);
+
+                DetourTransactionBegin();
+                DetourUpdateThread(GetCurrentThread());
+
+                DetourAttach(&(PVOID&) o_createModelSDK2, hkcreateModelSDK2);
+
+                auto detourResult = DetourTransactionCommit();
+                if (detourResult != NO_ERROR)
+                {
+                    LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                    o_createModelSDK2 = nullptr;
+                }
             }
         }
     }
