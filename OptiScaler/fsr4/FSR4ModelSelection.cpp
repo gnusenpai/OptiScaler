@@ -315,6 +315,6 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
 
     if (!o_createModelDriver && !o_getModelBlobDriver && !o_createModelDriver2 && source == FSR4Source::DriverDll)
         LOG_ERROR("Couldn't hook model selection from the driver dll");
-    else if (!o_createModelSDK && !o_getModelBlobSDK && source == FSR4Source::SDK)
+    else if (!o_createModelSDK && !o_getModelBlobSDK && !o_createModelSDK2 && source == FSR4Source::SDK)
         LOG_ERROR("Couldn't hook model selection from the SDK dll");
 }
