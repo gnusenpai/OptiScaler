@@ -214,10 +214,10 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
             o_createModelSDK = (PFN_createModel) scanner::GetAddress(module, pattern410);
         }
 
-        LOG_DEBUG("Hooking model selection, o_createModelSDK: {:X}", (uintptr_t) o_createModelSDK);
-
         if (o_createModelSDK)
         {
+            LOG_DEBUG("Hooking model selection, o_createModelSDK: {:X}", (uintptr_t) o_createModelSDK);
+
             DetourTransactionBegin();
             DetourUpdateThread(GetCurrentThread());
 
@@ -262,53 +262,50 @@ void FSR4ModelSelection::Hook(HMODULE module, FSR4Source source)
         }
     }
 
-    if (!o_createModelDriver && !o_createModelDriver2)
+    // From amdxcffx64 2.3.0 / amd_fidelityfx_upscaler_dx12 4.1.1.2740
+    const char* pattern411 = "48 8B C4 48 89 58 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? "
+                             "0F 29 70 ? 0F 29 78 ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 4D 8B E8 8B FA 48 8B";
+
+    if (!o_createModelDriver && !o_createModelDriver2 && source == FSR4Source::DriverDll)
     {
-        // From amdxcffx64 2.3.0 / amd_fidelityfx_upscaler_dx12 4.1.1.2740
-        const char* pattern = "48 8B C4 48 89 58 ? 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 ? ? ? ? 48 81 EC ? ? ? ? "
-                              "0F 29 70 ? 0F 29 78 ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 4D 8B E8 8B FA 48 8B";
+        o_createModelDriver2 = (PFN_createModel2) scanner::GetAddress(module, pattern411);
 
-        if (source == FSR4Source::DriverDll)
+        if (o_createModelDriver2)
         {
-            o_createModelDriver2 = (PFN_createModel2) scanner::GetAddress(module, pattern);
+            LOG_DEBUG("Hooking model selection, o_createModelDriver2: {:X}", (uintptr_t) o_createModelDriver2);
 
-            if (o_createModelDriver2)
+            DetourTransactionBegin();
+            DetourUpdateThread(GetCurrentThread());
+
+            DetourAttach(&(PVOID&) o_createModelDriver2, hkcreateModelDriver2);
+
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
             {
-                LOG_DEBUG("Hooking model selection, o_createModelDriver2: {:X}", (uintptr_t) o_createModelDriver2);
-
-                DetourTransactionBegin();
-                DetourUpdateThread(GetCurrentThread());
-
-                DetourAttach(&(PVOID&) o_createModelDriver2, hkcreateModelDriver2);
-
-                auto detourResult = DetourTransactionCommit();
-                if (detourResult != NO_ERROR)
-                {
-                    LOG_ERROR("Failed to attach detour: {:X}", detourResult);
-                    o_createModelDriver2 = nullptr;
-                }
+                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                o_createModelDriver2 = nullptr;
             }
         }
+    }
 
-        else if (source == FSR4Source::SDK)
+    else if (!o_createModelSDK && !o_createModelSDK2 && source == FSR4Source::SDK)
+    {
+        o_createModelSDK2 = (PFN_createModel2) scanner::GetAddress(module, pattern411);
+
+        if (o_createModelSDK2)
         {
-            o_createModelSDK2 = (PFN_createModel2) scanner::GetAddress(module, pattern);
+            LOG_DEBUG("Hooking model selection, o_createModelSDK2: {:X}", (uintptr_t) o_createModelSDK2);
 
-            if (o_createModelSDK2)
+            DetourTransactionBegin();
+            DetourUpdateThread(GetCurrentThread());
+
+            DetourAttach(&(PVOID&) o_createModelSDK2, hkcreateModelSDK2);
+
+            auto detourResult = DetourTransactionCommit();
+            if (detourResult != NO_ERROR)
             {
-                LOG_DEBUG("Hooking model selection, o_createModelSDK2: {:X}", (uintptr_t) o_createModelSDK2);
-
-                DetourTransactionBegin();
-                DetourUpdateThread(GetCurrentThread());
-
-                DetourAttach(&(PVOID&) o_createModelSDK2, hkcreateModelSDK2);
-
-                auto detourResult = DetourTransactionCommit();
-                if (detourResult != NO_ERROR)
-                {
-                    LOG_ERROR("Failed to attach detour: {:X}", detourResult);
-                    o_createModelSDK2 = nullptr;
-                }
+                LOG_ERROR("Failed to attach detour: {:X}", detourResult);
+                o_createModelSDK2 = nullptr;
             }
         }
     }
