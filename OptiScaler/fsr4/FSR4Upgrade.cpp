@@ -49,7 +49,7 @@ HRESULT STDMETHODCALLTYPE AmdExtFfxApi::UpdateFfxApiProvider(void* pData, uint32
         GetModuleFileNameW(callerModule, sdkDllPath, MAX_PATH);
 
         Util::version_t sdkVersion;
-        Util::GetFileVersion(sdkDllPath, nullptr, &sdkVersion);
+        Util::GetFileVersion(sdkDllPath, &sdkVersion, nullptr);
 
         LOG_TRACE("sdkVersion: {}.{}.{}.{}", sdkVersion.major, sdkVersion.minor, sdkVersion.patch, sdkVersion.reserved);
 
