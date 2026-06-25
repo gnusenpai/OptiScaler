@@ -654,6 +654,8 @@ void XeFG_Dx12::Deactivate()
             else
                 LOG_ERROR("_uiCommandList[{}]->Close() error: {:X}", fIndex, (UINT) closeResult);
 
+            _gameCommandQueue->Signal(_uiFence, _uiAllocatorFenceValues[fIndex]);
+
             _uiCommandListResetted[fIndex] = false;
         }
 
@@ -1106,6 +1108,8 @@ void XeFG_Dx12::ReleaseObjects()
 
 void XeFG_Dx12::CreateObjects(ID3D12Device* InDevice)
 {
+    _device = InDevice;
+
     if (_uiCommandAllocator[0] != nullptr)
         return;
 
@@ -1151,6 +1155,26 @@ void XeFG_Dx12::CreateObjects(ID3D12Device* InDevice)
                 break;
             }
 
+            if (_uiFence == nullptr)
+            {
+                result = InDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_uiFence));
+                if (FAILED(result))
+                {
+                    LOG_ERROR("Create UI fence failed: {:X}", (UINT) result);
+                    break;
+                }
+            }
+
+            if (_uiFenceEvent == nullptr)
+            {
+                _uiFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+                if (_uiFenceEvent == nullptr)
+                {
+                    LOG_ERROR("CreateEvent for UI fence failed");
+                    break;
+                }
+            }
+
             result =
                 InDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_scCommandAllocator[i]));
             if (result != S_OK)
@@ -1179,6 +1203,26 @@ void XeFG_Dx12::CreateObjects(ID3D12Device* InDevice)
             {
                 LOG_ERROR("_scCommandList[{}]->Close: {:X}", i, (unsigned long) result);
                 break;
+            }
+
+            if (_scFence == nullptr)
+            {
+                result = InDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_scFence));
+                if (FAILED(result))
+                {
+                    LOG_ERROR("Create SC fence failed: {:X}", (UINT) result);
+                    break;
+                }
+            }
+
+            if (_scFenceEvent == nullptr)
+            {
+                _scFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+                if (_scFenceEvent == nullptr)
+                {
+                    LOG_ERROR("CreateEvent for SC fence failed");
+                    break;
+                }
             }
         }
 
@@ -1269,6 +1313,8 @@ bool XeFG_Dx12::Present()
                 _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[fIndex]);
             else
                 LOG_ERROR("_uiCommandList[{}]->Close() error: {:X}", fIndex, (UINT) closeResult);
+
+            _gameCommandQueue->Signal(_uiFence, _uiAllocatorFenceValues[fIndex]);
 
             _uiCommandListResetted[fIndex] = false;
         }

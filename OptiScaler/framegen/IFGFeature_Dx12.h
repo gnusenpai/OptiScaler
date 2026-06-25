@@ -39,6 +39,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
 
     bool InitCopyCmdList();
     void DestroyCopyCmdList();
+    bool WaitForUIAllocator(UINT index);
 
   protected:
     ID3D12Device* _device = nullptr;
@@ -53,10 +54,17 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     ID3D12GraphicsCommandList* _scCommandList[BUFFER_COUNT] {};
     ID3D12CommandAllocator* _scCommandAllocator[BUFFER_COUNT] {};
     bool _scCommandListResetted[BUFFER_COUNT] { false, false, false, false };
+    UINT64 _scAllocatorFenceValues[BUFFER_COUNT] {};
+    ID3D12Fence* _scFence = nullptr;
+    HANDLE _scFenceEvent = nullptr;
 
     ID3D12GraphicsCommandList* _uiCommandList[BUFFER_COUNT] {};
     ID3D12CommandAllocator* _uiCommandAllocator[BUFFER_COUNT] {};
     bool _uiCommandListResetted[BUFFER_COUNT] { false, false, false, false };
+    UINT64 _uiAllocatorFenceValues[BUFFER_COUNT] {};
+    ID3D12Fence* _uiFence = nullptr;
+    HANDLE _uiFenceEvent = nullptr;
+
 
     std::unordered_map<FG_ResourceType, Dx12Resource> _frameResources[BUFFER_COUNT] {};
     std::unordered_map<FG_ResourceType, ID3D12Resource*> _resourceCopy[BUFFER_COUNT] {};

@@ -10,6 +10,7 @@
 
 #include <DllNames.h>
 #include <misc/IdentifyGpu.h>
+#include <with_dx12/with_dx12.h>
 
 #include "Hook_Utils.h"
 
@@ -28,10 +29,9 @@ static void InitD3D12DeviceForLuma(IDXGIFactory* factory)
     if (hardwareAdapter == nullptr)
         LOG_WARN("Can't get hardwareAdapter, will try nullptr!");
 
-    auto result = D3d12Proxy::D3D12CreateDevice_()(hardwareAdapter, D3D_FEATURE_LEVEL_11_0,
-                                                   IID_PPV_ARGS(&State::Instance().currentD3D12Device));
+    State::Instance().currentD3D12Device = WithDx12::RequestD3D12Device(D3D_FEATURE_LEVEL_11_0, hardwareAdapter);
 
-    LOG_DEBUG("D3D12CreateDevice result: {0:x}", result);
+    LOG_DEBUG("currentD3D12Device: {:X}", (size_t) State::Instance().currentD3D12Device);
 }
 
 static void CheckLumaAndReShade(IDXGIFactory* factory)

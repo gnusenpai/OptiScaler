@@ -1674,7 +1674,10 @@ void MenuCommon::RenderPerformanceOverlay(RenderMenuContext& ctx)
             std::string api;
             if (IdentifyGpu::getPrimaryGpu().usesDxvk && state.api == DX11)
             {
-                api = "DXVK";
+                if (state.swapchainInteropApi == SwapchainInteropApi::None)
+                    api = "DXVK";
+                else
+                    api = "DXVK w/Dx12";
             }
             else if (IdentifyGpu::getPrimaryGpu().usesVkd3dProton && state.api == DX12)
             {
@@ -1693,7 +1696,11 @@ void MenuCommon::RenderPerformanceOverlay(RenderMenuContext& ctx)
                     break;
 
                 case DX12:
-                    api = "D3D12";
+                    if (state.swapchainInteropApi == SwapchainInteropApi::Dx11wDx12)
+                        api = "D3D11 w/DX12";
+                    else
+                        api = "D3D12";
+
                     break;
 
                 default:
@@ -1777,19 +1784,41 @@ void MenuCommon::RenderPerformanceOverlay(RenderMenuContext& ctx)
                                      usesDx12CompatLayer ? " w/Dx12" : "");
             }
 
-            switch (overlayType)
+            if (fg != nullptr && fg->IsActive() && !fg->IsPaused())
             {
-            case FpsOverlay_JustFPS:
-                fpsPart = StrFmt("FPS: %6.1f", frameRate);
-                break;
+                const double baseFps = frameRate / (double) (fg->GetInterpolatedFrameCount() + 1);
 
-            case FpsOverlay_Simple:
-                fpsPart = StrFmt("FPS: %6.1f, %7.2f ms", frameRate, frameTime);
-                break;
+                switch (overlayType)
+                {
+                case FpsOverlay_JustFPS:
+                    fpsPart = StrFmt("FPS: %6.1f/%5.1f", frameRate, baseFps);
+                    break;
 
-            default:
-                fpsPart = StrFmt("FPS: %6.1f, Avg: %6.1f", frameRate, 1000.0f / averageFrameTime);
-                break;
+                case FpsOverlay_Simple:
+                    fpsPart = StrFmt("FPS: %6.1f/%5.1f, %7.2f ms", frameRate, baseFps, frameTime);
+                    break;
+
+                default:
+                    fpsPart = StrFmt("FPS: %6.1f/%5.1f, Avg: %6.1f", frameRate, baseFps, 1000.0f / averageFrameTime);
+                    break;
+                }
+            }
+            else
+            {
+                switch (overlayType)
+                {
+                case FpsOverlay_JustFPS:
+                    fpsPart = StrFmt("FPS: %6.1f", frameRate);
+                    break;
+
+                case FpsOverlay_Simple:
+                    fpsPart = StrFmt("FPS: %6.1f, %7.2f ms", frameRate, frameTime);
+                    break;
+
+                default:
+                    fpsPart = StrFmt("FPS: %6.1f, Avg: %6.1f", frameRate, 1000.0f / averageFrameTime);
+                    break;
+                }
             }
 
             firstLine = StrFmt("%s | %s%s%s", api.c_str(), fpsPart.c_str(), fgText.c_str(), featurePart.c_str());
@@ -2935,8 +2964,7 @@ void MenuCommon::RenderFrameGenerationSelection(RenderMenuContext& ctx)
 
     // OptiFG requirements
     auto constexpr optiFgIndex = (uint32_t) FGInput::Upscaler;
-    inputOptions[optiFgIndex].set_disabled(state.swapchainApi == API::DX11 || state.swapchainApi == API::Vulkan,
-                                           "Unsupported API");
+    inputOptions[optiFgIndex].set_disabled(state.swapchainApi == API::Vulkan, "Unsupported API");
 
     if (!inputOptions[optiFgIndex].disabled && state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() &&
         !fsr31InitTried)
@@ -2988,7 +3016,7 @@ void MenuCommon::RenderFrameGenerationSelection(RenderMenuContext& ctx)
 
     // DLSSG output requirements
     auto constexpr dlssgOutputIndex = (uint32_t) FGOutput::DLSSG;
-    outputOptions[dlssgOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
+    outputOptions[dlssgOutputIndex].set_disabled(state.swapchainApi == API::Vulkan, "Unsupported API");
     outputOptions[dlssgOutputIndex].set_disabled(primaryGpu.nvidiaArchInfo.architecture_id < NV_GPU_ARCHITECTURE_AD100,
                                                  "Unsupported hardware");
 
@@ -3022,16 +3050,15 @@ void MenuCommon::RenderFrameGenerationSelection(RenderMenuContext& ctx)
     {
         outputOptions[DLSSGWithNvngxOutputIndex].set_disabled(true, "Missing the dlssg_to_fsr3_amd_is_better.dll file");
     }
-    outputOptions[DLSSGWithNvngxOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
+    outputOptions[DLSSGWithNvngxOutputIndex].set_disabled(state.swapchainApi == API::Vulkan, "Unsupported API");
 
     // FSR FG output requirements
     auto constexpr fsrfgOutputIndex = (uint32_t) FGOutput::FSRFG;
-    outputOptions[fsrfgOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
+    outputOptions[fsrfgOutputIndex].set_disabled(state.swapchainApi == API::Vulkan, "Unsupported API");
 
     // XeFG output requirements
     auto constexpr xefgOutputIndex = (uint32_t) FGOutput::XeFG;
-    outputOptions[xefgOutputIndex].set_disabled(state.swapchainApi != API::DX12, "Unsupported API");
-
+    outputOptions[xefgOutputIndex].set_disabled(state.swapchainApi == API::Vulkan, "Unsupported API");
     // Unsupported FG input selected
     const auto currentInputIndex = (uint32_t) state.activeFgInput;
     if (config->FGInput != FGInput::NoFG && inputOptions.size() > currentInputIndex &&

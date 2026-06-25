@@ -71,6 +71,12 @@ enum class GameEngineType : uint32_t
     Other,
 };
 
+enum class SwapchainInteropApi : uint32_t
+{
+    None,
+    Dx11wDx12,
+};
+
 typedef struct CapturedHudlessInfo
 {
     UINT64 usageCount = 1;
@@ -176,6 +182,7 @@ class State
 
     API api = API::NotSelected;
     API swapchainApi = API::NotSelected;
+    SwapchainInteropApi swapchainInteropApi = SwapchainInteropApi::None;
 
     // Framerate
     bool reflexLimitsFps = false;

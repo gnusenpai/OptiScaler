@@ -10,6 +10,9 @@
 #include "NVNGX_Parameter.h"
 #include "proxies/NVNGX_Proxy.h"
 
+#include <with_dx12/with_dx12.h>
+#include "FG/Upscaler_Inputs_Dx11wDx12.h"
+
 #include <upscaler_time/UpscalerTime_Dx11.h>
 
 #include <ankerl/unordered_dense.h>
@@ -795,6 +798,22 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
 
     auto upscaleResult = deviceContext->Evaluate(InDevCtx, InParameters);
 
+    UpscalerTimeDx11::UpscaleEnd(InDevCtx);
+
+    if (State::Instance().activeFgInput == FGInput::Upscaler)
+    {
+        if (WithDx12::IsInited())
+        {
+            auto cq = WithDx12::GetD3D12CommandQueue();
+            auto device = WithDx12::GetD3D12Device();
+
+            UpscalerInputsDx11wDx12::Init(D3D11Device, InDevCtx, device, cq);
+
+            UpscalerInputsDx11wDx12::UpscaleStart(InParameters, deviceContext);
+            UpscalerInputsDx11wDx12::UpscaleEnd(InParameters, deviceContext);
+        }
+    }
+
     auto upscaler = deviceContext->GetUpscalerType();
     if (!upscaleResult && !deviceContext->IsInited() &&
         (upscaler == Upscaler::XeSS || upscaler == Upscaler::XeSS_on12 || upscaler == Upscaler::DLSS ||
@@ -804,8 +823,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
         state.newBackend = Upscaler::FSR22;
         state.changeBackend[handleId] = true;
     }
-
-    UpscalerTimeDx11::UpscaleEnd(InDevCtx);
 
     return NVSDK_NGX_Result_Success;
 }

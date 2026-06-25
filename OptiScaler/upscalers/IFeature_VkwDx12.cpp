@@ -9,12 +9,13 @@
 #include <proxies/D3D12_Proxy.h>
 
 #include <hooks/VulkanwDx12_Hooks.h>
+#include <with_dx12/with_dx12.h>
 
-#include <detours/detours.h>
+#include <misc/IdentifyGpu.h>
 
 #include <magic_enum.hpp>
+#include <detours/detours.h>
 #include <imgui/ImGuiNotify.hpp>
-#include <misc/IdentifyGpu.h>
 
 // Used Nukem's VKToDX as a base
 // https://github.com/Nukem9/dlssg-to-fsr3/blob/eca4a79b4d23339a1dcf02e30b9f3bafe7901513/source/maindll/FFFrameInterpolatorVKToDX.cpp
@@ -1865,14 +1866,11 @@ HRESULT IFeature_VkwDx12::CreateDx12Device()
         if (hwAdapter == nullptr)
             LOG_WARN("Can't get hwAdapter, will try nullptr!");
 
-        if (D3d12Proxy::Module() == nullptr)
-            result = D3D12CreateDevice(hwAdapter, featureLevel, IID_PPV_ARGS(&_localDx11on12Device));
-        else
-            result = D3d12Proxy::D3D12CreateDevice_()(hwAdapter, featureLevel, IID_PPV_ARGS(&_localDx11on12Device));
+        _localDx11on12Device = WithDx12::RequestD3D12Device(featureLevel, hwAdapter);
 
-        if (result != S_OK)
+        if (_localDx11on12Device == nullptr)
         {
-            LOG_ERROR("Can't create device: {:X}", (UINT) result);
+            LOG_ERROR("Can't create device!");
             return result;
         }
 

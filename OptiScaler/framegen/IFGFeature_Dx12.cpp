@@ -46,9 +46,41 @@ bool IFGFeature_Dx12::HasResource(FG_ResourceType type, int index)
     return _frameResources[index].contains(type);
 }
 
+bool IFGFeature_Dx12::WaitForUIAllocator(UINT index)
+{
+    if (_uiFence == nullptr || _uiFenceEvent == nullptr)
+        return true;
+
+    const auto fenceValue = _uiAllocatorFenceValues[index];
+    if (fenceValue == 0)
+        return true;
+
+    const auto completedValue = _uiFence->GetCompletedValue();
+    if (completedValue >= fenceValue)
+        return true;
+
+    auto result = _uiFence->SetEventOnCompletion(fenceValue, _uiFenceEvent);
+    if (FAILED(result))
+    {
+        LOG_ERROR("UI allocator fence SetEventOnCompletion failed. slot {}, fence {}, completed {}, result {:X}", index,
+                  fenceValue, completedValue, (UINT) result);
+        return false;
+    }
+
+    const auto waitResult = WaitForSingleObject(_uiFenceEvent, 5000);
+    if (waitResult != WAIT_OBJECT_0)
+    {
+        LOG_ERROR("UI allocator fence wait failed. slot {}, fence {}, completed {}, waitResult {:X}", index, fenceValue,
+                  _uiFence->GetCompletedValue(), waitResult);
+        return false;
+    }
+
+    return true;
+}
+
 ID3D12GraphicsCommandList* IFGFeature_Dx12::GetUICommandList(int index)
 {
-    if (index < 0)
+    if (index < 0 || index >= BUFFER_COUNT)
         index = GetIndex();
 
     LOG_DEBUG("index: {}", index);
@@ -72,6 +104,9 @@ ID3D12GraphicsCommandList* IFGFeature_Dx12::GetUICommandList(int index)
             LOG_DEBUG("Executing _uiCommandList[{}]: {:X}", i, (size_t) _uiCommandList[i]);
             auto closeResult = _uiCommandList[i]->Close();
 
+            _gameCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**) &_uiCommandList[i]);
+            _gameCommandQueue->Signal(_uiFence, _uiAllocatorFenceValues[i]);
+
             if (closeResult != S_OK)
                 LOG_ERROR("_uiCommandList[{}]->Close() error: {:X}", i, (UINT) closeResult);
 
@@ -81,6 +116,8 @@ ID3D12GraphicsCommandList* IFGFeature_Dx12::GetUICommandList(int index)
 
     if (!_uiCommandListResetted[index])
     {
+        WaitForUIAllocator(index);
+
         auto result = _uiCommandAllocator[index]->Reset();
 
         if (result == S_OK)
@@ -97,6 +134,8 @@ ID3D12GraphicsCommandList* IFGFeature_Dx12::GetUICommandList(int index)
             LOG_ERROR("_uiCommandAllocator[{}]->Reset() error: {:X}", index, (UINT) result);
         }
     }
+
+    _uiAllocatorFenceValues[index]++;
 
     return _uiCommandList[index];
 }
