@@ -65,7 +65,6 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     ID3D12Fence* _uiFence = nullptr;
     HANDLE _uiFenceEvent = nullptr;
 
-
     std::unordered_map<FG_ResourceType, Dx12Resource> _frameResources[BUFFER_COUNT] {};
     std::unordered_map<FG_ResourceType, ID3D12Resource*> _resourceCopy[BUFFER_COUNT] {};
     std::shared_mutex _resourceMutex[BUFFER_COUNT];
