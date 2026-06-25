@@ -1346,6 +1346,12 @@ float GetMouseWheel()
     return _state.MouseWheel;
 }
 
+POINT GetMouseScreenPos()
+{
+    std::unique_lock lock(_state.Mutex);
+    return _state.MouseScreenPos;
+}
+
 bool ShouldBlockMouse()
 {
     std::unique_lock lock(_state.Mutex);

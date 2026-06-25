@@ -509,6 +509,30 @@ bool Config::Reload(std::filesystem::path iniPath)
             MotionSharpnessDebug.set_from_config(readBool("CAS", "SharpenerDebug"));
         }
 
+        // Magnifier
+        {
+            MagnifierEnabled.set_from_config(readBool("Magnifier", "Enabled"));
+
+            if (auto setting = readFloat("Magnifier", "Size"); setting.has_value())
+                MagnifierSize.set_from_config(std::clamp(setting.value(), 0.0f, 100.0f));
+
+            if (auto setting = readInt("Magnifier", "ZoomFactor"); setting.has_value())
+                MagnifierZoomFactor.set_from_config(std::clamp(setting.value(), 2, 20));
+
+            if (auto setting = readFloat("Magnifier", "BorderSize"); setting.has_value())
+                MagnifierBorderSize.set_from_config(std::clamp(setting.value(), 0.0f, 2.0f));
+
+            if (auto setting = readFloat("Magnifier", "CursorOffsetX"); setting.has_value())
+                MagnifierCursorOffsetX.set_from_config(std::clamp(setting.value(), -1000.f, 1000.f));
+            if (auto setting = readFloat("Magnifier", "CursorOffsetY"); setting.has_value())
+                MagnifierCursorOffsetY.set_from_config(std::clamp(setting.value(), -1000.f, 1000.f));
+
+            if (auto setting = readFloat("Magnifier", "StaticPosX"); setting.has_value())
+                MagnifierStaticPosX.set_from_config(std::clamp(setting.value(), 0.0f, 100.0f));
+            if (auto setting = readFloat("Magnifier", "StaticPosY"); setting.has_value())
+                MagnifierStaticPosY.set_from_config(std::clamp(setting.value(), 0.0f, 100.0f));
+        }
+
         // Output Scaling
         {
             OutputScalingEnabled.set_from_config(readBool("OutputScaling", "Enabled"));
@@ -1157,6 +1181,27 @@ bool Config::SaveIni()
 
         ini.SetValue("CAS", "SharpenerDebug",
                      GetBoolValue(Instance()->MotionSharpnessDebug.value_for_config()).c_str());
+    }
+
+    // Magnifier
+    {
+        ini.SetValue("Magnifier", "Enabled", GetBoolValue(Instance()->MagnifierEnabled.value_for_config()).c_str());
+
+        ini.SetValue("Magnifier", "Size", GetFloatValue(Instance()->MagnifierSize.value_for_config()).c_str());
+        ini.SetValue("Magnifier", "ZoomFactor",
+                     GetIntValue(Instance()->MagnifierZoomFactor.value_for_config()).c_str());
+
+        ini.SetValue("Magnifier", "BorderSize",
+                     GetFloatValue(Instance()->MagnifierBorderSize.value_for_config()).c_str());
+        ini.SetValue("Magnifier", "CursorOffsetX",
+                     GetFloatValue(Instance()->MagnifierCursorOffsetX.value_for_config()).c_str());
+        ini.SetValue("Magnifier", "CursorOffsetY",
+                     GetFloatValue(Instance()->MagnifierCursorOffsetY.value_for_config()).c_str());
+
+        ini.SetValue("Magnifier", "StaticPosX",
+                     GetFloatValue(Instance()->MagnifierStaticPosX.value_for_config()).c_str());
+        ini.SetValue("Magnifier", "StaticPosY",
+                     GetFloatValue(Instance()->MagnifierStaticPosY.value_for_config()).c_str());
     }
 
     // Menu

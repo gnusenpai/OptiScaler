@@ -220,6 +220,7 @@ bool IsMousePressed(int button);
 bool IsMouseReleased(int button);
 
 float GetMouseWheel();
+POINT GetMouseScreenPos();
 
 bool ShouldBlockMouse();
 bool ShouldBlockKeyboard();

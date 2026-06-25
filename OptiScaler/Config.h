@@ -306,6 +306,16 @@ class Config
     CustomOptional<float> MotionThreshold { 0.0f };
     CustomOptional<float> MotionScaleLimit { 10.0f };
 
+    // Magnifier
+    CustomOptional<bool> MagnifierEnabled { true };
+    CustomOptional<float> MagnifierSize { 15.f }; // % of screen Height
+    CustomOptional<int> MagnifierZoomFactor { 4 };
+    CustomOptional<float> MagnifierBorderSize { 0.3f };   // % of screen Height
+    CustomOptional<float> MagnifierCursorOffsetX { 0.f }; // Pixels
+    CustomOptional<float> MagnifierCursorOffsetY { 0.f }; // Pixels
+    CustomOptional<float, NoDefault> MagnifierStaticPosX; // % of screen Width, static pos enabled if both are defined
+    CustomOptional<float, NoDefault> MagnifierStaticPosY; // % of screen Height
+
     // Menu
     CustomOptional<float, NoDefault> MenuScale;
     CustomOptional<bool> OverlayMenu { true };

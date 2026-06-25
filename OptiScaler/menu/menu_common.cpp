@@ -5455,6 +5455,80 @@ void MenuCommon::RenderActiveImageSettings(RenderMenuContext& ctx)
     }
 }
 
+void MenuCommon::RenderMagnifierSettings(RenderMenuContext& ctx)
+{
+    auto& state = ctx.state;
+    auto config = ctx.config;
+
+    // Magnifier -----------------------------
+    ImGui::Spacing();
+    if (auto ch = ScopedCollapsingHeader("Magnifier"); ch.IsHeaderOpen())
+    {
+        ScopedIndent indent {};
+        ImGui::Spacing();
+
+        bool magnifierEnabled = config->MagnifierEnabled.value_or_default();
+        if (ImGui::Checkbox("Enable Magnifier", &magnifierEnabled))
+            config->MagnifierEnabled = magnifierEnabled;
+
+        ImGui::BeginDisabled(!magnifierEnabled);
+
+        float magnifierSize = config->MagnifierSize.value_or_default();
+        if (ImGui::SliderFloat("Size", &magnifierSize, 5.0f, 50.0f, "%.1f%% of screen"))
+            config->MagnifierSize = magnifierSize;
+
+        int zoomFactor = config->MagnifierZoomFactor.value_or_default();
+        if (ImGui::SliderInt("Zoom Factor", &zoomFactor, 2, 20, "%dx"))
+            config->MagnifierZoomFactor = zoomFactor;
+
+        float borderSize = config->MagnifierBorderSize.value_or_default();
+        if (ImGui::SliderFloat("Border Size", &borderSize, 0.0f, 2.0f, "%.2f%% of screen"))
+            config->MagnifierBorderSize = borderSize;
+
+        ImGui::Separator();
+        ImGui::Text("Positioning");
+
+        bool staticMode = config->MagnifierStaticPosX.has_value() && config->MagnifierStaticPosY.has_value();
+        if (staticMode)
+        {
+            float staticX = config->MagnifierStaticPosX.value();
+            if (ImGui::SliderFloat("Static Pos X", &staticX, 0.0f, 100.0f, "%.1f%%"))
+                config->MagnifierStaticPosX = staticX;
+
+            float staticY = config->MagnifierStaticPosY.value();
+            if (ImGui::SliderFloat("Static Pos Y", &staticY, 0.0f, 100.0f, "%.1f%%"))
+                config->MagnifierStaticPosY = staticY;
+
+            if (ImGui::Button("Reset Static Position (Follow Cursor)"))
+            {
+                config->MagnifierStaticPosX.reset();
+                config->MagnifierStaticPosY.reset();
+            }
+        }
+        else
+        {
+            // Button to initialize static position mode
+            if (ImGui::Button("Set Static Position"))
+            {
+                config->MagnifierStaticPosX = 50.0f;
+                config->MagnifierStaticPosY = 50.0f;
+            }
+            ImGui::SameLine();
+            ImGui::TextDisabled("(Currently following cursor)");
+
+            float offsetX = config->MagnifierCursorOffsetX.value_or_default();
+            if (ImGui::SliderFloat("Cursor Offset X", &offsetX, -300.0f, 300.0f, "%.0f px"))
+                config->MagnifierCursorOffsetX = offsetX;
+
+            float offsetY = config->MagnifierCursorOffsetY.value_or_default();
+            if (ImGui::SliderFloat("Cursor Offset Y", &offsetY, -300.0f, 300.0f, "%.0f px"))
+                config->MagnifierCursorOffsetY = offsetY;
+        }
+
+        ImGui::EndDisabled();
+        ImGui::Spacing();
+    }
+}
 void MenuCommon::RenderQuirksSettings(RenderMenuContext& ctx)
 {
     auto& state = ctx.state;
@@ -6530,6 +6604,7 @@ void MenuCommon::RenderMainMenuTable(RenderMenuContext& ctx)
 
         // Right column: image quality, initialization, advanced options, appearance, overlay and input settings.
         RenderActiveImageSettings(ctx);
+        RenderMagnifierSettings(ctx);
         RenderQuirksSettings(ctx);
         RenderAdvancedSettings(ctx);
         RenderLoggingSettings(ctx);

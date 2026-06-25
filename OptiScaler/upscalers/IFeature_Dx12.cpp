@@ -36,6 +36,7 @@ bool IFeature_Dx12::Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCo
         OutputScaler = std::make_unique<OS_Dx12>("Output Scaling", InDevice, (TargetWidth() < DisplayWidth()));
         RCAS = std::make_unique<RCAS_Dx12>("RCAS", InDevice);
         Bias = std::make_unique<Bias_Dx12>("Bias", InDevice); // TODO: not needed on DLSS/DLSSD
+        Magnifier = std::make_unique<Magnifier_Dx12>("Magnifier", InDevice);
     }
 
     return result;
@@ -186,6 +187,32 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
                       return false;
                   }
                   return true;
+              } });
+    }
+
+    if (Magnifier->ShouldRun())
+    {
+        pipeline.push_back(
+            { // Setup
+              [&](ID3D12Resource* nextOutput) -> ID3D12Resource*
+              {
+                  if (Magnifier->CreateBufferResource(Device, nextOutput, D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
+                  {
+                      Magnifier->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+                      return Magnifier->Buffer();
+                  }
+                  return nullptr;
+              },
+
+              // Dispatch
+              [&](ID3D12Resource* input, ID3D12Resource* output) -> bool
+              {
+                  if (!Magnifier->CanRender() || !paramMotion || !paramOutput)
+                      return true;
+
+                  Magnifier->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+                  return Magnifier->Dispatch(InCommandList, input, output);
               } });
     }
 
