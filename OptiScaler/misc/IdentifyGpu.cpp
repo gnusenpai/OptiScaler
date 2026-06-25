@@ -480,7 +480,11 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                         if (localDevice && (State::Instance().isRunningOnLinux || !res.usesVkd3dProton) &&
                             AmdExtD3DCreateInterface)
                         {
-                            ComPtr<IAmdExtD3DFactory> amdExtD3DFactory;
+                            IAmdExtD3DFactory* amdExtD3DFactory = nullptr;
+
+                            localDevice->AddRef();
+                            auto pre = localDevice->Release();
+
                             if (SUCCEEDED(AmdExtD3DCreateInterface(localDevice.Get(), IID_PPV_ARGS(&amdExtD3DFactory))))
                             {
                                 ComPtr<IAmdExtD3DShaderIntrinsics> amdExtD3DShaderIntrinsics;
@@ -496,8 +500,17 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                                         res.realFsr4Support = FSR4Support::FP8;
                                 }
 
-                                // Prevent amdxc64 leaking the d3d12 device
+                                amdExtD3DFactory->Release();
+                            }
+
+                            localDevice->AddRef();
+                            auto post = localDevice->Release();
+
+                            // Prevent amdxc64 leaking the d3d12 device
+                            while (post > 0 && post > pre)
+                            {
                                 localDevice->Release();
+                                post--;
                             }
                         }
                     }
