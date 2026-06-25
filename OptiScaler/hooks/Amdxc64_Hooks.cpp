@@ -14,6 +14,7 @@ struct AmdExtD3DFactory : public IAmdExtD3DFactory
 {
     bool linux = false;
     FSR4Support fsr4Support {};
+    FSR4Support realFsr4Support {};
     bool fsr4ForcedSupport = false;
 
     HRESULT STDMETHODCALLTYPE CreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject) override
@@ -39,6 +40,7 @@ struct AmdExtD3DFactory : public IAmdExtD3DFactory
             {
                 Amdxc64Hooks::amdExtD3DDevice8 = new AmdExtD3DDevice8();
                 Amdxc64Hooks::amdExtD3DDevice8->fsr4Support = fsr4Support;
+                Amdxc64Hooks::amdExtD3DDevice8->realFsr4Support = realFsr4Support;
             }
 
             *ppvObject = Amdxc64Hooks::amdExtD3DDevice8;
@@ -146,6 +148,7 @@ HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOu
             amdExtD3DFactory = new AmdExtD3DFactory();
             amdExtD3DFactory->linux = State::Instance().isRunningOnLinux;
             amdExtD3DFactory->fsr4Support = primaryGpu.fsr4Support;
+            amdExtD3DFactory->realFsr4Support = primaryGpu.realFsr4Support;
             amdExtD3DFactory->fsr4ForcedSupport = primaryGpu.fsr4ForcedSupport;
         }
 

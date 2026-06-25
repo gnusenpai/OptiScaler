@@ -36,6 +36,7 @@ struct AmdExtD3DShaderIntrinsics : public IAmdExtD3DShaderIntrinsics
 
 struct AmdExtD3DDevice8 : public IAmdExtD3DDevice8
 {
+    FSR4Support realFsr4Support {};
     FSR4Support fsr4Support {};
 
     STUB(1)

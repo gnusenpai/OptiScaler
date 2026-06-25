@@ -214,10 +214,16 @@ HRESULT STDMETHODCALLTYPE AmdExtD3DDevice8::GetWaveMatrixProperties(uint64_t* co
     waveMatrixProperties->nSize = 16;
     waveMatrixProperties->kSize = 16;
 
-    if (fsr4Support == FSR4Support::FP8)
+    if (fsr4Support == FSR4Support::FP8 ||
+        (realFsr4Support == FSR4Support::FP8 &&
+         Util::WhoIsTheCaller(_ReturnAddress()).starts_with("amd_fidelityfx_framegeneration_dx12")))
+    {
         waveMatrixProperties->aType = fp8;
+    }
     else
+    {
         waveMatrixProperties->aType = float16; // Just anything to fail the checks
+    }
 
     waveMatrixProperties->bType = fp8;
 
