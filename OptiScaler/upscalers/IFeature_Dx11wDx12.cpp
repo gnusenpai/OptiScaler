@@ -82,26 +82,16 @@ bool IFeature_Dx11wDx12::CreateD3D12Objects()
 
 void IFeature_Dx11wDx12::ReleaseSharedResources()
 {
-    SAFE_RELEASE(dx11Color.SharedTexture);
-    SAFE_RELEASE(dx11Mv.SharedTexture);
-    SAFE_RELEASE(dx11Out.SharedTexture);
-    SAFE_RELEASE(dx11Depth.SharedTexture);
-    SAFE_RELEASE(dx11Reactive.SharedTexture);
-    SAFE_RELEASE(dx11Exp.SharedTexture);
-    SAFE_RELEASE(dx11Color.Dx12Resource);
-    SAFE_RELEASE(dx11Mv.Dx12Resource);
-    SAFE_RELEASE(dx11Out.Dx12Resource);
-    SAFE_RELEASE(dx11Depth.Dx12Resource);
-    SAFE_RELEASE(dx11Reactive.Dx12Resource);
-    SAFE_RELEASE(dx11Exp.Dx12Resource);
-
-    ReleaseSyncResources();
+    Dx11WithDx12::ResetUpscalerResourceCache();
 
     SAFE_RELEASE(Dx12CommandList[0]);
     SAFE_RELEASE(Dx12CommandList[1]);
     SAFE_RELEASE(Dx12CommandAllocator[0]);
     SAFE_RELEASE(Dx12CommandAllocator[1]);
     SAFE_RELEASE(Dx12Fence);
+    Dx12FenceValue = 0;
+    Dx12CommandAllocatorFenceValue[0] = 0;
+    Dx12CommandAllocatorFenceValue[1] = 0;
 
     if (Dx12FenceEvent)
     {
@@ -112,64 +102,83 @@ void IFeature_Dx11wDx12::ReleaseSharedResources()
     // SAFE_RELEASE(Dx12Device);
 }
 
-void IFeature_Dx11wDx12::ReleaseSyncResources()
-{
-    SAFE_RELEASE(dx11FenceTextureCopy);
-    SAFE_RELEASE(dx12FenceTextureCopy);
-
-    if (dx11SHForTextureCopy != NULL)
-    {
-        CloseHandle(dx11SHForTextureCopy);
-        dx11SHForTextureCopy = NULL;
-    }
-}
-
-bool GetD3D11ResourceFromParameter(std::string name, const NVSDK_NGX_Parameter* InParameters, const char* paramName,
-                                   ID3D11Resource** outResource, Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C* shared,
-                                   bool copy, bool depth, bool useNtShared)
-{
-
-    if (InParameters->Get(paramName, outResource) != NVSDK_NGX_Result_Success)
-        if (InParameters->Get(paramName, outResource) != NVSDK_NGX_Result_Success)
-            return false;
-
-    if (*outResource == nullptr)
-    {
-        LOG_ERROR("{} not exist!!", name);
-        return false;
-    }
-
-    LOG_TRACE("{} exist..", name);
-
-    if (!Dx11WithDx12::CopyTextureFrom11To12(*outResource, shared, copy, depth, useNtShared))
-        return false;
-
-    return true;
-}
-
 bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParameters)
 {
     HRESULT result;
 
-    // Wait for last frame
-    if (Dx12Fence->GetCompletedValue() < _frameCount)
+    auto frame = _frameCount % DX11WDX12_NUM_OF_BUFFERS;
+    const auto cacheFrameKey = Dx11WithDx12::NextUpscalerFrameId();
+    Dx11WithDx12::SetUpscalerFrameIndex((UINT) frame);
+
+    auto mask = Dx11WithDx12::ResourceMask::Color | Dx11WithDx12::ResourceMask::Mv | Dx11WithDx12::ResourceMask::Depth |
+                Dx11WithDx12::ResourceMask::Output;
+
+    if (!AutoExposure())
+        mask |= Dx11WithDx12::ResourceMask::Exposure;
+    else
+        LOG_DEBUG("AutoExposure enabled!");
+
+    const bool reactiveDisabled = Config::Instance()->DisableReactiveMask.value_or(false);
+    const bool reactiveRequired = Config::Instance()->Dx11Upscaler.value_or_default() == Upscaler::XeSS ||
+                                  Config::Instance()->Dx11Upscaler.value_or_default() == Upscaler::XeSS_on12;
+
+    if (!reactiveDisabled)
+        mask |= Dx11WithDx12::ResourceMask::Reactive;
+    else
+        LOG_DEBUG("ReactiveMask disabled!");
+
+    const auto prepareResult = Dx11WithDx12::PrepareUpscalerResources(
+        InParameters, mask, (UINT) frame, cacheFrameKey, Config::Instance()->DontUseNTShared.value_or_default(),
+        reactiveRequired, true);
+
+    if (!prepareResult.Success)
     {
-        result = Dx12Fence->SetEventOnCompletion(_frameCount, Dx12FenceEvent);
+        if (prepareResult.MissingExposure)
+        {
+            LOG_WARN("AutoExposure disabled but ExposureTexture does not exist, enabling auto exposure and changing "
+                     "backend");
+            State::Instance().autoExposure = true;
+            State::Instance().changeBackend[Handle()->Id] = true;
+            return true;
+        }
+
+        if (prepareResult.MissingReactive && reactiveRequired)
+        {
+            LOG_WARN("Bias mask does not exist and is required by the current DX11 upscaler, disabling reactive mask");
+            Config::Instance()->DisableReactiveMask.set_volatile_value(true);
+            State::Instance().changeBackend[Handle()->Id] = true;
+            return true;
+        }
+
+        LOG_ERROR("Dx11wDx12 resource cache preparation failed");
+        return false;
+    }
+
+    const auto allocatorFenceValue = Dx12CommandAllocatorFenceValue[frame];
+    if (allocatorFenceValue != 0 && Dx12Fence->GetCompletedValue() < allocatorFenceValue)
+    {
+        result = Dx12Fence->SetEventOnCompletion(allocatorFenceValue, Dx12FenceEvent);
         if (result != S_OK)
         {
-            LOG_ERROR("SetEventOnCompletion error: {:X}", (UINT) result);
+            LOG_ERROR("SetEventOnCompletion error for allocator {} fence {}: {:X}", frame, allocatorFenceValue,
+                      (UINT) result);
             return false;
         }
 
-        WaitForSingleObject(Dx12FenceEvent, INFINITE);
+        const auto waitResult = WaitForSingleObject(Dx12FenceEvent, INFINITE);
+        if (waitResult != WAIT_OBJECT_0)
+        {
+            LOG_ERROR("WaitForSingleObject failed for allocator {} fence {}: {:X}", frame, allocatorFenceValue,
+                      (UINT) waitResult);
+            return false;
+        }
     }
-
-    auto frame = _frameCount % DX11WDX12_NUM_OF_BUFFERS;
 
     result = Dx12CommandAllocator[frame]->Reset();
     if (result != S_OK)
     {
-        LOG_ERROR("CommandAllocator Reset error: {:X}", (UINT) result);
+        LOG_ERROR("CommandAllocator Reset error for frame {}, allocator fence {}, completed {}: {:X}", frame,
+                  allocatorFenceValue, Dx12Fence->GetCompletedValue(), (UINT) result);
         return false;
     }
 
@@ -180,187 +189,14 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
         return false;
     }
 
-    auto dontUseNTS = Config::Instance()->DontUseNTShared.value_or_default();
-
-#pragma region Texture copies
-
-    ID3D11Resource* paramColor = nullptr;
-    ID3D11Resource* paramMv = nullptr;
-    ID3D11Resource* paramDepth = nullptr;
-    ID3D11Resource* paramExposure = nullptr;
-    ID3D11Resource* paramReactiveMask = nullptr;
-
-    if (!GetD3D11ResourceFromParameter("Color", InParameters, NVSDK_NGX_Parameter_Color, &paramColor, &dx11Color, true,
-                                       false, dontUseNTS))
-    {
-        return false;
-    }
-
-    if (!GetD3D11ResourceFromParameter("MotionVectors", InParameters, NVSDK_NGX_Parameter_MotionVectors, &paramMv,
-                                       &dx11Mv, true, false, dontUseNTS))
-    {
-        return false;
-    }
-
-    if (!GetD3D11ResourceFromParameter("Output", InParameters, NVSDK_NGX_Parameter_Output, &paramOutput[frame],
-                                       &dx11Out, false, false, dontUseNTS))
-    {
-        return false;
-    }
-
-    if (!GetD3D11ResourceFromParameter("Depth", InParameters, NVSDK_NGX_Parameter_Depth, &paramDepth, &dx11Depth, true,
-                                       true, dontUseNTS))
-    {
-        return false;
-    }
-
-    if (AutoExposure())
-    {
-        LOG_DEBUG("AutoExposure enabled!");
-    }
-    else
-    {
-        if (!GetD3D11ResourceFromParameter("Exposure", InParameters, NVSDK_NGX_Parameter_ExposureTexture,
-                                           &paramExposure, &dx11Exp, true, false, dontUseNTS))
-        {
-            LOG_WARN("AutoExposure disabled but ExposureTexture is not exist, it may cause problems!!");
-            State::Instance().autoExposure = true;
-            State::Instance().changeBackend[Handle()->Id] = true;
-            return true;
-        }
-    }
-
-    if (Config::Instance()->DisableReactiveMask.value_or(false))
-    {
-        LOG_DEBUG("ReactiveMask disabled!");
-    }
-    else
-    {
-        if (!GetD3D11ResourceFromParameter("BiasMask", InParameters,
-                                           NVSDK_NGX_Parameter_DLSS_Input_Bias_Current_Color_Mask, &paramReactiveMask,
-                                           &dx11Reactive, true, false, dontUseNTS))
-        {
-            if (Config::Instance()->Dx11Upscaler.value_or_default() == Upscaler::XeSS ||
-                Config::Instance()->Dx11Upscaler.value_or_default() == Upscaler::XeSS_on12)
-            {
-                LOG_WARN("Bias mask not exist and it's enabled in config, it may cause problems!!");
-                Config::Instance()->DisableReactiveMask.set_volatile_value(true);
-                State::Instance().changeBackend[Handle()->Id] = true;
-                return true;
-            }
-        }
-    }
-
-#pragma endregion
-
-    {
-        if (dx11FenceTextureCopy == nullptr)
-        {
-            result = Dx11Device->CreateFence(0, D3D11_FENCE_FLAG_SHARED, IID_PPV_ARGS(&dx11FenceTextureCopy));
-
-            if (result != S_OK)
-            {
-                LOG_ERROR("Can't create dx11FenceTextureCopy {0:x}", result);
-                return false;
-            }
-
-            LOG_INFO("dx11FenceTextureCopy created successfully!");
-        }
-
-        if (dx11SHForTextureCopy == nullptr)
-        {
-            result = dx11FenceTextureCopy->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &dx11SHForTextureCopy);
-
-            if (result != S_OK)
-            {
-                LOG_ERROR("Can't create sharedhandle for dx11FenceTextureCopy {:X}", (UINT) result);
-                return false;
-            }
-
-            result = _dx11on12Device->OpenSharedHandle(dx11SHForTextureCopy, IID_PPV_ARGS(&dx12FenceTextureCopy));
-
-            if (result != S_OK)
-            {
-                LOG_ERROR("Can't create open sharedhandle for dx12FenceTextureCopy {:X}", (UINT) result);
-                return false;
-            }
-
-            LOG_INFO("dx12FenceTextureCopy created successfully from shared handle!");
-        }
-
-        // Fence
-        LOG_DEBUG("Dx11 Signal & Dx12 Wait!");
-
-        result = Dx11DeviceContext->Signal(dx11FenceTextureCopy, _fenceValue);
-
-        if (result != S_OK)
-        {
-            LOG_ERROR("Dx11DeviceContext->Signal(dx11FenceTextureCopy, {}) : {:X}!", _fenceValue, (UINT) result);
-            return false;
-        }
-
-        Dx11DeviceContext->Flush();
-
-        // Gpu Sync
-        result = Dx12CommandQueue->Wait(dx12FenceTextureCopy, _fenceValue);
-        _fenceValue++;
-
-        if (result != S_OK)
-        {
-            LOG_ERROR("Dx12CommandQueue->Wait(dx12fence_1, {}) : {:X}!", _fenceValue, result);
-            return false;
-        }
-    }
-
-#pragma region shared handles
-
-    LOG_DEBUG("SharedHandles start!");
-
-    if (paramColor != nullptr && !Dx11WithDx12::OpenHandle("Color", _dx11on12Device, paramColor, &dx11Color))
-        return false;
-
-    if (paramMv != nullptr && !Dx11WithDx12::OpenHandle("MV", _dx11on12Device, paramMv, &dx11Mv))
-        return false;
-
-    if (paramOutput[frame] != nullptr &&
-        !Dx11WithDx12::OpenHandle("Output", _dx11on12Device, paramOutput[frame], &dx11Out))
-        return false;
-
-    if (paramDepth != nullptr && !Dx11WithDx12::OpenHandle("Depth", _dx11on12Device, paramDepth, &dx11Depth))
-        return false;
-
-    if (AutoExposure())
-        LOG_DEBUG("AutoExposure enabled!");
-    else if (paramExposure != nullptr &&
-             !Dx11WithDx12::OpenHandle("Exposure", _dx11on12Device, paramExposure, &dx11Exp))
-        return false;
-
-    if (!Config::Instance()->DisableReactiveMask.value_or(false) && paramReactiveMask != nullptr &&
-        !Dx11WithDx12::OpenHandle("ReactiveMask", _dx11on12Device, paramReactiveMask, &dx11Reactive))
-    {
-        return false;
-    }
-
-#pragma endregion
-
+    LOG_DEBUG("Shared handles prepared and synchronized by Dx11WithDx12 cache, frameKey: {}", cacheFrameKey);
     return true;
 }
 
 bool IFeature_Dx11wDx12::CopyBackOutput()
 {
-    // Fence ones
-    {
-        // wait for fsr on dx12
-        Dx11DeviceContext->Wait(dx11FenceTextureCopy, _fenceValue);
-        _fenceValue++;
-
-        auto frame = _frameCount % DX11WDX12_NUM_OF_BUFFERS;
-
-        // Copy Back
-        Dx11DeviceContext->CopyResource(paramOutput[frame], dx11Out.SharedTexture);
-    }
-
-    return true;
+    const auto frame = (UINT) (_frameCount % DX11WDX12_NUM_OF_BUFFERS);
+    return Dx11WithDx12::CopyUpscalerOutputToDx11(frame);
 }
 
 bool IFeature_Dx11wDx12::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, NVSDK_NGX_Parameter* InParameters)
@@ -392,9 +228,6 @@ bool IFeature_Dx11wDx12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
 {
     LOG_FUNC();
 
-    auto& cfg = *Config::Instance();
-    const auto& ngxParams = *InParameters;
-
     if (!IsInited())
         return false;
 
@@ -412,6 +245,14 @@ bool IFeature_Dx11wDx12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
         LOG_WARN("Dx11DeviceContext changed!");
         ReleaseSharedResources();
         Dx11DeviceContext = dc;
+
+        if (!CreateD3D12Objects())
+        {
+            LOG_ERROR("Failed to recreate Dx11wDx12 D3D12 objects after context change");
+            if (dc != nullptr)
+                dc->Release();
+            return false;
+        }
     }
 
     if (dc != nullptr)
@@ -419,6 +260,47 @@ bool IFeature_Dx11wDx12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
 
     auto frame = _frameCount % DX11WDX12_NUM_OF_BUFFERS;
     auto cmdList = Dx12CommandList[frame];
+
+    auto& cache = Dx11WithDx12::GetUpscalerResourceCache();
+    auto& dx11Color = cache.Color;
+    auto& dx11Mv = cache.Mv;
+    auto& dx11Depth = cache.Depth;
+    auto& dx11Reactive = cache.Reactive;
+    auto& dx11Exp = cache.Exposure;
+    auto& dx11Out = cache.Output[frame];
+
+    auto getOriginalNgxResource = [](NVSDK_NGX_Parameter* parameters, const char* name, ID3D11Resource** outResource)
+    {
+        if (parameters == nullptr || name == nullptr || outResource == nullptr)
+            return false;
+
+        *outResource = nullptr;
+
+        if (parameters->Get(name, outResource) != NVSDK_NGX_Result_Success)
+            parameters->Get(name, (void**) outResource);
+
+        return *outResource != nullptr;
+    };
+
+    ID3D11Resource* restoreParamColor = nullptr;
+    ID3D11Resource* restoreParamMv = nullptr;
+    ID3D11Resource* restoreParamOutput = nullptr;
+    ID3D11Resource* restoreParamDepth = nullptr;
+    ID3D11Resource* restoreParamExposure = nullptr;
+    ID3D11Resource* restoreParamReactive = nullptr;
+
+    const bool hasRestoreParamColor =
+        getOriginalNgxResource(InParameters, NVSDK_NGX_Parameter_Color, &restoreParamColor);
+    const bool hasRestoreParamMv =
+        getOriginalNgxResource(InParameters, NVSDK_NGX_Parameter_MotionVectors, &restoreParamMv);
+    const bool hasRestoreParamOutput =
+        getOriginalNgxResource(InParameters, NVSDK_NGX_Parameter_Output, &restoreParamOutput);
+    const bool hasRestoreParamDepth =
+        getOriginalNgxResource(InParameters, NVSDK_NGX_Parameter_Depth, &restoreParamDepth);
+    const bool hasRestoreParamExposure =
+        getOriginalNgxResource(InParameters, NVSDK_NGX_Parameter_ExposureTexture, &restoreParamExposure);
+    const bool hasRestoreParamReactive = getOriginalNgxResource(
+        InParameters, NVSDK_NGX_Parameter_DLSS_Input_Bias_Current_Color_Mask, &restoreParamReactive);
 
     ID3D11ShaderResourceView* restoreSRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
     ID3D11SamplerState* restoreSamplerStates[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
@@ -459,6 +341,8 @@ bool IFeature_Dx11wDx12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
     DeviceContext->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, nullRTVs, nullptr);
 
     bool dx12EvalResult = false;
+    bool commandListRecording = false;
+    bool commandListExecuted = false;
     do
     {
         if (!ProcessDx11Textures(InParameters))
@@ -472,33 +356,77 @@ bool IFeature_Dx11wDx12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
             break;
         }
 
+        commandListRecording = true;
+
         InParameters->Set(NVSDK_NGX_Parameter_Color, (void*) dx11Color.Dx12Resource);
         InParameters->Set(NVSDK_NGX_Parameter_MotionVectors, (void*) dx11Mv.Dx12Resource);
         InParameters->Set(NVSDK_NGX_Parameter_Output, (void*) dx11Out.Dx12Resource);
         InParameters->Set(NVSDK_NGX_Parameter_Depth, (void*) dx11Depth.Dx12Resource);
-        InParameters->Set(NVSDK_NGX_Parameter_ExposureTexture, (void*) dx11Exp.Dx12Resource);
-        InParameters->Set(NVSDK_NGX_Parameter_DLSS_Input_Bias_Current_Color_Mask, (void*) dx11Reactive.Dx12Resource);
+
+        if (!AutoExposure() && dx11Exp.Dx12Resource != nullptr)
+            InParameters->Set(NVSDK_NGX_Parameter_ExposureTexture, (void*) dx11Exp.Dx12Resource);
+
+        if (!Config::Instance()->DisableReactiveMask.value_or(false) && dx11Reactive.Dx12Resource != nullptr)
+            InParameters->Set(NVSDK_NGX_Parameter_DLSS_Input_Bias_Current_Color_Mask,
+                              (void*) dx11Reactive.Dx12Resource);
 
         LOG_DEBUG("Dispatch!!");
         dx12EvalResult = dx12Feature->Evaluate(cmdList, InParameters);
 
-        // Should we restore the resources in the params to DX11 ???
-
     } while (false);
+
+    if (hasRestoreParamColor)
+        InParameters->Set(NVSDK_NGX_Parameter_Color, (void*) restoreParamColor);
+
+    if (hasRestoreParamMv)
+        InParameters->Set(NVSDK_NGX_Parameter_MotionVectors, (void*) restoreParamMv);
+
+    if (hasRestoreParamOutput)
+        InParameters->Set(NVSDK_NGX_Parameter_Output, (void*) restoreParamOutput);
+
+    if (hasRestoreParamDepth)
+        InParameters->Set(NVSDK_NGX_Parameter_Depth, (void*) restoreParamDepth);
+
+    if (hasRestoreParamExposure)
+        InParameters->Set(NVSDK_NGX_Parameter_ExposureTexture, (void*) restoreParamExposure);
+
+    if (hasRestoreParamReactive)
+        InParameters->Set(NVSDK_NGX_Parameter_DLSS_Input_Bias_Current_Color_Mask, (void*) restoreParamReactive);
+
+    if (commandListRecording)
+    {
+        const auto closeResult = cmdList->Close();
+        if (closeResult != S_OK)
+        {
+            LOG_ERROR("CommandList Close error: {:X}", (UINT) closeResult);
+            dx12EvalResult = false;
+        }
+    }
 
     if (dx12EvalResult)
     {
-        cmdList->Close();
         ID3D12CommandList* ppCommandLists[] = { cmdList };
         Dx12CommandQueue->ExecuteCommandLists(1, ppCommandLists);
-        Dx12CommandQueue->Signal(dx12FenceTextureCopy, _fenceValue);
+        commandListExecuted = true;
+
+        const auto fenceValue = ++Dx12FenceValue;
+        result = Dx12CommandQueue->Signal(Dx12Fence, fenceValue);
+        if (result != S_OK)
+        {
+            LOG_ERROR("Dx12CommandQueue Signal failed for feature fence {}: {:X}", fenceValue, (UINT) result);
+            dx12EvalResult = false;
+        }
+        else
+        {
+            Dx12CommandAllocatorFenceValue[frame] = fenceValue;
+        }
     }
 
     auto evalResult = false;
 
     do
     {
-        if (!dx12EvalResult)
+        if (!dx12EvalResult || !commandListExecuted)
             break;
 
         if (!CopyBackOutput())
@@ -511,8 +439,10 @@ bool IFeature_Dx11wDx12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NG
 
     } while (false);
 
-    _frameCount++;
-    Dx12CommandQueue->Signal(Dx12Fence, _frameCount);
+    if (evalResult)
+        _frameCount++;
+    else
+        Dx11WithDx12::ClearLastPreparedUpscalerFrameState();
 
     // restore compute shader resources
     for (UINT i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
@@ -587,7 +517,13 @@ bool IFeature_Dx11wDx12::BaseInit(ID3D11Device* InDevice, ID3D11DeviceContext* I
         Dx11Device->Release();
     }
 
-    _dx11on12Device = WithDx12::GetD3D12Device(D3D_FEATURE_LEVEL_11_0);
+    if (!WithDx12::PrepareD3D12ForD3D11(InDevice, D3D_FEATURE_LEVEL_11_0))
+    {
+        LOG_ERROR("Cannot resolve D3D12 device/queue from WithDx12!");
+        return false;
+    }
+
+    _dx11on12Device = WithDx12::GetD3D12Device();
     if (_dx11on12Device == nullptr)
     {
         LOG_ERROR("Cannot get D3D12 device from WithDx12!");
@@ -609,7 +545,7 @@ bool IFeature_Dx11wDx12::BaseInit(ID3D11Device* InDevice, ID3D11DeviceContext* I
         return false;
     }
 
-    Dx11WithDx12::Init(Dx11Device, Dx11DeviceContext, _dx11on12Device, Dx12CommandQueue);
+    Dx11WithDx12::Init(Dx11Device, Dx11DeviceContext);
 
     return true;
 }

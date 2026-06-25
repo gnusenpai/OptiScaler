@@ -35,6 +35,8 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
     ID3D12GraphicsCommandList* Dx12CommandList[DX11WDX12_NUM_OF_BUFFERS] {};
     ID3D12Fence* Dx12Fence = nullptr;
     HANDLE Dx12FenceEvent = nullptr;
+    UINT64 Dx12FenceValue = 0;
+    UINT64 Dx12CommandAllocatorFenceValue[DX11WDX12_NUM_OF_BUFFERS] = {};
 
     Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Color = {};
     Dx11WithDx12::D3D11_TEXTURE2D_RESOURCE_C dx11Mv = {};
@@ -45,11 +47,6 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
 
     ID3D11Resource* paramOutput[DX11WDX12_NUM_OF_BUFFERS] = {};
 
-    ID3D11Fence* dx11FenceTextureCopy = nullptr;
-    ID3D12Fence* dx12FenceTextureCopy = nullptr;
-    HANDLE dx11SHForTextureCopy = nullptr;
-    ULONG _fenceValue = 1;
-
     bool CreateD3D12Objects();
     bool ProcessDx11Textures(const NVSDK_NGX_Parameter* InParameters);
     bool CopyBackOutput();
@@ -58,7 +55,6 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
                          D3D12_RESOURCE_STATES InBeforeState, D3D12_RESOURCE_STATES InAfterState);
 
     void ReleaseSharedResources();
-    void ReleaseSyncResources();
 
     bool BaseInit(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, NVSDK_NGX_Parameter* InParameters);
 

@@ -15,6 +15,15 @@ class FGHooks
                                           DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
                                           IDXGIOutput* pRestrictToOutput, IDXGISwapChain1** ppSwapChain);
 
+    // Registers a real FG swapchain created through FGHooks::CreateSwapChain*().
+    static void SetFGSwapchain(IDXGISwapChain* pSwapChain, HWND hWnd);
+
+    // Registers a plain/external DX12 presenting swapchain used by DX11->DX12 interop fallback.
+    // This must not mark State::currentFGSwapchain and must not install FG present hooks.
+    static void SetDx12InteropPresentSC(IDXGISwapChain* pSwapChain, HWND hWnd);
+    static void ClearDx12InteropPresentSC(IUnknown* pSwapChain);
+    static bool IsDx12InteropPresentSC(IUnknown* pSwapChain);
+
   private:
     using PFN_Present = rewrite_signature<decltype(&IDXGISwapChain::Present)>::type;
     using PFN_Present1 = rewrite_signature<decltype(&IDXGISwapChain1::Present1)>::type;
@@ -39,6 +48,8 @@ class FGHooks
     inline static PFN_Release o_FGRelease = nullptr;
     inline static PFN_GetFrameLatencyWaitableObject o_FGSCGetFrameLatencyWaitableObject = nullptr;
     inline static HWND _hwnd = nullptr;
+    inline static IDXGISwapChain* _dx12InteropPresentSC = nullptr;
+    inline static HWND _dx12InteropPresentHwnd = nullptr;
     inline static bool _skipResize = false;
     inline static bool _skipResize1 = false;
     inline static bool _skipPresent = false;

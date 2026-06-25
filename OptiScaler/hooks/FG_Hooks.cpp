@@ -13,15 +13,15 @@
 #include <resource_tracking/ResTrack_Dx12.h>
 
 #include <misc/FrameLimit.h>
+#include <upscaler_time/UpscalerTime_Dx11.h>
 #include <upscaler_time/UpscalerTime_Dx12.h>
 
+#include <misc/IdentifyGpu.h>
 #include <hooks/Reflex_Hooks.h>
-
-#include <detours/detours.h>
+#include <menu/menu_overlay_dx.h>
 
 #include <d3d12.h>
-#include <misc/IdentifyGpu.h>
-#include <menu/menu_overlay_dx.h>
+#include <detours/detours.h>
 
 #define XEFG_RESOURCE_REF_LIMIT 1
 
@@ -99,8 +99,6 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         LOG_ERROR("FG Feature requires D3D12 Command Queue!");
         return E_INVALIDARG;
     }
-
-    cq->Release();
 
     if (State::Instance().currentFG == nullptr)
     {
@@ -188,12 +186,7 @@ HRESULT FGHooks::CreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
             resizeFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         }
 
-        _hwnd = pDesc->OutputWindow;
-        State::Instance().currentFGSwapchain = *ppSwapChain;
-
-        HookFGSwapchain(*ppSwapChain);
-
-        State::Instance().currentSwapchain = *ppSwapChain;
+        SetFGSwapchain(*ppSwapChain, pDesc->OutputWindow);
 
         return S_OK;
     }
@@ -218,8 +211,6 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
         LOG_ERROR("FG Feature requires D3D12 Command Queue!");
         return E_INVALIDARG;
     }
-
-    cq->Release();
 
     if (State::Instance().currentFG == nullptr)
     {
@@ -307,16 +298,58 @@ HRESULT FGHooks::CreateSwapChainForHwnd(IDXGIFactory* pFactory, IUnknown* pDevic
             resizeFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         }
 
-        _hwnd = hWnd;
-        State::Instance().currentFGSwapchain = *ppSwapChain;
-
-        HookFGSwapchain(*ppSwapChain);
-        State::Instance().currentSwapchain = *ppSwapChain;
+        SetFGSwapchain((IDXGISwapChain*) *ppSwapChain, hWnd);
 
         return S_OK;
     }
 
     return E_INVALIDARG;
+}
+
+void FGHooks::SetFGSwapchain(IDXGISwapChain* pSwapChain, HWND hWnd)
+{
+    if (pSwapChain == nullptr)
+        return;
+
+    _hwnd = hWnd;
+
+    if (_dx12InteropPresentSC == pSwapChain)
+    {
+        _dx12InteropPresentSC = nullptr;
+        _dx12InteropPresentHwnd = nullptr;
+    }
+
+    State::Instance().currentFGSwapchain = pSwapChain;
+    State::Instance().currentSwapchain = pSwapChain;
+
+    HookFGSwapchain(pSwapChain);
+}
+
+void FGHooks::SetDx12InteropPresentSC(IDXGISwapChain* pSwapChain, HWND hWnd)
+{
+    if (pSwapChain == nullptr)
+        return;
+
+    _dx12InteropPresentSC = pSwapChain;
+    _dx12InteropPresentHwnd = hWnd;
+
+    LOG_INFO("Set DX12 presenting swapchain: {:X}, hWnd: {:X}", (size_t) pSwapChain, (size_t) hWnd);
+}
+
+void FGHooks::ClearDx12InteropPresentSC(IUnknown* pSwapChain)
+{
+    if (pSwapChain == nullptr || pSwapChain != _dx12InteropPresentSC)
+        return;
+
+    LOG_INFO("Clearing DX12 presenting swapchain: {:X}", (size_t) pSwapChain);
+
+    _dx12InteropPresentSC = nullptr;
+    _dx12InteropPresentHwnd = nullptr;
+}
+
+bool FGHooks::IsDx12InteropPresentSC(IUnknown* pSwapChain)
+{
+    return pSwapChain != nullptr && pSwapChain == _dx12InteropPresentSC;
 }
 
 void FGHooks::HookFGSwapchain(IDXGISwapChain* pSwapChain)
@@ -403,7 +436,8 @@ void FGHooks::HookFGSwapchain(IDXGISwapChain* pSwapChain)
 
 HRESULT FGHooks::hkSetFullscreenState(IDXGISwapChain* This, BOOL Fullscreen, IDXGIOutput* pTarget)
 {
-    auto fg = State::Instance().currentFG;
+    IFGFeature* fg = State::Instance().currentFG;
+
     if (fg != nullptr && fg->IsActive())
     {
         State::Instance().fgChanged = true;
@@ -595,7 +629,8 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
     LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {:X}", BufferCount, Width, Height,
               (UINT) NewFormat, SwapChainFlags);
 
-    auto fg = State::Instance().currentFG;
+    auto fgDx12 = State::Instance().currentFG;
+    IFGFeature* fg = fgDx12;
 
     if (!State::Instance().SCExclusiveFullscreen && Config::Instance()->FGSkipResizeBuffers.value_or_default())
     {
@@ -622,11 +657,11 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
                     auto swapchain = ((IDXGISwapChain3*) This);
                     auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
 
-                    if (fg != nullptr && Config::Instance()->FGModifyBufferState.value_or_default())
+                    if (fgDx12 != nullptr && Config::Instance()->FGModifyBufferState.value_or_default())
                     {
                         LOG_INFO("Trying to change backbuffer state to COMMON");
 
-                        auto cmdList = fg->GetUICommandList();
+                        auto cmdList = fgDx12->GetUICommandList();
 
                         if (cmdList != nullptr)
                         {
@@ -723,7 +758,6 @@ HRESULT FGHooks::hkResizeBuffers(IDXGISwapChain* This, UINT BufferCount, UINT Wi
 
     if (result == S_OK)
     {
-        auto fg = State::Instance().currentFG;
         if (fg != nullptr)
         {
             State::Instance().fgChanged = true;
@@ -759,7 +793,8 @@ HRESULT FGHooks::hkResizeTarget(IDXGISwapChain* This, const DXGI_MODE_DESC* pNew
         return S_OK;
     }
 
-    auto fg = State::Instance().currentFG;
+    IFGFeature* fg = State::Instance().currentFG;
+
     if (fg != nullptr && fg->IsActive())
     {
         State::Instance().fgChanged = true;
@@ -832,7 +867,8 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain3* This, UINT BufferCount, UINT 
     LOG_DEBUG("BufferCount: {}, Width: {}, Height: {}, NewFormat:{}, SwapChainFlags: {:X}, Caller: {}", BufferCount,
               Width, Height, (UINT) Format, SwapChainFlags, Util::WhoIsTheCaller(_ReturnAddress()));
 
-    auto fg = State::Instance().currentFG;
+    auto fgDx12 = State::Instance().currentFG;
+    IFGFeature* fg = fgDx12;
 
     if (!State::Instance().SCExclusiveFullscreen && Config::Instance()->FGSkipResizeBuffers.value_or_default())
     {
@@ -858,12 +894,11 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain3* This, UINT BufferCount, UINT 
                     auto swapchain = ((IDXGISwapChain3*) This);
                     auto swapchainIndex = swapchain->GetCurrentBackBufferIndex();
 
-                    if (fg != nullptr && Config::Instance()->FGModifyBufferState.value_or_default())
+                    if (fgDx12 != nullptr && Config::Instance()->FGModifyBufferState.value_or_default())
                     {
                         LOG_INFO("Trying to change backbuffer state to COMMON");
 
-                        auto cmdList = fg->GetUICommandList();
-
+                        auto cmdList = fgDx12->GetUICommandList();
                         if (cmdList != nullptr)
                         {
                             for (size_t i = 0; i < desc.BufferCount; i++)
@@ -963,7 +998,6 @@ HRESULT FGHooks::hkResizeBuffers1(IDXGISwapChain3* This, UINT BufferCount, UINT 
 
     if (result == S_OK)
     {
-        auto fg = State::Instance().currentFG;
         if (fg != nullptr)
         {
             State::Instance().fgChanged = true;
@@ -1064,7 +1098,10 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
 {
     _lastPresentFlags = Flags;
 
-    if (State::Instance().isShuttingDown)
+    auto& state = State::Instance();
+    auto config = Config::Instance();
+
+    if (state.isShuttingDown)
     {
         if (pPresentParameters == nullptr)
             return o_FGSCPresent(This, SyncInterval, Flags);
@@ -1076,7 +1113,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
 
     if (willPresent)
     {
-        State::Instance().fgLastFrame++;
+        state.fgLastFrame++;
 
         double ftDelta = 0.0f;
         auto now = Util::MillisecondsNow();
@@ -1085,20 +1122,31 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
             ftDelta = now - _lastFGFrameTime;
 
         _lastFGFrameTime = now;
-        State::Instance().lastFGFrameTime = ftDelta;
+        state.lastFGFrameTime = ftDelta;
 
         LOG_DEBUG("flags: {:X}, Frametime: {}", Flags, ftDelta);
     }
 
-    if (willPresent && State::Instance().currentCommandQueue != nullptr)
+    IFGFeature* fg = state.currentFG;
+
+    if (fg != nullptr && willPresent)
     {
-        UpscalerTimeDx12::ReadUpscalingTime(State::Instance().currentCommandQueue);
+        if (state.swapchainInteropApi == SwapchainInteropApi::Dx11wDx12 && state.currentD3D11Device != nullptr)
+        {
+            ID3D11DeviceContext* context = nullptr;
+            state.currentD3D11Device->GetImmediateContext(&context);
+            UpscalerTimeDx11::ReadUpscalingTime(context);
+            context->Release();
+        }
+        else if (state.swapchainInteropApi == SwapchainInteropApi::None && state.currentCommandQueue != nullptr)
+        {
+            UpscalerTimeDx12::ReadUpscalingTime(state.currentCommandQueue);
+        }
     }
 
-    auto fg = State::Instance().currentFG;
     bool mutexUsed = false;
     if (willPresent && fg != nullptr && fg->IsActive() && !fg->IsPaused() &&
-        Config::Instance()->FGUseMutexForSwapchain.value_or_default() && fg->Mutex.getOwner() != 2)
+        config->FGUseMutexForSwapchain.value_or_default() && fg->Mutex.getOwner() != 2)
     {
         LOG_TRACE("Waiting FG->Mutex 2, current: {}", fg->Mutex.getOwner());
         fg->Mutex.lock(2);
@@ -1106,57 +1154,61 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
         LOG_TRACE("Accuired FG->Mutex: {}", fg->Mutex.getOwner());
     }
 
+    const bool fgFeatureActive = fg != nullptr && fg->IsActive() && !fg->IsPaused();
+
     sl::FrameToken* localToken = nullptr;
     sl::Result tokenResult = sl::Result::eErrorReflexAPI;
-    if (willPresent && (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-                        State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx))
+    if (willPresent && fg != nullptr && !fgFeatureActive)
+        state.dlssgDetectedInterpolationCount = 0;
+
+    if (willPresent && fgFeatureActive &&
+        (state.activeFgOutput == FGOutput::DLSSG || state.activeFgOutput == FGOutput::DLSSGWithNvngx))
     {
-        ((IDXGISwapChain4*) This)->GetCurrentBackBufferIndex();
-
-        if (!ReflexHooks::gameIsSendingMarkers() ||
-            !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default())
+        if ((!ReflexHooks::gameIsSendingMarkers() || !config->FGDLSSGUseGamesReflexMarkers.value_or_default()))
         {
-            const uint32_t frameId = (uint32_t) State::Instance().currentFG->FrameCount();
-            tokenResult = StreamlineProxy::GetNewFrameToken()(localToken, &frameId);
-
-            if (tokenResult == sl::Result::eOk)
+            if (StreamlineProxy::PCLSetMarker() != nullptr)
             {
-                StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentStart, *localToken);
+                ((IDXGISwapChain4*) This)->GetCurrentBackBufferIndex();
+                const uint32_t frameId = (uint32_t) fg->FrameCount();
+                tokenResult = StreamlineProxy::GetNewFrameToken()(localToken, &frameId);
+
+                if (tokenResult == sl::Result::eOk)
+                    StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentStart, *localToken);
             }
         }
     }
 
-    if (willPresent && fg != nullptr)
+    if (willPresent && fgFeatureActive)
     {
-        // Some games use this callback to render UI even when
-        // FG is disabled. So call it when there is FGFeature
-        if (State::Instance().activeFgInput == FGInput::FSRFG)
+        if (state.activeFgInput == FGInput::FSRFG)
             ffxPresentCallback();
-        else if (State::Instance().activeFgInput == FGInput::FSRFG30)
+        else if (state.activeFgInput == FGInput::FSRFG30)
             FSR3FG::ffxPresentCallback();
 
-        // And if Optiscalers FG is active call
-        // FG Features present
         fg->Present();
     }
+    else if (willPresent && fg != nullptr)
+    {
+        LOG_TRACE("FGHooks::FGPresent: FG feature exists but is inactive/paused; pass-through present only");
+    }
 
-    if (willPresent)
+    if (willPresent && state.swapchainInteropApi == SwapchainInteropApi::None)
     {
         ResTrack_Dx12::ClearPossibleHudless();
         Hudfix_Dx12::PresentStart();
     }
 
-    if (willPresent && Config::Instance()->ForceVsync.has_value())
+    if (willPresent && config->ForceVsync.has_value())
     {
         LOG_DEBUG("ForceVsync: {}, VsyncInterval: {}, SCAllowTearing: {}, realExclusiveFullscreen: {}",
-                  Config::Instance()->ForceVsync.value(), Config::Instance()->VsyncInterval.value_or_default(),
-                  State::Instance().SCAllowTearing, State::Instance().realExclusiveFullscreen);
+                  config->ForceVsync.value(), config->VsyncInterval.value_or_default(), state.SCAllowTearing,
+                  state.realExclusiveFullscreen);
 
-        if (!Config::Instance()->ForceVsync.value())
+        if (!config->ForceVsync.value())
         {
             SyncInterval = 0;
 
-            if (State::Instance().SCAllowTearing && !State::Instance().realExclusiveFullscreen)
+            if (state.SCAllowTearing && !state.realExclusiveFullscreen)
             {
                 LOG_DEBUG("Adding DXGI_PRESENT_ALLOW_TEARING");
                 Flags |= DXGI_PRESENT_ALLOW_TEARING;
@@ -1164,7 +1216,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
         }
         else
         {
-            SyncInterval = Config::Instance()->VsyncInterval.value_or_default();
+            SyncInterval = config->VsyncInterval.value_or_default();
 
             if (SyncInterval < 1)
                 SyncInterval = 1;
@@ -1178,7 +1230,7 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
 
     // Used at wrapped_swapchain LocalPresent to determine is frame is interpolated or not
     if (willPresent)
-        State::Instance().fgPresentIsCalled = true;
+        state.fgPresentIsCalled = true;
 
     HRESULT result;
     if (pPresentParameters == nullptr)
@@ -1192,32 +1244,32 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
     }
     else
     {
-        if (result == DXGI_ERROR_DEVICE_REMOVED && State::Instance().currentD3D12Device != nullptr)
-            Util::GetDeviceRemovedReason(State::Instance().currentD3D12Device);
+        if (result == DXGI_ERROR_DEVICE_REMOVED && state.currentD3D12Device != nullptr)
+            Util::GetDeviceRemovedReason(state.currentD3D12Device);
     }
 
-    if (tokenResult == sl::Result::eOk && localToken != nullptr &&
-        (!ReflexHooks::gameIsSendingMarkers() ||
-         !Config::Instance()->FGDLSSGUseGamesReflexMarkers.value_or_default()) &&
-        willPresent &&
-        (State::Instance().activeFgOutput == FGOutput::DLSSG ||
-         State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx))
+    if (tokenResult == sl::Result::eOk && localToken != nullptr && fgFeatureActive &&
+        (!ReflexHooks::gameIsSendingMarkers() || !config->FGDLSSGUseGamesReflexMarkers.value_or_default()) &&
+        willPresent && (state.activeFgOutput == FGOutput::DLSSG || state.activeFgOutput == FGOutput::DLSSGWithNvngx))
     {
-        StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentEnd, *localToken);
+        if (StreamlineProxy::PCLSetMarker() != nullptr)
+            StreamlineProxy::PCLSetMarker()(sl::PCLMarker::ePresentEnd, *localToken);
+
+        LOG_DEBUG("Calling ReflexSleep");
         StreamlineProxy::ReflexSleep()(*localToken);
     }
 
-    Hudfix_Dx12::PresentEnd();
+    if (state.swapchainInteropApi == SwapchainInteropApi::None)
+        Hudfix_Dx12::PresentEnd();
 
-    if (willPresent && !State::Instance().reflexLimitsFps && State::Instance().activeFgOutput != FGOutput::NoFG &&
+    if (willPresent && !state.reflexLimitsFps && state.activeFgOutput != FGOutput::NoFG &&
         !IdentifyGpu::getPrimaryGpu().usesDxvk && !XellHooks::canLimit())
     {
         FrameLimit::sleep(fg != nullptr ? fg->IsActive() && !fg->IsPaused() : false);
     }
 
-    if ((Config::Instance()->SimulateWaitableObject.value_or_default() ||
-         (State::Instance().gameEngine == GameEngineType::Unity &&
-          State::Instance().activeFgOutput == FGOutput::XeFG)) &&
+    if ((config->SimulateWaitableObject.value_or_default() ||
+         (state.gameEngine == GameEngineType::Unity && state.activeFgOutput == FGOutput::XeFG)) &&
         _semaphore != nullptr)
     {
         ReleaseSemaphore(_semaphore, 1, nullptr);

@@ -1626,13 +1626,14 @@ static void CheckQuirks(bool isNvidia)
         }
     }
 
-    if (Config::Instance()->LoadReShade.value_or_default() && quirks & GameQuirk::CreateD3D12DeviceForLuma &&
-        State::Instance().activeFgInput != FGInput::NoFG && State::Instance().activeFgInput != FGInput::NvngxFG)
-    {
-        Config::Instance()->DxgiFactoryWrapping.set_volatile_value(true);
-        State::Instance().detectedQuirks.push_back("Factory wrapping enabled due to delayed ReShade + FG");
-        LOG_INFO("Factory wrapping enabled due to delayed ReShade + FG");
-    }
+    // if (!Config::Instance()->DxgiFactoryWrapping.has_value() && Config::Instance()->LoadReShade.value_or_default() &&
+    //     quirks & GameQuirk::CreateD3D12DeviceForLuma && State::Instance().activeFgInput != FGInput::NoFG &&
+    //     State::Instance().activeFgInput != FGInput::NvngxFG)
+    //{
+    //     Config::Instance()->DxgiFactoryWrapping.set_volatile_value(true);
+    //     State::Instance().detectedQuirks.push_back("Factory wrapping enabled due to delayed ReShade + FG");
+    //     LOG_INFO("Factory wrapping enabled due to delayed ReShade + FG");
+    // }
 
     if (Config::Instance()->LoadSpecialK.value_or_default() && State::Instance().activeFgInput != FGInput::NoFG &&
         State::Instance().activeFgInput != FGInput::NvngxFG)
