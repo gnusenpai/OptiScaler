@@ -516,7 +516,8 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                     }
 
                     // Check for native INT8 support
-                    if (res.realFsr4Support == FSR4Support::None)
+                    // Don't treat this as real because RDNA3 on Linux may be able to support FP8, useful for FG
+                    if (res.fsr4Support == FSR4Support::None)
                     {
                         device_info::AdapterId adapterId(gpuInfo.vendorId, gpuInfo.deviceId, gpuInfo.revisionId);
                         auto cardInfo = device_info::GetCardInfo(adapterId);
@@ -524,7 +525,7 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                         if (cardInfo.has_value())
                         {
                             if (cardInfo.value().generation == device_info::HwGeneration::kGfx11)
-                                res.realFsr4Support = FSR4Support::INT8;
+                                res.fsr4Support = FSR4Support::INT8;
 
                             // if (cardInfo.value().generation == device_info::HwGeneration::kGfx11_5)
                             //{
