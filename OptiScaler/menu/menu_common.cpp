@@ -2610,7 +2610,7 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                     const char* selectedModel = models[configModes];
 
-                    if (ImGui::BeginTable("nonLinear", 2, ImGuiTableFlags_SizingStretchProp))
+                    if (ImGui::BeginTable("fsr4Presets", 2, ImGuiTableFlags_SizingStretchProp))
                     {
                         ImGui::TableNextColumn();
 
