@@ -26,7 +26,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             auto new_tech = std::make_shared<AntiLag2>();
             if (new_tech->init_using_ctx(forced_low_latency_context))
             {
-                LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0 (via context)");
+                LOG_INFO("LowLatency algo: FSR Anti-Lag 2.0 (via context)");
                 currently_active_tech.store(std::move(new_tech));
                 return true;
             }
@@ -50,7 +50,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice)
             auto new_tech_al2 = std::make_shared<AntiLag2>();
             if (new_tech_al2->init(pDevice))
             {
-                LOG_INFO("LowLatency algo: FSR Latency Reduction 2.0");
+                LOG_INFO("LowLatency algo: FSR Anti-Lag 2.0");
                 new_tech_al2->set_sleep_mode(&last_sleep_mode);
                 currently_active_tech.store(std::move(new_tech_al2));
                 return true;

@@ -4667,7 +4667,7 @@ void MenuCommon::RenderFramerateSettings(RenderMenuContext& ctx)
             fakenvapiMode = fakenvapi::getCurrentMode();
 
             if (fakenvapiMode == LowLatencyMode::AntiLag2)
-                currentMethod = "FSR Latency Reduction 2.0";
+                currentMethod = "FSR Anti-Lag 2.0";
             else if (fakenvapiMode == LowLatencyMode::LatencyFlex)
                 currentMethod = "LatencyFlex";
             else if (fakenvapiMode == LowLatencyMode::XeLL)
@@ -4685,7 +4685,7 @@ void MenuCommon::RenderFramerateSettings(RenderMenuContext& ctx)
             if (state.rtssReflexInjection && fakenvapiMode == LowLatencyMode::AntiLag2 &&
                 config->FGOutput.value_or_default() == FGOutput::FSRFG)
                 ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.8f, 0.f, 1.f)),
-                                   "Using RTSS Reflex injection with FSR Latency Reduction 2.0 and FSR FG "
+                                   "Using RTSS Reflex injection with FSR Anti-Lag 2.0 and FSR FG "
                                    "might cause issues");
         }
         else
@@ -4708,7 +4708,7 @@ void MenuCommon::RenderFramerateSettings(RenderMenuContext& ctx)
         ImGui::Text("Current method: %s", currentMethod.c_str());
 
         if (fakenvapiMode == LowLatencyMode::AntiLag2)
-            ShowHelpMarker("FSR Latency Reduction 2.0 is the new name for AntiLag 2\nDon't ask me why");
+            ShowHelpMarker("FSR Anti-Lag 2.0 is the new name for AntiLag 2\nDon't ask me why");
 
         if (state.reflexShowWarning)
         {
@@ -4836,7 +4836,7 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
         {
             config->FN_ForceLatencyFlex = forceLFX;
         }
-        ShowHelpMarker("By default, FSR Latency Reduction 2.0/XeLL is used when available.\n"
+        ShowHelpMarker("By default, FSR Anti-Lag 2.0/XeLL is used when available.\n"
                        "This setting lets you force LatencyFlex instead");
         ImGui::EndDisabled();
 
