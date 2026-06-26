@@ -188,13 +188,13 @@ HRESULT DxgiSpoofing::hkGetDesc1(IDXGIAdapter1* This, DXGI_ADAPTER_DESC1* pDesc)
 #endif
         }
 
-        if (Util::WhoIsTheCaller(_ReturnAddress()).starts_with("amdxcffx64"))
+        if (caller.starts_with("amdxcffx64") || caller.starts_with("amd_fidelityfx_upscaler_dx12"))
         {
             const auto primaryGpu = IdentifyGpu::getPrimaryGpu();
 
             if (primaryGpu.fsr4ForcedSupport && primaryGpu.fsr4Support == FSR4Support::INT8)
             {
-                LOG_TRACE("Spoofing vendor AMD for amdxcffx64");
+                LOG_TRACE("Spoofing vendor AMD for {}", caller);
                 pDesc->VendorId = VendorId::AMD;
             }
         }
