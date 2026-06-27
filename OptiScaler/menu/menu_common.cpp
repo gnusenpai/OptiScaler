@@ -2527,145 +2527,92 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
                 {
                     ImGui::Spacing();
 
-                    ImGui::BeginDisabled(config->FsrNonLinearSRGB.value_or_default() ||
-                                         config->FsrNonLinearPQ.value_or_default());
+                    // Colorspaces
+                    const char* colorSpaces[] = { "Linear (Default)", "Non-Linear", "Non-Linear sRGB",
+                                                  "Non-Linear PQ" };
+                    int currentColorSpace = 0;
+                    if (config->FsrNonLinearPQ.value_or_default())
+                        currentColorSpace = 3;
+                    else if (config->FsrNonLinearSRGB.value_or_default())
+                        currentColorSpace = 2;
+                    else if (config->FsrNonLinearColorSpace.value_or_default())
+                        currentColorSpace = 1;
 
-                    if (bool nlCS = config->FsrNonLinearColorSpace.value_or_default();
-                        ImGui::Checkbox("Non-Linear Color Space", &nlCS))
+                    ImGui::SetNextItemWidth(150.0f * menuResScale);
+                    if (ImGui::Combo("Input Color Space", &currentColorSpace, colorSpaces, IM_ARRAYSIZE(colorSpaces)))
                     {
-                        config->FsrNonLinearColorSpace = nlCS;
+                        bool isSrgb = (currentColorSpace == 2);
+                        bool isPq = (currentColorSpace == 3);
+
+                        config->FsrNonLinearSRGB = isSrgb;
+                        config->FsrNonLinearPQ = isPq;
+
+                        if (isSrgb || isPq)
+                        {
+                            config->FsrNonLinearColorSpace.set_volatile_value(true);
+                        }
+                        else if (currentColorSpace == 1) // Just non-Linear
+                        {
+                            config->FsrNonLinearColorSpace = true;
+                        }
+                        else // Linear
+                        {
+                            config->FsrNonLinearColorSpace = false;
+                        }
+
                         state.newBackend = currentBackend;
                         MARK_ALL_BACKENDS_CHANGED();
                     }
+                    ShowHelpMarker("Select the input color space that the game uses.\n"
+                                   "Non-Linear / sRGB: Might improve FSR4 upscaling quality, might increase ghosting.\n"
+                                   "PQ: Rarest, might increase ghosting and break lights.");
 
-                    ImGui::EndDisabled();
+                    // FSR 4 Presets
+                    const char* presets[] = { "Default",  "Preset 0", "Preset 1", "Preset 2",
+                                              "Preset 3", "Preset 4", "Preset 5" };
+                    int currentPresetIdx = config->Fsr4Preset.has_value() ? config->Fsr4Preset.value() + 1 : 0;
 
-                    ShowHelpMarker("Indicates input color resource uses Non-Linear color space\n"
-                                   "Might improve upscaling quality of FSR4\n"
-                                   "Might increase ghosting");
+                    if (currentPresetIdx < 0 || currentPresetIdx >= IM_ARRAYSIZE(presets))
+                        currentPresetIdx = 0;
 
-                    if (ImGui::BeginTable("nonLinear", 2, ImGuiTableFlags_SizingStretchProp))
+                    ImGui::SetNextItemWidth(150.0f * menuResScale);
+                    if (ImGui::Combo("FSR4 Preset", &currentPresetIdx, presets, IM_ARRAYSIZE(presets)))
                     {
-                        bool nlSRGB = config->FsrNonLinearSRGB.value_or_default();
-                        bool nlPQ = config->FsrNonLinearPQ.value_or_default();
-
-                        // Helper to keep code DRY when updating the states
-                        auto ApplyColorSpaceState = [&](bool srgb, bool pq)
-                        {
-                            config->FsrNonLinearSRGB = srgb;
-                            config->FsrNonLinearPQ = pq;
-
-                            if (srgb || pq)
-                            {
-                                config->FsrNonLinearColorSpace.set_volatile_value(true);
-                            }
-                            else
-                            {
-                                // Revert to config value if available, otherwise reset
-                                if (config->FsrNonLinearColorSpace.value_for_config().has_value())
-                                    config->FsrNonLinearColorSpace = config->FsrNonLinearColorSpace.value_for_config();
-                                else
-                                    config->FsrNonLinearColorSpace.reset();
-                            }
-
-                            state.newBackend = currentBackend;
-                            MARK_ALL_BACKENDS_CHANGED();
-                        };
-
-                        ImGui::TableNextColumn();
-
-                        // Using boolean overload: if clicked, we toggle its state and force the other off
-                        if (ImGui::RadioButton("Non-Linear sRGB Input", nlSRGB))
-                        {
-                            ApplyColorSpaceState(!nlSRGB, false);
-                        }
-                        ShowHelpMarker("Indicates input color resource contains perceptual sRGB colors\n"
-                                       "Might improve upscaling quality of FSR4\n"
-                                       "Might increase ghosting");
-
-                        ImGui::TableNextColumn();
-
-                        if (ImGui::RadioButton("Non-Linear PQ Input", nlPQ))
-                        {
-                            ApplyColorSpaceState(false, !nlPQ);
-                        }
-                        ShowHelpMarker("Indicates input color resource contains perceptual PQ colors\n"
-                                       "Might improve upscaling quality of FSR4\n"
-                                       "Rarest, might increase ghosting and break lights");
-
-                        ImGui::EndTable();
-                    }
-
-                    std::array<const char*, 7> models = { "Default", "Model 0", "Model 1", "Model 2",
-                                                          "Model 3", "Model 4", "Model 5" };
-
-                    // Conversion from 0 -> 6 into nullopt + 0 -> 5 is required
-                    uint32_t configModes = 0;
-
-                    if (config->Fsr4Preset.has_value())
-                        configModes = config->Fsr4Preset.value_or(0) + 1;
-
-                    if (configModes < 0 || configModes >= models.size())
-                        configModes = 0;
-
-                    const char* selectedModel = models[configModes];
-
-                    if (ImGui::BeginTable("fsr4Presets", 2, ImGuiTableFlags_SizingStretchProp))
-                    {
-                        ImGui::TableNextColumn();
-
-                        if (ImGui::BeginCombo("Presets", selectedModel))
-                        {
-                            for (int n = 0; n < models.size(); n++)
-                            {
-                                uint32_t selection = 0;
-
-                                if (config->Fsr4Preset.has_value())
-                                    selection = config->Fsr4Preset.value_or(0) + 1;
-
-                                if (ImGui::Selectable(models[n], selection == n))
-                                {
-                                    if (n < 1)
-                                        config->Fsr4Preset.reset();
-                                    else
-                                        config->Fsr4Preset = n - 1;
-
-                                    state.newBackend = currentBackend;
-                                    MARK_ALL_BACKENDS_CHANGED();
-                                }
-                            }
-
-                            ImGui::EndCombo();
-                        }
-                        ShowHelpMarker("Each FSR4 preset uses its own model.\n"
-                                       "Selecting a model won't change the upscaler preset!\n\n"
-                                       "Model 0 is meant for FSR Native AA\n"
-                                       "Model 1 is meant for Quality/Ultra Quality\n"
-                                       "Model 2 is meant for Balanced\n"
-                                       "Model 3 is meant for Performance\n"
-                                       "Model 5 is meant for Ultra Performance");
-
-                        // ImGui::PopItemWidth();
-
-                        // ImGui::SameLine(0.0f, 6.0f);
-
-                        ImGui::TableNextColumn();
-
-                        if (state.currentFsr4Preset.has_value())
-                            ImGui::Text("Current preset: %d", state.currentFsr4Preset.value());
+                        if (currentPresetIdx == 0)
+                            config->Fsr4Preset.reset();
                         else
-                            ImGui::Text("Failed to hook");
+                            config->Fsr4Preset = currentPresetIdx - 1;
 
-                        ImGui::EndTable();
+                        state.newBackend = currentBackend;
+                        MARK_ALL_BACKENDS_CHANGED();
                     }
+                    ShowHelpMarker("Each internal FSR4 preset is tuned for a specific resolution.\n"
+                                   "Selecting an FSR4 preset won't change the in-game\nupscaler preset!!!\n\n"
+                                   "Preset 0 is meant for FSR Native AA\n"
+                                   "Preset 1 is meant for Quality/Ultra Quality\n"
+                                   "Preset 2 is meant for Balanced\n"
+                                   "Preset 3 is meant for Performance\n"
+                                   "Preset 4 is meant for DRS\n"
+                                   "Preset 5 is meant for Ultra Performance");
+
+                    // Display the active preset right next to the combo box instead of using a table
+                    ImGui::SameLine();
+                    if (state.currentFsr4Preset.has_value())
+                        ImGui::TextDisabled("(Active: %d)", state.currentFsr4Preset.value());
+                    else if (FSR4ModelSelection::IsInt8FsrHooked())
+                        ImGui::TextColored(toneMapColor(ImVec4(1.f, 0.8f, 0.f, 1.f)), "(Potential FSR3 fallback)");
+                    else
+                        ImGui::TextDisabled("(Failed to hook)");
                 }
 
                 if (majorFsrVersion >= 3)
                 {
-                    if (bool dView = config->FsrDebugView.value_or_default();
-                        ImGui::Checkbox("Upscaler Debug View", &dView))
+                    ImGui::Spacing();
+
+                    bool debugView = config->FsrDebugView.value_or_default();
+                    if (ImGui::Checkbox("Upscaler Debug View", &debugView))
                     {
-                        config->FsrDebugView = dView;
+                        config->FsrDebugView = debugView;
 
                         // FSR 4's debug view requires backend reinit
                         if (majorFsrVersion > 3)
@@ -2693,10 +2640,9 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                     if (majorFsrVersion > 3)
                     {
-                        ImGui::SameLine(0.0f, 6.0f);
-
-                        if (bool fsr4wm = config->Fsr4EnableWatermark.value_or_default();
-                            ImGui::Checkbox("Upscaler Watermark", &fsr4wm))
+                        ImGui::SameLine(0.0f, 20.0f * menuResScale);
+                        bool fsr4wm = config->Fsr4EnableWatermark.value_or_default();
+                        if (ImGui::Checkbox("Watermark", &fsr4wm))
                         {
                             LOG_DEBUG("FSR4 Watermark set to {}", fsr4wm);
                             config->Fsr4EnableWatermark = fsr4wm;
@@ -2710,6 +2656,8 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
                 if (currentFeature->Version() >= feature_version { 3, 1, 1 } &&
                     currentFeature->Version() < feature_version { 4, 0, 0 })
                 {
+                    ImGui::Spacing();
+
                     if (auto ch = ScopedCollapsingHeader("FSR 3 Upscaler Fine Tuning"); ch.IsHeaderOpen())
                     {
                         ScopedIndent indent {};
@@ -3428,8 +3376,6 @@ void MenuCommon::RenderFrameGenerationSelection(RenderMenuContext& ctx)
                 }
             }
         }
-
-        ImGui::Spacing();
     }
 }
 
@@ -3546,7 +3492,7 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
             }
 
             ImGui::Spacing();
-            ImGui::Spacing();
+
             if (auto ch = ScopedCollapsingHeader("Advanced FSR FG Settings"); ch.IsHeaderOpen())
             {
                 ScopedIndent indent {};
