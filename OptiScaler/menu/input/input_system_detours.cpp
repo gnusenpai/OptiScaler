@@ -103,11 +103,15 @@ bool InstallHooks()
     DetourAttach(reinterpret_cast<PVOID*>(&o_PostMessageW), hkPostMessageW);
     DetourAttach(reinterpret_cast<PVOID*>(&o_SendMessageA), hkSendMessageA);
     DetourAttach(reinterpret_cast<PVOID*>(&o_SendMessageW), hkSendMessageW);
-    DetourAttach(reinterpret_cast<PVOID*>(&o_CreateFileA), hkCreateFileA);
-    DetourAttach(reinterpret_cast<PVOID*>(&o_CreateFileW), hkCreateFileW);
-    DetourAttach(reinterpret_cast<PVOID*>(&o_ReadFile), hkReadFile);
-    DetourAttach(reinterpret_cast<PVOID*>(&o_DeviceIoControl), hkDeviceIoControl);
-    DetourAttach(reinterpret_cast<PVOID*>(&o_CloseHandle), hkCloseHandle);
+
+    if (!State::Instance().isRunningOnLinux)
+    {
+        DetourAttach(reinterpret_cast<PVOID*>(&o_CreateFileA), hkCreateFileA);
+        DetourAttach(reinterpret_cast<PVOID*>(&o_CreateFileW), hkCreateFileW);
+        DetourAttach(reinterpret_cast<PVOID*>(&o_ReadFile), hkReadFile);
+        DetourAttach(reinterpret_cast<PVOID*>(&o_DeviceIoControl), hkDeviceIoControl);
+        DetourAttach(reinterpret_cast<PVOID*>(&o_CloseHandle), hkCloseHandle);
+    }
 
     DetourAttach(reinterpret_cast<PVOID*>(&o_GetRawInputData), hkGetRawInputData);
     DetourAttach(reinterpret_cast<PVOID*>(&o_GetRawInputBuffer), hkGetRawInputBuffer);
@@ -167,11 +171,15 @@ void RemoveHooks()
     DetourDetach(reinterpret_cast<PVOID*>(&o_PostMessageW), hkPostMessageW);
     DetourDetach(reinterpret_cast<PVOID*>(&o_SendMessageA), hkSendMessageA);
     DetourDetach(reinterpret_cast<PVOID*>(&o_SendMessageW), hkSendMessageW);
-    DetourDetach(reinterpret_cast<PVOID*>(&o_CreateFileA), hkCreateFileA);
-    DetourDetach(reinterpret_cast<PVOID*>(&o_CreateFileW), hkCreateFileW);
-    DetourDetach(reinterpret_cast<PVOID*>(&o_ReadFile), hkReadFile);
-    DetourDetach(reinterpret_cast<PVOID*>(&o_DeviceIoControl), hkDeviceIoControl);
-    DetourDetach(reinterpret_cast<PVOID*>(&o_CloseHandle), hkCloseHandle);
+
+    if (!State::Instance().isRunningOnLinux)
+    {
+        DetourDetach(reinterpret_cast<PVOID*>(&o_CreateFileA), hkCreateFileA);
+        DetourDetach(reinterpret_cast<PVOID*>(&o_CreateFileW), hkCreateFileW);
+        DetourDetach(reinterpret_cast<PVOID*>(&o_ReadFile), hkReadFile);
+        DetourDetach(reinterpret_cast<PVOID*>(&o_DeviceIoControl), hkDeviceIoControl);
+        DetourDetach(reinterpret_cast<PVOID*>(&o_CloseHandle), hkCloseHandle);
+    }
 
     DetourDetach(reinterpret_cast<PVOID*>(&o_GetRawInputData), hkGetRawInputData);
     DetourDetach(reinterpret_cast<PVOID*>(&o_GetRawInputBuffer), hkGetRawInputBuffer);
