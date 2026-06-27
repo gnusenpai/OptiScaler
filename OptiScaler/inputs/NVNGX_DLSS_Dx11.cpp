@@ -368,6 +368,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Shutdown()
     shutdown = false;
     State::Instance().nvngxDx11Inited = false;
 
+    Dx11WithDx12::ResetUpscalerResourceCache(true);
+
     return NVSDK_NGX_Result_Success;
 }
 

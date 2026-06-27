@@ -82,8 +82,6 @@ bool IFeature_Dx11wDx12::CreateD3D12Objects()
 
 void IFeature_Dx11wDx12::ReleaseSharedResources()
 {
-    Dx11WithDx12::ResetUpscalerResourceCache();
-
     SAFE_RELEASE(Dx12CommandList[0]);
     SAFE_RELEASE(Dx12CommandList[1]);
     SAFE_RELEASE(Dx12CommandAllocator[0]);
