@@ -79,6 +79,11 @@ class InputCommon
     static bool get_timing_data(TimingData& timingDataOut);
     static uint64_t get_last_present_start_frame_id() { return last_present_start_frame_id; };
     static flag_set<LowLatencyInput> get_avaliable_inputs() { return avaliableInputs; };
+    static void get_currently_active(LowLatencyInput& activeInput, LowLatencyMode& activeOutput)
+    {
+        activeInput = InputCommon::activeInput;
+        activeOutput = InputCommon::activeOutput;
+    }
 
     // passthrough when possible, fillout with local frame_reports if not
 

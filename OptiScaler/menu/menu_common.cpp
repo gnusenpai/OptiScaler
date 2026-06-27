@@ -4726,55 +4726,6 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
         // Using state.reflexLimitsFps as a detection for Reflex being used on Nvidia
 
         ImGui::SeparatorText("fakenvapi");
-#ifdef LOW_LATENCY_INPUTS
-        if (ImGui::BeginTable("lowLatencySelection", 2, ImGuiTableFlags_SizingStretchSame))
-        {
-            ImGui::TableNextColumn();
-
-            auto avalibleInputs = InputCommon::get_avaliable_inputs();
-            static std::vector<MenuOption<LowLatencyInput>> lowLatencyInput = {
-                { LowLatencyInput::None, "None (Off)" },    { LowLatencyInput::Auto, "Auto" },
-                { LowLatencyInput::AntiLag2, "AntiLag 2" }, { LowLatencyInput::Reflex, "Reflex" },
-                { LowLatencyInput::XeLL, "XeLL" },          { LowLatencyInput::UeLowLatency, "UeLowLatency" },
-            };
-
-            lowLatencyInput[(uint32_t) LowLatencyInput::AntiLag2].set_disabled(
-                !avalibleInputs[LowLatencyInput::AntiLag2]);
-            lowLatencyInput[(uint32_t) LowLatencyInput::Reflex].set_disabled(!avalibleInputs[LowLatencyInput::Reflex]);
-            lowLatencyInput[(uint32_t) LowLatencyInput::XeLL].set_disabled(!avalibleInputs[LowLatencyInput::XeLL]);
-            lowLatencyInput[(uint32_t) LowLatencyInput::UeLowLatency].set_disabled(
-                !avalibleInputs[LowLatencyInput::UeLowLatency]);
-
-            // need to have a value before combo
-            if (!config->LowLatencyInput.has_value())
-                config->LowLatencyInput = config->LowLatencyInput.value_or_default();
-
-            PopulateCombo("Input", config->LowLatencyInput, lowLatencyInput);
-
-            ImGui::TableNextColumn();
-
-            static std::vector<MenuOption<LowLatencyMode>> lowLatencyOutput = {
-                { LowLatencyMode::None, "None (Off)" },
-                { LowLatencyMode::Auto, "Auto" },
-                { LowLatencyMode::LatencyFlex, "LatencyFlex" },
-                { LowLatencyMode::AntiLag2, "AntiLag 2" },
-                { LowLatencyMode::XeLL, "XeLL" },
-                { LowLatencyMode::AntiLagVk, "AntiLag Vk" },
-                { LowLatencyMode::Reflex, "Reflex" },
-            };
-
-            lowLatencyOutput[(uint32_t) LowLatencyMode::AntiLagVk].set_disabled(true, "No support");
-            lowLatencyOutput[(uint32_t) LowLatencyMode::Reflex].set_disabled(true, "No support");
-
-            // need to have a value before combo
-            if (!config->LowLatencyOutput.has_value())
-                config->LowLatencyOutput = config->LowLatencyOutput.value_or_default();
-
-            PopulateCombo("Output", config->LowLatencyOutput, lowLatencyOutput);
-
-            ImGui::EndTable();
-        }
-#endif
 
         ImGui::BeginDisabled(state.activeFgOutput == FGOutput::XeFG || state.activeFgInput == FGInput::ForceXeLL);
         if (bool forceLFX = config->FN_ForceLatencyFlex.value_or_default();
@@ -4832,6 +4783,115 @@ void MenuCommon::RenderFakenvapiSettings(RenderMenuContext& ctx)
         PopulateCombo("Force Reflex", config->FN_ForceReflex, reflex_modes);
         // clang-format on
     }
+}
+
+template <typename T> std::string GetMenuOptionLabel(const std::vector<MenuOption<T>>& options, T targetValue)
+{
+    auto it = std::find_if(options.begin(), options.end(),
+                           [targetValue](const MenuOption<T>& option) { return option.value == targetValue; });
+
+    if (it != options.end())
+    {
+        return it->label;
+    }
+
+    return "Unknown";
+}
+
+void MenuCommon::RenderLowLatencySettings(RenderMenuContext& ctx)
+{
+    auto& state = ctx.state;
+    auto config = ctx.config;
+
+    // Low Latency ---------------------------
+    ImGui::SeparatorText("Low Latency");
+
+    static std::vector<MenuOption<LowLatencyInput>> lowLatencyInput = {
+        { LowLatencyInput::None, "None (Off)" },    { LowLatencyInput::Auto, "Auto" },
+        { LowLatencyInput::AntiLag2, "AntiLag 2" }, { LowLatencyInput::Reflex, "Reflex" },
+        { LowLatencyInput::XeLL, "XeLL" },          { LowLatencyInput::UeLowLatency, "UeLowLatency" },
+    };
+
+    static std::vector<MenuOption<LowLatencyMode>> lowLatencyOutput = {
+        { LowLatencyMode::None, "None (Off)" },
+        { LowLatencyMode::Auto, "Auto" },
+        { LowLatencyMode::LatencyFlex, "LatencyFlex" },
+        { LowLatencyMode::AntiLag2, "AntiLag 2" },
+        { LowLatencyMode::XeLL, "XeLL" },
+        { LowLatencyMode::AntiLagVk, "AntiLag Vk" },
+        { LowLatencyMode::Reflex, "Reflex" },
+    };
+
+    LowLatencyInput activeInput {};
+    LowLatencyMode activeOutput {};
+
+    if (ImGui::BeginTable("lowLatencyActive", 2, ImGuiTableFlags_SizingStretchSame))
+    {
+        InputCommon::get_currently_active(activeInput, activeOutput);
+
+        ImGui::TableNextColumn();
+
+        ImGui::Text("Active input: %s", GetMenuOptionLabel(lowLatencyInput, activeInput).c_str());
+
+        ImGui::TableNextColumn();
+
+        ImGui::Text("Active output: %s", GetMenuOptionLabel(lowLatencyOutput, activeOutput).c_str());
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::BeginTable("lowLatencySelection", 2, ImGuiTableFlags_SizingStretchSame))
+    {
+        ImGui::TableNextColumn();
+
+        auto avalibleInputs = InputCommon::get_avaliable_inputs();
+
+        lowLatencyInput[(uint32_t) LowLatencyInput::AntiLag2].set_disabled(!avalibleInputs[LowLatencyInput::AntiLag2]);
+        lowLatencyInput[(uint32_t) LowLatencyInput::Reflex].set_disabled(!avalibleInputs[LowLatencyInput::Reflex]);
+        lowLatencyInput[(uint32_t) LowLatencyInput::XeLL].set_disabled(!avalibleInputs[LowLatencyInput::XeLL]);
+        lowLatencyInput[(uint32_t) LowLatencyInput::UeLowLatency].set_disabled(
+            !avalibleInputs[LowLatencyInput::UeLowLatency]);
+
+        // need to have a value before combo
+        if (!config->LowLatencyInput.has_value())
+            config->LowLatencyInput = config->LowLatencyInput.value_or_default();
+
+        PopulateCombo("Input", config->LowLatencyInput, lowLatencyInput);
+
+        ImGui::TableNextColumn();
+
+        lowLatencyOutput[(uint32_t) LowLatencyMode::AntiLagVk].set_disabled(true, "No support");
+        lowLatencyOutput[(uint32_t) LowLatencyMode::Reflex].set_disabled(true, "No support");
+
+        // need to have a value before combo
+        if (!config->LowLatencyOutput.has_value())
+            config->LowLatencyOutput = config->LowLatencyOutput.value_or_default();
+
+        PopulateCombo("Output", config->LowLatencyOutput, lowLatencyOutput);
+
+        ImGui::EndTable();
+    }
+
+    if (activeOutput == LowLatencyMode::LatencyFlex)
+    {
+        static const std::vector<MenuOption<LFXMode>> lfx_modes = {
+            { LFXMode::Conservative, "Conservative", "The safest, but might not reduce latency well" },
+            { LFXMode::Aggressive, "Aggressive",
+              "Improves latency, but in some cases will lower FPS more than expected" },
+            { LFXMode::ReflexIDs, "Reflex ID",
+              "Best when can be used, some games are not compatible (e.g. Cyberpunk)\n"
+              "and will fallback to Aggressive" }
+        };
+
+        PopulateCombo("LatencyFlex mode", config->FN_LatencyFlexMode, lfx_modes);
+    }
+
+    static std::vector<MenuOption<ForceReflex>> lowlatency_states = { { ForceReflex::InGame, "Follow in-game" },
+                                                                      { ForceReflex::ForceDisable, "Force Disable" },
+                                                                      { ForceReflex::ForceEnable, "Force Enable" } };
+
+    ImGui::SetNextItemWidth(150.0f * ctx.menuResScale);
+    PopulateCombo("Force State", config->FN_ForceReflex, lowlatency_states);
 }
 
 void MenuCommon::RenderActiveImageSettings(RenderMenuContext& ctx)
@@ -6571,7 +6631,11 @@ void MenuCommon::RenderMainMenuTable(RenderMenuContext& ctx)
         RenderFrameGenerationRuntimeSettings(ctx);
         RenderFsrCommonSettings(ctx);
         RenderFramerateSettings(ctx);
+#ifdef LOW_LATENCY_INPUTS
+        RenderLowLatencySettings(ctx);
+#else
         RenderFakenvapiSettings(ctx);
+#endif
 
         ImGui::TableNextColumn();
 
