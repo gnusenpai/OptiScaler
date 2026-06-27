@@ -138,6 +138,7 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
             desiredMode = LowLatencyMode::LatencyFlex;
     }
 
+    // Force XeLL when using XeFG
     if (State::Instance().activeFgOutput == FGOutput::XeFG)
         desiredMode = LowLatencyMode::XeLL;
 

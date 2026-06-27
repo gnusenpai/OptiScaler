@@ -55,7 +55,7 @@ bool XeFG_Dx12::CreateSwapchainContext(ID3D12Device* device)
         if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
         {
             LOG_ERROR("D3D12CreateContext error: {} ({})", magic_enum::enum_name(result), (UINT) result);
-            return result;
+            return false;
         }
 
         LOG_INFO("XeFG context created");
@@ -67,6 +67,7 @@ bool XeFG_Dx12::CreateSwapchainContext(ID3D12Device* device)
             LOG_ERROR("SetLoggingCallback error: {} ({})", magic_enum::enum_name(result), (UINT) result);
         }
 
+#ifndef LOW_LATENCY_INPUTS
         // Force fakenvapi to create XeLL for us
         if (fakenvapi::forceMode(device, LowLatencyMode::XeLL))
         {
@@ -75,9 +76,36 @@ bool XeFG_Dx12::CreateSwapchainContext(ID3D12Device* device)
             if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
             {
                 LOG_ERROR("SetLatencyReduction error: {} ({})", magic_enum::enum_name(result), (UINT) result);
-                return result;
+                return false;
             }
         }
+#else
+        InputXeLL::xell_input_handle_t localXellContext;
+        if (InputXeLL::D3D12CreateContext(device, &localXellContext) == XELL_RESULT_SUCCESS)
+        {
+            localXellContext->inputContext.localContext = true; // We created this context
+
+            xell_sleep_params_t sleepParams = {};
+            sleepParams.bLowLatencyMode = true;
+            sleepParams.bLowLatencyBoost = false;
+            sleepParams.minimumIntervalUs = 0;
+
+            auto xellResult = InputXeLL::SetSleepMode(localXellContext, &sleepParams);
+            if (xellResult != XELL_RESULT_SUCCESS)
+            {
+                LOG_ERROR("SetSleepMode error: {} ({})", magic_enum::enum_name(xellResult), (UINT) xellResult);
+                return false;
+            }
+
+            result = XeFGProxy::SetLatencyReduction()(_swapChainContext, (xell_context_handle_t) localXellContext);
+
+            if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+            {
+                LOG_ERROR("SetLatencyReduction error: {} ({})", magic_enum::enum_name(result), (UINT) result);
+                return false;
+            }
+        }
+#endif
         else
         {
             LOG_ERROR("Couldn't create XeLL");
