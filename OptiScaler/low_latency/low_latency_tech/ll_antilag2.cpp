@@ -42,11 +42,7 @@ inline HRESULT AntiLag2::al2_sleep()
 
 void AntiLag2::set_fg_type(bool interpolated, uint64_t frame_id)
 {
-    if (effective_fg_state)
-    {
-        // log_event("al2_set_fg_type", "{}", reflex_frame_id);
-        AMD::AntiLag2DX12::SetFrameGenFrameType(&dx12_ctx, interpolated);
-    }
+    AMD::AntiLag2DX12::SetFrameGenFrameType(&dx12_ctx, interpolated);
 }
 
 bool AntiLag2::init(IUnknown* pDevice)
@@ -181,11 +177,7 @@ void AntiLag2::set_marker(IUnknown* pDevice, const MarkerParams& marker_params)
         break;
 
     case MarkerType::PRESENT_START:
-        if (effective_fg_state)
-        {
-            // log_event("al2_end_of_rendering", "{}", reflex_frame_id);
-            AMD::AntiLag2DX12::MarkEndOfFrameRendering(&dx12_ctx);
-        }
+        AMD::AntiLag2DX12::MarkEndOfFrameRendering(&dx12_ctx);
         break;
     }
 }

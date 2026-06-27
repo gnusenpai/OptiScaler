@@ -1,12 +1,10 @@
 #include "pch.h"
 #include "input_antilag2.h"
 #include "input_common.h"
+#include <proxies/FfxApi_Proxy.h>
 
 HRESULT STDMETHODCALLTYPE AmdExtAntiLagApi::UpdateAntiLagState(VOID* pData)
 {
-    while (!IsDebuggerPresent())
-        Sleep(100);
-
     // That's the mark to insert a delay...
     if (!pData)
     {
@@ -143,4 +141,41 @@ HRESULT STDMETHODCALLTYPE AmdExtAntiLagApi::UpdateAntiLagState(VOID* pData)
     }
 
     return E_INVALIDARG;
+}
+
+// Inform AntiLag 2 when present of interpolated frames starts
+void InputAntiLag2::injectAl2Context(IDXGISwapChain* pSwapChain, bool fg_state)
+{
+    if (State::Instance().activeFgOutput != FGOutput::FSRFG)
+        return;
+
+    if (fg_state)
+    {
+        // Starting with FSR 3.1.1 we can provide an AntiLag 2 context to FSR FG
+        // and it will call SetFrameGenFrameType for us
+        auto static ffxApiVersion = FfxApiProxy::VersionDx12();
+        constexpr feature_version requiredVersion = { 3, 1, 1 };
+        if (ffxApiVersion >= requiredVersion)
+        {
+            if (!antiLag2DataForFG.context)
+                antiLag2DataForFG.context = new AMD::AntiLag2DX12::Context();
+
+            if (antiLag2DataForFG.context && !antiLag2DataForFG.context->m_pAntiLagAPI)
+            {
+                AmdExtAntiLagApi* context = new AmdExtAntiLagApi();
+                context->inputContext.localContext = true;
+
+                antiLag2DataForFG.context->m_pAntiLagAPI = context;
+                antiLag2DataForFG.enabled = true; // Should be fine?
+            }
+
+            pSwapChain->SetPrivateData(IID_IFfxAntiLag2Data, sizeof(antiLag2DataForFG), &antiLag2DataForFG);
+        }
+        // No fallbacks for older versions
+    }
+    else
+    {
+        // Remove it or other FG mods won't work with AL2
+        pSwapChain->SetPrivateData(IID_IFfxAntiLag2Data, 0, nullptr);
+    }
 }

@@ -31,4 +31,17 @@ struct AmdExtAntiLagApi : public AMD::AntiLag2DX12::IAmdExtAntiLagApi
 
 class InputAntiLag2
 {
+    struct AntiLag2Data
+    {
+        AMD::AntiLag2DX12::Context* context;
+        bool enabled;
+    } data;
+
+    inline static AntiLag2Data antiLag2DataForFG {};
+    inline static const GUID IID_IFfxAntiLag2Data = {
+        0x5083ae5b, 0x8070, 0x4fca, { 0x8e, 0xe5, 0x35, 0x82, 0xdd, 0x36, 0x7d, 0x13 }
+    };
+
+  public:
+    static void injectAl2Context(IDXGISwapChain* pSwapChain, bool fg_state);
 };
