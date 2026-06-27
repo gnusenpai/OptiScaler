@@ -3951,7 +3951,7 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
     }
 
     // OptiFG
-    if (state.api == DX12 && state.currentFGSwapchain != nullptr && state.activeFgInput == FGInput::Upscaler)
+    if (state.api != API::Vulkan && state.currentFGSwapchain != nullptr && state.activeFgInput == FGInput::Upscaler)
     {
         SeparatorWithHelpMarker("Frame Generation (OptiFG)", "Using upscaler data for FG");
 
