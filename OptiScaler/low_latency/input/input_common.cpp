@@ -30,6 +30,60 @@ bool InputCommon::deinit_current_tech()
     return false;
 }
 
+bool InputCommon::init_tech(IUnknown* pDevice, LowLatencyMode desiredMode)
+{
+    if (!currently_active_tech.load() && delay_deinit == 0)
+    {
+        auto try_init = [&](auto low_latency_tech, const char* name) -> bool
+        {
+            if (low_latency_tech->init(pDevice))
+            {
+                LOG_INFO("LowLatency algo: {}", name);
+                currently_active_tech.store(std::move(low_latency_tech));
+                return true;
+            }
+            return false;
+        };
+
+        bool isInitialized = false;
+        switch (desiredMode)
+        {
+        case LowLatencyMode::XeLL:
+            isInitialized = try_init(std::make_shared<XeLL>(), "XeLL");
+            break;
+        case LowLatencyMode::AntiLag2:
+            isInitialized = try_init(std::make_shared<AntiLag2>(), "AntiLag2");
+            break;
+        case LowLatencyMode::Reflex:
+            // isInitialized = try_init(std::make_shared<Reflex>(), "Reflex");
+            break;
+        case LowLatencyMode::LatencyFlex:
+            isInitialized = try_init(std::make_shared<LatencyFlex>(), "LatencyFlex");
+            break;
+        default:
+            break;
+        }
+
+        if (!isInitialized && desiredMode != LowLatencyMode::LatencyFlex)
+        {
+            isInitialized = try_init(std::make_shared<LatencyFlex>(), "LatencyFlex (Fallback)");
+            if (isInitialized)
+            {
+                Config::Instance()->LowLatencyOutput.set_volatile_value(LowLatencyMode::LatencyFlex);
+            }
+        }
+
+        if (auto current_tech = currently_active_tech.load(); current_tech && isInitialized)
+        {
+            activeOutput = current_tech->get_mode();
+            current_tech->set_sleep_mode(&get_sleep_copy(activeInput)); // Restore any potential sleep mode
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode)
 {
     if (avaliableInputs.count() == 0)
@@ -143,54 +197,17 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
         desiredMode = LowLatencyMode::XeLL;
 
     if (activeOutput == desiredMode)
+    {
+        delay_deinit = 0;
         return true;
+    }
 
     // Beyond this point activeOutput needs changing
 
-    if (!currently_active_tech.load() && delay_deinit == 0)
-    {
-        auto try_init = [&](auto low_latency_tech, const char* name) -> bool
-        {
-            if (low_latency_tech->init(pDevice))
-            {
-                LOG_INFO("LowLatency algo: {}", name);
-                currently_active_tech.store(std::move(low_latency_tech));
-                return true;
-            }
-            return false;
-        };
+    std::scoped_lock lock(create_tech_mutex);
 
-        bool isInitialized = false;
-        switch (desiredMode)
-        {
-        case LowLatencyMode::XeLL:
-            isInitialized = try_init(std::make_shared<XeLL>(), "XeLL");
-            break;
-        case LowLatencyMode::AntiLag2:
-            isInitialized = try_init(std::make_shared<AntiLag2>(), "AntiLag2");
-            break;
-        case LowLatencyMode::Reflex:
-            // isInitialized = try_init(std::make_shared<Reflex>(), "Reflex");
-            break;
-        case LowLatencyMode::LatencyFlex:
-            isInitialized = try_init(std::make_shared<LatencyFlex>(), "LatencyFlex");
-            break;
-        default:
-            break;
-        }
-
-        if (!isInitialized && desiredMode != LowLatencyMode::LatencyFlex)
-        {
-            isInitialized = try_init(std::make_shared<LatencyFlex>(), "LatencyFlex (Fallback)");
-        }
-
-        if (auto current_tech = currently_active_tech.load(); current_tech && isInitialized)
-        {
-            activeOutput = current_tech->get_mode();
-            current_tech->set_sleep_mode(&get_sleep_copy(activeInput)); // Restore any potential sleep mode
-            return true;
-        }
-    }
+    if (init_tech(pDevice, desiredMode))
+        return true;
 
     auto try_reinit = [&]() -> bool
     {
@@ -200,7 +217,7 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
             return false;
         }
 
-        return update_low_latency_tech(pDevice, desiredMode);
+        return init_tech(pDevice, desiredMode);
     };
 
     // WAR: FSR FG might still be using AntiLag 2, give Opti time to set AL2 context to null
@@ -306,7 +323,7 @@ InputResult InputCommon::sleep(const InputContext& inputContext, IUnknown* pDevi
     if (auto current_tech = currently_active_tech.load())
         current_tech->sleep(frame_id);
     else
-        return InputResult::GenericError;
+        return InputResult::NoReadyOutput;
 
     return InputResult::Ok;
 }
@@ -348,7 +365,7 @@ InputResult InputCommon::set_marker(const InputContext& inputContext, IUnknown* 
     if (auto current_tech = currently_active_tech.load())
         current_tech->set_marker(pDevice, marker_params);
     else
-        return InputResult::GenericError;
+        return InputResult::NoReadyOutput;
 
     LOG_TRACE_LOWLATENCY("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
@@ -383,7 +400,7 @@ InputResult InputCommon::set_async_marker(const InputContext& inputContext, ID3D
     if (auto current_tech = currently_active_tech.load())
         current_tech->set_async_marker(pCommandQueue, marker_params);
     else
-        return InputResult::GenericError;
+        return InputResult::NoReadyOutput;
 
     LOG_TRACE_LOWLATENCY("{}: {}", magic_enum::enum_name(marker_params.marker_type), marker_params.frame_id);
 
@@ -407,7 +424,7 @@ InputResult InputCommon::set_sleep_mode(const InputContext& inputContext, IUnkno
     if (auto current_tech = currently_active_tech.load())
         current_tech->set_sleep_mode(sleep_mode);
     else
-        return InputResult::GenericError;
+        return InputResult::NoReadyOutput;
 
     return InputResult::Ok;
 }
@@ -429,7 +446,7 @@ InputResult InputCommon::get_sleep_status(const InputContext& inputContext, IUnk
     if (auto current_tech = currently_active_tech.load())
         current_tech->get_sleep_status(sleep_params);
     else
-        return InputResult::GenericError;
+        return InputResult::NoReadyOutput;
 
     return InputResult::Ok;
 }

@@ -61,7 +61,7 @@ bool XeLL::init(IUnknown* pDevice)
         auto xellInputContext = (InputXeLL::xell_input_handle_t) XellHooks::getOurContext();
 
         if (!xellInputContext)
-            return false;
+            return true;
 
         auto resendResult = XELL_RESULT_SUCCESS;
 

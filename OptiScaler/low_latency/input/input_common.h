@@ -29,6 +29,7 @@ enum class InputResult : uint32_t
     InvalidParameter,
     LowLatencyUpdateFail,
     NotEnoughReports,
+    NoReadyOutput,
     GenericError,
 };
 
@@ -46,6 +47,8 @@ struct TimingData
 class InputCommon
 {
     inline static std::atomic<std::shared_ptr<LowLatencyTech>> currently_active_tech;
+    inline static std::mutex create_tech_mutex {};
+
     inline static FrameReport frame_reports[FRAME_REPORTS_BUFFER_SIZE] {};
     inline static std::atomic_uint64_t last_present_start_frame_id = 0;
     inline static std::atomic_uint32_t delay_deinit = 0;
@@ -57,6 +60,7 @@ class InputCommon
     inline static bool enabled = false;
 
     static bool deinit_current_tech();
+    static bool init_tech(IUnknown* pDevice, LowLatencyMode desiredMode);
     static bool update_low_latency_tech(IUnknown* pDevice, std::optional<LowLatencyMode> mode = std::nullopt);
     static void add_marker_to_report(const MarkerParams& marker_params);
     static void set_input_avaliable(LowLatencyInput input) { avaliableInputs.set(input); };
