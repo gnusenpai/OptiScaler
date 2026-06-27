@@ -103,37 +103,8 @@ bool AntiLag2::init(IUnknown* pDevice)
     return false;
 }
 
-// Only DX12 is supported
-bool AntiLag2::init_using_ctx(void* context)
-{
-    if (!context)
-    {
-        LOG_ERROR("FSR Anti-Lag 2.0 init_using_ctx called with null context");
-        return false;
-    }
-
-    // TODO: try to distinguish between DX11 and DX12 contexts
-    dx12_ctx = *reinterpret_cast<AMD::AntiLag2DX12::Context*>(context);
-
-    if (dx12_ctx.m_pAntiLagAPI)
-    {
-        inited_using_context = true;
-        LOG_INFO("FSR Anti-Lag 2.0 DX12 initialized using existing context");
-        return true;
-    }
-
-    return false;
-}
-
 void AntiLag2::deinit()
 {
-    if (inited_using_context)
-    {
-        LOG_INFO("FSR Anti-Lag 2.0 DX12 deinit called while inited using context, skipping deinitialization");
-        inited_using_context = false;
-        return;
-    }
-
     {
         std::scoped_lock lock(amdxc64_load_mutex);
 

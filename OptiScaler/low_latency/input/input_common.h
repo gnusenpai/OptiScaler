@@ -89,6 +89,6 @@ class InputCommon
                                                              // async markers can be made
     static xell_result_t pass_xellSetDisplayInfo(const InputContext& inputContext, void* displayInfo);
     static xell_result_t pass_xellSetFgEnabled(const InputContext& inputContext, uint32_t param1, uint32_t param2);
-    static xell_result_t pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t param1,
+    static xell_result_t pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t frameId,
                                                           uint32_t framesCount);
 };

@@ -22,7 +22,7 @@ class InputXeLL
         // Unsure what to do with those, just store for now
         uint32_t setFgEnabledParam1 {};
         uint32_t setFgEnabledParam2 {};
-        uint32_t setGeneratedFramesCountParam1 {};
+        uint32_t setGeneratedFramesCountFrameId {};
         uint32_t framesCount {};
     };
 
@@ -69,7 +69,7 @@ extern "C"
     XELL_EXPORT xell_result_t xellD3D12SetAppQueue(xell_context_handle_t context, ID3D12CommandQueue* appQueue);
     XELL_EXPORT xell_result_t xellSetDisplayInfo(xell_context_handle_t context, void* displayInfo);
     XELL_EXPORT xell_result_t xellSetFgEnabled(xell_context_handle_t context, uint32_t param1, uint32_t param2);
-    XELL_EXPORT xell_result_t xellSetGeneratedFramesCount(xell_context_handle_t context, uint32_t param1,
+    XELL_EXPORT xell_result_t xellSetGeneratedFramesCount(xell_context_handle_t context, uint32_t frameId,
                                                           uint32_t framesCount);
     XELL_EXPORT xell_result_t xellGetLastPresentStartFrameId(xell_context_handle_t context, uint32_t* p_frame_id);
 }

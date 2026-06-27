@@ -111,14 +111,6 @@ bool LatencyFlex::init(IUnknown* pDevice)
     return false;
 };
 
-// Unsupported
-bool LatencyFlex::init_using_ctx(void* context)
-{
-    LOG_ERROR("LatencyFleX init_using_ctx is not supported");
-    inited_using_context = false;
-    return false;
-}
-
 void LatencyFlex::deinit()
 {
     deinit_mutex.lock();

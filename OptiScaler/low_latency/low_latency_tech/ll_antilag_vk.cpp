@@ -4,14 +4,6 @@
 
 bool AntiLagVk::init(IUnknown* pDevice) { return VulkanHooks::o_vkAntiLagUpdateAMD != nullptr; }
 
-// Unsupported
-bool AntiLagVk::init_using_ctx(void* context)
-{
-    LOG_ERROR("AntiLagVk init_using_ctx is not supported");
-    inited_using_context = false;
-    return false;
-}
-
 void* AntiLagVk::get_tech_context() { return nullptr; }
 
 void AntiLagVk::get_sleep_status(SleepParams* sleep_params)

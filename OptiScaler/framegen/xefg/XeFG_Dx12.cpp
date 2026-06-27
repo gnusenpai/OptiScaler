@@ -67,34 +67,22 @@ bool XeFG_Dx12::CreateSwapchainContext(ID3D12Device* device)
             LOG_ERROR("SetLoggingCallback error: {} ({})", magic_enum::enum_name(result), (UINT) result);
         }
 
-        // if (XeLLProxy::Context() == nullptr)
-        XeLLProxy::CreateContext(device);
-
-        if (XeLLProxy::Context() != nullptr)
+        // Force fakenvapi to create XeLL for us
+        if (fakenvapi::forceMode(device, LowLatencyMode::XeLL))
         {
-            xell_sleep_params_t sleepParams = {};
-            sleepParams.bLowLatencyMode = true;
-            sleepParams.bLowLatencyBoost = false;
-            sleepParams.minimumIntervalUs = 0;
-
-            auto xellResult = XeLLProxy::SetSleepMode()(XeLLProxy::Context(), &sleepParams);
-            if (xellResult != XELL_RESULT_SUCCESS)
-            {
-                LOG_ERROR("SetSleepMode error: {} ({})", magic_enum::enum_name(xellResult), (UINT) xellResult);
-                return result;
-            }
-
-            auto fnaResult = fakenvapi::setModeAndContext(XeLLProxy::Context(), LowLatencyMode::XeLL);
-            LOG_DEBUG("fakenvapi::setModeAndContext: {}", fnaResult);
-
-            result = XeFGProxy::SetLatencyReduction()(_swapChainContext, XeLLProxy::Context());
+            result = XeFGProxy::SetLatencyReduction()(_swapChainContext, fakenvapi::getCurrentContext());
 
             if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
             {
                 LOG_ERROR("SetLatencyReduction error: {} ({})", magic_enum::enum_name(result), (UINT) result);
                 return result;
             }
-        };
+        }
+        else
+        {
+            LOG_ERROR("Couldn't create XeLL");
+            return false;
+        }
 
         createResult = true;
 
@@ -153,9 +141,6 @@ bool XeFG_Dx12::DestroySwapchainContext()
         }
         else
         {
-            if (XeLLProxy::Context() != nullptr)
-                XeLLProxy::DestroyXeLLContext();
-
             State::Instance().currentFGSwapchain = nullptr;
         }
     }
@@ -1639,7 +1624,6 @@ bool XeFG_Dx12::ReleaseSwapchain(HWND hwnd)
     }
 
     ReleaseObjects();
-    XeLLProxy::DestroyXeLLContext();
 
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
     {

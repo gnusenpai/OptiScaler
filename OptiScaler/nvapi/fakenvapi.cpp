@@ -216,7 +216,7 @@ bool fakenvapi::updateModeAndContext()
     return result;
 }
 
-bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
+bool fakenvapi::forceMode(IUnknown* device, LowLatencyMode mode)
 {
     LOG_FUNC();
 
@@ -228,7 +228,7 @@ bool fakenvapi::setModeAndContext(void* context, LowLatencyMode mode)
         return false;
     }
 
-    auto result = lowLatencyCtx->set_low_latency_tech_context(context, mode);
+    auto result = lowLatencyCtx->set_low_latency_tech_mode(device, mode);
 
     if (!result)
         LOG_TRACE_FAKENVAPI("Can't set Low Latency context from fakenvapi");
@@ -257,6 +257,14 @@ LowLatencyMode fakenvapi::getCurrentMode()
         return _lowLatencyMode;
     else
         return LowLatencyMode::None;
+}
+
+void* fakenvapi::getCurrentContext()
+{
+    if (updateModeAndContext())
+        return _lowLatencyTechContext;
+    else
+        return nullptr;
 }
 
 bool fakenvapi::isUsingAsMainNvapi() { return _usingFakenvapiAsMainNvapi; }

@@ -10,7 +10,7 @@ void XeLL::xell_sleep(uint32_t frame_id)
     sent_sleep_frame_ids[frame_id % 64] = true;
 
     // Don't call XeLL when trying to disable XeLL with XeFG active
-    if (!inited_using_context || is_enabled())
+    if (!forced_mode || is_enabled())
     {
         LOG_TRACE_LOWLATENCY("Sleeping with frame_id: {}", frame_id);
         o_xellSleep(xell_context, frame_id);
@@ -26,7 +26,7 @@ void XeLL::add_marker(uint32_t frame_id, xell_latency_marker_type_t marker)
         return;
     }
 
-    if (!inited_using_context || is_enabled())
+    if (!forced_mode || is_enabled())
         o_xellAddMarkerData(xell_context, frame_id, marker);
 }
 
@@ -85,7 +85,7 @@ bool XeLL::init(IUnknown* pDevice)
             if (resendResult != XELL_RESULT_SUCCESS)
                 break;
 
-            resendResult = xellSetGeneratedFramesCount(xellInputContext->setGeneratedFramesCountParam1,
+            resendResult = xellSetGeneratedFramesCount(xellInputContext->setGeneratedFramesCountFrameId,
                                                        xellInputContext->framesCount);
         } while (false);
 
@@ -99,52 +99,12 @@ bool XeLL::init(IUnknown* pDevice)
     return result;
 }
 
-bool XeLL::init_using_ctx(void* context)
-{
-    if (!XeLLProxy::InitXeLL())
-    {
-        LOG_ERROR("XeLL init_using_ctx failed to load libxell.dll");
-        return false;
-    }
-
-    if (!context)
-    {
-        LOG_ERROR("XeLL handed over to fakenvapi but the context is null");
-        return false;
-    }
-
-    if (xell_context)
-    {
-        if (o_xellDestroyContext(xell_context) == XELL_RESULT_SUCCESS)
-            LOG_INFO("destroy o_xell_ctx");
-        else
-            LOG_ERROR("destroy o_xell_ctx error");
-    }
-    xell_context = (xell_context_handle_t) context;
-
-    // Context is handled and held inside XeLLProxy
-    inited_using_context = true;
-    XellHooks::blockExternalContexts(true);
-    LOG_INFO("XeLL initialized using existing context: {:X}", (uint64_t) xell_context);
-
-    return true;
-}
-
 void XeLL::deinit()
 {
     XellHooks::blockExternalContexts(false);
 
-    if (inited_using_context)
-    {
-        // Let XeFG handle the context as XeLL can't be destroyed before XeFG
-        LOG_INFO("XeLL deinit called while inited using context, skipping deinitialization");
-        inited_using_context = false;
-    }
-    else
-    {
-        o_xellDestroyContext(xell_context);
-        LOG_INFO("XeLL deinitialized");
-    }
+    o_xellDestroyContext(xell_context);
+    LOG_INFO("XeLL deinitialized");
 }
 
 void* XeLL::get_tech_context() { return xell_context; }
@@ -166,7 +126,7 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode)
     low_latency_enabled = sleep_mode->low_latency_enabled;
 
     // Always report XeLL as enabled when XeFG is enabled
-    if (inited_using_context)
+    if (forced_mode)
         xell_sleep_params.bLowLatencyMode = true;
     else
         xell_sleep_params.bLowLatencyMode = is_enabled();
@@ -304,12 +264,12 @@ xell_result_t XeLL::xellSetFgEnabled(uint32_t param1, uint32_t param2) const
     return o_xellSetFgEnabled(xell_context, param1, param2);
 }
 
-xell_result_t XeLL::xellSetGeneratedFramesCount(uint32_t param1, uint32_t framesCount) const
+xell_result_t XeLL::xellSetGeneratedFramesCount(uint32_t frameId, uint32_t framesCount) const
 {
     if (!o_xellSetGeneratedFramesCount)
         return XELL_RESULT_ERROR_UNKNOWN;
 
-    return o_xellSetGeneratedFramesCount(xell_context, param1, framesCount);
+    return o_xellSetGeneratedFramesCount(xell_context, frameId, framesCount);
 }
 
 xell_result_t XeLL::xellGetLastPresentStartFrameId(uint32_t* p_frame_id) const

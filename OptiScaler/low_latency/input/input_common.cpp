@@ -138,6 +138,9 @@ bool InputCommon::update_low_latency_tech(IUnknown* pDevice, std::optional<LowLa
             desiredMode = LowLatencyMode::LatencyFlex;
     }
 
+    if (State::Instance().activeFgOutput == FGOutput::XeFG)
+        desiredMode = LowLatencyMode::XeLL;
+
     if (activeOutput == desiredMode)
         return true;
 
@@ -730,7 +733,7 @@ xell_result_t InputCommon::pass_xellSetFgEnabled(const InputContext& inputContex
     return XELL_RESULT_SUCCESS;
 }
 
-xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t param1,
+xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& inputContext, uint32_t frameId,
                                                             uint32_t framesCount)
 {
     if (inputContext.caller == LowLatencyInput::XeLL && activeOutput == LowLatencyMode::XeLL)
@@ -738,7 +741,7 @@ xell_result_t InputCommon::pass_xellSetGeneratedFramesCount(const InputContext& 
         if (auto current_tech = currently_active_tech.load())
         {
             auto xell_tech = std::static_pointer_cast<XeLL>(current_tech);
-            return xell_tech->xellSetGeneratedFramesCount(param1, framesCount);
+            return xell_tech->xellSetGeneratedFramesCount(frameId, framesCount);
         }
 
         return XELL_RESULT_ERROR_UNKNOWN;

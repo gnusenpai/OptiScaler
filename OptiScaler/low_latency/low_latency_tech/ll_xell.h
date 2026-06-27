@@ -70,7 +70,6 @@ class XeLL : public LowLatencyTech
 
     // From LowLatencyTech
     bool init(IUnknown* pDevice) override;
-    bool init_using_ctx(void* context) override;
     void deinit() override;
 
     LowLatencyMode get_mode() override { return LowLatencyMode::XeLL; };
@@ -98,7 +97,7 @@ class XeLL : public LowLatencyTech
     xell_result_t xellD3D12SetAppQueue(ID3D12CommandQueue* appQueue) const;
     xell_result_t xellSetDisplayInfo(void* displayInfo) const;
     xell_result_t xellSetFgEnabled(uint32_t param1, uint32_t param2) const;
-    xell_result_t xellSetGeneratedFramesCount(uint32_t param1, uint32_t framesCount) const;
+    xell_result_t xellSetGeneratedFramesCount(uint32_t frameId, uint32_t framesCount) const;
     xell_result_t xellGetLastPresentStartFrameId(uint32_t* p_frame_id) const;
     xell_result_t xellGetFramesReports(xell_frame_report_t* outdata) const;
 };

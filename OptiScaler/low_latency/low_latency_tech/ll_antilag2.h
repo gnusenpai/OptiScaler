@@ -27,7 +27,6 @@ class AntiLag2 : public LowLatencyTech
 
     // From LowLatencyTech
     bool init(IUnknown* pDevice) override;
-    bool init_using_ctx(void* context) override;
     void deinit() override;
 
     LowLatencyMode get_mode() override { return LowLatencyMode::AntiLag2; };

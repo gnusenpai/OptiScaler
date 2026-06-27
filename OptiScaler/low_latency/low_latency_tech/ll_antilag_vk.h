@@ -12,7 +12,6 @@ class AntiLagVk : public LowLatencyTech
 
     // From LowLatencyTech
     bool init(IUnknown* pDevice) override;
-    bool init_using_ctx(void* context) override;
     void deinit() override {}; // Not used by AntiLag VK
 
     LowLatencyMode get_mode() override { return LowLatencyMode::AntiLagVk; };
