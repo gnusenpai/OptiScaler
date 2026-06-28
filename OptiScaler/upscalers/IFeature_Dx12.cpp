@@ -6,6 +6,8 @@
 #include "IFeature_Dx12.h"
 #include "State.h"
 
+#include "upscaler_time/UpscalerTime_Dx12.h"
+
 void IFeature_Dx12::ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Resource* InResource,
                                     D3D12_RESOURCE_STATES InBeforeState, D3D12_RESOURCE_STATES InAfterState) const
 {
@@ -20,6 +22,8 @@ void IFeature_Dx12::ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     InCommandList->ResourceBarrier(1, &barrier);
 }
+
+bool IFeature_Dx12::CallsUpscalerEndByItself() { return Magnifier && Magnifier->ShouldRun() && magnifierRanSuccess; }
 
 bool IFeature_Dx12::Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList,
                          NVSDK_NGX_Parameter* InParameters)
@@ -196,11 +200,14 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
             { // Setup
               [&](ID3D12Resource* nextOutput) -> ID3D12Resource*
               {
+                  magnifierRanSuccess = false;
+
                   if (Magnifier->CreateBufferResource(Device, nextOutput, D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
                   {
                       Magnifier->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
                       return Magnifier->Buffer();
                   }
+
                   return nullptr;
               },
 
@@ -212,7 +219,11 @@ bool IFeature_Dx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX
 
                   Magnifier->SetBufferState(InCommandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-                  return Magnifier->Dispatch(InCommandList, input, output);
+                  UpscalerTimeDx12::UpscaleEnd(InCommandList);
+
+                  magnifierRanSuccess = Magnifier->Dispatch(InCommandList, input, output);
+
+                  return magnifierRanSuccess;
               } });
     }
 

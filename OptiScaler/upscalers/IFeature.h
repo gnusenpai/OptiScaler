@@ -129,6 +129,8 @@ class IFeature
     virtual bool LowResMV() { return _initFlags.LowResMV; }
     virtual bool SharpenEnabled() { return _initFlags.SharpenEnabled; }
 
+    virtual bool CallsUpscalerEndByItself() { return false; }
+
     IFeature(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters) { SetHandle(InHandleId); }
 
     virtual ~IFeature() {}

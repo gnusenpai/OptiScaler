@@ -1085,7 +1085,8 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     {
         // Upscaler time calc
         // Record the second timestamp
-        UpscalerTimeDx12::UpscaleEnd(InCmdList);
+        if (!feature->CallsUpscalerEndByItself())
+            UpscalerTimeDx12::UpscaleEnd(InCmdList);
     }
     else
     {
