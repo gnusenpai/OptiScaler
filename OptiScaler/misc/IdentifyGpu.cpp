@@ -468,12 +468,14 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
                         if (moduleAmdxc64 == nullptr && !Config::Instance()->Fsr4DoNotLoadAmdxc64.value_or_default())
                             moduleAmdxc64 = NtdllProxy::LoadLibraryExW_Ldr(L"amdxc64.dll", NULL, 0);
 
-                        if (moduleAmdxc64 == nullptr)
-                            continue;
+                        PFN_AmdExtD3DCreateInterface AmdExtD3DCreateInterface = nullptr;
 
-                        auto AmdExtD3DCreateInterface =
-                            (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
-                                moduleAmdxc64, "AmdExtD3DCreateInterface");
+                        if (moduleAmdxc64 != nullptr)
+                        {
+                            AmdExtD3DCreateInterface =
+                                (PFN_AmdExtD3DCreateInterface) KernelBaseProxy::GetProcAddress_()(
+                                    moduleAmdxc64, "AmdExtD3DCreateInterface");
+                        }
 
                         // Query amdxc for a specific intrinsics support, FSR 4 checks more but hopefully this one
                         // is enough amdxc on Windows hates vkd3d-proton's device, on Linux it's fine
