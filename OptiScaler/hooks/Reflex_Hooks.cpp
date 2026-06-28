@@ -561,13 +561,13 @@ void ReflexHooks::update(bool fgActive, bool isVulkan)
         return;
     }
 
-    if (isVulkan)
+    if (isVulkan && _lastVkSleepDev)
     {
         // fgActive doesn't matter for vulkan
         // isUsingAsMainNvapi() because fakenvapi might override the reflex' setting and we don't know it
         State::Instance().reflexLimitsFps = fakenvapi::isUsingAsMainNvapi() || _lastVkSleepParams.bLowLatencyMode;
     }
-    else
+    else if (_lastSleepDev)
     {
         // Don't use when: Real Reflex markers + FSR FG + Reflex disabled, causes huge input latency
         State::Instance().reflexLimitsFps =
@@ -575,6 +575,10 @@ void ReflexHooks::update(bool fgActive, bool isVulkan)
         State::Instance().reflexShowWarning = State::Instance().activeFgOutput == FGOutput::FSRFG &&
                                               !fakenvapi::isUsingAsMainNvapi() && fgActive &&
                                               _lastSleepParams.bLowLatencyMode;
+    }
+    else
+    {
+        State::Instance().reflexLimitsFps = false;
     }
 
     // Disable reflex fps limiting when reflex is force disabled
