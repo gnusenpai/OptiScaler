@@ -136,6 +136,9 @@ void Amdxc64Hooks::Init()
 
 HRESULT STDMETHODCALLTYPE Amdxc64Hooks::hkAmdExtD3DCreateInterface(IUnknown* pOuter, REFIID riid, void** ppvObject)
 {
+    // We need to know D3D12 capabilities by now, one of them being FSR 4
+    IdentifyGpu::updateD3d12Capabilities();
+
     const auto primaryGpu = IdentifyGpu::getPrimaryGpu();
     const bool runFsr4Upgrade = primaryGpu.fsr4Support != FSR4Support::None;
 
