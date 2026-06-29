@@ -2483,14 +2483,15 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
         }
 
         // FFX -----------------
-        if (!usesDlssd && (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FFX_on12))
+        if (!usesDlssd && (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FSR31 ||
+                           currentBackend == Upscaler::FFX_on12))
         {
             ImGui::SeparatorText("FFX Settings");
 
             if (_ffxUpscalerIndex < 0)
                 _ffxUpscalerIndex = config->FfxUpscalerIndex.value_or_default();
 
-            if (currentBackend == Upscaler::FFX ||
+            if (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FSR31 ||
                 currentBackend == Upscaler::FFX_on12 && state.ffxUpscalerVersionNames.size() > 0)
             {
                 ImGui::PushItemWidth(135.0f * menuResScale);
@@ -2658,7 +2659,60 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
                 {
                     ImGui::Spacing();
 
-                    if (auto ch = ScopedCollapsingHeader("FSR 3 Upscaler Fine Tuning"); ch.IsHeaderOpen())
+                    if (currentFeature != nullptr)
+                    {
+                        ImGui::Text("FSR 3.1 Presets:");
+
+                        ImGui::SameLine(0.0f, 6.0f);
+
+                        // This wiill be applied by default
+                        if (ImGui::Button("Stability"))
+                        {
+                            auto const scaleRatioX =
+                                (float) currentFeature->TargetWidth() / (float) currentFeature->RenderWidth();
+                            auto const scaleRatioY =
+                                (float) currentFeature->TargetHeight() / (float) currentFeature->RenderHeight();
+                            auto const scaleRatio = std::max(scaleRatioX, scaleRatioY);
+
+                            config->FsrVelocity = 0.5f;
+                            config->FsrReactiveScale = 0.25f;
+                            config->FsrShadingScale = 0.5f / scaleRatio;
+                            config->FsrAccAddPerFrame = scaleRatio / 10.0f;
+                            config->FsrMinDisOccAcc = scaleRatio / 20.0f;
+                        }
+
+                        ImGui::SameLine(0.0f, 6.0f);
+
+                        if (ImGui::Button("Motion"))
+                        {
+                            auto const scaleRatioX =
+                                (float) currentFeature->TargetWidth() / (float) currentFeature->RenderWidth();
+                            auto const scaleRatioY =
+                                (float) currentFeature->TargetHeight() / (float) currentFeature->RenderHeight();
+                            auto const scaleRatio = std::max(scaleRatioX, scaleRatioY);
+
+                            config->FsrVelocity = 1.0f;
+                            config->FsrReactiveScale = 0.5f;
+                            config->FsrShadingScale = 1.0f / scaleRatio;
+                            config->FsrAccAddPerFrame = scaleRatio / 10.0f;
+                            config->FsrMinDisOccAcc = scaleRatio / 20.0f;
+                        }
+
+                        ImGui::SameLine(0.0f, 6.0f);
+
+                        if (ImGui::Button("Default"))
+                        {
+                            config->FsrVelocity = 1.0f;
+                            config->FsrReactiveScale = 1.0f;
+                            config->FsrShadingScale = 1.0f;
+                            config->FsrAccAddPerFrame = 0.333f;
+                            config->FsrMinDisOccAcc = -0.333f;
+                        }
+                    }
+
+                    ImGui::Spacing();
+
+                    if (auto ch = ScopedCollapsingHeader("FSR 3 Upscaler Manual Tuning"); ch.IsHeaderOpen())
                     {
                         ScopedIndent indent {};
                         ImGui::Spacing();
@@ -2678,7 +2732,7 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
                         {
                             // Reactive Scale
                             float reactiveScale = config->FsrReactiveScale.value_or_default();
-                            if (ImGui::SliderFloat("Reactive Scale", &reactiveScale, 0.0f, 100.0f, "%.1f"))
+                            if (ImGui::SliderFloat("Reactive Scale", &reactiveScale, 0.0f, 1.0f, "%.3f"))
                                 config->FsrReactiveScale = reactiveScale;
 
                             ShowHelpMarker("Meant for development purpose to test if\n"
@@ -2686,15 +2740,15 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                             // Shading Scale
                             float shadingScale = config->FsrShadingScale.value_or_default();
-                            if (ImGui::SliderFloat("Shading Scale", &shadingScale, 0.0f, 100.0f, "%.1f"))
+                            if (ImGui::SliderFloat("Shading Scale", &shadingScale, 0.0f, 1.0f, "%.3f"))
                                 config->FsrShadingScale = shadingScale;
 
-                            ShowHelpMarker("Increasing this scales fsr3.1 computed shading\n"
+                            ShowHelpMarker("Increasing this scales FSR3.1 computed shading\n"
                                            "change value at read to have higher reactiveness.");
 
                             // Accumulation Added Per Frame
                             float accAddPerFrame = config->FsrAccAddPerFrame.value_or_default();
-                            if (ImGui::SliderFloat("Acc. Added Per Frame", &accAddPerFrame, 0.00f, 1.0f, "%.2f"))
+                            if (ImGui::SliderFloat("Acc. Added Per Frame", &accAddPerFrame, 0.0f, 1.0f, "%.3f"))
                                 config->FsrAccAddPerFrame = accAddPerFrame;
 
                             ShowHelpMarker("Corresponds to amount of accumulation added per frame\n"
@@ -2706,7 +2760,7 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                             // Min Disocclusion Accumulation
                             float minDisOccAcc = config->FsrMinDisOccAcc.value_or_default();
-                            if (ImGui::SliderFloat("Min. Disocclusion Acc.", &minDisOccAcc, -1.0f, 1.0f, "%.2f"))
+                            if (ImGui::SliderFloat("Min. Disocclusion Acc.", &minDisOccAcc, -1.0f, 1.0f, "%.3f"))
                                 config->FsrMinDisOccAcc = minDisOccAcc;
 
                             ShowHelpMarker("Increasing this value may reduce white pixel temporal\n"

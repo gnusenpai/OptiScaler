@@ -288,7 +288,6 @@ void DLSSG_Dx12::Deactivate()
         sl::ReflexOptions reflexConst = {};
         reflexConst.mode = sl::ReflexMode::eOff;
         reflexConst.useMarkersToOptimize = false;
-
         StreamlineProxy::ReflexSetOptions()(reflexConst);
 
         _isActive = false;
