@@ -355,6 +355,7 @@ static void CheckWorkingMode()
     std::string filename = wstring_to_string(Util::DllPath().filename().wstring()); // .string() can crash
     std::string lCaseFilename(filename);
     std::filesystem::path pluginPath(Config::Instance()->PluginPath.value_or(L"plugins"));
+    auto optiDllPath = std::filesystem::path(Config::Instance()->MainDllPath.value());
 
     for (size_t i = 0; i < lCaseFilename.size(); i++)
         lCaseFilename[i] = std::tolower(lCaseFilename[i]);
@@ -897,7 +898,7 @@ static void CheckWorkingMode()
 
         if (d3d12AgilityModule == nullptr && Config::Instance()->FsrAgilitySDKUpgrade.value_or_default())
         {
-            path = Util::ExePath().parent_path() / L"D3D12_Optiscaler" / L"D3D12Core.dll";
+            path = optiDllPath / L"D3D12_OptiScaler" / L"D3D12Core.dll";
             d3d12AgilityModule = NtdllProxy::LoadLibraryExW_Ldr(path.c_str(), NULL, 0);
         }
 
