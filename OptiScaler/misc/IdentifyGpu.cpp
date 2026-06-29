@@ -389,6 +389,8 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
             continue;
         }
 
+        ScopedSkipSpoofing skipSpoofing {};
+
         ComPtr<IDXGIFactory4> factory;
         if (FAILED(DxgiProxy::CreateDxgiFactory_()(__uuidof(factory), (IDXGIFactory**) factory.GetAddressOf())))
             continue;
