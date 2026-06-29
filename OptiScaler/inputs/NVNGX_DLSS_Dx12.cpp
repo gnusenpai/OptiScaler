@@ -29,7 +29,6 @@ static std::unordered_map<unsigned int, NVSDK_NGX_Feature> HandleToFeature;
 
 static ID3D12Device* D3D12Device = nullptr;
 static int evalCounter = 0;
-static std::wstring appDataPath = L".";
 static bool shutdown = false;
 static bool _skipInit = false;
 static wchar_t const** paths;
@@ -211,9 +210,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Init_Ext(unsigned long long InApp
 
     LOG_INFO("AppId: {0}", InApplicationId);
     LOG_INFO("SDK: {0:x}", (unsigned int) InSDKVersion);
-    appDataPath = std::wstring(InApplicationDataPath);
-
-    LOG_INFO("InApplicationDataPath {0}", wstring_to_string(appDataPath));
+    LOG_INFO(L"InApplicationDataPath {0}", std::wstring(InApplicationDataPath));
 
     D3D12Device = InDevice;
     State::Instance().currentD3D12Device = InDevice;

@@ -37,6 +37,7 @@ class ScopedInitDx11
         previousState = _skipInit;
         _skipInit = true;
     }
+
     ~ScopedInitDx11() { _skipInit = previousState; }
 };
 
@@ -193,24 +194,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Init_Ext(unsigned long long InApp
     }
 
     LOG_INFO("AppId: {0}", InApplicationId);
-    LOG_INFO("SDK: {0:x}", (int) InSDKVersion);
-    std::wstring string(InApplicationDataPath);
-
-    LOG_DEBUG("InApplicationDataPath {0}", wstring_to_string(string));
-
-    State::Instance().NVNGX_FeatureInfo_Paths.clear();
-
-    if (InFeatureInfo != nullptr)
-    {
-        for (size_t i = 0; i < InFeatureInfo->PathListInfo.Length; i++)
-        {
-            const wchar_t* path = InFeatureInfo->PathListInfo.Path[i];
-            std::wstring iniPathW(path);
-
-            State::Instance().NVNGX_FeatureInfo_Paths.push_back(iniPathW);
-            LOG_DEBUG("PathListInfo[{0}]: {1}", i, wstring_to_string(iniPathW));
-        }
-    }
+    LOG_INFO("SDK: {0:x}", (unsigned int) InSDKVersion);
+    LOG_INFO(L"InApplicationDataPath {0}", std::wstring(InApplicationDataPath));
 
     if (InDevice)
         D3D11Device = InDevice;
