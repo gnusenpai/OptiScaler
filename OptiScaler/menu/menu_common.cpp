@@ -2665,7 +2665,7 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                         ImGui::SameLine(0.0f, 6.0f);
 
-                        // This wiill be applied by default
+                        // This will be applied by default
                         if (ImGui::Button("Stability"))
                         {
                             auto const scaleRatioX =
@@ -2676,9 +2676,13 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                             config->FsrVelocity = 0.5f;
                             config->FsrReactiveScale = 0.25f;
-                            config->FsrShadingScale = 0.5f / scaleRatio;
-                            config->FsrAccAddPerFrame = scaleRatio / 10.0f;
-                            config->FsrMinDisOccAcc = scaleRatio / 20.0f;
+
+                            config->FsrShadingScale.reset();
+                            config->FsrAccAddPerFrame.reset();
+                            config->FsrMinDisOccAcc.reset();
+                            config->FsrShadingScale.set_volatile_value(0.5f / scaleRatio);
+                            config->FsrAccAddPerFrame.set_volatile_value(scaleRatio / 10.0f);
+                            config->FsrMinDisOccAcc.set_volatile_value(scaleRatio / 20.0f);
                         }
 
                         ImGui::SameLine(0.0f, 6.0f);
@@ -2693,9 +2697,13 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
 
                             config->FsrVelocity = 1.0f;
                             config->FsrReactiveScale = 0.5f;
-                            config->FsrShadingScale = 1.0f / scaleRatio;
-                            config->FsrAccAddPerFrame = scaleRatio / 10.0f;
-                            config->FsrMinDisOccAcc = scaleRatio / 20.0f;
+
+                            config->FsrShadingScale.reset();
+                            config->FsrAccAddPerFrame.reset();
+                            config->FsrMinDisOccAcc.reset();
+                            config->FsrShadingScale.set_volatile_value(1.0f / scaleRatio);
+                            config->FsrAccAddPerFrame.set_volatile_value(scaleRatio / 10.0f);
+                            config->FsrMinDisOccAcc.set_volatile_value(scaleRatio / 20.0f);
                         }
 
                         ImGui::SameLine(0.0f, 6.0f);
