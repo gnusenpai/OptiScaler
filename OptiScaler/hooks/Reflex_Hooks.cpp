@@ -10,6 +10,7 @@
 #include <nvapi/fakenvapi/nvapi_calls.h>
 
 #include <math.h>
+#include <imgui/ImGuiNotify.hpp>
 
 static inline uint64_t _lastFrameId[20] = { 0 };
 static inline IUnknown* _lastDev[20] = { 0 };
@@ -110,7 +111,20 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
         _FgNumFramesToGenerate = 0;
     }
 
-    State::Instance().rtssReflexInjection = pSetLatencyMarkerParams->frameID >> 32;
+    // RTSS reflex markers have a frameid marker in the high bits
+    if (pSetLatencyMarkerParams->frameID >> 32)
+    {
+        if (!State::Instance().rtssReflexInjection && State::Instance().activeFgOutput == FGOutput::XeFG)
+        {
+            ImGuiToast notification { ImGuiToastType::Warning, 10000 };
+            notification.setTitle("RTSS + XeFG detected");
+            notification.setContent(
+                "RTSS Reflex Injection is known to cause issues.\nEspecially when using XeFG.\nPlease disable it.");
+            ImGui::InsertNotification(notification);
+        }
+
+        State::Instance().rtssReflexInjection = true;
+    }
 
     // TODO: reflexFrameId gets constantly changed, up and down depending on the marker
     State::Instance().reflexFrameId = pSetLatencyMarkerParams->frameID;
