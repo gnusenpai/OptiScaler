@@ -89,6 +89,8 @@ class InputCommon
         activeOutput = InputCommon::activeOutput;
     }
 
+    static InputResult mark_present_start(IUnknown* pDevice);
+
     // passthrough when possible, fillout with local frame_reports if not
 
     // XeLL-specific calls for passthrough, TODO: only allow when caller == activeOutput == activeInput == XeLL

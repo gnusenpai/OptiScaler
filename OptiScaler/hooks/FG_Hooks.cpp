@@ -1125,6 +1125,11 @@ HRESULT FGHooks::FGPresent(IDXGISwapChain* This, UINT SyncInterval, UINT Flags,
         state.lastFGFrameTime = ftDelta;
 
         LOG_DEBUG("flags: {:X}, Frametime: {}", Flags, ftDelta);
+
+#ifdef LOW_LATENCY_INPUTS
+        IUnknown* device = state.currentD3D12Device ? state.currentD3D12Device : (IUnknown*) state.currentD3D11Device;
+        InputCommon::mark_present_start(device);
+#endif
     }
 
     IFGFeature* fg = state.currentFG;
