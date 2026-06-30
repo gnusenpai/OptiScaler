@@ -409,7 +409,6 @@ static const QuirkEntry quirkTable[] = {
     //
     // Tiny Tina's Wonderlands, Dead Island 2, The Outer Worlds: Spacer's Choice Edition, Scorn, Thymesia, Company of
     // Heroes 3, Caravan Sandwitch, Asterigos: Curse of the Stars, Saints Row (2022)
-    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY_UE(deadisland, GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing,
                    GameQuirk::ForceAutoExposure),
     QUIRK_ENTRY_UE(indiana, GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing,
@@ -420,6 +419,10 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY_UE(caravansandwitch, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY_UE(genesis, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("saintsrow_dx12.exe", GameQuirk::DisableDxgiSpoofing),
+
+    // Tiny Tina's Wonderlands
+    // FSR2/3 only, no spoof needed, reactive mask almost good but causes flickering of lampposts and in the distance
+    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
 
     // Disable FSR2/3 inputs due to crashing/custom implementations
     //

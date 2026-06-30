@@ -851,8 +851,11 @@ static Fsr212::FfxErrorCode ffxFsr2TinyContextDispatch_Dx12(Fsr212::FfxFsr2Conte
     params->Set(NVSDK_NGX_Parameter_Color, dispatchDescription->color.resource);
     params->Set(NVSDK_NGX_Parameter_MotionVectors, dispatchDescription->motionVectors.resource);
     params->Set(NVSDK_NGX_Parameter_Output, dispatchDescription->output.resource);
-    params->Set("FSR.cameraNear", dispatchDescription->cameraNear);
-    params->Set("FSR.cameraFar", dispatchDescription->cameraFar);
+
+    // Those values are set to 0 in Tiny Tina, don't use them
+    // params->Set("FSR.cameraNear", dispatchDescription->cameraNear);
+    // params->Set("FSR.cameraFar", dispatchDescription->cameraFar);
+
     params->Set("FSR.cameraFovAngleVertical", dispatchDescription->cameraFovAngleVertical);
     params->Set("FSR.frameTimeDelta", dispatchDescription->frameTimeDelta);
     params->Set("FSR.transparencyAndComposition", dispatchDescription->transparencyAndComposition.resource);
