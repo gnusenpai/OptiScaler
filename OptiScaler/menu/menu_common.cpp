@@ -51,7 +51,7 @@ static uint64_t lastInputTick = 0;
 constexpr uint64_t debounceThreshold = 1000;
 
 static bool hasGamepad = false;
-static bool fsr31InitTried = false;
+static bool ffxInitTried = false;
 static bool xefgInitTried = false;
 static std::string windowTitle;
 static std::string selectedUpscalerName = "";
@@ -2483,15 +2483,14 @@ void MenuCommon::RenderActiveUpscalerSettings(RenderMenuContext& ctx)
         }
 
         // FFX -----------------
-        if (!usesDlssd && (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FSR31 ||
-                           currentBackend == Upscaler::FFX_on12))
+        if (!usesDlssd && (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FFX_on12))
         {
             ImGui::SeparatorText("FFX Settings");
 
             if (_ffxUpscalerIndex < 0)
                 _ffxUpscalerIndex = config->FfxUpscalerIndex.value_or_default();
 
-            if (currentBackend == Upscaler::FFX || currentBackend == Upscaler::FSR31 ||
+            if (currentBackend == Upscaler::FFX ||
                 currentBackend == Upscaler::FFX_on12 && state.ffxUpscalerVersionNames.size() > 0)
             {
                 ImGui::PushItemWidth(135.0f * menuResScale);
@@ -2984,9 +2983,9 @@ void MenuCommon::RenderFrameGenerationSelection(RenderMenuContext& ctx)
     inputOptions[optiFgIndex].set_disabled(state.swapchainApi == API::Vulkan, "Unsupported API");
 
     if (!inputOptions[optiFgIndex].disabled && state.activeFgOutput == FGOutput::FSRFG && !FfxApiProxy::IsFGReady() &&
-        !fsr31InitTried)
+        !ffxInitTried)
     {
-        fsr31InitTried = true;
+        ffxInitTried = true;
         FfxApiProxy::InitFfxDx12();
         inputOptions[optiFgIndex].set_disabled(!FfxApiProxy::IsFGReady(), "amd_fidelityfx_dx12.dll is missing");
     }
