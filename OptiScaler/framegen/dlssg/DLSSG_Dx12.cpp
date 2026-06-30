@@ -487,17 +487,19 @@ bool DLSSG_Dx12::Dispatch()
     constData.jitterOffset.x = _jitterX[fIndex];
     constData.jitterOffset.y = _jitterY[fIndex];
 
-    auto mv = GetResource(FG_ResourceType::Velocity, fIndex);
-
-    if (!mv)
     {
-        LOG_ERROR("Motion vectors missing for: {}", fIndex);
+        auto mv = GetResource(FG_ResourceType::Velocity, fIndex);
 
-        return false;
+        if (!mv)
+        {
+            LOG_ERROR("Motion vectors missing for: {}", fIndex);
+
+            return false;
+        }
+
+        constData.mvecScale.x = _mvScaleX[fIndex] / (float) mv->width;
+        constData.mvecScale.y = _mvScaleY[fIndex] / (float) mv->height;
     }
-
-    constData.mvecScale.x = _mvScaleX[fIndex] / (float) mv->width;
-    constData.mvecScale.y = _mvScaleY[fIndex] / (float) mv->height;
 
     // LOG_DEBUG("MvRes: {}x{}, Games MvScale : {}x{}, SL MvScale: {}x{}", mv->width, mv->height, _mvScaleX[fIndex],
     //           _mvScaleY[fIndex], constData.mvecScale.x, constData.mvecScale.y);
