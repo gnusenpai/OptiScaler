@@ -1166,9 +1166,6 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
     if (quirks & GameQuirk::SkipFsr3Method)
         stringQuirks.push_back("Skipping first FSR 3 method");
 
-    if (quirks & GameQuirk::FastFeatureReset)
-        stringQuirks.push_back("Quick upscaler reinit");
-
     if (quirks & GameQuirk::LoadD3D12Manually)
         stringQuirks.push_back("Load d3d12.dll");
 

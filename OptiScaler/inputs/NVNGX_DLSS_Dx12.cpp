@@ -1035,13 +1035,17 @@ static NVSDK_NGX_Result TryEvaluateOptiFeature(ID3D12GraphicsCommandList* InCmdL
     {
         UpscalerInputsDx12::Reset();
 
-        FeatureProvider_Dx12::ChangeFeature(state.newBackend, D3D12Device, InCmdList, handleId, InParameters, &ctxData);
+        auto successfulPhase = FeatureProvider_Dx12::ChangeFeature(state.newBackend, D3D12Device, InCmdList, handleId,
+                                                                   InParameters, &ctxData);
         feature = ctxData.feature.get();
 
-        D3D12Hooks::SetRootSignatureTracking(true);
-
         evalCounter = 0;
-        return NVSDK_NGX_Result_Success;
+
+        if (ctxData.changeBackendCounter != 0 || !successfulPhase)
+        {
+            D3D12Hooks::SetRootSignatureTracking(true);
+            return NVSDK_NGX_Result_Success;
+        }
     }
 
     // Fallback to FSR 2.1.2 if feature failed to initialize and user didn't explicitly request it

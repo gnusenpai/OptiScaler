@@ -199,7 +199,7 @@ bool XeSSFeature::InitXeSS(ID3D12Device* device, const NVSDK_NGX_Parameter* InPa
         xessParams.outputResolution.y = TargetHeight();
 
         // create heaps to prevent create heap errors of xess
-        if (Config::Instance()->CreateHeaps.value_or(true))
+        if (Config::Instance()->CreateHeaps.value_or_default())
         {
             HRESULT hr;
             xess_properties_t xessProps {};
@@ -256,7 +256,7 @@ bool XeSSFeature::InitXeSS(ID3D12Device* device, const NVSDK_NGX_Parameter* InPa
         }
 
         // try to build pipelines with local pipeline object
-        if (Config::Instance()->BuildPipelines.value_or(true) && Version() > feature_version { 1, 2, 0 })
+        if (Config::Instance()->BuildPipelines.value_or_default() && Version() > feature_version { 1, 2, 0 })
         {
             LOG_DEBUG("xessD3D12BuildPipelines!");
             ScopedSkipHeapCapture skipHeapCapture {};

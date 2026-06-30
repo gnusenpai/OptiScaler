@@ -164,9 +164,11 @@ bool FeatureProvider_Vk::ChangeFeature(Upscaler upscaler, VkInstance instance, V
             }
 
             contextData->changeBackendCounter = 0;
+
+            return false;
         }
 
-        return NVSDK_NGX_Result_Success;
+        return true;
     }
 
     if (contextData->changeBackendCounter == 2)
@@ -220,7 +222,8 @@ bool FeatureProvider_Vk::ChangeFeature(Upscaler upscaler, VkInstance instance, V
             }
 
             state.changeBackend[handleId] = true;
-            return NVSDK_NGX_Result_Success;
+
+            return false;
         }
         else
         {

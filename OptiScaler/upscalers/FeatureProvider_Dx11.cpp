@@ -163,6 +163,8 @@ bool FeatureProvider_Dx11::ChangeFeature(Upscaler upscaler, ID3D11Device* device
             }
 
             contextData->changeBackendCounter = 0;
+
+            return false;
         }
 
         return true;
@@ -210,8 +212,9 @@ bool FeatureProvider_Dx11::ChangeFeature(Upscaler upscaler, ID3D11Device* device
             {
                 state.newBackend = Upscaler::Reset;
                 state.changeBackend[handleId] = false;
-                return false;
             }
+
+            return false;
         }
         else
         {
