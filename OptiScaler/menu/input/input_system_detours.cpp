@@ -16,6 +16,7 @@ static bool hidHooks = false;
 static bool rawHooks = false;
 static bool windowsHooks = false;
 static bool positionHooks = false;
+static bool positionIATHooks = false;
 
 namespace OptiInput
 {
@@ -413,10 +414,36 @@ bool InstallHooks()
             LOG_ERROR("Win32 windows input installation failed result:{}", result);
     }
 
-    positionHooks = InstallCursorIatHooks();
+    if (!positionHooks)
+    {
+        DetourTransactionBegin();
+        DetourUpdateThread(GetCurrentThread());
+
+        DetourAttach(reinterpret_cast<PVOID*>(&o_GetCursorPos), hkGetCursorPos);
+        DetourAttach(reinterpret_cast<PVOID*>(&o_SetCursorPos), hkSetCursorPos);
+
+        if (o_GetPhysicalCursorPos != nullptr)
+            DetourAttach(reinterpret_cast<PVOID*>(&o_GetPhysicalCursorPos), hkGetPhysicalCursorPos);
+
+        if (o_SetPhysicalCursorPos != nullptr)
+            DetourAttach(reinterpret_cast<PVOID*>(&o_SetPhysicalCursorPos), hkSetPhysicalCursorPos);
+
+        const LONG result = DetourTransactionCommit();
+
+        positionHooks = result == NO_ERROR;
+        if (positionHooks)
+            LOG_INFO("Win32 position input hooks installed");
+        else
+            LOG_ERROR("Win32 position input installation failed result:{}", result);
+    }
+
+    // If CursorPos hooks are not installed, try to install
+    // IAT (Import Address Table) hooks for CursorPos
+    if (!positionHooks && !positionIATHooks)
+        positionIATHooks = InstallCursorIatHooks();
 
     _state.HooksInstalled = messageHooks && keyStateHooks && getPosHooks && clipCursorHooks && message2Hooks &&
-                            hidHooks && rawHooks && windowsHooks && positionHooks;
+                            hidHooks && rawHooks && windowsHooks && (positionHooks || positionIATHooks);
 
     return _state.HooksInstalled;
 }
@@ -499,7 +526,25 @@ void RemoveHooks()
         windowsHooks = false;
     }
 
-    RemoveCursorIatHooks();
+    if (positionHooks)
+    {
+        DetourDetach(reinterpret_cast<PVOID*>(&o_GetCursorPos), hkGetCursorPos);
+        DetourDetach(reinterpret_cast<PVOID*>(&o_SetCursorPos), hkSetCursorPos);
+
+        if (o_GetPhysicalCursorPos != nullptr)
+            DetourDetach(reinterpret_cast<PVOID*>(&o_GetPhysicalCursorPos), hkGetPhysicalCursorPos);
+
+        if (o_SetPhysicalCursorPos != nullptr)
+            DetourDetach(reinterpret_cast<PVOID*>(&o_SetPhysicalCursorPos), hkSetPhysicalCursorPos);
+
+        positionHooks = false;
+    }
+
+    if (positionIATHooks)
+    {
+        RemoveCursorIatHooks();
+        positionIATHooks = false;
+    }
 
     const LONG result = DetourTransactionCommit();
     if (result != NO_ERROR)
