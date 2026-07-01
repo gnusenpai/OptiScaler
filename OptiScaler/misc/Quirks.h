@@ -152,8 +152,8 @@ static const QuirkEntry quirkTable[] = {
     // Crapcom Games, DLSS without dxgi spoofing needs restore compute in those
     //
     // Kunitsu-Gami: Path of the Goddess, Monster Hunter Wilds, MONSTER HUNTER RISE, Dead Rising Deluxe Remaster
-    // (including the demo), Dragon's Dogma 2, PRAGMATA Demo, Resident Evil Requiem, Monster Hunter Stories 3: Twisted
-    // Reflection, PRAGMATA, Onimusha: Way of the Sword Demo
+    // (including the demo), Dragon's Dogma 2, PRAGMATA Demo, Resident Evil Requiem (+ demo)
+    // Monster Hunter Stories 3: Twisted, Reflection, PRAGMATA, Onimusha: Way of the Sword Demo
     QUIRK_ENTRY("kunitsugami.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("kunitsugamidemo.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
@@ -167,6 +167,8 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("pragmata_sketchbook.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
                 GameQuirk::RestoreComputeSigOnNvidia, GameQuirk::AllowedFrameAhead2, GameQuirk::PregmataFixDLSSModes),
     QUIRK_ENTRY("re9.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
+                GameQuirk::RestoreComputeSigOnNvidia),
+    QUIRK_ENTRY("re9demo.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
                 GameQuirk::RestoreComputeSigOnNvidia),
     QUIRK_ENTRY("monster_hunter_stories_3_twisted_reflection.exe", GameQuirk::RestoreComputeSigOnNonNvidia,
                 GameQuirk::DisableDxgiSpoofing, GameQuirk::RestoreComputeSigOnNvidia),
