@@ -93,6 +93,7 @@ class IFeature
     virtual bool IsWithDx12() = 0;
     virtual feature_version Version() = 0;
     virtual Upscaler GetUpscalerType() const = 0;
+    virtual API Api() const = 0;
     std::string Name() const { return UpscalerDisplayName(GetUpscalerType()); };
     std::string ShortName() const { return UpscalerShortName(GetUpscalerType()); }; // Without the version
 

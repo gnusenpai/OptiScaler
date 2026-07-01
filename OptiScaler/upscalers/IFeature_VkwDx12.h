@@ -131,6 +131,9 @@ class IFeature_VkwDx12 : public virtual IFeature_Vk
     bool BaseInit(VkInstance InInstance, VkPhysicalDevice InPD, VkDevice InDevice, VkCommandBuffer InCmdList,
                   PFN_vkGetInstanceProcAddr InGIPA, PFN_vkGetDeviceProcAddr InGDPA, NVSDK_NGX_Parameter* InParameters);
 
+    API Api() const override { return API::DX12; }
+    bool IsWithDx12() override { return true; }
+
     IFeature_VkwDx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
     ~IFeature_VkwDx12();
 
