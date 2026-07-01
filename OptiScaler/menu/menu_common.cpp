@@ -4023,7 +4023,8 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
              ((state.activeFgOutput == FGOutput::DLSSG || state.activeFgOutput == FGOutput::DLSSGWithNvngx) &&
               StreamlineProxy::Module() != nullptr)))
         {
-            if (!Config::Instance()->FGDisableHUDFix.value_or_default())
+            if (!Config::Instance()->FGDisableHUDFix.value_or_default() &&
+                state.swapchainInteropApi == SwapchainInteropApi::None)
             {
                 bool fgHudfix = config->FGHUDFix.value_or_default();
 
@@ -4084,6 +4085,7 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
 
                 ImGui::EndDisabled();
             }
+
             bool depthScale = config->FGEnableDepthScale.value_or_default();
             if (ImGui::Checkbox("Scale Depth to fix DLSS RR", &depthScale))
                 config->FGEnableDepthScale = depthScale;
@@ -4107,7 +4109,8 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
             {
                 ScopedIndent indent {};
 
-                if (!Config::Instance()->FGDisableHUDFix.value_or_default())
+                if (!Config::Instance()->FGDisableHUDFix.value_or_default() &&
+                    state.swapchainInteropApi == SwapchainInteropApi::None)
                 {
                     ImGui::Spacing();
 
