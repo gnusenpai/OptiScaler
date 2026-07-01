@@ -114,9 +114,8 @@ bool FeatureProvider_Dx12::ChangeFeature(Upscaler upscaler, ID3D12Device* device
     // first release everything
     if (contextData->changeBackendCounter == 1)
     {
-        if (state.currentFG != nullptr && state.currentFG->IsActive() && state.activeFgInput == FGInput::Upscaler)
+        if (state.currentFG != nullptr && state.activeFgInput == FGInput::Upscaler)
         {
-            state.currentFG->DestroyFGContext();
             state.fgChanged = true;
             state.clearCapturedHudlesses = true;
         }
