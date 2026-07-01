@@ -134,12 +134,17 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("sora_1st.exe", GameQuirk::UseFsr2Dx11Inputs, GameQuirk::DisableDxgiSpoofing),
 
     // Ninja Gaiden 4
-    QUIRK_ENTRY("ninjagaiden4-steam.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain),
-    QUIRK_ENTRY("ninjagaiden4-wingdk.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain),
+    // Hudfix incompatible
+    QUIRK_ENTRY("ninjagaiden4-steam.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain,
+                GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("ninjagaiden4-wingdk.exe", GameQuirk::DisableResizeSkip, GameQuirk::DoNotPreserveFGSwapChain,
+                GameQuirk::DisableHudfix),
 
     // The Last of Us Part I
-    QUIRK_ENTRY("tlou-i.exe", GameQuirk::AllowedFrameAhead2, GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("tlou-i-l.exe", GameQuirk::AllowedFrameAhead2, GameQuirk::DisableDxgiSpoofing),
+    // Hudfix incompatible
+    QUIRK_ENTRY("tlou-i.exe", GameQuirk::AllowedFrameAhead2, GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("tlou-i-l.exe", GameQuirk::AllowedFrameAhead2, GameQuirk::DisableDxgiSpoofing,
+                GameQuirk::DisableHudfix),
 
     // Horizon Forbidden West
     QUIRK_ENTRY("horizonforbiddenwest.exe", GameQuirk::AllowedFrameAhead2),
@@ -147,19 +152,23 @@ static const QuirkEntry quirkTable[] = {
     // Crapcom Games, DLSS without dxgi spoofing needs restore compute in those
     //
     // Kunitsu-Gami: Path of the Goddess, Monster Hunter Wilds, MONSTER HUNTER RISE, Dead Rising Deluxe Remaster
-    // (including the demo), Dragon's Dogma 2, PRAGMATA Demo, Resident Evil Requiem, Monster Hunter Stories 3: Twisted
-    // Reflection, PRAGMATA, Onimusha: Way of the Sword Demo
+    // (including the demo), Dragon's Dogma 2, PRAGMATA Demo, Resident Evil Requiem (+ demo)
+    // Monster Hunter Stories 3: Twisted, Reflection, PRAGMATA, Onimusha: Way of the Sword Demo
     QUIRK_ENTRY("kunitsugami.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("kunitsugamidemo.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
                 GameQuirk::RestoreComputeSigOnNvidia),
     QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNvidia), // Seems to fix real DLSS
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("dd2ccs.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("dd2.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("dd2ccs.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
+                GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("dd2.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
+                GameQuirk::DisableHudfix),
     QUIRK_ENTRY("pragmata_sketchbook.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
-                GameQuirk::AllowedFrameAhead2, GameQuirk::PregmataFixDLSSModes),
+                GameQuirk::RestoreComputeSigOnNvidia, GameQuirk::AllowedFrameAhead2, GameQuirk::PregmataFixDLSSModes),
     QUIRK_ENTRY("re9.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
+                GameQuirk::RestoreComputeSigOnNvidia),
+    QUIRK_ENTRY("re9demo.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing,
                 GameQuirk::RestoreComputeSigOnNvidia),
     QUIRK_ENTRY("monster_hunter_stories_3_twisted_reflection.exe", GameQuirk::RestoreComputeSigOnNonNvidia,
                 GameQuirk::DisableDxgiSpoofing, GameQuirk::RestoreComputeSigOnNvidia),
@@ -189,8 +198,9 @@ static const QuirkEntry quirkTable[] = {
                 GameQuirk::DisableDxgiSpoofing),
 
     // Avatar: Frontiers of Pandora
-    // SL spoof enough to unlock DLSSG, blocked spoofing due to broken RT/performance overhead
-    QUIRK_ENTRY("afop.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs, GameQuirk::DisableDxgiSpoofing),
+    // SL spoof enough to unlock DLSSG, blocked spoofing due to broken RT/performance overhead, Hudfix incompatible
+    QUIRK_ENTRY("afop.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs, GameQuirk::DisableDxgiSpoofing,
+                GameQuirk::DisableHudfix),
 
     // Forza Motorsport 8
     // Steam
@@ -267,9 +277,10 @@ static const QuirkEntry quirkTable[] = {
     // Ratchet & Clank: Rift Apart, Marvel’s Spider-Man Remastered, Marvel’s Spider-Man: Miles Morales, Marvel's
     // Spider-Man 2, DEATH STRANDING 2: ON THE BEACH
     QUIRK_ENTRY("riftapart.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("spider-man.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::FSRFGHudlessMismatchFixup),
-    QUIRK_ENTRY("milesmorales.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("spider-man2.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("spider-man.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::FSRFGHudlessMismatchFixup,
+                GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("milesmorales.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("spider-man2.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
     QUIRK_ENTRY("ds2.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::FSRFGHudlessMismatchFixup),
     //
     // Dxgi spoofing disabled, DLSS-FG available, standalone Reflex can be unlocked with -unlockReflexOptions launch
@@ -278,7 +289,7 @@ static const QuirkEntry quirkTable[] = {
     // of Us Part II Remastered
     QUIRK_ENTRY("horizonzerodawnremastered.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("horizonforbiddenwest.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("ghostoftsushima.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("ghostoftsushima.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
     QUIRK_ENTRY("tlou-ii.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tlou-ii-l.exe", GameQuirk::DisableDxgiSpoofing),
 
@@ -288,16 +299,17 @@ static const QuirkEntry quirkTable[] = {
                 GameQuirk::ForceBorderlessWhenUsingXeFG, GameQuirk::DisableResizeSkip),
 
     // Metro Exodus Enhanced Edition
-    // ForceBorderless required to avoid black screen with XeFG, Manual Input polling for fixing invisible Opti Overlay
+    // ForceBorderless required to avoid black screen with XeFG, Manual Input polling for fixing invisible Opti Overlay,
+    // Hudfix incompatible
     QUIRK_ENTRY("metroexodus.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceBorderlessWhenUsingXeFG,
-                GameQuirk::ForceAutoExposure),
+                GameQuirk::ForceAutoExposure, GameQuirk::DisableHudfix),
 
     // Star Wars: Outlaws
-    // SL spoof enough to unlock everything DLSS
+    // SL spoof enough to unlock everything DLSS, Hudfix incompatible
     QUIRK_ENTRY("outlaws.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs,
-                GameQuirk::DisableDxgiSpoofing),
+                GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
     QUIRK_ENTRY("outlaws_plus.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs,
-                GameQuirk::DisableDxgiSpoofing),
+                GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
 
     // Lies of P
     // Spoofing disabled as no Streamline and OptiPatcher unlocks DLSS anyway
@@ -308,9 +320,10 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("crimsondesert.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Assassin's Creed Mirage
-    // Game not loading SL plugin even while spoofing, also avoids the "unsupported video driver" notification
-    QUIRK_ENTRY("acmirage.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("acmirage_plus.exe", GameQuirk::DisableDxgiSpoofing),
+    // Game not loading SL plugin even while spoofing, also avoids the "unsupported video driver" notification,
+    // Hudfix incompatible
+    QUIRK_ENTRY("acmirage.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("acmirage_plus.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
 
     // DCS World
     // Fakenvapi seems to cause a crash when switching to FSR4 (INT8 only?)
@@ -321,8 +334,9 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("xrengine.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Dying Light 2: Reloaded Edition
-    // SL spoof enough to unlock everything DLSS, manual input polling for fixing unclickable Opti Overlay
-    QUIRK_ENTRY("dyinglightgame_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing),
+    // SL spoof enough to unlock everything DLSS, manual input polling for fixing unclickable Opti Overlay,
+    // Hudfix incompatible
+    QUIRK_ENTRY("dyinglightgame_x64_rwdi.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
 
     // Dying Light: The Beast
     // SL spoof enough to unlock everything DLSS, manual input polling for fixing unclickable Opti Overlay
@@ -332,22 +346,33 @@ static const QuirkEntry quirkTable[] = {
     // SL spoof enough to unlock everything DLSS, AE required to fix FSR4 ghosting
     QUIRK_ENTRY("assettocorsaevo.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::ForceAutoExposure),
 
+    // Alan Wake 2
+    // SL spoof enough to unlock everything DLSS, Hudfix incompatible
+    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
+
+    // Marvel's Guardians of the Galaxy
+    // SL spoof enough to unlock everything DLSS, Hudfix incompatible
+    QUIRK_ENTRY("gotg.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
+
+    // UNCHARTED: Legacy of Thieves
+    // SL spoof enough to unlock everything DLSS, Hudfix incompatible
+    QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("u4-l.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
+
     // SL spoof enough to unlock everything DLSS/No spoof needed for DLSS inputs
     //
-    // The Witcher 3, Alan Wake 2, Crysis 3 Remastered, Marvel's Guardians of the Galaxy, UNCHARTED: Legacy of Thieves
-    // Collection, Warhammer 40,000: Darktide, Observer: System Redux, Sackboy: A Big Adventure, Hellblade: Senua's
-    // Sacrifice, Pumpkin Jack, Rise of the Ronin, DYNASTY WARRIORS: ORIGINS, Crysis Remastered, Crysis 2 Remastered,
-    // Mortal Shell, Sekiro: Shadows Die Twice (for SekiroTSR mod), The Medium, NINJA GAIDEN 4 (+ WinGDK), God of War
-    // (2018), Europa Universalis V, Need for Speed Unbound, Nioh 2 – The Complete Edition, Control Ultimate Edition,
-    // Deathloop, Where Winds Meet, FINAL FANTASY VII REMAKE INTERGRADE (for Luma mod), Assassin’s Creed Shadows,
-    // Farming Simulator 2025, Nioh 3, FATAL FRAME II: Crimson Butterfly REMAKE, OUTRIDERS, MOUSE: P.I. For Hire, Yet
-    // Another Zombie Survivors, Voodoo Fishin', Forza Horizon 6
+    // The Witcher 3, Alan Wake 2, Crysis 3 Remastered, Collection, Warhammer 40,000: Darktide,
+    // Observer: System Redux, Sackboy: A Big Adventure, Hellblade: Senua's Sacrifice,
+    // Pumpkin Jack, Rise of the Ronin, DYNASTY WARRIORS: ORIGINS, Crysis Remastered,
+    // Crysis 2 Remastered, Mortal Shell, Sekiro: Shadows Die Twice (for SekiroTSR mod),
+    // The Medium, NINJA GAIDEN 4 (+ WinGDK), God of War (2018), Europa Universalis V,
+    // Need for Speed Unbound, Nioh 2 – The Complete Edition, Control Ultimate Edition,
+    // Deathloop, Where Winds Meet, FINAL FANTASY VII REMAKE INTERGRADE (for Luma mod),
+    // Assassin's Creed Shadows, Farming Simulator 2025, Nioh 3,
+    // FATAL FRAME II: Crimson Butterfly REMAKE, OUTRIDERS, MOUSE: P.I. For Hire,
+    // Yet Another Zombie Survivors, Voodoo Fishin', Forza Horizon 6
     QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("gotg.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("u4-l.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("darktide.exe", GameQuirk::DisableDxgiSpoofing),
@@ -386,7 +411,6 @@ static const QuirkEntry quirkTable[] = {
     //
     // Tiny Tina's Wonderlands, Dead Island 2, The Outer Worlds: Spacer's Choice Edition, Scorn, Thymesia, Company of
     // Heroes 3, Caravan Sandwitch, Asterigos: Curse of the Stars, Saints Row (2022)
-    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY_UE(deadisland, GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing,
                    GameQuirk::ForceAutoExposure),
     QUIRK_ENTRY_UE(indiana, GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing,
@@ -397,6 +421,10 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY_UE(caravansandwitch, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY_UE(genesis, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("saintsrow_dx12.exe", GameQuirk::DisableDxgiSpoofing),
+
+    // Tiny Tina's Wonderlands
+    // FSR2/3 only, no spoof needed, reactive mask almost good but causes flickering of lampposts and in the distance
+    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
 
     // Disable FSR2/3 inputs due to crashing/custom implementations
     //
@@ -427,17 +455,41 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY_UE(redout2, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY_UE(recolored, GameQuirk::DisableDxgiSpoofing),
 
+    // Dragon Age: The Veilguard
+    // Hudfix incompatible
+    QUIRK_ENTRY("dragon age the veilguard.exe", GameQuirk::DisableHudfix),
+
+    // F1 2020, F1 2021
+    // Hudfix incompatible
+    QUIRK_ENTRY("f1_2020_dx12.exe", GameQuirk::DisableHudfix),
+    QUIRK_ENTRY("f1_2021_dx12.exe", GameQuirk::DisableHudfix),
+
+    // Grand Theft Auto V Enhanced
+    // Hudfix incompatible
+    QUIRK_ENTRY("gta5_enhanced.exe", GameQuirk::DisableHudfix),
+
+    // Rise of the Tomb Raider
+    // Hudfix incompatible
+    QUIRK_ENTRY("rottr.exe", GameQuirk::DisableHudfix),
+
+    // Shadow of the Tomb Raider
+    // Hudfix incompatible
+    QUIRK_ENTRY("sottr.exe", GameQuirk::DisableHudfix),
+
+    // Stellar Blade
+    // Hudfix incompatible
+    QUIRK_ENTRY_UE(sb, GameQuirk::DisableHudfix),
+
     // Self-explanatory
     //
     // The Persistence, Split Fiction, Minecraft Bedrock, Ghostwire: Tokyo, RoadCraft, STAR WARS Jedi:
     // Survivor, FINAL FANTASY VII REBIRTH, Witchfire, MechWarrior 5: Mercenaries, Ghostrunner, Ghostrunner 2
     QUIRK_ENTRY_UE(persistence, GameQuirk::ForceUnrealEngine),
-    QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
     QUIRK_ENTRY("gwt.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("roadcraft - retail.exe", GameQuirk::FixSlSimulationMarkers),
     QUIRK_ENTRY("jedisurvivor.exe", GameQuirk::ForceAutoExposure),
-    QUIRK_ENTRY("ff7rebirth_.exe", GameQuirk::ForceUnrealEngine),
+    QUIRK_ENTRY("ff7rebirth_.exe", GameQuirk::ForceUnrealEngine, GameQuirk::DisableHudfix),
     QUIRK_ENTRY_UE(witchfire, GameQuirk::DisableUseFsrInputValues),
     QUIRK_ENTRY_UE(mechwarrior, GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY_UE(ghostrunner, GameQuirk::ForceUnrealEngine),

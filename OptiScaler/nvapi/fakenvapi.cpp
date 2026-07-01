@@ -220,6 +220,9 @@ bool fakenvapi::forceMode(IUnknown* device, LowLatencyMode mode)
 {
     LOG_FUNC();
 
+    // Force init here, in case Reflex is not supported
+    LowLatencyCtx::init();
+
     auto lowLatencyCtx = LowLatencyCtx::get();
 
     if (!lowLatencyCtx)

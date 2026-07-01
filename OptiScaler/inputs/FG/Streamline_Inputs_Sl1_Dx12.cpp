@@ -153,7 +153,12 @@ bool Sl1_Inputs_Dx12::applyConstants(const sl1::Constants& values, uint32_t fram
         return true;
     }
 
-    if (!fgOutput->IsActive() && !fgOutput->IsPaused())
+    if (fgOutput->IsActive() && IsTrue(lastConstants.notRenderingGameFrames))
+    {
+        fgOutput->Deactivate();
+        return true;
+    }
+    else if (!fgOutput->IsActive() && !fgOutput->IsPaused() && !IsTrue(lastConstants.notRenderingGameFrames))
     {
         fgOutput->Activate();
     }

@@ -698,6 +698,33 @@ bool InputCommon::get_timing_data(TimingData& timingDataOut)
     return false;
 }
 
+InputResult InputCommon::mark_present_start(IUnknown* pDevice)
+{
+    // TODO: could allow AL2 but need to check the InputMarkerMode of the active AL2 input
+    if (activeInput != LowLatencyInput::UeLowLatency)
+        return InputResult::InputNotSupported;
+
+    // TODO: this is missing the frame id required by other outputs
+    if (activeOutput != LowLatencyMode::AntiLag2)
+        return InputResult::GenericError;
+
+    if (auto current_tech = currently_active_tech.load())
+    {
+        MarkerParams marker_params {};
+        marker_params.frame_id = 0; // TODO: will be needed if used with non-AL2
+        marker_params.marker_type = MarkerType::PRESENT_START;
+
+        // AL2 doesn't actually use pDevice but whatever
+        current_tech->set_marker(pDevice, marker_params);
+    }
+    else
+    {
+        return InputResult::NoReadyOutput;
+    }
+
+    return InputResult::Ok;
+}
+
 xell_result_t InputCommon::pass_xellD3D12SetAppQueue(const InputContext& inputContext, ID3D12CommandQueue* appQueue)
 {
     // TODO: XeLL seems to be sending this early, before any markers. Because of that activeOutput is likely still None

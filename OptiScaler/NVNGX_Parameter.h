@@ -56,28 +56,35 @@ struct Parameter
 {
     template <typename T> void operator=(T value)
     {
-        key = typeid(T).hash_code();
-        if constexpr (std::is_same<T, float>::value)
-            values.f = value;
-        else if constexpr (std::is_same<T, int>::value)
-            values.i = value;
-        else if constexpr (std::is_same<T, unsigned int>::value)
-            values.ui = value;
-        else if constexpr (std::is_same<T, double>::value)
-            values.d = value;
-        else if constexpr (std::is_same<T, unsigned long long>::value)
-            values.ull = value;
-        else if constexpr (std::is_same<T, void*>::value)
-            values.vp = value;
-        else if constexpr (std::is_same<T, ID3D11Resource*>::value)
-            values.d11r = value;
-        else if constexpr (std::is_same<T, ID3D12Resource*>::value)
-            values.d12r = value;
+        if constexpr (std::is_same<T, void*>::value || std::is_same<T, ID3D11Resource*>::value ||
+                      std::is_same<T, ID3D12Resource*>::value)
+        {
+            key = typeid(void*).hash_code();
+            values.vp = (void*) value;
+        }
+        else
+        {
+            key = typeid(T).hash_code();
+            if constexpr (std::is_same<T, float>::value)
+                values.f = value;
+            else if constexpr (std::is_same<T, int>::value)
+                values.i = value;
+            else if constexpr (std::is_same<T, unsigned int>::value)
+                values.ui = value;
+            else if constexpr (std::is_same<T, double>::value)
+                values.d = value;
+            else if constexpr (std::is_same<T, unsigned long long>::value)
+                values.ull = value;
+        }
     }
 
     template <typename T> operator T() const
     {
         T v = {};
+
+        bool isPointerKey = (key == typeid(void*).hash_code() || key == typeid(ID3D11Resource*).hash_code() ||
+                             key == typeid(ID3D12Resource*).hash_code());
+
         if constexpr (std::is_same<T, float>::value)
         {
             if (key == typeid(unsigned long long).hash_code())
@@ -142,26 +149,22 @@ struct Parameter
                 v = (T) values.i;
             else if (key == typeid(unsigned int).hash_code())
                 v = (T) values.ui;
-            else if (key == typeid(void*).hash_code())
+            else if (isPointerKey)
                 v = (T) values.vp;
         }
         else if constexpr (std::is_same<T, void*>::value)
         {
-            if (key == typeid(void*).hash_code())
+            if (isPointerKey)
                 v = values.vp;
         }
         else if constexpr (std::is_same<T, ID3D11Resource*>::value)
         {
-            if (key == typeid(ID3D11Resource*).hash_code())
-                v = values.d11r;
-            else if (key == typeid(void*).hash_code())
+            if (isPointerKey)
                 v = (T) values.vp;
         }
         else if constexpr (std::is_same<T, ID3D12Resource*>::value)
         {
-            if (key == typeid(ID3D12Resource*).hash_code())
-                v = values.d12r;
-            else if (key == typeid(void*).hash_code())
+            if (isPointerKey)
                 v = (T) values.vp;
         }
 

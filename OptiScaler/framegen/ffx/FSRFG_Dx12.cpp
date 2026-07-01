@@ -353,16 +353,18 @@ bool FSRFG_Dx12::Dispatch()
     ffxConfigureDescFrameGenerationRegisterDistortionFieldResource distortionFieldDesc {};
     distortionFieldDesc.header.type = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION_REGISTERDISTORTIONRESOURCE;
 
-    auto distortion = GetResource(FG_ResourceType::Distortion, fIndex);
-    if (distortion != nullptr && IsResourceReady(FG_ResourceType::Distortion, fIndex))
     {
-        LOG_TRACE("Using Distortion Field: {:X}", (size_t) distortion->GetResource());
+        auto distortion = GetResource(FG_ResourceType::Distortion, fIndex);
+        if (distortion && IsResourceReady(FG_ResourceType::Distortion, fIndex))
+        {
+            LOG_TRACE("Using Distortion Field: {:X}", (size_t) distortion->GetResource());
 
-        distortionFieldDesc.distortionField =
-            ffxApiGetResourceDX12(distortion->GetResource(), GetFfxApiState(distortion->state));
+            distortionFieldDesc.distortionField =
+                ffxApiGetResourceDX12(distortion->GetResource(), GetFfxApiState(distortion->state));
 
-        distortionFieldDesc.header.pNext = fgConfig.header.pNext;
-        fgConfig.header.pNext = &distortionFieldDesc.header;
+            distortionFieldDesc.header.pNext = fgConfig.header.pNext;
+            fgConfig.header.pNext = &distortionFieldDesc.header;
+        }
     }
 
     ffxConfigureDescFrameGenerationSwapChainRegisterUiResourceDX12 uiDesc {};
@@ -370,10 +372,9 @@ bool FSRFG_Dx12::Dispatch()
     uiDesc.uiResource = FfxApiResource({});
 
     {
-        std::shared_lock<std::shared_mutex> lock(_resourceMutex[fIndex]);
         auto hudless = GetResource(FG_ResourceType::HudlessColor, fIndex);
 
-        if (hudless != nullptr && IsResourceReady(FG_ResourceType::HudlessColor, fIndex))
+        if (hudless && IsResourceReady(FG_ResourceType::HudlessColor, fIndex))
         {
             LOG_TRACE("Using hudless: {:X}", (size_t) hudless->GetResource());
 
@@ -524,39 +525,44 @@ bool FSRFG_Dx12::Dispatch()
         dfgPrepare.frameID = willDispatchFrame;
         dfgPrepare.flags = fgConfig.flags;
 
-        auto velocity = GetResource(FG_ResourceType::Velocity, fIndex);
-        auto depth = GetResource(FG_ResourceType::Depth, fIndex);
-
-        if (velocity != nullptr && IsResourceReady(FG_ResourceType::Velocity, fIndex))
         {
-            LOG_DEBUG("Velocity resource: {:X}", (size_t) velocity->GetResource());
-            dfgPrepare.motionVectors = ffxApiGetResourceDX12(velocity->GetResource(), GetFfxApiState(velocity->state));
-        }
-        else
-        {
-            LOG_ERROR("Velocity is missing");
-            _fgCommandList[fIndex]->Close();
-            return false;
-        }
-
-        if (depth != nullptr && IsResourceReady(FG_ResourceType::Depth, fIndex))
-        {
-            LOG_DEBUG("Depth resource: {:X}", (size_t) depth->GetResource());
-            dfgPrepare.depth = ffxApiGetResourceDX12(depth->GetResource(), GetFfxApiState(depth->state));
-        }
-        else
-        {
-            LOG_ERROR("Depth is missing");
-            _fgCommandList[fIndex]->Close();
-            return false;
+            auto velocity = GetResource(FG_ResourceType::Velocity, fIndex);
+            if (velocity && IsResourceReady(FG_ResourceType::Velocity, fIndex))
+            {
+                LOG_DEBUG("Velocity resource: {:X}", (size_t) velocity->GetResource());
+                dfgPrepare.motionVectors =
+                    ffxApiGetResourceDX12(velocity->GetResource(), GetFfxApiState(velocity->state));
+            }
+            else
+            {
+                LOG_ERROR("Velocity is missing");
+                _fgCommandList[fIndex]->Close();
+                return false;
+            }
         }
 
-        if (state.currentFeature && state.activeFgInput == FGInput::Upscaler)
-            dfgPrepare.renderSize = { state.currentFeature->RenderWidth(), state.currentFeature->RenderHeight() };
-        else if (depth != nullptr)
-            dfgPrepare.renderSize = { static_cast<uint32_t>(depth->width), depth->height };
-        else
-            dfgPrepare.renderSize = { dfgPrepare.depth.description.width, dfgPrepare.depth.description.height };
+        {
+            auto depth = GetResource(FG_ResourceType::Depth, fIndex);
+
+            if (depth && IsResourceReady(FG_ResourceType::Depth, fIndex))
+            {
+                LOG_DEBUG("Depth resource: {:X}", (size_t) depth->GetResource());
+                dfgPrepare.depth = ffxApiGetResourceDX12(depth->GetResource(), GetFfxApiState(depth->state));
+            }
+            else
+            {
+                LOG_ERROR("Depth is missing");
+                _fgCommandList[fIndex]->Close();
+                return false;
+            }
+
+            if (state.currentFeature && state.activeFgInput == FGInput::Upscaler)
+                dfgPrepare.renderSize = { state.currentFeature->RenderWidth(), state.currentFeature->RenderHeight() };
+            else if (depth)
+                dfgPrepare.renderSize = { static_cast<uint32_t>(depth->width), depth->height };
+            else
+                dfgPrepare.renderSize = { dfgPrepare.depth.description.width, dfgPrepare.depth.description.height };
+        }
 
         dfgPrepare.jitterOffset.x = _jitterX[fIndex];
         dfgPrepare.jitterOffset.y = _jitterY[fIndex];
@@ -1685,7 +1691,7 @@ bool FSRFG_Dx12::Present()
     if (Config::Instance()->FGDrawUIOverFG.value_or_default())
     {
         auto ui = GetResource(FG_ResourceType::UIColor, fIndex);
-        if (ui != nullptr)
+        if (ui)
         {
             LOG_DEBUG("UI[{}] resource: {:X}, copy: {}", fIndex, (size_t) ui->resource, (size_t) ui->copy);
             if (_renderUI.get() == nullptr)
@@ -1708,7 +1714,7 @@ bool FSRFG_Dx12::Present()
                 }
             }
         }
-        else if (ui == nullptr)
+        else if (!ui)
         {
             LOG_WARN("UI resource is nullptr");
         }

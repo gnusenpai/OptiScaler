@@ -1054,11 +1054,15 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_VULKAN_EvaluateFeature(VkCommandBuffer 
 
     if (state.changeBackend[handleId])
     {
-        FeatureProvider_Vk::ChangeFeature(state.newBackend, vkInstance, vkPD, vkDevice, InCmdList, vkGIPA, vkGDPA,
-                                          handleId, InParameters, contextData);
+        auto successfulPhase =
+            FeatureProvider_Vk::ChangeFeature(state.newBackend, vkInstance, vkPD, vkDevice, InCmdList, vkGIPA, vkGDPA,
+                                              handleId, InParameters, contextData);
         evalCounter = 0;
 
-        return NVSDK_NGX_Result_Success;
+        if (contextData->changeBackendCounter != 0 || !successfulPhase)
+        {
+            return NVSDK_NGX_Result_Success;
+        }
     }
 
     deviceContext = VkContexts[handleId].feature.get();

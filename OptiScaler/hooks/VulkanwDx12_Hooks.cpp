@@ -1058,24 +1058,28 @@ void Vulkan_wDx12::hk_vkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipe
         // AMD drivers on the cards around RDNA2 didn't treat VK_IMAGE_LAYOUT_UNDEFINED in the same way Nvidia does.
         // Doesn't seem like a bug, just a different way of handling an UB but we need to adjust.
 
-        // DLSSG Present
-        if (imageMemoryBarrierCount == 2)
+        for (size_t i = 0; i < imageMemoryBarrierCount; i++)
         {
-            if (pImageMemoryBarriers[0].oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
-                pImageMemoryBarriers[0].newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-                pImageMemoryBarriers[1].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-                pImageMemoryBarriers[1].newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+            if (pImageMemoryBarriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+                pImageMemoryBarriers[i].newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
             {
-                LOG_TRACE("Changing an UNDEFINED barrier in DLSSG Present");
+                LOG_TRACE("Changing an UNDEFINED barrier in DLSSG Present, imageMemoryBarrierCount: {}",
+                          imageMemoryBarrierCount);
 
-                VkImageMemoryBarrier newImageBarriers[2];
-                std::memcpy(newImageBarriers, pImageMemoryBarriers, sizeof(newImageBarriers));
+                VkImageMemoryBarrier* newImageBarriers = new VkImageMemoryBarrier[imageMemoryBarrierCount];
 
-                newImageBarriers[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                std::memcpy(newImageBarriers, pImageMemoryBarriers,
+                            sizeof(*newImageBarriers) * imageMemoryBarrierCount);
 
-                return o_vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, dependencyFlags,
-                                              memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount,
-                                              pBufferMemoryBarriers, imageMemoryBarrierCount, newImageBarriers);
+                newImageBarriers[i].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+                o_vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount,
+                                       pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers,
+                                       imageMemoryBarrierCount, newImageBarriers);
+
+                delete[] newImageBarriers;
+
+                return;
             }
         }
 

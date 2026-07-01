@@ -749,12 +749,15 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_EvaluateFeature(ID3D11DeviceConte
 
     if (state.changeBackend[handleId])
     {
-        FeatureProvider_Dx11::ChangeFeature(state.newBackend, D3D11Device, InDevCtx, handleId, InParameters,
-                                            activeContext);
+        auto successfulPhase = FeatureProvider_Dx11::ChangeFeature(state.newBackend, D3D11Device, InDevCtx, handleId,
+                                                                   InParameters, activeContext);
 
         evalCounter = 0;
 
-        return NVSDK_NGX_Result_Success;
+        if (activeContext->changeBackendCounter != 0 || !successfulPhase)
+        {
+            return NVSDK_NGX_Result_Success;
+        }
     }
 
     if (activeContext->feature == nullptr) // prevent source api name flicker when dlssg is active

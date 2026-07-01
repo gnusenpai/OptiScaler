@@ -12,7 +12,7 @@ bool IFGFeature_Dx12::GetResourceCopy(FG_ResourceType type, D3D12_RESOURCE_STATE
 
     auto resource = GetResource(type);
 
-    if (resource == nullptr || (resource->copy == nullptr && resource->validity == FG_ResourceValidity::ValidNow))
+    if (!resource || (resource->copy == nullptr && resource->validity == FG_ResourceValidity::ValidNow))
     {
         LOG_WARN("No resource copy of type {} to use", magic_enum::enum_name(type));
         return false;
@@ -195,7 +195,7 @@ ID3D12GraphicsCommandList* IFGFeature_Dx12::GetSCCommandList(int index)
     return _scCommandList[index];
 }
 
-Dx12Resource* IFGFeature_Dx12::GetResource(FG_ResourceType type, int index)
+LockedDx12Resource IFGFeature_Dx12::GetResource(FG_ResourceType type, int index)
 {
     if (index < 0)
         index = GetIndex();
@@ -204,10 +204,11 @@ Dx12Resource* IFGFeature_Dx12::GetResource(FG_ResourceType type, int index)
 
     auto& resources = _frameResources[index];
 
-    if (resources.contains(type))
-        return &resources[type];
+    auto it = resources.find(type);
+    if (it != resources.end())
+        return { &it->second, std::move(lock) };
 
-    return nullptr;
+    return { nullptr, std::move(lock) };
 }
 
 void IFGFeature_Dx12::NewFrame()

@@ -142,16 +142,8 @@ bool FeatureProvider_Dx12::ChangeFeature(Upscaler upscaler, ID3D12Device* device
 
             Util::DelayedDestroy(std::move(contextData->feature));
 
-            // if (state.gameQuirks & GameQuirk::FastFeatureReset)
-            //{
-            //     LOG_DEBUG("sleeping before reset of current feature for 100ms (Fast Feature Reset)");
-            //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            // }
-            // else
-            //{
-            //     LOG_DEBUG("sleeping before reset of current feature for 1000ms");
-            //     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            // }
+            // LOG_DEBUG("sleeping before reset of current feature for 1000ms");
+            // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
             // contextData->feature.reset();
             // contextData->feature = nullptr;
@@ -170,6 +162,8 @@ bool FeatureProvider_Dx12::ChangeFeature(Upscaler upscaler, ID3D12Device* device
             }
 
             contextData->changeBackendCounter = 0;
+
+            return false;
         }
 
         return true;
@@ -221,7 +215,8 @@ bool FeatureProvider_Dx12::ChangeFeature(Upscaler upscaler, ID3D12Device* device
             }
 
             state.changeBackend[handleId] = true;
-            return NVSDK_NGX_Result_Success;
+
+            return false;
         }
         else
         {

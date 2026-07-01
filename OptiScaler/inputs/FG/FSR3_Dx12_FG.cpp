@@ -610,8 +610,7 @@ static Fsr3::FfxErrorCode hkffxFrameInterpolationDispatch(FfxFrameInterpolationC
     fg->SetFrameTimeDelta(params->frameTimeDelta);
     fg->SetReset(params->reset ? 1 : 0);
 
-    if (params->currentBackBuffer_HUDLess.resource != nullptr &&
-        fg->GetResource(FG_ResourceType::HudlessColor) == nullptr)
+    if (params->currentBackBuffer_HUDLess.resource != nullptr && !fg->GetResource(FG_ResourceType::HudlessColor))
     {
         UINT width = params->interpolationRect.width;
         UINT height = params->interpolationRect.height;
@@ -640,7 +639,7 @@ static Fsr3::FfxErrorCode hkffxFrameInterpolationDispatch(FfxFrameInterpolationC
     }
 
     if (_presentCallback != nullptr && params->currentBackBuffer.resource != nullptr &&
-        fg->GetResource(FG_ResourceType::HudlessColor) == nullptr)
+        !fg->GetResource(FG_ResourceType::HudlessColor))
     {
         UINT width = params->interpolationRect.width;
         UINT height = params->interpolationRect.height;
@@ -821,7 +820,7 @@ static Fsr3::FfxErrorCode hkffxSetFrameGenerationConfigToSwapchainDX12(Fsr3::Ffx
             left = 0;
         }
 
-        if (config->HUDLessColor.resource != nullptr && fg->GetResource(FG_ResourceType::HudlessColor) == nullptr)
+        if (config->HUDLessColor.resource != nullptr && !fg->GetResource(FG_ResourceType::HudlessColor))
         {
             Dx12Resource ui {};
             ui.cmdList = nullptr; // Not sure about this
@@ -1177,7 +1176,7 @@ void FSR3FG::ffxPresentCallback()
 
         if (result == FFX_API_RETURN_OK)
         {
-            if (fg->GetResource(FG_ResourceType::HudlessColor, fIndex) == nullptr)
+            if (!fg->GetResource(FG_ResourceType::HudlessColor, fIndex))
             {
                 auto hDesc = _hudless[fIndex]->GetDesc();
                 Dx12Resource hudless {};
@@ -1271,7 +1270,7 @@ void FSR3FG::ffxPresentCallback()
 
         if (result == FFX_API_RETURN_OK)
         {
-            if (fg->GetResource(FG_ResourceType::HudlessColor, fIndex) == nullptr)
+            if (!fg->GetResource(FG_ResourceType::HudlessColor, fIndex))
             {
                 auto hDesc = _hudless[fIndex]->GetDesc();
                 Dx12Resource hudless {};

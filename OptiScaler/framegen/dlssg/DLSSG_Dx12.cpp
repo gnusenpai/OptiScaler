@@ -487,17 +487,19 @@ bool DLSSG_Dx12::Dispatch()
     constData.jitterOffset.x = _jitterX[fIndex];
     constData.jitterOffset.y = _jitterY[fIndex];
 
-    auto mv = GetResource(FG_ResourceType::Velocity, fIndex);
-
-    if (!mv)
     {
-        LOG_ERROR("Motion vectors missing for: {}", fIndex);
+        auto mv = GetResource(FG_ResourceType::Velocity, fIndex);
 
-        return false;
+        if (!mv)
+        {
+            LOG_ERROR("Motion vectors missing for: {}", fIndex);
+
+            return false;
+        }
+
+        constData.mvecScale.x = _mvScaleX[fIndex] / (float) mv->width;
+        constData.mvecScale.y = _mvScaleY[fIndex] / (float) mv->height;
     }
-
-    constData.mvecScale.x = _mvScaleX[fIndex] / (float) mv->width;
-    constData.mvecScale.y = _mvScaleY[fIndex] / (float) mv->height;
 
     // LOG_DEBUG("MvRes: {}x{}, Games MvScale : {}x{}, SL MvScale: {}x{}", mv->width, mv->height, _mvScaleX[fIndex],
     //           _mvScaleY[fIndex], constData.mvecScale.x, constData.mvecScale.y);
@@ -779,9 +781,9 @@ bool DLSSG_Dx12::Present()
     if (Config::Instance()->FGDrawUIOverFG.value_or_default())
     {
         auto ui = GetResource(FG_ResourceType::UIColor, fIndex);
-        if (ui != nullptr && (ui->validity == FG_ResourceValidity::UntilPresent ||
-                              ui->validity == FG_ResourceValidity::JustTrackCmdlist ||
-                              ui->validity == FG_ResourceValidity::UntilPresentFromDispatch))
+        if (ui && (ui->validity == FG_ResourceValidity::UntilPresent ||
+                   ui->validity == FG_ResourceValidity::JustTrackCmdlist ||
+                   ui->validity == FG_ResourceValidity::UntilPresentFromDispatch))
         {
             LOG_DEBUG("UI[{}] resource: {:X}, copy: {}", fIndex, (size_t) ui->resource, (size_t) ui->copy);
             if (_renderUI.get() == nullptr)
@@ -804,7 +806,7 @@ bool DLSSG_Dx12::Present()
                 }
             }
         }
-        else if (ui == nullptr)
+        else if (!ui)
         {
             LOG_WARN("UI resource is nullptr");
         }
@@ -815,9 +817,9 @@ bool DLSSG_Dx12::Present()
         if (State::Instance().fgHudlessCompare)
         {
             auto hudless = GetResource(FG_ResourceType::HudlessColor, fIndex);
-            if (hudless != nullptr && (hudless->validity == FG_ResourceValidity::UntilPresent ||
-                                       hudless->validity == FG_ResourceValidity::JustTrackCmdlist ||
-                                       hudless->validity == FG_ResourceValidity::UntilPresentFromDispatch))
+            if (hudless && (hudless->validity == FG_ResourceValidity::UntilPresent ||
+                            hudless->validity == FG_ResourceValidity::JustTrackCmdlist ||
+                            hudless->validity == FG_ResourceValidity::UntilPresentFromDispatch))
             {
                 LOG_DEBUG("Hudless[{}] resource: {:X}, copy: {}", fIndex, (size_t) hudless->resource,
                           (size_t) hudless->copy);
@@ -835,7 +837,7 @@ bool DLSSG_Dx12::Present()
                     }
                 }
             }
-            else if (hudless == nullptr)
+            else if (!hudless)
             {
                 LOG_WARN("Hudless resource is nullptr");
             }
