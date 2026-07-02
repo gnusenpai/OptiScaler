@@ -359,16 +359,23 @@ class StreamlineProxy
             State::Instance().optiSlReflex = StreamlineProxy::HookStreamlineReflex();
             State::Instance().optiSlPCL = StreamlineProxy::HookStreamlinePCL();
 
-            auto result = _slSetD3DDevice(device);
-
-            if (result == sl::Result::eOk)
+            if (State::Instance().gameQuirks & GameQuirk::CreateSLOnThe2ndDevice)
             {
-                auto reflexConst = sl::ReflexOptions {};
-                reflexConst.mode = sl::ReflexMode::eOff;
-                reflexConst.useMarkersToOptimize = false;
+                // slSetD3DDevice moved to hkD3D12CreateDevice
+                _isD3D12Inited = true;
+            }
+            else
+            {
+                auto result = _slSetD3DDevice(device);
+                if (result == sl::Result::eOk)
+                {
+                    auto reflexConst = sl::ReflexOptions {};
+                    reflexConst.mode = sl::ReflexMode::eOff;
+                    reflexConst.useMarkersToOptimize = false;
 
-                result = _slReflexSetOptions(reflexConst);
-                _isD3D12Inited = result == sl::Result::eOk;
+                    result = _slReflexSetOptions(reflexConst);
+                    _isD3D12Inited = result == sl::Result::eOk;
+                }
             }
         }
 

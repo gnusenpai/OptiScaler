@@ -1426,6 +1426,24 @@ static HRESULT hkD3D12CreateDevice(IUnknown* pAdapter, D3D_FEATURE_LEVEL Minimum
         // if (Config::Instance()->UESpoofIntelAtomics64.value_or_default())
         //     UnhookDevice();
 
+        if (State::Instance().gameQuirks & GameQuirk::CreateSLOnThe2ndDevice)
+        {
+            static void* lastDevice = nullptr;
+
+            if (lastDevice && lastDevice != *ppDevice && StreamlineProxy::IsD3D12Inited() &&
+                StreamlineProxy::SetD3DDevice()(*ppDevice) == sl::Result::eOk)
+            {
+                auto reflexConst = sl::ReflexOptions {};
+                reflexConst.mode = sl::ReflexMode::eLowLatency;
+                reflexConst.useMarkersToOptimize = false;
+
+                auto result = StreamlineProxy::ReflexSetOptions()(reflexConst);
+                LOG_TRACE("ReflexSetOptions");
+            }
+
+            lastDevice = *ppDevice;
+        }
+
         HookToDevice(State::Instance().currentD3D12Device);
         _d3d12Captured = true;
 

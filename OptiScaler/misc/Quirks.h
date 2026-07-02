@@ -60,6 +60,7 @@ enum class GameQuirk : uint64_t
     ForceDepthD32S8,
     PregmataFixDLSSModes,
     IgnoreValidUntilEvaluateForFG,
+    CreateSLOnThe2ndDevice,
     // Don't forget to add the new entry to printQuirks
     _
 };
@@ -359,9 +360,15 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
     QUIRK_ENTRY("u4-l.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableHudfix),
 
+    // The Witcher 3
+    // SL spoof enough to unlock everything DLSS/No spoof needed for DLSS inputs,
+    // WAR for our SL having to init on the real device that the game will actually be using
+    // early in boot it creates a device that it later *needs* to properly destroy
+    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::CreateSLOnThe2ndDevice),
+
     // SL spoof enough to unlock everything DLSS/No spoof needed for DLSS inputs
     //
-    // The Witcher 3, Alan Wake 2, Crysis 3 Remastered, Collection, Warhammer 40,000: Darktide,
+    // Alan Wake 2, Crysis 3 Remastered, Collection, Warhammer 40,000: Darktide,
     // Observer: System Redux, Sackboy: A Big Adventure, Hellblade: Senua's Sacrifice,
     // Pumpkin Jack, Rise of the Ronin, DYNASTY WARRIORS: ORIGINS, Crysis Remastered,
     // Crysis 2 Remastered, Mortal Shell, Sekiro: Shadows Die Twice (for SekiroTSR mod),
@@ -371,7 +378,6 @@ static const QuirkEntry quirkTable[] = {
     // Assassin's Creed Shadows, Farming Simulator 2025, Nioh 3,
     // FATAL FRAME II: Crimson Butterfly REMAKE, OUTRIDERS, MOUSE: P.I. For Hire,
     // Yet Another Zombie Survivors, Voodoo Fishin', Forza Horizon 6
-    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
