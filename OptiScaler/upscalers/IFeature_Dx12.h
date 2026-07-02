@@ -47,6 +47,7 @@ class IFeature_Dx12 : public virtual IFeature
     bool Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_NGX_Parameter* InParameters);
 
     bool CallsUpscalerEndByItself() override;
+    API Api() const override { return API::DX12; }
 
     IFeature_Dx12(unsigned int InHandleId, NVSDK_NGX_Parameter* InParameters);
 

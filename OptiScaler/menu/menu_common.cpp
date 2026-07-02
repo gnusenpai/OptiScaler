@@ -17,6 +17,10 @@
 
 #include <version_check.h>
 
+#include <upscaler_time/UpscalerTime_Vk.h>
+#include <upscaler_time/UpscalerTime_Dx11.h>
+#include <upscaler_time/UpscalerTime_Dx12.h>
+
 #include <imgui/imgui_internal.h>
 #include <imgui/ImGuiNotify.hpp>
 #include <imgui/imgui_impl_win32.h>
@@ -1240,6 +1244,9 @@ void MenuCommon::UpdateRenderTiming(RenderMenuContext& ctx)
     }
     else
     {
+        if (state.activeFgInput == FGInput::NoFG || state.activeFgOutput == FGOutput::NoFG)
+            MenuCommon::Present();
+
         frameTime = lastFrameTime;
         frameRate = 1000.0 / frameTime;
     }
@@ -1830,7 +1837,10 @@ void MenuCommon::RenderPerformanceOverlay(RenderMenuContext& ctx)
                 }
             }
 
-            firstLine = StrFmt("%s | %s%s%s", api.c_str(), fpsPart.c_str(), fgText.c_str(), featurePart.c_str());
+            if (overlayType == FpsOverlay_JustFPS)
+                firstLine = StrFmt("%s", fpsPart.c_str());
+            else
+                firstLine = StrFmt("%s | %s%s%s", api.c_str(), fpsPart.c_str(), fgText.c_str(), featurePart.c_str());
 
             // Prepare Line 2
             if (config->FpsOverlayType.value_or_default() >= FpsOverlay_Detailed)
@@ -4023,7 +4033,8 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
              ((state.activeFgOutput == FGOutput::DLSSG || state.activeFgOutput == FGOutput::DLSSGWithNvngx) &&
               StreamlineProxy::Module() != nullptr)))
         {
-            if (!Config::Instance()->FGDisableHUDFix.value_or_default())
+            if (!Config::Instance()->FGDisableHUDFix.value_or_default() &&
+                state.swapchainInteropApi == SwapchainInteropApi::None)
             {
                 bool fgHudfix = config->FGHUDFix.value_or_default();
 
@@ -4084,6 +4095,7 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
 
                 ImGui::EndDisabled();
             }
+
             bool depthScale = config->FGEnableDepthScale.value_or_default();
             if (ImGui::Checkbox("Scale Depth to fix DLSS RR", &depthScale))
                 config->FGEnableDepthScale = depthScale;
@@ -4107,7 +4119,8 @@ void MenuCommon::RenderFrameGenerationRuntimeSettings(RenderMenuContext& ctx)
             {
                 ScopedIndent indent {};
 
-                if (!Config::Instance()->FGDisableHUDFix.value_or_default())
+                if (!Config::Instance()->FGDisableHUDFix.value_or_default() &&
+                    state.swapchainInteropApi == SwapchainInteropApi::None)
                 {
                     ImGui::Spacing();
 

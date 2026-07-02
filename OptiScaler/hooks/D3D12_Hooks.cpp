@@ -2192,8 +2192,12 @@ static void HookToDevice(ID3D12Device* InDevice)
 
     HookToCommandList(InDevice);
 
-    if (State::Instance().activeFgInput == FGInput::Upscaler && !Config::Instance()->FGDisableHUDFix.value_or_default())
+    if (State::Instance().activeFgInput == FGInput::Upscaler &&
+        !Config::Instance()->FGDisableHUDFix.value_or_default() &&
+        State::Instance().swapchainInteropApi == SwapchainInteropApi::None)
+    {
         ResTrack_Dx12::HookDevice(InDevice);
+    }
 
     if ((State::Instance().activeFgOutput == FGOutput::DLSSG ||
          State::Instance().activeFgOutput == FGOutput::DLSSGWithNvngx) &&

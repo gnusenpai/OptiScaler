@@ -26,8 +26,6 @@ class FFXFeatureVkOn12 : public FFXFeature, public IFeature_VkwDx12
 
     bool Evaluate(VkCommandBuffer InCmdBuffer, NVSDK_NGX_Parameter* InParameters) override;
 
-    bool IsWithDx12() final { return true; }
-
     ~FFXFeatureVkOn12()
     {
         if (State::Instance().isShuttingDown)

@@ -123,6 +123,12 @@ bool FeatureProvider_Dx11::ChangeFeature(Upscaler upscaler, ID3D11Device* device
     // first release everything
     if (contextData->changeBackendCounter == 1)
     {
+        if (state.currentFG != nullptr && state.activeFgInput == FGInput::Upscaler)
+        {
+            state.fgChanged = true;
+            state.clearCapturedHudlesses = true;
+        }
+
         if (contextData->feature != nullptr)
         {
             LOG_INFO("changing backend to {0}", UpscalerDisplayName(state.newBackend));
