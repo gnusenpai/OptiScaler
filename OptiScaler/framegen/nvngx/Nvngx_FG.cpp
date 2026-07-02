@@ -154,11 +154,17 @@ void Nvngx_FG::InitDLSSGMod_Vulkan()
 {
     LOG_FUNC();
 
-    if (_vulkan_inited || Config::Instance()->FGInput.value_or_default() != FGInput::NvngxFG)
+    if (_vulkan_inited)
+    {
+        _mfg = false;
+        return;
+    }
+
+    if (Config::Instance()->FGInput.value_or_default() != FGInput::NvngxFG)
         return;
 
-    // Vulkan support was removed in 4.4; in <=4.3 only the original Nukem's 2x mode is supported
-    _dll = TryInitMFG();
+    // Avoid using Enabler for Vulkan
+    // _dll = TryInitMFG();
 
     if (_dll != nullptr)
     {
