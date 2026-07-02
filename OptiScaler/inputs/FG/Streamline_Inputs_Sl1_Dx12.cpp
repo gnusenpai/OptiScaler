@@ -4,6 +4,7 @@
 #include <Config.h>
 #include <magic_enum.hpp>
 #include <resource_tracking/ResTrack_dx12.h>
+#include <sl1_reflex.h>
 
 uint64_t Sl1_Inputs_Dx12::TagKey(uint32_t id, sl1::BufferType type)
 {
@@ -14,34 +15,17 @@ void Sl1_Inputs_Dx12::CheckForFrame(IFGFeature_Dx12* fg, uint32_t frameIndex)
 {
     std::scoped_lock lock(_frameBoundaryMutex);
 
-    if (_isFrameFinished && _lastPresentFrameId == _currentFrameId && frameIndex == 0 && frameIndex != _currentFrameId)
+    if (frameIndex != 0)
     {
-        LOG_DEBUG("SL1 1> CheckForFrame: frameIndex:{}, currentFrameId:{}, lastPresentFrameId:{}, isFrameFinished:{}",
-                  frameIndex, _currentFrameId, _lastPresentFrameId, _isFrameFinished);
+        LOG_DEBUG("SL1 CheckForFrame: frameIndex:{}, lastPresentFrameId:{}, isFrameFinished:{}", frameIndex,
+                  _lastPresentFrameId, _isFrameFinished);
 
         _isFrameFinished = false;
 
+        fg->SetFrameCount(frameIndex - 1);
         fg->StartNewFrame();
         _currentIndex = fg->GetIndex();
-
-        if (frameIndex != 0)
-            _currentFrameId = frameIndex;
-        else
-            _currentFrameId = _lastPresentFrameId + 1;
-
-        _frameIdIndex[_currentIndex] = _currentFrameId;
-    }
-    else if (frameIndex != 0 && frameIndex > _currentFrameId)
-    {
-        LOG_DEBUG("SL1 2> CheckForFrame: frameIndex:{}, currentFrameId:{}, lastPresentFrameId:{}, isFrameFinished:{}",
-                  frameIndex, _currentFrameId, _lastPresentFrameId, _isFrameFinished);
-
-        _isFrameFinished = false;
-
-        fg->StartNewFrame();
-        _currentIndex = fg->GetIndex();
-        _currentFrameId = frameIndex;
-        _frameIdIndex[_currentIndex] = _currentFrameId;
+        _frameIdIndex[_currentIndex] = frameIndex;
     }
 }
 
@@ -107,8 +91,6 @@ bool Sl1_Inputs_Dx12::applyConstants(const sl1::Constants& values, uint32_t fram
     if (fgOutput == nullptr)
         return false;
 
-    CheckForFrame(fgOutput, frameIndex);
-
     auto data = values;
     auto config = Config::Instance();
 
@@ -156,6 +138,7 @@ bool Sl1_Inputs_Dx12::applyConstants(const sl1::Constants& values, uint32_t fram
     if (fgOutput->IsActive() && IsTrue(lastConstants.notRenderingGameFrames))
     {
         fgOutput->Deactivate();
+        fgOutput->UpdateTarget();
         return true;
     }
     else if (!fgOutput->IsActive() && !fgOutput->IsPaused() && !IsTrue(lastConstants.notRenderingGameFrames))
@@ -279,8 +262,6 @@ bool Sl1_Inputs_Dx12::reportCachedResource(const CachedTag& tag, ID3D12GraphicsC
     res.state = static_cast<D3D12_RESOURCE_STATES>(tag.resource.state);
     res.validity = FG_ResourceValidity::UntilPresent;
 
-    CheckForFrame(fgOutput, frameIndex);
-
     if (frameIndex > 0)
     {
         int index = IndexForFrameId(frameIndex);
@@ -380,33 +361,57 @@ bool Sl1_Inputs_Dx12::evaluateFeature(sl1::CommandBuffer* cmdBuffer, sl1::Featur
 
     auto dxCmd = reinterpret_cast<ID3D12GraphicsCommandList*>(cmdBuffer);
 
-    std::vector<CachedTag> localTags;
     sl1::Constants constants {};
+
+    bool handled = false;
     bool applyLastConstants = false;
 
+    if (feature == sl1::Feature::eFeatureReflex)
     {
+        // Do not use this as an id for resources
+        auto reflexMarker = (sl1::ReflexMarker) id;
+
         std::scoped_lock lock(_mutex);
 
-        for (const auto& [key, tag] : _tags)
-        {
-            if (tag.id == id)
-                localTags.push_back(tag);
-        }
+        for (const auto& tag : _tags)
+            handled |= reportCachedResource(tag.second, dxCmd, frameIndex);
 
         if (hasLastConstants)
         {
             constants = lastConstants;
             applyLastConstants = true;
         }
+
+        LOG_TRACE("SL1 evaluateFeature feature: {}, frameIndex: {}, id: {}, cmd: {:X}, cachedTags {}",
+                  magic_enum::enum_name(feature), frameIndex, id, reinterpret_cast<size_t>(cmdBuffer), _tags.size());
     }
+    // else
+    //{
+    //     std::vector<CachedTag> localTags;
 
-    LOG_TRACE("SL1 evaluateFeature feature: {}, frameIndex: {}, id: {}, cmd: {:X}, cachedTags: {}",
-              magic_enum::enum_name(feature), frameIndex, id, reinterpret_cast<size_t>(cmdBuffer), localTags.size());
+    //    {
+    //        std::scoped_lock lock(_mutex);
 
-    bool handled = false;
+    //        for (const auto& [key, tag] : _tags)
+    //        {
+    //            if (tag.id == id)
+    //                localTags.push_back(tag);
+    //        }
 
-    for (const auto& tag : localTags)
-        handled |= reportCachedResource(tag, dxCmd, frameIndex);
+    //        if (hasLastConstants)
+    //        {
+    //            constants = lastConstants;
+    //            applyLastConstants = true;
+    //        }
+    //    }
+
+    //    LOG_TRACE("SL1 evaluateFeature feature: {}, frameIndex: {}, id: {}, cmd: {:X}, cachedTags: {}",
+    //              magic_enum::enum_name(feature), frameIndex, id, reinterpret_cast<size_t>(cmdBuffer),
+    //              localTags.size());
+
+    //    for (const auto& tag : localTags)
+    //        handled |= reportCachedResource(tag, dxCmd, frameIndex);
+    //}
 
     // Re-apply constants after resources, because MV scale depends on the tagged MV resource resolution.
     if (applyLastConstants)

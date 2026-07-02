@@ -31,7 +31,6 @@ class Sl1_Inputs_Dx12
     std::mutex _frameBoundaryMutex;
     bool _isFrameFinished = true;
 
-    uint32_t _currentFrameId = 0;
     uint32_t _currentIndex = UINT32_MAX;
     uint32_t _lastPresentFrameId = UINT32_MAX;
     uint32_t _frameIdIndex[BUFFER_COUNT] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };

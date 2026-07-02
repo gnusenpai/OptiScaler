@@ -466,8 +466,11 @@ bool StreamlineHooks::hkslEvaluateFeature_sl1(sl1::CommandBuffer* cmdBuffer, sl1
     LOG_TRACE("SL1 slEvaluateFeature feature: {}, frameIndex: {}, id: {}", magic_enum::enum_name(feature), frameIndex,
               id);
 
-    if (IsSL1AndFGActive())
+    if (IsSL1AndFGActive() && feature == sl1::Feature::eFeatureReflex &&
+        ((sl1::ReflexMarker) id) == sl1::ReflexMarker::eReflexMarkerRenderSubmitEnd)
+    {
         State::Instance().s_sl1FGInputs.evaluateFeature(cmdBuffer, feature, frameIndex, id);
+    }
 
     return o_slEvaluateFeature_sl1(cmdBuffer, feature, frameIndex, id);
 }
