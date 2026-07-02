@@ -845,8 +845,6 @@ bool StreamlineHooks::hklocal_dlssg_slOnPluginLoad(sl::param::IParameters* param
             configJson["external"]["vk"]["device"]["extensions"].clear();
     }
 
-    PatchSL1PluginJson(configJson);
-
     config = configJson.dump();
 
     *pluginJSON = config.c_str();
