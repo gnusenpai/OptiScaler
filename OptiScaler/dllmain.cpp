@@ -1363,7 +1363,6 @@ static void CheckQuirks(bool isNvidia)
         quirks.reset(GameQuirk::DisableDxgiSpoofing);
 
     if (quirks & GameQuirk::RestoreComputeSigOnNonNvidia && !isNvidia &&
-        !Config::Instance()->DxgiSpoofing.value_or_default() &&
         !Config::Instance()->RestoreComputeSignature.has_value())
     {
         Config::Instance()->RestoreComputeSignature.set_volatile_value(true);
