@@ -369,16 +369,14 @@ static const QuirkEntry quirkTable[] = {
 
     // SL spoof enough to unlock everything DLSS/No spoof needed for DLSS inputs
     //
-    // Alan Wake 2, Crysis 3 Remastered, Collection, Warhammer 40,000: Darktide,
-    // Observer: System Redux, Sackboy: A Big Adventure, Hellblade: Senua's Sacrifice,
-    // Pumpkin Jack, Rise of the Ronin, DYNASTY WARRIORS: ORIGINS, Crysis Remastered,
-    // Crysis 2 Remastered, Mortal Shell, Sekiro: Shadows Die Twice (for SekiroTSR mod),
-    // The Medium, NINJA GAIDEN 4 (+ WinGDK), God of War (2018), Europa Universalis V,
-    // Need for Speed Unbound, Nioh 2 – The Complete Edition, Control Ultimate Edition,
-    // Deathloop, Where Winds Meet, FINAL FANTASY VII REMAKE INTERGRADE (for Luma mod),
-    // Assassin's Creed Shadows, Farming Simulator 2025, Nioh 3,
-    // FATAL FRAME II: Crimson Butterfly REMAKE, OUTRIDERS, MOUSE: P.I. For Hire,
-    // Yet Another Zombie Survivors, Voodoo Fishin', Forza Horizon 6
+    // Alan Wake 2, Crysis 3 Remastered, Collection, Warhammer 40,000: Darktide, Observer: System Redux, Sackboy: A Big
+    // Adventure, Hellblade: Senua's Sacrifice, Pumpkin Jack, Rise of the Ronin, DYNASTY WARRIORS: ORIGINS, Crysis
+    // Remastered, Crysis 2 Remastered, Mortal Shell, Sekiro: Shadows Die Twice (for SekiroTSR mod), The Medium, NINJA
+    // GAIDEN 4 (+ WinGDK), God of War (2018), Europa Universalis V, Need for Speed Unbound, Nioh 2 – The Complete
+    // Edition, Control Ultimate Edition, Deathloop, Where Winds Meet, FINAL FANTASY VII REMAKE INTERGRADE (for Luma
+    // mod), Assassin's Creed Shadows, Farming Simulator 2025, Nioh 3, FATAL FRAME II: Crimson Butterfly REMAKE,
+    // OUTRIDERS, MOUSE: P.I. For Hire, Yet Another Zombie Survivors, Voodoo Fishin', Forza Horizon 6, Over the Hill
+    // (demo), SHROT (demo)
     QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
@@ -413,6 +411,8 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("yet another zombie survivors.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("voodoo fishin'.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("forzahorizon6.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("over the hill.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("shrot.exe", GameQuirk::DisableDxgiSpoofing),
 
     // FSR2/3 only, no spoof needed
     //
