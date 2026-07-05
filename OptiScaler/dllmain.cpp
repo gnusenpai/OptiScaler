@@ -1217,8 +1217,11 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
     if (quirks & GameQuirk::DontUseNTShared)
         stringQuirks.push_back("Don't use NTShared enabled");
 
-    if (quirks & GameQuirk::DontUseUnrealBarriers)
-        stringQuirks.push_back("Don't use resource barrier fix for Unreal Engine games");
+    if (quirks & GameQuirk::DontUseUnrealColorBarriers)
+        stringQuirks.push_back("Don't use color resource barrier fix for Unreal Engine games");
+
+    if (quirks & GameQuirk::DontUseUnrealMVBarriers)
+        stringQuirks.push_back("Don't use motion vector resource barrier fix for Unreal Engine games");
 
     if (quirks & GameQuirk::SkipFirst10Frames)
         stringQuirks.push_back("Skipping upscaling for first 10 frames");
@@ -1429,14 +1432,15 @@ static void CheckQuirks(bool isNvidia)
     else
         quirks.reset(GameQuirk::DontUseNTShared);
 
-    if (quirks & GameQuirk::DontUseUnrealBarriers && !Config::Instance()->ColorResourceBarrier.has_value())
+    if (quirks & GameQuirk::DontUseUnrealColorBarriers && !Config::Instance()->ColorResourceBarrier.has_value())
         Config::Instance()->ColorResourceBarrier.set_volatile_value(128);
+    else
+        quirks.reset(GameQuirk::DontUseUnrealColorBarriers);
 
-    if (quirks & GameQuirk::DontUseUnrealBarriers && !Config::Instance()->MVResourceBarrier.has_value())
+    if (quirks & GameQuirk::DontUseUnrealMVBarriers && !Config::Instance()->MVResourceBarrier.has_value())
         Config::Instance()->MVResourceBarrier.set_volatile_value(128);
-
-    if (Config::Instance()->ColorResourceBarrier.has_value() && Config::Instance()->MVResourceBarrier.has_value())
-        quirks.reset(GameQuirk::DontUseUnrealBarriers);
+    else
+        quirks.reset(GameQuirk::DontUseUnrealMVBarriers);
 
     if (quirks & GameQuirk::SkipFirst10Frames && !Config::Instance()->SkipFirstFrames.has_value())
         Config::Instance()->SkipFirstFrames.set_volatile_value(10);

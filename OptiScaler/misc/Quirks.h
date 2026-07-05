@@ -22,7 +22,6 @@ enum class GameQuirk : uint64_t
     EnableVulkanExtensionSpoofing,
     DisableOptiXessPipelineCreation,
     DontUseNTShared,
-    DontUseUnrealBarriers,
     SkipFirst10Frames,
     DisableVsyncOverride,
     DontUseNtDllHooks,
@@ -40,6 +39,8 @@ enum class GameQuirk : uint64_t
     DoNotPreserveFGSwapChain,
     OldOverlayMenu,
     DoNotLoadAmdxc64,
+    DontUseUnrealMVBarriers,
+    DontUseUnrealColorBarriers,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessState,
@@ -250,7 +251,8 @@ static const QuirkEntry quirkTable[] = {
 
     // Returnal
     // no spoof needed for DLSS inputs, but no DLSSG and Reflex
-    QUIRK_ENTRY_UE(returnal, GameQuirk::DisableDxgiSpoofing, GameQuirk::DontUseUnrealBarriers),
+    QUIRK_ENTRY_UE(returnal, GameQuirk::DisableDxgiSpoofing, GameQuirk::DontUseUnrealMVBarriers,
+                   GameQuirk::DontUseUnrealColorBarriers),
 
     // WUCHANG: Fallen Feathers
     // Skip 1 frame use of upscaler which cause crash
@@ -272,8 +274,8 @@ static const QuirkEntry quirkTable[] = {
 
     // Avowed
     // NoColorBarrier needed to avoid post-loading crash with DLSS, AE required to fix FSR4 ghosting
-    QUIRK_ENTRY_UE(avowed, GameQuirk::ForceAutoExposure, GameQuirk::DontUseUnrealBarriers, GameQuirk::DisableFSR2Inputs,
-                   GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY_UE(avowed, GameQuirk::ForceAutoExposure, GameQuirk::DontUseUnrealColorBarriers,
+                   GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
     // Starfield
     // SL spoof enough to unlock everything DLSS, Depth and Velocity needed to avoid FG artifacts
