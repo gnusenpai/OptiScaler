@@ -1239,6 +1239,22 @@ void FSRFG_Dx12::Deactivate()
     }
 }
 
+template <auto Flag> void CheckAndUpdateFlag(auto currentFlags, std::string_view flagName)
+{
+    static std::optional<bool> lastState;
+    bool currentState = static_cast<bool>(currentFlags & Flag);
+
+    if (lastState.has_value() && *lastState != currentState)
+    {
+        LOG_DEBUG("{} changed: {}", flagName, currentState);
+
+        State::Instance().fgChanged = true;
+        State::Instance().scChanged = true;
+    }
+
+    lastState = currentState;
+}
+
 void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
 {
     LOG_FUNC();
@@ -1260,16 +1276,12 @@ void FSRFG_Dx12::EvaluateState(ID3D12Device* device, FG_Constants& fgConstants)
         return;
     }
 
-    static bool lastInfiniteDepth = false;
-    bool currentInfiniteDepth = static_cast<bool>(fgConstants.flags & FG_Flags::InfiniteDepth);
-    if (lastInfiniteDepth != currentInfiniteDepth)
-    {
-        lastInfiniteDepth = currentInfiniteDepth;
-        LOG_DEBUG("Infinite Depth changed: {}", currentInfiniteDepth);
-
-        State::Instance().fgChanged = true;
-        State::Instance().scChanged = true;
-    }
+    // DLSSG can update flags in eval, FSR FG requires context recreation for this
+    CheckAndUpdateFlag<FG_Flags::Hdr>(fgConstants.flags, "HDR");
+    CheckAndUpdateFlag<FG_Flags::InfiniteDepth>(fgConstants.flags, "Infinite Depth");
+    CheckAndUpdateFlag<FG_Flags::InvertedDepth>(fgConstants.flags, "Inverted Depth");
+    CheckAndUpdateFlag<FG_Flags::JitteredMVs>(fgConstants.flags, "Jittered MVs");
+    CheckAndUpdateFlag<FG_Flags::DisplayResolutionMVs>(fgConstants.flags, "Display Resolution MVs");
 
     if (_maxRenderWidth != 0 && _maxRenderHeight != 0 && IsActive() && !IsPaused() &&
         (fgConstants.displayWidth > _maxRenderWidth || fgConstants.displayHeight > _maxRenderHeight))
