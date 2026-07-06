@@ -7,6 +7,81 @@
 
 #include <Config.h>
 
+inline static int GetFormatGroup(DXGI_FORMAT format)
+{
+    switch (format)
+    {
+
+    case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+    case DXGI_FORMAT_R32G32B32A32_FLOAT:
+    case DXGI_FORMAT_R32G32B32A32_UINT:
+    case DXGI_FORMAT_R32G32B32A32_SINT:
+        return 1;
+
+    case DXGI_FORMAT_R32G32B32_TYPELESS:
+    case DXGI_FORMAT_R32G32B32_FLOAT:
+    case DXGI_FORMAT_R32G32B32_UINT:
+    case DXGI_FORMAT_R32G32B32_SINT:
+        return 2;
+
+    case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+    case DXGI_FORMAT_R16G16B16A16_FLOAT:
+    case DXGI_FORMAT_R16G16B16A16_UNORM:
+    case DXGI_FORMAT_R16G16B16A16_UINT:
+    case DXGI_FORMAT_R16G16B16A16_SNORM:
+    case DXGI_FORMAT_R16G16B16A16_SINT:
+        return 3;
+
+    case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+    case DXGI_FORMAT_R10G10B10A2_UNORM:
+    case DXGI_FORMAT_R10G10B10A2_UINT:
+        return 4;
+
+    case DXGI_FORMAT_R11G11B10_FLOAT:
+        return 5;
+
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+    case DXGI_FORMAT_R8G8B8A8_UNORM:
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_R8G8B8A8_UINT:
+    case DXGI_FORMAT_R8G8B8A8_SNORM:
+    case DXGI_FORMAT_R8G8B8A8_SINT:
+        return 6;
+
+    case DXGI_FORMAT_B5G6R5_UNORM:
+        return 7;
+
+    case DXGI_FORMAT_B5G5R5A1_UNORM:
+        return 8;
+
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+        return 9;
+
+    case DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM:
+        return 10;
+
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+        return 11;
+
+    default:
+        return -1;
+    }
+}
+
+inline static bool CompareResourceFormats(DXGI_FORMAT sc, DXGI_FORMAT hudless)
+{
+    if (sc == hudless)
+        return true;
+
+    auto scGroup = GetFormatGroup(sc);
+    auto hudlessGroup = GetFormatGroup(hudless);
+    return scGroup == hudlessGroup;
+}
+
 bool HC_Dx12::CreateBufferResource(UINT index, ID3D12Device* InDevice, ID3D12Resource* InSource,
                                    D3D12_RESOURCE_STATES InState)
 {
@@ -201,7 +276,12 @@ bool HC_Dx12::Dispatch(IDXGISwapChain3* sc, ID3D12GraphicsCommandList* cmdList, 
     FrameDescriptorHeap& currentHeap = _frameHeaps[_counter];
 
     // Create views
-    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0));
+    // Fix for typeless formats, e.g. R8G8B8A8_TYPELESS, which can be used for both SRGB and UNORM
+    if (CompareResourceFormats(scDesc.BufferDesc.Format, hudlessDesc.Format))
+        CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0), scDesc.BufferDesc.Format);
+    else
+        CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0));
+
     CreateShaderResourceView(_device, _buffer[_counter], currentHeap.GetSrvCPU(1));
     CreateRenderTargetView(_device, scBuffer, currentHeap.GetRtvCPU(0), 0);
 

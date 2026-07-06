@@ -181,7 +181,7 @@ void Shader_Dx12::SetBufferState(ID3D12GraphicsCommandList* InCommandList, D3D12
 
 // From DirectXHelpers.cpp licensed under MIT
 void Shader_Dx12::CreateShaderResourceView(ID3D12Device* device, ID3D12Resource* tex,
-                                           D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor)
+                                           D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor, DXGI_FORMAT format)
 {
     if (!device || !tex)
         throw std::invalid_argument("Direct3D device and resource must be valid");
@@ -195,7 +195,7 @@ void Shader_Dx12::CreateShaderResourceView(ID3D12Device* device, ID3D12Resource*
     }
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = TranslateTypelessFormats(desc.Format);
+    srvDesc.Format = TranslateTypelessFormats((format != DXGI_FORMAT_UNKNOWN) ? format : desc.Format);
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
     const UINT mipLevels = (desc.MipLevels) ? static_cast<UINT>(desc.MipLevels) : static_cast<UINT>(-1);
