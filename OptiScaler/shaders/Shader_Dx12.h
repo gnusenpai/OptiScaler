@@ -37,7 +37,8 @@ class Shader_Dx12
     static void SetBufferState(ID3D12GraphicsCommandList* InCommandList, D3D12_RESOURCE_STATES InState,
                                ID3D12Resource* Buffer, D3D12_RESOURCE_STATES* BufferState);
 
-    void CreateShaderResourceView(ID3D12Device* device, ID3D12Resource* tex, D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor);
+    void CreateShaderResourceView(ID3D12Device* device, ID3D12Resource* tex, D3D12_CPU_DESCRIPTOR_HANDLE srvDescriptor,
+                                  DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN);
 
     void CreateUnorderedAccessView(ID3D12Device* device, ID3D12Resource* tex, D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptor,
                                    uint32_t mipLevel);

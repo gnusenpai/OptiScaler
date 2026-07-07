@@ -58,7 +58,9 @@ bool HCC_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* hudl
     ResourceBarrier(cmdList, hudless, hudlessState, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
     // Create views
-    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0));
+    auto pDesc = present->GetDesc();
+    // Because of HudlessTransfer, the format of hudless is the same as present
+    CreateShaderResourceView(_device, hudless, currentHeap.GetSrvCPU(0), pDesc.Format);
     CreateShaderResourceView(_device, present, currentHeap.GetSrvCPU(1));
     CreateUnorderedAccessView(_device, _buffer, currentHeap.GetUavCPU(0), 0);
 
